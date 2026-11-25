@@ -1,6 +1,6 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import { defineRole } from './role';
+import { defineRole, type WerewolfRoleStepDefinition } from './role';
 import {
   createGroupConfirmStep,
   createSingleTargetStep,
@@ -27,27 +27,33 @@ const COPY = defineCopy({
   notConfessed: '你未被表白',
 });
 
-const confessStep = createSingleTargetStep({
-  id: 'wolfGirlConfess',
-  roleId: 'wolfGirl',
-  roleName: COPY.name,
-  actionName: COPY.action,
-  phrase: (seats) => {
-    const seat = seats[0];
-    return seat === undefined ? COPY.action : renderCopy(COPY.confess, { seat: formatSeat(seat) });
-  },
-  skippable: false,
-  canTargetSelf: false,
-  targetUnavailableReason: getWolfTeammateRestriction,
-  selectionEffects: (context, selection) => ({
-    disabledAbilities: [],
-    deathEffects: [],
-    wolfGirlConfessions:
-      context.teamOfRole(context.role.roleOf(selection.landingSeat)) === 'wolf'
-        ? []
-        : [{ actorSeat: getActingSeat(context), targetSeat: selection.landingSeat }],
+const confessStep: WerewolfRoleStepDefinition = {
+  ...createSingleTargetStep({
+    id: 'wolfGirlConfess',
+    roleId: 'wolfGirl',
+    roleName: COPY.name,
+    actionName: COPY.action,
+    phrase: (seats) => {
+      const seat = seats[0];
+      return seat === undefined
+        ? COPY.action
+        : renderCopy(COPY.confess, { seat: formatSeat(seat) });
+    },
+    skippable: false,
+    canTargetSelf: false,
+    targetUnavailableReason: getWolfTeammateRestriction,
+    selectionEffects: (context, selection) => ({
+      disabledAbilities: [],
+      deathEffects: [],
+      wolfGirlConfessions:
+        context.teamOfRole(context.role.roleOf(selection.landingSeat)) === 'wolf'
+          ? []
+          : [{ actorSeat: getActingSeat(context), targetSeat: selection.landingSeat }],
+    }),
   }),
-});
+  // She alone is shown the wolves while she chooses whom to confess to.
+  wolfPackViewers: 'owner',
+};
 
 const confessRevealStep = createGroupConfirmStep({
   id: 'wolfGirlConfessReveal',

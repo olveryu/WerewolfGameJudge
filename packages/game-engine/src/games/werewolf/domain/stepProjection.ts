@@ -7,7 +7,11 @@ import {
   type StepPresentation,
   type StepSubmission,
 } from '../../../platform/steps';
-import { getWerewolfRoleDefinition, getWerewolfStepOwnerRoleId } from '../roles/nightPlan';
+import {
+  getWerewolfRoleDefinition,
+  getWerewolfStepOwnerRoleId,
+  WEREWOLF_STEP_DEFINITIONS,
+} from '../roles/nightPlan';
 import {
   createWerewolfStepRuntime,
   planWerewolfGroupBotAcknowledgements,
@@ -81,10 +85,13 @@ export function projectWerewolfStep(
   const viewerIdentity = viewerSeat === null ? undefined : night.roles.identities[viewerSeat];
   const viewerRole =
     viewerIdentity === undefined ? null : getWerewolfRoleDefinition(viewerIdentity.currentRole);
+  const packViewers = WEREWOLF_STEP_DEFINITIONS[currentId]?.wolfPackViewers;
   const canSeePack =
     viewerRole !== null &&
-    ((currentId === 'wolfKill' && viewerRole.traits.recognition?.participatesInWolfVote === true) ||
-      (currentId === 'wolfGirlConfess' && viewerIdentity?.currentRole === 'wolfGirl'));
+    (packViewers === 'wolfVoters'
+      ? viewerRole.traits.recognition?.participatesInWolfVote === true
+      : packViewers === 'owner' &&
+        viewerIdentity?.currentRole === getWerewolfStepOwnerRoleId(state.templateRoles, currentId));
   const wolfPackSeats = canSeePack
     ? night.roles.seatedSeats.filter((seat) => {
         const identity = night.roles.identities[seat];

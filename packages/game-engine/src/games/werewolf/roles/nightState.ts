@@ -80,7 +80,11 @@ const identityChange = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('grantBorrowedAbility'), seat, roleId }),
 ]);
 const roleAbilityId = z.union([roleId, z.literal('*'), z.literal('wolfKill')]);
-const roleAbility = z.strictObject({ roleId: roleAbilityId, seat });
+const roleAbility = z.strictObject({
+  roleId: roleAbilityId,
+  seat,
+  sourceRoleId: roleId.optional(),
+});
 const swap = z.strictObject({ first: seat, second: seat });
 const wolfVote = z.strictObject({
   actorSeat: seat,
@@ -109,6 +113,7 @@ const facts = z.strictObject({
   wolfInfections: z.array(z.strictObject({ actorSeat: seat, targetSeat: seat })).optional(),
   wolfGirlConfessions: z.array(z.strictObject({ actorSeat: seat, targetSeat: seat })).optional(),
   sightOverrides: z.array(z.strictObject({ seat, roleId })).optional(),
+  reflections: z.array(z.strictObject({ seat })).optional(),
   conversions: z.array(z.strictObject({ seat, formerRoleIds: z.array(roleId) })).optional(),
 });
 const roleState = z.strictObject({

@@ -19,6 +19,7 @@ const COPY = defineCopy({
   action: '选择底牌',
   hint: '你的阵营：狼人阵营',
   resultTitle: '获得的技能',
+  wolfCardUnavailable: '不可选择狼人阵营底牌',
 });
 
 export const treasureMasterPresence = [
@@ -53,6 +54,7 @@ export const treasureMaster = defineRole({
       hint: () => COPY.hint,
       resultTitle: COPY.resultTitle,
       identityChange: 'grantBorrowedAbility',
+      cardUnavailableReason: (card) => (card.faction === 'wolf' ? COPY.wolfCardUnavailable : null),
     }),
   ],
 });

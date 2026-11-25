@@ -12,10 +12,12 @@ const COPY = defineCopy({
   specialText: '首夜行动时尚未与狼队互认；若恐惧到狼人，狼人阵营当夜无法袭击',
   action: '恐惧',
   blockedRole: '（{role}，技能无效）',
+  locked: '被噩梦之影恐惧，本夜无法使用技能',
 });
 
 export const nightmare = defineRole({
   id: 'nightmare',
+  abilityLockReason: COPY.locked,
   card: {
     name: COPY.name,
     shortName: COPY.shortName,
@@ -50,7 +52,7 @@ export const nightmare = defineRole({
         const wolfVoteDisabled = context.factionOfRole(targetRole) === 'wolf';
         return {
           disabledAbilities: [
-            { roleId: '*', seat: selection.landingSeat },
+            { roleId: '*', seat: selection.landingSeat, sourceRoleId: 'nightmare' },
             ...(wolfVoteDisabled
               ? context.state.seatedSeats
                   .filter((seat) => context.doesRoleVoteWithWolves(context.role.roleOf(seat)))

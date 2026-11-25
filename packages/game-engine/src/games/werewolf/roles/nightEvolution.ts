@@ -197,6 +197,17 @@ export function isInfectionSettlementStep(state: GameState, completedStepId: str
   );
 }
 
+/** Whether this night has an infection step whose outcome nothing has settled yet. */
+export function isInfectionPending(state: GameState): boolean {
+  const night = state.nightState;
+  if (night === null || night.infection !== null) return false;
+  const runtime = createWerewolfStepRuntime(null);
+  const context = runtime.createContext(state, night.facts, null, { bySeat: {} });
+  return (
+    getInfectionSettlementStepId(night.slice.order, WEREWOLF_STEP_DEFINITIONS, context) !== null
+  );
+}
+
 /** Decide the infection outcome from the current effective attacks and protections. */
 export function decideWerewolfInfection(state: GameState): SeedWolfInfectionResult {
   const night = state.nightState;

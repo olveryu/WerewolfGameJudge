@@ -162,6 +162,7 @@ export function mergeWerewolfNightFacts(
       ...(emitted.wolfGirlConfessions ?? []),
     ],
     sightOverrides: [...(previous.sightOverrides ?? []), ...(emitted.sightOverrides ?? [])],
+    reflections: [...(previous.reflections ?? []), ...(emitted.reflections ?? [])],
     conversions: [...(previous.conversions ?? []), ...(emitted.conversions ?? [])],
   };
 }

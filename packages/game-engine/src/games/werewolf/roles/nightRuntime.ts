@@ -1,7 +1,6 @@
 import { createSeededRng } from '../../../platform/random';
 import { getBotSeats } from '../../../platform/room/seating';
 import {
-  defineCopy,
   planBotAcknowledgements,
   type StepRecord,
   type StepRuntime,
@@ -22,8 +21,6 @@ import type {
   WerewolfRoleStepResult,
 } from './role';
 import { isKnownWolfTeammate } from './roleSteps';
-
-const COPY = defineCopy({ wolfBottomCardUnavailable: '不可选择狼人阵营底牌' });
 
 type WerewolfStepRuntime = StepRuntime<
   string,
@@ -127,10 +124,10 @@ function createWerewolfStepContext(input: WerewolfStepContextInput): WerewolfRol
       }),
     roleNameOf: (roleId) => getWerewolfRoleDefinition(roleId).card.name,
     randomBoolean: () => {
-      if (seat === null || input.stepId !== 'drunkSeerCheck' || input.randomSeed === null) {
-        throw new Error('[FAIL-FAST] Random check requested outside the drunk seer submission');
+      if (seat === null || input.stepId === null || input.randomSeed === null) {
+        throw new Error('[FAIL-FAST] A random result was requested outside a submission');
       }
-      return createSeededRng(`${input.randomSeed}:resolver:drunkSeerCheck:${seat}`)() >= 0.5;
+      return createSeededRng(`${input.randomSeed}:resolver:${input.stepId}:${seat}`)() >= 0.5;
     },
     nightPresence: input.nightPresence,
     resolvedWolfKillTarget: input.resolvedWolfKillTarget,
@@ -139,8 +136,14 @@ function createWerewolfStepContext(input: WerewolfStepContextInput): WerewolfRol
       const causes = resolveDeathEffects(collectWerewolfDeathEffects(context)).causes[targetSeat];
       return causes === undefined || causes.every((cause) => cause === 'wolfKill');
     },
-    avengerFactionOf: (targetSeat) => getAvengerFaction(state, facts, targetSeat),
-    bottomCardsOf: (_targetSeat, roleId) => createBottomCards(input.bottomCards, roleId),
+    abilityLockReasonOf: (roleId) => {
+      const reason = getWerewolfRoleDefinition(roleId).abilityLockReason;
+      if (reason === undefined) {
+        throw new Error(`[FAIL-FAST] ${roleId} locks skills but declares no reason`);
+      }
+      return reason;
+    },
+    bottomCardsOf: () => createBottomCards(input.bottomCards),
   };
   return context;
 }
@@ -163,35 +166,9 @@ export function collectWerewolfDeathEffects(
   return effects;
 }
 
-function createBottomCards(
-  bottomCards: readonly RoleId[],
-  actorRoleId: string,
-): readonly WerewolfBottomCard[] {
+function createBottomCards(bottomCards: readonly RoleId[]): readonly WerewolfBottomCard[] {
   return bottomCards.map((roleId, index) => {
     const role = getWerewolfRoleDefinition(roleId);
-    return {
-      index,
-      label: role.card.name,
-      roleId,
-      faction: role.traits.faction,
-      unavailableReason:
-        actorRoleId === 'treasureMaster' && role.traits.faction === 'wolf'
-          ? COPY.wolfBottomCardUnavailable
-          : null,
-    };
+    return { index, label: role.card.name, roleId, faction: role.traits.faction };
   });
-}
-
-function getAvengerFaction(
-  state: WerewolfRoleState,
-  facts: WerewolfNightFacts,
-  avengerSeat: number,
-): 'good' | 'wolf' | 'bonded' {
-  const shadow = facts.selections.find((selection) => selection.roleId === 'shadow');
-  // Rule: with no mimic target (the shadow card was left as a bottom card) the avenger is good.
-  if (shadow === undefined) return 'good';
-  if (shadow.landingSeat === avengerSeat) return 'bonded';
-  const target = state.identities[shadow.landingSeat];
-  if (target === undefined) throw new Error('[FAIL-FAST] Shadow target has no identity');
-  return getWerewolfRoleDefinition(target.currentRole).traits.team === 'wolf' ? 'good' : 'wolf';
 }

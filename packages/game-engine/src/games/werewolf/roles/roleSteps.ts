@@ -11,7 +11,6 @@ import type {
 } from './role';
 
 const ROLE_STEP_COPY = defineCopy({
-  nightmareLocked: '被噩梦之影恐惧，本夜无法使用技能',
   selfTargetDisallowed: '不能选择自己',
   wolfTeammateDisallowed: '不能选择狼人阵营的玩家',
   actualLanding: '（实际为{seat}）',
@@ -61,6 +60,7 @@ export interface SingleTargetStepOptions {
     Partial<
       Pick<
         WerewolfNightFacts,
+        | 'reflections'
         | 'identityChanges'
         | 'locationSwaps'
         | 'resourceUses'
@@ -90,11 +90,14 @@ export function getActingSeat(context: WerewolfRoleStepContext): number {
 /** Why the acting seat cannot use any skill tonight, or null when it can. */
 export function getRoleAbilityLockReason(context: WerewolfRoleStepContext): string | null {
   if (context.seat === null) return null;
-  return context.facts.disabledAbilities.some(
+  const lock = context.facts.disabledAbilities.find(
     (ability) => ability.seat === context.seat && ability.roleId === '*',
-  )
-    ? ROLE_STEP_COPY.nightmareLocked
-    : null;
+  );
+  if (lock === undefined) return null;
+  if (lock.sourceRoleId === undefined) {
+    throw new Error('[FAIL-FAST] A seat-wide skill lock names no source role');
+  }
+  return context.abilityLockReasonOf(lock.sourceRoleId);
 }
 
 /**
@@ -139,11 +142,13 @@ export function resolveRoleTarget(
   chosenSeat: number,
 ): TargetSelection {
   const selection = resolveTargetSelection(chosenSeat, context.state.location);
-  const shelter = context.facts.selections.find((entry) => entry.roleId === 'eclipseWolfQueen');
+  const isReflected = context.facts.reflections?.some(
+    (reflection) => reflection.seat === selection.landingSeat,
+  );
   if (
     context.seat !== null &&
     context.teamOfRole(context.role.roleOf(context.seat)) === 'good' &&
-    shelter?.landingSeat === selection.landingSeat
+    isReflected === true
   ) {
     return { ...selection, landingSeat: context.seat };
   }
@@ -296,6 +301,9 @@ export function createSingleTargetStep(
             ...(selectionEffects?.wolfGirlConfessions === undefined
               ? {}
               : { wolfGirlConfessions: selectionEffects.wolfGirlConfessions }),
+            ...(selectionEffects?.reflections === undefined
+              ? {}
+              : { reflections: selectionEffects.reflections }),
           };
           const wasRedirected =
             selection.landingSeat !== context.role.landing(selection.chosenSeat);
@@ -364,6 +372,8 @@ export interface CardSelectionStepOptions {
   readonly resultTitle: string;
   readonly identityChange: 'replaceCurrentRole' | 'grantBorrowedAbility';
   readonly mustChooseWolfWhenAvailable?: boolean;
+  /** Why this role may not take the card, or null when it may. */
+  readonly cardUnavailableReason?: (card: WerewolfBottomCard) => string | null;
 }
 
 export function createCardSelectionStep(
@@ -449,7 +459,8 @@ function getCardUnavailableReason(
   card: WerewolfBottomCard,
   cards: readonly WerewolfBottomCard[],
 ): string | null {
-  if (card.unavailableReason !== null) return card.unavailableReason;
+  const ownReason = options.cardUnavailableReason?.(card) ?? null;
+  if (ownReason !== null) return ownReason;
   if (
     options.mustChooseWolfWhenAvailable === true &&
     cards.some((candidate) => candidate.faction === 'wolf') &&

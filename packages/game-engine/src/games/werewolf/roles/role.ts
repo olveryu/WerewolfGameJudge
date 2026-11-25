@@ -78,7 +78,12 @@ export interface WerewolfNightFacts {
     readonly actorSeat: number;
     readonly cardIndex: number;
   }[];
-  readonly disabledAbilities: readonly { readonly roleId: string; readonly seat: number }[];
+  readonly disabledAbilities: readonly {
+    readonly roleId: string;
+    readonly seat: number;
+    /** The role that locked the seat; required when every skill of the seat is locked. */
+    readonly sourceRoleId?: string;
+  }[];
   readonly deathEffects: readonly DeathEffect[];
   readonly wolfVotes?: readonly {
     readonly actorSeat: number;
@@ -101,6 +106,8 @@ export interface WerewolfNightFacts {
     readonly targetSeat: number;
   }[];
   readonly sightOverrides?: readonly { readonly seat: number; readonly roleId: string }[];
+  /** Seats on which a good-team action is turned back onto its actor. */
+  readonly reflections?: readonly { readonly seat: number }[];
   /** Seats converted this night, with the roles they held until then. */
   readonly conversions?: readonly {
     readonly seat: number;
@@ -141,7 +148,6 @@ export type WerewolfRoleIdentityChange =
 export interface WerewolfBottomCard {
   readonly index: number;
   readonly label: string;
-  readonly unavailableReason: string | null;
   readonly roleId: string;
   readonly faction: WerewolfRoleFaction;
 }
@@ -164,7 +170,8 @@ export interface WerewolfRoleStepContext extends StepContextBase<
   readonly resolvedWolfKillTarget: number | null;
   readonly resolvedWolfKillVerdict?: ResolvedWolfKillVerdict | null;
   readonly canShootAtNight: (seat: number, roleId: string) => boolean;
-  readonly avengerFactionOf: (seat: number) => 'good' | 'wolf' | 'bonded';
+  /** What a seat is told when the given role has locked all its skills for the night. */
+  readonly abilityLockReasonOf: (roleId: string) => string;
   readonly bottomCardsOf: (seat: number, roleId: string) => readonly WerewolfBottomCard[];
 }
 
@@ -175,6 +182,8 @@ export type WerewolfRoleStepDefinition = Omit<
   readonly audio: WerewolfStepAudio<WerewolfRoleStepContext>;
   /** What this step did stays in force when its actor is converted later the same night. */
   readonly survivesConversion?: true;
+  /** Who is shown the wolf pack while this step is current: the wolves that vote, or its owner. */
+  readonly wolfPackViewers?: 'wolfVoters' | 'owner';
   /** Whether an actor of this later step can still undo the wolf attack on its target. */
   readonly canRescueWolfKillTarget?: (context: WerewolfRoleStepContext) => boolean;
 };
@@ -213,6 +222,8 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
   readonly steps: readonly WerewolfRoleStepDefinition[];
   readonly nightSchedule?: 'firstNight' | 'everyNight';
   readonly oneUseOnSuccess?: boolean;
+  /** What a seat is told when this role has locked all its skills for the night. */
+  readonly abilityLockReason?: string;
   readonly resources?: readonly WerewolfRoleResource[];
   readonly announcement?: WerewolfAnnouncementDeclaration;
   readonly personalDaytimeView?: WerewolfPersonalDaytimeViewDeclaration;

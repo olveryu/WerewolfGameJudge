@@ -1,5 +1,5 @@
 import { defineCopy } from '../../../platform/steps';
-import { defineRole } from './role';
+import { defineRole, type WerewolfRoleStepContext } from './role';
 import { createViewStep, getActingSeat } from './viewStep';
 
 const COPY = defineCopy({
@@ -21,6 +21,18 @@ const COPY = defineCopy({
   bonded: '你与影子绑定，同属第三方阵营',
   confirmed: '已确认阵营',
 });
+
+/** The avenger always stands opposite the side the shadow mimics; mimicked itself, it is bonded. */
+function getAvengerFaction(
+  context: WerewolfRoleStepContext,
+  avengerSeat: number,
+): 'good' | 'wolf' | 'bonded' {
+  const shadow = context.facts.selections.find((selection) => selection.roleId === 'shadow');
+  // Rule: with no mimic target (the shadow card was left as a bottom card) the avenger is good.
+  if (shadow === undefined) return 'good';
+  if (shadow.landingSeat === avengerSeat) return 'bonded';
+  return context.teamOfRole(context.role.roleOf(shadow.landingSeat)) === 'wolf' ? 'good' : 'wolf';
+}
 
 export const avenger = defineRole({
   id: 'avenger',
@@ -49,7 +61,7 @@ export const avenger = defineRole({
       viewTitle: COPY.viewTitle,
       reviewPhrase: () => COPY.confirmed,
       content: (context) => {
-        switch (context.avengerFactionOf(getActingSeat(context))) {
+        switch (getAvengerFaction(context, getActingSeat(context))) {
           case 'good':
             return COPY.good;
           case 'wolf':

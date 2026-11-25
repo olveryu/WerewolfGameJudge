@@ -49,6 +49,12 @@ export const eclipseWolfQueen = defineRole({
       },
       skippable: true,
       canTargetSelf: true,
+      // Good-team actions that land on the sheltered seat turn back onto their actor.
+      selectionEffects: (_context, selection) => ({
+        disabledAbilities: [],
+        deathEffects: [],
+        reflections: [{ seat: selection.landingSeat }],
+      }),
     }),
   ],
 });

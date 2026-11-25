@@ -9,6 +9,7 @@ import { resolveDeathEffects } from '../roles/deathEffects';
 import { resolveSelectedSeat } from '../roles/location';
 import {
   decideWerewolfInfection,
+  isInfectionPending,
   isInfectionSettlementStep,
   type WerewolfNightEvent,
 } from '../roles/nightEvolution';
@@ -198,7 +199,7 @@ function finishNight(state: GameState): readonly StateAction[] {
     applyAction({ type: 'WEREWOLF_NIGHT_EVENT', event: { type: 'wolfKillSettled', settlement } });
     night = requireWerewolfNightState(settledState);
   }
-  if (state.templateRoles.includes('seedWolf') && night.infection === null) {
+  if (isInfectionPending(settledState)) {
     applyAction({
       type: 'WEREWOLF_NIGHT_EVENT',
       event: { type: 'infectionSettled', outcome: decideWerewolfInfection(settledState) },

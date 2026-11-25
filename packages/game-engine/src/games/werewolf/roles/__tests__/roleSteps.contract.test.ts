@@ -779,7 +779,7 @@ describe('werewolf role definitions', () => {
     const state = createState('seer');
     const facts: WerewolfNightFacts = {
       ...EMPTY_FACTS,
-      disabledAbilities: [{ roleId: '*', seat: 1 }],
+      disabledAbilities: [{ roleId: '*', seat: 1, sourceRoleId: 'nightmare' }],
     };
     const presentation = presentStep(createRuntime(role, state, { bySeat: {} }, facts), state, 1);
 
@@ -1108,7 +1108,7 @@ function createRoleContext(
     ),
     resolvedWolfKillTarget: null,
     canShootAtNight: () => true,
-    avengerFactionOf: () => 'good',
+    abilityLockReasonOf: (roleId) => requireRole(roleId).abilityLockReason ?? '',
     bottomCardsOf: (actingSeat, roleId) => {
       if (roleId === 'thief') {
         return [

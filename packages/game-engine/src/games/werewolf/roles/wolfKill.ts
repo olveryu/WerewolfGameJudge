@@ -32,6 +32,7 @@ const COPY = defineCopy({
 
 export const wolfKillStep: WerewolfRoleStepDefinition = {
   id: 'wolfKill',
+  wolfPackViewers: 'wolfVoters',
   title: COPY.title,
   audio: defineWerewolfStepAudio('wolf'),
   actors: getWolfVoters,
