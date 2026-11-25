@@ -25,45 +25,47 @@ nightmare boards must also drive blocked → `actionRejected` with
 `BLOCKED_UI_DEFAULTS`, and wolf-robot boards must press through the
 hunter gate with `assertNoLoop`.
 
-## Night-1 engine integration tests
+## Night-1 engine scenarios
 
 The suite lives in
 `packages/game-engine/src/games/werewolf/__tests__/boards/` (Vitest,
-engine imports only). The harness: `gameFactory.ts` (`createGame(templateName,
-roleAssignment)` seats every player, assigns the fixed roles, and
-begins the night through engine commands; `cleanupGame`), `gameContext.ts` (the `GameContext` returned to tests:
-state reads, `assertStep`, command helpers), and `stepByStepRunner.ts`
-(`executeStepsUntil`, `executeRemainingSteps`, `executeFullNight`,
-`submitActionOrThrow`).
+engine imports only):
 
-`night1.boards.coverage.contract.test.ts` in that directory:
+- `gameFactory.ts` — `createGame(templateNameOrRoles, roleAssignment, options)`
+  seats every player, assigns the fixed roles, and begins the night
+  through engine commands; `gameContext.ts` is the `GameContext` it
+  returns.
+- `nightDriver.ts` — drives the night through `werewolf.step.submit`
+  using only what each seat's step presentation offers.
+  `playScenarioNight(context, choices, randomSeed)` takes role-keyed
+  choices and returns a `NightOutcome`; `driveNight` and
+  `executeStepsUntil` take step-keyed choices for tests that inspect
+  one step.
+- `nightScript.ts` — the role-keyed choice shapes (`NightActions`:
+  a seat, `null` to skip, `{ save, poison }`, `{ targets }`,
+  `{ confirmed }`, `{ cardIndex }`; `wolf` is the pack vote).
+- `nightScenarios.ts` — `NIGHT_SCENARIOS`, the named scenarios grouped
+  by board theme.
 
-- A. every name in `REQUIRED_12P_TEMPLATES` has a
-  `night1.*.12p.integration.test.ts` file containing its
-  `TEMPLATE_NAME = '<name>'` (pattern in `TEMPLATE_TO_TEST_PATTERN`);
-- B. every such file asserts at least one theme field (a reveal,
-  `currentNightResults`, `convertedSeat`, `actions`), not only deaths;
-- C. every step id in `NIGHT_STEPS` is reached or asserted by some
-  boards test.
+`night1.scenarios.integration.test.ts` snapshots the `NightOutcome` of
+every case: one ordinary night per preset in `PRESET_TEMPLATES`, every
+entry of `NIGHT_SCENARIOS`, and the bottom-card and spirit-knight /
+cursed-fox variants declared in the test. A `NightOutcome` lists the
+steps visited, each unavailable action, seat, or card with its reason
+and the seats that saw it, the private views grouped by text, the
+review sentences, the deaths with their causes, and the daytime
+announcements. The same file fails when a declared night step is
+reached by no case or when two cases share a name.
 
-The list covers a subset of the presets (those registered so far);
-a new 12-seat board is added to both maps. Bottom-card boards
-(`night1.thiefCupid.14p`, `night1.treasureMaster.15p`) are named by
-role count and sit outside the contract. The sibling
-`packages/game-engine/src/games/werewolf/__tests__/night1RoleCoverage.contract.test.ts`
-checks that every `NIGHT_STEPS` step has a schema, a resolver, and an
-audio key.
+`specNight.integration.test.ts` holds the tests that assert one
+behaviour directly (vote revision, stale submissions, persisted state
+round trips) rather than a whole night.
 
 ## Engine contract tests that exist
 
 - `Template.contract.test.ts` — preset self-consistency and the
-  expected-name list (see `references/preset-rules.md`).
-- `nightPlanSchemas.contract.test.ts` — every preset in
-  `PRESET_TEMPLATES` produces a valid step sequence with valid step
-  counts and audio keys.
-
-Both live in the engine under
-`packages/game-engine/src/games/werewolf/domain/models/`.
+  expected-name list (see `references/preset-rules.md`), under
+  `packages/game-engine/src/games/werewolf/domain/models/__tests__/`.
 
 ## E2E
 
