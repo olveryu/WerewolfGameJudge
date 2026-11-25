@@ -447,7 +447,7 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
   "deaths": [],
   "review": [
     "8号蚀时狼妃放逐1号到时间裂隙",
-    "11号守卫守护1号",
+    "11号守卫守护1号（被时间裂隙反弹至自身）",
     "狼队（5、6、7、8号）袭击1号",
     "10号女巫对1号用解药",
     "10号女巫未毒杀",
@@ -475,7 +475,7 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
   ],
   "review": [
     "8号蚀时狼妃放逐1号到时间裂隙",
-    "11号守卫守护1号",
+    "11号守卫守护1号（被时间裂隙反弹至自身）",
     "狼队（5、6、7、8号）袭击1号",
     "10号女巫未用解药",
     "10号女巫未毒杀",
@@ -507,7 +507,7 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "11号守卫未守护",
     "狼队（5、6、7、8号）袭击2号",
     "10号女巫未用解药",
-    "10号女巫毒杀1号",
+    "10号女巫毒杀1号（被时间裂隙反弹至自身）",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
   "steps": [
@@ -536,7 +536,7 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "狼队（5、6、7、8号）袭击1号",
     "10号女巫未用解药",
     "10号女巫未毒杀",
-    "9号预言家查验5号（查验结果：9号是好人）",
+    "9号预言家查验5号（被时间裂隙反弹至自身）（查验结果：9号是好人）",
   ],
   "steps": [
     "eclipseWolfQueenShelter",
@@ -3707,7 +3707,7 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
   ],
   "deaths": [],
   "review": [
-    "5号盗宝大师选择摄梦人为身份（获得的技能：摄梦人）",
+    "5号盗宝大师选择底牌（获得的技能：摄梦人）",
     "5号摄梦人摄梦2号",
     "3号乌鸦诅咒2号",
     "狼队放弃袭击，毒师在场",
@@ -3749,7 +3749,7 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
     "2号 poison",
   ],
   "review": [
-    "5号盗宝大师选择平民为身份（获得的技能：平民）",
+    "5号盗宝大师选择底牌（获得的技能：平民）",
     "3号乌鸦诅咒2号",
     "狼队放弃袭击，毒师在场",
     "1号毒师毒杀2号",
@@ -3787,7 +3787,7 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
   ],
   "deaths": [],
   "review": [
-    "2号盗宝大师选择乌鸦为身份（获得的技能：乌鸦）",
+    "2号盗宝大师选择底牌（获得的技能：乌鸦）",
     "8号摄梦人摄梦5号",
     "2号乌鸦诅咒5号",
     "狼队放弃袭击，毒师在场",
@@ -3827,7 +3827,7 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
   ],
   "deaths": [],
   "review": [
-    "2号盗宝大师选择平民为身份（获得的技能：平民）",
+    "2号盗宝大师选择底牌（获得的技能：平民）",
     "8号摄梦人摄梦5号",
     "狼队放弃袭击，毒师在场",
     "1号毒师未毒杀",
@@ -3867,7 +3867,7 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
     "2号 poison",
   ],
   "review": [
-    "2号盗宝大师选择平民为身份（获得的技能：平民）",
+    "2号盗宝大师选择底牌（获得的技能：平民）",
     "3号乌鸦未诅咒",
     "狼队放弃袭击，毒师在场",
     "9号毒师毒杀2号",
@@ -3902,7 +3902,7 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
   ],
   "deaths": [],
   "review": [
-    "5号盗宝大师选择猎魔人为身份（获得的技能：猎魔人）",
+    "5号盗宝大师选择底牌（获得的技能：猎魔人）",
     "3号乌鸦未诅咒",
     "狼队放弃袭击，毒师在场",
     "1号毒师毒杀5号",
@@ -5577,7 +5577,7 @@ exports[`Night-1 board scenarios through production commands > 盗宝大师 pres
   "announcements": [],
   "deaths": [],
   "review": [
-    "10号盗宝大师选择平民为身份（获得的技能：平民）",
+    "10号盗宝大师选择底牌（获得的技能：平民）",
     "8号摄梦人未摄梦",
     "狼队放弃袭击，毒师在场",
     "7号毒师未毒杀",
@@ -5612,7 +5612,7 @@ exports[`Night-1 board scenarios through production commands > 盗贼丘比特 p
     "3号 wolfKill",
   ],
   "review": [
-    "6号盗贼选择平民为身份（选择的身份：平民）",
+    "6号盗贼选择底牌（选择的身份：平民）",
     "10号丘比特连接4号和5号为情侣",
     "狼队（1、11、12号）袭击3号",
     "7号女巫未用解药",
@@ -5646,7 +5646,7 @@ exports[`Night-1 board scenarios through production commands > 盗贼丘比特 p
   "announcements": [],
   "deaths": [],
   "review": [
-    "6号盗贼选择愚者为身份（选择的身份：愚者）",
+    "6号盗贼选择底牌（选择的身份：愚者）",
     "10号丘比特连接3号和4号为情侣",
     "狼队（1、11、12号）袭击2号",
     "7号女巫对2号用解药",
@@ -5682,7 +5682,7 @@ exports[`Night-1 board scenarios through production commands > 盗贼丘比特 p
     "3号 wolfKill",
   ],
   "review": [
-    "6号盗贼选择平民为身份（选择的身份：平民）",
+    "6号盗贼选择底牌（选择的身份：平民）",
     "10号丘比特连接2号和6号为情侣",
     "狼队（1、11、12号）袭击3号",
     "7号女巫未用解药",

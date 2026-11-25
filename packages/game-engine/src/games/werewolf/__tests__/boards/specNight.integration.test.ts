@@ -399,7 +399,8 @@ describe('spec-driven night through production commands', () => {
           kind: 'action',
           seat: actorSeat,
           roleId: 'treasureMaster',
-          phrase: `选择${getRoleDisplayName(chosenRole)}为身份`,
+          phrase: '选择底牌',
+          result: `（获得的技能：${getRoleDisplayName(chosenRole)}）`,
         }),
       ]),
     );

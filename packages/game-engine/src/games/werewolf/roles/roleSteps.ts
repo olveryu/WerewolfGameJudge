@@ -15,12 +15,13 @@ const ROLE_STEP_COPY = defineCopy({
   selfTargetDisallowed: '不能选择自己',
   wolfTeammateDisallowed: '不能选择狼人阵营的玩家',
   actualLanding: '（实际为{seat}）',
+  riftReflected: '（被时间裂隙反弹至自身）',
   good: '好人',
   wolf: '狼人',
   factionCheckResult: '{seat}是{faction}',
   identityCheckResult: '{seat}是{role}',
   wolfCardRequired: '底牌中有狼人阵营的牌，必须选择狼人',
-  chooseCard: '选择{role}为身份',
+  chooseCard: '选择{role}',
 });
 
 export const IDOL_ACTION_COPY = defineCopy({
@@ -114,6 +115,23 @@ export function getWolfTeammateRestriction(
   seat: number,
 ): string | null {
   return isKnownWolfTeammate(context, seat) ? ROLE_STEP_COPY.wolfTeammateDisallowed : null;
+}
+
+/**
+ * The report suffix for where a targeted skill really went: the seat behind a magician swap,
+ * and whether the time rift turned the skill back onto its user.
+ */
+export function describeTargetLanding(
+  context: WerewolfRoleStepContext,
+  chosenSeat: number,
+): string {
+  const swappedSeat = context.role.landing(chosenSeat);
+  const swapped =
+    swappedSeat === chosenSeat
+      ? ''
+      : renderCopy(ROLE_STEP_COPY.actualLanding, { seat: formatSeat(swappedSeat) });
+  const isReflected = resolveRoleTarget(context, chosenSeat).landingSeat !== swappedSeat;
+  return isReflected ? swapped + ROLE_STEP_COPY.riftReflected : swapped;
 }
 
 export function resolveRoleTarget(
@@ -301,13 +319,8 @@ export function createSingleTargetStep(
     reviewSuffix: (context, submission) => {
       const chosenSeat = submission.seats[0];
       if (chosenSeat === undefined) return null;
-      const landingSeat = context.role.landing(chosenSeat);
-      const landing =
-        landingSeat === chosenSeat
-          ? ''
-          : renderCopy(ROLE_STEP_COPY.actualLanding, { seat: formatSeat(landingSeat) });
       const detail = options.reviewSuffix?.(context, chosenSeat) ?? '';
-      return landing + detail || null;
+      return describeTargetLanding(context, chosenSeat) + detail || null;
     },
   };
 }

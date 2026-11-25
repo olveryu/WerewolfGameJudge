@@ -108,7 +108,6 @@ function getSubmissionPhrase<TContext, TFacts, TResult>(
   if (action.kind === 'view') {
     return action.reviewPhrase === undefined ? action.name : action.reviewPhrase(context);
   }
-  const card = action.cards(context).find((option) => option.index === submission.cardIndex);
-  if (card === undefined) throw new Error('[FAIL-FAST] Review references a missing card');
-  return action.phrase(card);
+  // The report names the action; which card was taken is in the step's result.
+  return action.name;
 }

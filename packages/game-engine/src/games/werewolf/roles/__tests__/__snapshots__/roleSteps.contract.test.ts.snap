@@ -2153,7 +2153,7 @@ exports[`werewolf role definitions > snapshots generated output for 'thief' 'thi
       "isDone": true,
       "seat": 1,
       "stepId": "thiefChoose",
-      "text": "盗贼选择Seer为身份",
+      "text": "盗贼选择底牌",
     },
   ],
   "submitted": {
@@ -2219,7 +2219,7 @@ exports[`werewolf role definitions > snapshots generated output for 'treasureMas
       "isDone": true,
       "seat": 1,
       "stepId": "treasureMasterChoose",
-      "text": "盗宝大师选择Seer为身份",
+      "text": "盗宝大师选择底牌",
     },
   ],
   "submitted": {

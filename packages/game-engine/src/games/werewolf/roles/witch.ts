@@ -6,7 +6,12 @@ import type { DeathEffect } from './deathEffects';
 import { resolveTargetSelection } from './location';
 import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
-import { getActingSeat, getRoleAbilityLockReason, resolveRoleTarget } from './roleSteps';
+import {
+  describeTargetLanding,
+  getActingSeat,
+  getRoleAbilityLockReason,
+  resolveRoleTarget,
+} from './roleSteps';
 
 const COPY = defineCopy({
   name: '女巫',
@@ -134,6 +139,10 @@ const witchActionStep: WerewolfRoleStepDefinition = {
     if (submission.actionKey !== 'poison' && submission.actionKey !== 'antidote') return null;
     const chosenSeat = submission.seats[0];
     if (chosenSeat === undefined) return null;
+    if (submission.actionKey === 'poison') {
+      return describeTargetLanding(context, chosenSeat) || null;
+    }
+    // The antidote is never turned back by the time rift; only a swap moves it.
     const landingSeat = context.role.landing(chosenSeat);
     return landingSeat === chosenSeat
       ? null

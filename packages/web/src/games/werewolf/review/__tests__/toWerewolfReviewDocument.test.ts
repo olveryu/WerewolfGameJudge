@@ -576,7 +576,7 @@ describe('toWerewolfReviewDocument', () => {
             seat: 0,
             roleId: 'treasureMaster',
             subject: '盗宝大师',
-            phrase: '选择预言家为身份',
+            phrase: '选择底牌',
             result: null,
           },
         ],
@@ -584,7 +584,7 @@ describe('toWerewolfReviewDocument', () => {
       const document = toWerewolfReviewDocument({ review, roomCode: ROOM_CODE, gameSequence: 0 });
       expect(nightSentences(document)).toEqual([
         '底牌：平民、预言家、守卫。',
-        '1号盗宝大师选择预言家为身份。',
+        '1号盗宝大师选择底牌。',
         '本夜无人出局。',
       ]);
     });
