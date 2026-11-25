@@ -270,12 +270,40 @@ Do not bypass Git hooks with `--no-verify`.
 
 ```bash
 pnpm install
-pnpm run dev       # Worker on 127.0.0.1:8787 (or an available port) and the Vite dev server
+pnpm run dev       # Matched local Worker and Vite servers; URLs printed at startup
 pnpm run quality   # Complete non-E2E quality gate
 pnpm run e2e       # Playwright starts isolated local API and web servers
 ```
 
-For a new local D1 state or after adding a migration:
+`pnpm run dev` applies local D1 migrations, inserts missing development seed data,
+then starts Worker and Vite. Either initialization failure stops startup.
+Wrangler stores local state in this worktree's `packages/api-worker/.wrangler/state`;
+no remote database or other worktree is initialized.
+
+Startup prefers Worker `127.0.0.1:8787` and uses an OS-assigned Worker port when
+occupied. Vite and inspector ports start at `5173` and `9229`, skipping occupied
+IPv4 and IPv6 loopback ports without stopping their owners.
+Vite receives the selected Worker URL through
+`VITE_CF_API_URL` and uses a strict port so a startup race fails rather than silently
+changing the Web origin. If either server exits, the other is stopped too.
+
+Local auth needs `JWT_SECRET`. Existing Wrangler `.dev.vars` values are preserved;
+without that file, `.env`, `.env.local` and process environment values are respected.
+When missing, a random key is persisted in the Worker's gitignored `.env.local`
+(or appended to an existing `.dev.vars`) and reused on later starts. An explicitly
+empty key fails startup. Do not commit these files. Other secret warnings refer to
+external integrations (AI, email, WeChat, GitHub, admin); configure real credentials
+only when testing those features. No fake credentials are generated for them.
+
+The initial account is `dev@test.local` / `dev123`, with level 99, all reward items
+unlocked and sample words for the three word-bank games. Later starts preserve
+existing account credentials, progress, rewards and word edits. Missing rows are
+inserted independently, so rerunning after an interrupted seed completes it
+without resetting rows already written. An existing account with this email keeps
+its UUID; an unrelated account using the reserved seed UUID causes an explicit
+constraint failure rather than being replaced.
+
+For database-only initialization without starting servers:
 
 ```bash
 pnpm --filter @game-judge/api-worker run db:migrate:local
