@@ -27,7 +27,6 @@ export const magician = defineRole({
     tags: ['control'],
   },
   traits: { faction: 'god', team: 'good' },
-  nightSchedule: 'everyNight',
   steps: [
     {
       id: 'magicianSwap',

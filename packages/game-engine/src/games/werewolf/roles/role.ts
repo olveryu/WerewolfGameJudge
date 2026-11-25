@@ -58,11 +58,6 @@ export interface WerewolfRoleState {
   readonly sight: SightLayer<string>;
   readonly seatedSeats: readonly number[];
   readonly rules: { readonly witchCanSelfHeal: boolean };
-  readonly usedResources: readonly {
-    readonly roleId: string;
-    readonly seat: number;
-    readonly resource: string;
-  }[];
 }
 
 export interface RoleSelection extends TargetSelection {
@@ -91,11 +86,6 @@ export interface WerewolfNightFacts {
     readonly landingSeat: number | null;
   }[];
   readonly locationSwaps?: readonly SeatSwap[];
-  readonly resourceUses?: readonly {
-    readonly roleId: string;
-    readonly seat: number;
-    readonly resource: string;
-  }[];
   readonly factionChanges?: readonly {
     readonly seat: number;
     readonly faction: WerewolfRoleFaction;
@@ -209,13 +199,7 @@ export type WerewolfRoleStepDefinition = Omit<
   readonly canRescueWolfKillTarget?: (context: WerewolfRoleStepContext) => boolean;
 };
 
-export interface WerewolfRoleResource {
-  readonly kind: string;
-  readonly uses: number;
-  readonly refreshPerNight: boolean;
-}
-
-export type WerewolfAnnouncementTiming = 'dawn' | 'daySpeech' | 'exileVote';
+export type WerewolfAnnouncementTiming = 'daySpeech' | 'exileVote';
 
 export interface WerewolfAnnouncementDeclaration {
   readonly timing: WerewolfAnnouncementTiming;
@@ -243,15 +227,12 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
     readonly immunities?: readonly AttackCause[];
   };
   readonly steps: readonly WerewolfRoleStepDefinition[];
-  readonly nightSchedule?: 'firstNight' | 'everyNight';
-  readonly oneUseOnSuccess?: boolean;
   /** What a seat is told when this role has locked all its skills for the night. */
   readonly abilityLockReason?: string;
   /** What is said when this role has stopped the wolf attack. */
   readonly wolfAttackLock?: WerewolfWolfAttackLock;
   /** How this role turns another player into a different role. */
   readonly conversion?: WerewolfConversionDeclaration;
-  readonly resources?: readonly WerewolfRoleResource[];
   readonly announcement?: WerewolfAnnouncementDeclaration;
   readonly personalDaytimeView?: WerewolfPersonalDaytimeViewDeclaration;
   readonly passiveDeathEffects?: (

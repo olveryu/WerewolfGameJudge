@@ -120,29 +120,4 @@ describe('Werewolf witch shared actions', () => {
       submission: { actionKey: STEP_SKIP_ACTION_KEY },
     });
   });
-
-  it('still permits skipping when both potions have been used', async () => {
-    const state = witchState(null);
-    const night = state.nightState;
-    if (night === null) throw new Error('[TEST] Missing night state');
-    const exhausted: GameState = {
-      ...state,
-      nightState: {
-        ...night,
-        roles: {
-          ...night.roles,
-          usedResources: [
-            { roleId: 'witch', seat: 9, resource: 'antidote' },
-            { roleId: 'witch', seat: 9, resource: 'poison' },
-          ],
-        },
-      },
-    };
-    const { mock, view } = await mountBoardNightState(exhausted, 9);
-    await pressStepAction(view, 'poison');
-    expect(view.getByTestId(TESTIDS.roomHandUnavailableReason)).toHaveTextContent('毒药已用完');
-    await pressStepAction(view, STEP_SKIP_ACTION_KEY);
-    await harness.pressLastPrimary();
-    expect(mock.dispatch).toHaveBeenCalledOnce();
-  });
 });

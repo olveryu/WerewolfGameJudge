@@ -31,7 +31,6 @@ export const darkWolfKing = defineRole({
     team: 'wolf',
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
   },
-  nightSchedule: 'everyNight',
   steps: [
     createViewStep({
       id: 'darkWolfKingConfirm',

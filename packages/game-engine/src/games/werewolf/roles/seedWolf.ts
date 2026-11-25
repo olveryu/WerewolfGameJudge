@@ -118,7 +118,6 @@ export const seedWolf = defineRole({
     team: 'wolf',
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
   },
-  nightSchedule: 'firstNight',
   steps: [infectStep, infectRevealStep],
   conversion: {
     becomesRoleId: 'wolf',

@@ -27,7 +27,6 @@ export const hunter = defineRole({
     tags: ['kill'],
   },
   traits: { faction: 'god', team: 'good' },
-  nightSchedule: 'everyNight',
   steps: [
     createViewStep({
       id: 'hunterConfirm',

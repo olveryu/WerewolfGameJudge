@@ -22,7 +22,6 @@ export const slacker = defineRole({
     tags: ['follow'],
   },
   traits: { faction: 'special', team: 'third' },
-  nightSchedule: 'firstNight',
   steps: [
     createSingleTargetStep({
       id: 'slackerChooseIdol',

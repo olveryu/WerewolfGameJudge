@@ -36,7 +36,6 @@ export const hiddenWolf = defineRole({
     tags: ['confirm'],
   },
   traits: { faction: 'wolf', team: 'good' },
-  nightSchedule: 'firstNight',
   steps: [
     createViewStep({
       id: 'hiddenWolfReveal',

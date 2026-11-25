@@ -107,7 +107,6 @@ const facts = z.strictObject({
   deathEffects: z.array(deathEffect),
   wolfVotes: z.array(wolfVote).optional(),
   locationSwaps: z.array(swap).optional(),
-  resourceUses: z.array(z.strictObject({ roleId, seat, resource: z.string().min(1) })).optional(),
   factionChanges: z
     .array(
       z.strictObject({
@@ -137,7 +136,6 @@ const roleState = z.strictObject({
   sight: z.strictObject({ roleOverridesBySeat: z.record(seatKey, roleId) }),
   seatedSeats: z.array(seat),
   rules: z.strictObject({ witchCanSelfHeal: z.boolean() }),
-  usedResources: z.array(z.strictObject({ roleId, seat, resource: z.string().min(1) })),
 });
 const result = z.discriminatedUnion('kind', [
   z.strictObject({

@@ -90,7 +90,6 @@ export type {
   WerewolfNightFacts,
   WerewolfRoleFaction,
   WerewolfRoleIdentityChange,
-  WerewolfRoleResource,
   WerewolfRoleState,
   WerewolfRoleStepContext,
   WerewolfRoleStepDefinition,

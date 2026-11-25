@@ -51,7 +51,6 @@ export const avenger = defineRole({
     tags: ['kill', 'link'],
   },
   traits: { faction: 'special', team: 'third' },
-  nightSchedule: 'firstNight',
   steps: [
     createViewStep({
       id: 'avengerConfirm',

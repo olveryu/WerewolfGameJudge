@@ -1,6 +1,5 @@
 import type { StepDefinition, StepRecord, StepRuntime } from '../../../../platform/steps';
 import {
-  buildStepReviewLines,
   decideStepSubmission,
   describeStepConfirmation,
   evaluateStepProgress,
@@ -128,67 +127,6 @@ describe('werewolf role definitions', () => {
     ];
 
     expect(getStepOverrideViolations(steps, STEP_OVERRIDE_ALLOWLIST)).toEqual([]);
-  });
-
-  it.each(WEREWOLF_ROLE_DEFINITIONS.flatMap((role) => role.steps.map((step) => ({ role, step }))))(
-    'snapshots generated output for $role.id $step.id',
-    ({ role, step }) => {
-      const state = createState(role.id);
-      const initialRuntime = createRuntime(role, state, { bySeat: {} }, EMPTY_FACTS, step.id);
-      const initial = presentStep(initialRuntime, state, 1);
-      const action = step.actions[0];
-      const result = getCheckResult(role.id);
-      const completedRuntime = createRuntime(
-        role,
-        state,
-        {
-          bySeat: {
-            1: {
-              submissions: [
-                {
-                  actionKey: action?.key ?? step.id,
-                  seats:
-                    action?.kind === 'pickSeats'
-                      ? Array.from({ length: action.count.min }, (_unused, index) => index + 2)
-                      : [],
-                  cardIndex: action?.kind === 'pickCard' ? 0 : null,
-                },
-              ],
-              result,
-              isResultAcknowledged: false,
-            },
-          },
-        },
-        EMPTY_FACTS,
-        step.id,
-      );
-
-      expect({
-        initial,
-        submitted: presentStep(completedRuntime, state, 1),
-        review: buildStepReviewLines(completedRuntime, state),
-      }).toMatchSnapshot();
-    },
-  );
-
-  it('snapshots generated output for the shared wolf attack step', () => {
-    const state = createState('wolf');
-    const initialRuntime = createRuntimeForStep(wolfKillStep, state);
-    const completedRuntime = createRuntimeForStep(wolfKillStep, state, {
-      bySeat: {
-        1: {
-          submissions: [{ actionKey: 'wolfKill', seats: [2], cardIndex: null }],
-          result: null,
-          isResultAcknowledged: false,
-        },
-      },
-    });
-
-    expect({
-      initial: presentStep(initialRuntime, state, 1),
-      submitted: presentStep(completedRuntime, state, 1),
-      review: buildStepReviewLines(completedRuntime, state),
-    }).toMatchSnapshot();
   });
 
   it('starts the countdown after all wolves vote, including a disagreement', () => {
@@ -452,7 +390,6 @@ describe('werewolf role definitions', () => {
     });
     expect(antidote.availability?.(selfHealContext)).toEqual({ kind: 'available' });
     expect(antidote.resolve(context).facts).toMatchObject({
-      resourceUses: [{ roleId: 'witch', seat: 1, resource: 'antidote' }],
       deathEffects: [
         {
           kind: 'protect',
@@ -464,7 +401,6 @@ describe('werewolf role definitions', () => {
       ],
     });
     expect(poison.resolve(context, [2]).facts).toMatchObject({
-      resourceUses: [{ roleId: 'witch', seat: 1, resource: 'poison' }],
       deathEffects: [{ kind: 'attack', cause: 'poison', source: 1, target: 4 }],
     });
   });
@@ -994,7 +930,6 @@ function createState(
     sight: { roleOverridesBySeat: {} },
     seatedSeats: [1, 2, 3, 4],
     rules: { witchCanSelfHeal: false },
-    usedResources: [],
     ...changes,
   };
 }
@@ -1154,21 +1089,6 @@ function createRoleContext(
       throw new Error(`[FAIL-FAST] No bottom cards for ${roleId} at seat ${actingSeat}`);
     },
   };
-}
-
-function getCheckResult(roleId: string): WerewolfRoleStepResult | null {
-  if (roleId === 'thief') return { kind: 'cardSelection', roleId: 'hiddenWolf' };
-  if (roleId === 'treasureMaster') return { kind: 'cardSelection', roleId: 'seer' };
-  if (['seer', 'mirrorSeer', 'drunkSeer'].includes(roleId)) {
-    return { kind: 'factionCheck', chosenSeat: 2, landingSeat: 4, faction: 'good' };
-  }
-  if (['psychic', 'gargoyle', 'pureWhite', 'wolfWitch'].includes(roleId)) {
-    return { kind: 'identityCheck', chosenSeat: 2, landingSeat: 4, roleId: 'dreamcatcher' };
-  }
-  if (roleId === 'wolfRobot') {
-    return { kind: 'identityCheck', chosenSeat: 2, landingSeat: 4, roleId: 'hunter' };
-  }
-  return null;
 }
 
 function requireRole(roleId: string): WerewolfRoleDefinition {

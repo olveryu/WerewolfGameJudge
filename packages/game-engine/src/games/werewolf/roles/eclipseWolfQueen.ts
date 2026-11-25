@@ -34,7 +34,6 @@ export const eclipseWolfQueen = defineRole({
     team: 'wolf',
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
   },
-  oneUseOnSuccess: true,
   steps: [
     createSingleTargetStep({
       id: 'eclipseWolfQueenShelter',

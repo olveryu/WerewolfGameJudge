@@ -32,7 +32,6 @@ export const poisoner = defineRole({
   traits: { faction: 'god', team: 'good' },
   presence: poisonerPresence[0],
   wolfAttackLock: { reason: COPY.wolfAttackLocked, review: COPY.wolfAttackReview },
-  resources: [{ kind: 'poison', uses: 1, refreshPerNight: false }],
   steps: [
     createSingleTargetStep({
       id: 'poisonerPoison',

@@ -122,7 +122,6 @@ export const awakenedGargoyle = defineRole({
     team: 'wolf',
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
   },
-  nightSchedule: 'firstNight',
   steps: [convertStep, convertRevealStep],
 });
 

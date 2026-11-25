@@ -4,7 +4,7 @@ import type { SeatSubmissionForReview } from '../../../platform/steps/step';
 import { defineWerewolfStepAudio } from './audio';
 import type { DeathEffect } from './deathEffects';
 import { resolveTargetSelection } from './location';
-import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
+import type { WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
 import {
   describeTargetLanding,
@@ -31,8 +31,6 @@ const COPY = defineCopy({
   attacked: '{seat}被狼人袭击',
   peacefulNight: '昨夜平安夜',
   selfSaveDisallowed: '本局规则不允许自救',
-  antidoteUsed: '解药已用完',
-  poisonUsed: '毒药已用完',
   actualLanding: '（实际为{seat}）',
 });
 
@@ -70,9 +68,6 @@ const witchActionStep: WerewolfRoleStepDefinition = {
       availability: (context) => {
         const seat = getActingSeat(context);
         if (context.resolvedWolfKillTarget === null) return { kind: 'hidden' };
-        if (hasUsedResource(context, seat, 'antidote')) {
-          return { kind: 'unavailable', reason: COPY.antidoteUsed };
-        }
         return context.resolvedWolfKillTarget === seat && !context.state.rules.witchCanSelfHeal
           ? { kind: 'unavailable', reason: COPY.selfSaveDisallowed }
           : { kind: 'available' };
@@ -92,7 +87,6 @@ const witchActionStep: WerewolfRoleStepDefinition = {
         return {
           facts: {
             deathEffects: [deathEffect],
-            resourceUses: [{ roleId: 'witch', seat, resource: 'antidote' }],
           },
         };
       },
@@ -109,10 +103,6 @@ const witchActionStep: WerewolfRoleStepDefinition = {
           : renderCopy(COPY.poisoned, { seat: formatSeat(seats[0]) }),
       seats: (context) =>
         context.state.seatedSeats.map((seat) => ({ seat, unavailableReason: null })),
-      availability: (context) =>
-        context.seat !== null && hasUsedResource(context, context.seat, 'poison')
-          ? { kind: 'unavailable', reason: COPY.poisonUsed }
-          : { kind: 'available' },
       resolve: (context, [chosenSeat]) => {
         if (chosenSeat === undefined) throw new Error('[FAIL-FAST] Witch poison has no target');
         const seat = getActingSeat(context);
@@ -129,7 +119,6 @@ const witchActionStep: WerewolfRoleStepDefinition = {
             deathEffects: [
               { kind: 'attack', cause: 'poison', source: seat, target: selection.landingSeat },
             ],
-            resourceUses: [{ roleId: 'witch', seat, resource: 'poison' }],
           },
         };
       },
@@ -168,20 +157,5 @@ export const witch = defineRole({
     tags: ['protect', 'kill'],
   },
   traits: { faction: 'god', team: 'good' },
-  nightSchedule: 'everyNight',
-  resources: [
-    { kind: 'antidote', uses: 1, refreshPerNight: false },
-    { kind: 'poison', uses: 1, refreshPerNight: false },
-  ],
   steps: [witchActionStep],
 });
-
-function hasUsedResource(
-  context: WerewolfRoleStepContext,
-  seat: number,
-  resource: string,
-): boolean {
-  return context.state.usedResources.some(
-    (used) => used.roleId === 'witch' && used.seat === seat && used.resource === resource,
-  );
-}

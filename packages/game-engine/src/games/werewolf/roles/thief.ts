@@ -50,7 +50,6 @@ export const thief = defineRole({
   },
   traits: { faction: 'special', team: 'good' },
   presence: thiefPresence[0],
-  nightSchedule: 'firstNight',
   steps: [
     createCardSelectionStep({
       id: 'thiefChoose',

@@ -115,6 +115,5 @@ export const piper = defineRole({
     tags: ['control'],
   },
   traits: { faction: 'special', team: 'third' },
-  nightSchedule: 'everyNight',
   steps: [hypnotizeStep, hypnotizedRevealStep],
 });

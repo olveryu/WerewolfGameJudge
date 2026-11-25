@@ -149,6 +149,5 @@ export const wolfRobot = defineRole({
     team: 'wolf',
     recognition: { canSeeWolves: false, participatesInWolfVote: false },
   },
-  nightSchedule: 'firstNight',
   steps: [wolfRobotLearnStep],
 });

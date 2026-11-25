@@ -126,6 +126,5 @@ export const cupid = defineRole({
   },
   traits: { faction: 'special', team: 'good', cannotBeBottomCard: true },
   presence: cupidPresence[0],
-  nightSchedule: 'firstNight',
   steps: [chooseLoversStep, loversRevealStep],
 });

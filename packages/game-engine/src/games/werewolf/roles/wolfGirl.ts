@@ -89,6 +89,5 @@ export const wolfGirl = defineRole({
     team: 'wolf',
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
   },
-  nightSchedule: 'firstNight',
   steps: [confessStep, confessRevealStep],
 });

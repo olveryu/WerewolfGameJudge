@@ -5,14 +5,12 @@ import { getWerewolfRoleDefinition } from './nightPlan';
 import type { WerewolfAnnouncementTiming } from './role';
 
 const COPY = defineCopy({
-  dawn: '天亮公布',
   daySpeech: '警下发言时公布',
   exileVote: '放逐投票时公布',
 });
 
 const TIMING_LABELS: Readonly<Record<WerewolfAnnouncementTiming, string>> = COPY;
 const TIMING_ORDER: Readonly<Record<WerewolfAnnouncementTiming, number>> = {
-  dawn: 0,
   daySpeech: 1,
   exileVote: 2,
 };

@@ -104,7 +104,6 @@ export function createWerewolfRoleState(deal: WerewolfNightDeal): WerewolfRoleSt
     sight: { roleOverridesBySeat: {} },
     seatedSeats: deal.seats.map((player) => player.seat).sort((a, b) => a - b),
     rules: { witchCanSelfHeal: deal.witchCanSelfHeal },
-    usedResources: [],
   };
 }
 
@@ -176,7 +175,6 @@ export function mergeWerewolfNightFacts(
       ...(emitted.wolfVotes ?? []),
     ],
     locationSwaps: [...(previous.locationSwaps ?? []), ...(emitted.locationSwaps ?? [])],
-    resourceUses: [...(previous.resourceUses ?? []), ...(emitted.resourceUses ?? [])],
     factionChanges: [...(previous.factionChanges ?? []), ...(emitted.factionChanges ?? [])],
     conversionAttempts: [
       ...(previous.conversionAttempts ?? []),
@@ -214,6 +212,5 @@ export function applyWerewolfRoleFacts(
     identities,
     location: swaps[0] === undefined ? state.location : { swap: swaps[0] },
     sight: { roleOverridesBySeat },
-    usedResources: [...state.usedResources, ...(emitted.resourceUses ?? [])],
   };
 }

@@ -31,7 +31,6 @@ export const shadow = defineRole({
     tags: ['transform', 'link'],
   },
   traits: { faction: 'special', team: 'third' },
-  nightSchedule: 'firstNight',
   steps: [
     createSingleTargetStep({
       id: 'shadowChooseMimic',

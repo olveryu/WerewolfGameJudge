@@ -63,7 +63,6 @@ export interface SingleTargetStepOptions {
         | 'reflections'
         | 'identityChanges'
         | 'locationSwaps'
-        | 'resourceUses'
         | 'factionChanges'
         | 'wolfGirlConfessions'
       >
@@ -284,9 +283,6 @@ export function createSingleTargetStep(
             ...(selectionEffects?.locationSwaps === undefined
               ? {}
               : { locationSwaps: selectionEffects.locationSwaps }),
-            ...(selectionEffects?.resourceUses === undefined
-              ? {}
-              : { resourceUses: selectionEffects.resourceUses }),
             ...(selectionEffects?.factionChanges === undefined
               ? {}
               : { factionChanges: selectionEffects.factionChanges }),

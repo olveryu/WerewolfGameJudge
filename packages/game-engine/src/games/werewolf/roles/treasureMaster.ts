@@ -77,7 +77,6 @@ export const treasureMaster = defineRole({
   },
   traits: { faction: 'special', team: 'third' },
   presence: treasureMasterPresence[0],
-  nightSchedule: 'everyNight',
   steps: [
     createCardSelectionStep({
       id: 'treasureMasterChoose',
