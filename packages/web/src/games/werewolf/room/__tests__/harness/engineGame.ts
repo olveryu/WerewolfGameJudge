@@ -52,6 +52,10 @@ export interface EngineGame {
   getGameState(): GameState;
   /** Submit the active shared step from the seat's occupant. */
   submitStepOrThrow(seat: number, submission: StepSubmission, context: string): void;
+  /** Send a public command from the seat's occupant. */
+  dispatchAsSeatOrThrow(seat: number, command: WerewolfPublicCommand, context: string): void;
+  /** Send a public command from the host. */
+  dispatchAsHostOrThrow(command: WerewolfPublicCommand, context: string): void;
   dispatchSystemOrThrow(
     command: WerewolfInternalCommand,
     context: string,
@@ -170,6 +174,8 @@ export function createEngineGame(
 
   const game: EngineGame = {
     getGameState: () => state,
+    dispatchAsSeatOrThrow,
+    dispatchAsHostOrThrow: (command, context) => dispatchOrThrow(command, context),
     submitStepOrThrow: (seat, submission, context) =>
       dispatchAsSeatOrThrow(
         seat,

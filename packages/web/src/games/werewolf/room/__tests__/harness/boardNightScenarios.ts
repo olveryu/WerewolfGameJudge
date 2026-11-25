@@ -262,9 +262,30 @@ export function playBoardNight(
   roles: readonly RoleId[],
   options: BoardNightOptions = {},
 ): GameState {
-  const { choices = {}, rules, isQuiet = false, stopAtStepId } = options;
+  return driveBoardNight(createSeatOrderGame(roles, options), roles, options);
+}
+
+/** Play a whole night through real commands and hand back the game for the day's commands. */
+export function playBoardNightGame(
+  roles: readonly RoleId[],
+  options: Omit<BoardNightOptions, 'stopAtStepId'> = {},
+): EngineGame {
+  const game = createSeatOrderGame(roles, options);
+  driveBoardNight(game, roles, options);
+  return game;
+}
+
+function createSeatOrderGame(roles: readonly RoleId[], options: BoardNightOptions): EngineGame {
+  return createEngineGame(roles, new Map(roles.map((role, seat) => [seat, role])), options.rules);
+}
+
+function driveBoardNight(
+  game: EngineGame,
+  roles: readonly RoleId[],
+  options: BoardNightOptions,
+): GameState {
+  const { choices = {}, isQuiet = false, stopAtStepId } = options;
   const boardName = roles.join(',');
-  const game = createEngineGame(roles, new Map(roles.map((role, seat) => [seat, role])), rules);
   const scenarios = new Map<string, BoardNightScenario>();
   for (let transition = 0; transition < MAX_TRANSITIONS; transition += 1) {
     const state = game.getGameState();
