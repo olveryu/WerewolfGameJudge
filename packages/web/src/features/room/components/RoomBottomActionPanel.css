@@ -1,4 +1,5 @@
 .bottom-action-panel {
+  display: flow-root;
   flex-shrink: 0;
   padding: var(--space-small) var(--space-medium) 0;
   border-top: 0;

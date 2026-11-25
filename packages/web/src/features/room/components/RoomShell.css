@@ -4,7 +4,9 @@
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  overflow: hidden;
+  /* Clip, not hidden: the hand sinks below the edge, and a hidden box is still programmatically
+     scrollable, so focusing or scrolling a card into view would shift the whole room upward. */
+  overflow: clip;
   padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 

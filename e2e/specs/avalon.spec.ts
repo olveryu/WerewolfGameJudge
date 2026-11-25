@@ -1,5 +1,5 @@
 import { AVALON_NIGHT_VIEW_ACTION_KEY } from '@game-judge/game-engine/games/avalon/public';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
@@ -29,6 +29,25 @@ const VIEWPORT = { width: 1280, height: 900 };
 
 async function waitForBottomActionMessage(page: Page): Promise<void> {
   await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveCount(0, { timeout: 30_000 });
+}
+
+/** Asserts a hand card's label is fully on screen; the card body itself sinks below the edge. */
+async function expectHandCardLabelInViewport(card: Locator): Promise<void> {
+  await expect
+    .poll(() =>
+      card.evaluate((element) => {
+        const label = element.querySelector(':scope > span:not([class])');
+        if (label === null) return 'missing label';
+        const bounds = label.getBoundingClientRect();
+        return bounds.top >= 0 &&
+          bounds.left >= 0 &&
+          bounds.bottom <= window.innerHeight &&
+          bounds.right <= window.innerWidth
+          ? 'visible'
+          : `outside viewport: ${JSON.stringify(bounds)}`;
+      }),
+    )
+    .toBe('visible');
 }
 
 test('Avalon host tools, real BGM playback and abort preserve the room', async ({
@@ -127,8 +146,9 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       await expect(markBots).toHaveText('标记机器人已确认');
       for (const viewport of [VIEWPORT, { width: 320, height: 640 }]) {
         await hostPage.setViewportSize(viewport);
-        await expect(markBots).toBeInViewport({ ratio: 1 });
-        await expect(panel.getByTestId(TESTIDS.restartButton)).toBeInViewport({ ratio: 1 });
+        // Hand cards sink below the bottom edge by design; their labels must stay fully visible.
+        await expectHandCardLabelInViewport(markBots);
+        await expectHandCardLabelInViewport(panel.getByTestId(TESTIDS.restartButton));
         expect(
           await hostPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         ).toBe(true);
