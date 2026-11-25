@@ -104,6 +104,37 @@ describe('werewolf death effects', () => {
     });
   });
 
+  it('applies night-wide immunity to death links and reflections', () => {
+    const result = resolveDeathEffects([
+      { kind: 'attack', cause: 'poison', source: 0, target: 2 },
+      { kind: 'attack', cause: 'wolfKill', source: 4, target: 3 },
+      {
+        kind: 'link',
+        source: 3,
+        from: 3,
+        to: 2,
+        cause: 'scarletLink',
+        isMutual: false,
+        bypassSurvival: true,
+      },
+      { kind: 'reflect', seat: 2, against: ['poison'] },
+      { kind: 'immune', seat: 2, against: ['nightDamage'] },
+      { kind: 'immune', seat: 0, against: ['nightDamage'] },
+    ]);
+
+    expect(result.deaths).toEqual([3]);
+    expect(result.trace).toContainEqual({
+      kind: 'deathBlocked',
+      cause: 'scarletLink',
+      target: 2,
+    });
+    expect(result.trace).toContainEqual({
+      kind: 'deathBlocked',
+      cause: 'reflection',
+      target: 0,
+    });
+  });
+
   it('clears direct deaths through shelter but allows the dreamer death link', () => {
     const effects: DeathEffect[] = [
       { kind: 'attack', cause: 'checkDeath', source: 0, target: 2 },

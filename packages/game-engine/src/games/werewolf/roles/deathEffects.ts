@@ -9,6 +9,8 @@ export type DeathCause =
   | 'scarletLink'
   | 'reflection';
 
+export type ImmunityCause = DeathCause | 'nightDamage';
+
 export type DeathReason = DeathCause;
 
 export type DeathEffect =
@@ -42,7 +44,7 @@ export type DeathEffect =
       readonly bypassShelter?: boolean;
       readonly bypassSurvival?: boolean;
     }
-  | { readonly kind: 'immune'; readonly seat: number; readonly against: readonly AttackCause[] }
+  | { readonly kind: 'immune'; readonly seat: number; readonly against: readonly ImmunityCause[] }
   | { readonly kind: 'reflect'; readonly seat: number; readonly against: readonly AttackCause[] }
   /** The seat survives these causes tonight and leaves the game later instead. */
   | { readonly kind: 'wound'; readonly seat: number; readonly against: readonly DeathCause[] }
@@ -64,6 +66,7 @@ export type DeathTraceEntry =
       readonly target: number;
       readonly group: string;
     }
+  | { readonly kind: 'deathBlocked'; readonly cause: DeathCause; readonly target: number }
   | { readonly kind: 'shelter'; readonly cause: DeathCause; readonly target: number }
   | {
       readonly kind: 'link';
@@ -136,7 +139,7 @@ function resolveAttacks(
   resolution: MutableResolution,
 ): void {
   for (const attack of attacks) {
-    if (hasImmunity(attack, effects)) {
+    if (hasImmunity(attack.target, attack.cause, effects)) {
       resolution.trace.push({
         kind: 'attackBlocked',
         cause: attack.cause,
@@ -158,15 +161,12 @@ function resolveAttacks(
   }
 }
 
-function hasImmunity(
-  attack: Extract<DeathEffect, { readonly kind: 'attack' }>,
-  effects: readonly DeathEffect[],
-): boolean {
+function hasImmunity(seat: number, cause: DeathCause, effects: readonly DeathEffect[]): boolean {
   return effects.some(
     (effect) =>
       effect.kind === 'immune' &&
-      effect.seat === attack.target &&
-      effect.against.includes(attack.cause),
+      effect.seat === seat &&
+      (effect.against.includes(cause) || effect.against.includes('nightDamage')),
   );
 }
 
@@ -298,6 +298,10 @@ function resolveLinkDirection(
 ): boolean {
   if (processed.has(direction)) return false;
   processed.add(direction);
+  if (!resolution.deaths.has(to) && hasImmunity(to, link.cause, effects)) {
+    resolution.trace.push({ kind: 'deathBlocked', cause: link.cause, target: to });
+    return false;
+  }
   const shelter = shelters.find((effect) => effect.target === to);
   if (
     link.bypassSurvival !== true &&
@@ -331,6 +335,14 @@ function resolveReflections(
         reflection.against.includes(attack.cause) &&
         attack.source !== null
       ) {
+        if (hasImmunity(attack.source, 'reflection', effects)) {
+          resolution.trace.push({
+            kind: 'deathBlocked',
+            cause: 'reflection',
+            target: attack.source,
+          });
+          continue;
+        }
         recordDeath(attack.source, 'reflection', resolution);
         resolution.trace.push({
           kind: 'reflection',
