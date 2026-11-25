@@ -1,0 +1,37 @@
+/* The account entry: a bare touch target; the avatar keeps its own shape. */
+.account-entry {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.account-placeholder {
+  width: var(--size-icon-xl);
+  height: var(--size-icon-xl);
+  color: var(--color-text-secondary);
+}
+
+.account-ticket-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: var(--size-badge-md);
+  height: var(--size-badge-md);
+  padding: 0 var(--space-micro);
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption-small);
+  line-height: var(--size-badge-md);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}

@@ -6,6 +6,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps, ReactElement } from 'react';
 
+import { ACCOUNT_ENTRY_CLASS } from '@/components/avatar/AccountAvatar';
 import {
   createRoomShellModel,
   type RoomShellModelInput,
@@ -235,6 +236,34 @@ describe('RoomShell stage content', () => {
     expect(screen.queryByTestId(TESTIDS.roomUserSettingsCard)).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId(TESTIDS.roomUserSettingsButton));
     expect(onUserActionPress).toHaveBeenCalledOnce();
+  });
+
+  it('renders the account entry as the plain avatar with the ticket badge, as on Home', () => {
+    render(
+      <TestRoomShell
+        model={createRoomShellModel(
+          shellInput({
+            user: { id: 'u1', avatarUrl: null },
+            gachaStatus: { normalDraws: 120, goldenDraws: 3 },
+          }),
+        )}
+        content={{
+          kind: 'seats',
+          contextHeader: null,
+          bottomSummary: null,
+          beforeSeatBoard: <p>座位说明</p>,
+          afterSeatBoard: null,
+        }}
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />,
+    );
+    const entry = screen.getByTestId(TESTIDS.roomUserSettingsButton);
+    expect(entry).toHaveClass(ACCOUNT_ENTRY_CLASS);
+    expect(entry).not.toHaveClass('icon-button');
+    expect(within(entry).getByRole('img', { name: '头像' })).toHaveClass('avatar');
+    expect(within(entry).getByRole('img', { name: '123 张抽奖券' })).toHaveTextContent('99+');
   });
 
   it('keeps settings in the header and out of the stage menu', () => {
