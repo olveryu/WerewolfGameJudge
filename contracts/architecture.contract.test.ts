@@ -805,6 +805,7 @@ describe('Worker ownership: source tree is exact', () => {
       .filter(ts.isStringLiteralLike)
       .map((argument) => argument.text);
     expect(literalArguments).toEqual([
+      'exec',
       'wrangler',
       'd1',
       'execute',

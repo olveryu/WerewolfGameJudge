@@ -3,14 +3,16 @@
  * seed-local — 本地 D1 开发账号、奖励与词库 seed 脚本
  *
  * 通过 TypeScript AST 读取 product/rewards/catalog.ts 的奖励 ID 数组，
- * 创建确定性 dev 用户（全解锁）及三款词库游戏的本地样例词条，通过 wrangler d1 execute --local 写入。
+ * 仅补齐缺失的 dev 用户、奖励与词条；不重置已有数据。中断后可安全重跑。
+ * 通过 wrangler d1 execute --local 写入当前工作树的本地数据库。
  *
  * 用法：node scripts/seed-local.mjs
  * 或：  pnpm -F @game-judge/api-worker db:seed:local
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
@@ -213,10 +215,9 @@ const maxLevel = 99;
 const maxXp = 9999;
 
 const sql = [
-  // Dev user (INSERT OR REPLACE to be idempotent)
-  `INSERT OR REPLACE INTO users (id, email, password_hash, display_name, is_anonymous, created_at, updated_at) VALUES ('${DEV_USER_ID}', '${DEV_EMAIL}', '${DEV_PASSWORD_HASH}', '${DEV_DISPLAY_NAME}', 0, datetime('now'), datetime('now'));`,
-  // Full-unlock user_stats with gacha tickets for testing
-  `INSERT OR REPLACE INTO user_stats (user_id, xp, level, games_played, unlocked_items, normal_draws, golden_draws, normal_pity, golden_pity, version, last_login_reward_at, updated_at) VALUES ('${DEV_USER_ID}', ${maxXp}, ${maxLevel}, 100, '${unlockedJson}', 50, 10, 0, 0, 0, NULL, datetime('now'));`,
+  // Preserve an existing dev account, including one created with a different UUID.
+  `INSERT INTO users (id, email, password_hash, display_name, is_anonymous, created_at, updated_at) VALUES ('${DEV_USER_ID}', '${DEV_EMAIL}', '${DEV_PASSWORD_HASH}', '${DEV_DISPLAY_NAME}', 0, datetime('now'), datetime('now')) ON CONFLICT (email) DO NOTHING;`,
+  `INSERT INTO user_stats (user_id, xp, level, games_played, unlocked_items, normal_draws, golden_draws, normal_pity, golden_pity, version, last_login_reward_at, updated_at) SELECT id, ${maxXp}, ${maxLevel}, 100, '${unlockedJson}', 50, 10, 0, 0, 0, NULL, datetime('now') FROM users WHERE email = '${DEV_EMAIL}' ON CONFLICT (user_id) DO NOTHING;`,
   ...FIB_WORDS.flatMap(([id, word, coreMeaning, usageNote], index) => [
     `INSERT INTO fib_word_sequence (word, published_at, pack_id) VALUES (${sqlString(word)}, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL) ON CONFLICT (word) DO NOTHING;`,
     `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, generation_cycle_id, created_at, activated_at) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(coreMeaning)}, ${sqlString(usageNote)}, 'literature', 'local', 'active', ${index}, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) ON CONFLICT (word) DO NOTHING;`,
@@ -231,7 +232,7 @@ const sql = [
   ),
 ].join(' ');
 
-console.log('\n=== Dev user seed ===');
+console.log('\n=== Defaults for missing dev data (existing data is preserved) ===');
 console.log(`  Email:    ${DEV_EMAIL}`);
 console.log(`  Password: dev123`);
 console.log(`  UUID:     ${DEV_USER_ID}`);
@@ -244,14 +245,16 @@ console.log(
 // ── 执行 ────────────────────────────────────────────────────────────────────
 
 const workerDir = resolve(__dirname, '../packages/api-worker');
-const tmpSql = join(workerDir, '.seed-local-tmp.sql');
+const temporaryDir = mkdtempSync(join(tmpdir(), 'game-judge-seed-local-'));
+const tmpSql = join(temporaryDir, 'seed.sql');
 
 try {
   // Write SQL to temp file to avoid shell $ expansion mangling the password hash
   writeFileSync(tmpSql, sql, 'utf-8');
   execFileSync(
-    'npx',
+    'pnpm',
     [
+      'exec',
       'wrangler',
       'd1',
       'execute',
@@ -263,15 +266,14 @@ try {
     {
       cwd: workerDir,
       encoding: 'utf-8',
-      stdio: 'inherit',
+      stdio: ['ignore', 'inherit', 'inherit'],
+      timeout: 5 * 60 * 1000,
     },
   );
-  console.log('\nSeed complete! Login with dev@test.local / dev123');
+  console.log('\nSeed complete! Existing accounts and progress were preserved.');
 } catch (e) {
   console.error('Seed failed:', e);
   process.exitCode = 1;
 } finally {
-  if (existsSync(tmpSql)) {
-    unlinkSync(tmpSql);
-  }
+  rmSync(temporaryDir, { recursive: true, force: true });
 }

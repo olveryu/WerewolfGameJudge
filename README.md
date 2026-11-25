@@ -158,15 +158,22 @@
 
 ```bash
 pnpm install          # 安装依赖
-pnpm run dev          # Worker + Vite 同时启动 (localhost:8787 + Vite dev server)
+pnpm run dev          # 自动迁移和安全 seed 本地 D1，然后启动 Worker + Vite
 pnpm --filter @game-judge/web run dev:admin-mock  # 仅启动管理后台 UI 模拟，不需要 Worker 或 D1
 pnpm run quality      # 完整质量门禁（类型、构建、Knip、lint、格式、测试）
 pnpm run e2e          # Playwright E2E
 
-# 本地 D1 seed — dev 用户、全物品解锁，以及三款词库游戏的示例词条
+# 可选：仅初始化本地 D1，不启动服务器
 pnpm -F @game-judge/api-worker db:migrate:local
 pnpm -F @game-judge/api-worker db:seed:local
 ```
+
+首次启动创建 `dev@test.local` / `dev123`（全奖励解锁）及三款词库游戏的示例词条。
+后续启动只补齐缺失数据，不重置账号、进度或词条；初始化失败时不启动服务器。
+本地数据库位于当前工作树的 `packages/api-worker/.wrangler/state`，不会操作远程数据库。
+端口被占用时自动选择可用端口，并将 Vite 连接到本次启动的 Worker；访问启动日志中的 Web 地址。
+缺失的 `JWT_SECRET` 会生成并保存在 Worker 的 `.env.local`（已有 `.dev.vars` 时补入该文件），
+后续启动复用密钥；已有密钥不会覆盖。任一服务器退出时另一服务器也会停止。
 
 管理后台 UI 模拟模式登录密码为 `local-admin`。数据由浏览器内存中的 MSW fixtures 提供，写操作仅在当前标签页有效；普通 `pnpm run dev` 和生产构建不会启用模拟 API。
 
