@@ -40,8 +40,7 @@ export type DeathEffect =
   | { readonly kind: 'wound'; readonly seat: number; readonly against: readonly DeathCause[] }
   | {
       readonly kind: 'void';
-      readonly scope:
-        { readonly source: number } | { readonly cause: AttackCause; readonly target: number };
+      readonly scope: { readonly cause: AttackCause; readonly target: number };
     };
 
 export type DeathTraceEntry =
@@ -90,13 +89,8 @@ const LINK_RESOLUTION_ORDER = {
 
 export function resolveDeathEffects(effects: readonly DeathEffect[]): DeathResolution {
   const voids = effects.filter((effect) => effect.kind === 'void');
-  const activeEffects = effects.filter(
-    (effect) => effect.kind === 'void' || !isSourceVoided(effect, voids),
-  );
   const candidateAttacks = effects.filter((effect) => effect.kind === 'attack');
-  const attacks = candidateAttacks.filter(
-    (attack) => activeEffects.includes(attack) && !isAttackVoided(attack, voids),
-  );
+  const attacks = candidateAttacks.filter((attack) => !isAttackVoided(attack, voids));
   const resolution: MutableResolution = { deaths: new Set(), causes: new Map(), trace: [] };
 
   for (const attack of candidateAttacks) {
@@ -109,19 +103,19 @@ export function resolveDeathEffects(effects: readonly DeathEffect[]): DeathResol
       });
     }
   }
-  resolveAttacks(attacks, activeEffects, resolution);
-  applyShelters(activeEffects, resolution);
-  applyWounds(activeEffects, resolution);
+  resolveAttacks(attacks, effects, resolution);
+  applyShelters(effects, resolution);
+  applyWounds(effects, resolution);
 
-  const links = activeEffects
+  const links = effects
     .filter((effect): effect is LinkEffect => effect.kind === 'link')
     .sort(
       (first, second) => LINK_RESOLUTION_ORDER[first.cause] - LINK_RESOLUTION_ORDER[second.cause],
     );
   const processedLinks = new Set<string>();
-  resolveLinks(links, activeEffects, processedLinks, resolution);
-  resolveReflections(attacks, activeEffects, resolution);
-  resolveLinks(links, activeEffects, processedLinks, resolution);
+  resolveLinks(links, effects, processedLinks, resolution);
+  resolveReflections(attacks, effects, resolution);
+  resolveLinks(links, effects, processedLinks, resolution);
 
   return toDeathResolution(resolution);
 }
@@ -334,41 +328,13 @@ function resolveReflections(
   }
 }
 
-function isSourceVoided(
-  effect: DeathEffect,
-  voids: readonly Extract<DeathEffect, { readonly kind: 'void' }>[],
-): boolean {
-  const source = getEffectSource(effect);
-  if (source === null) return false;
-  return voids.some((voidEffect) => {
-    const scope = voidEffect.scope;
-    return 'source' in scope && scope.source === source;
-  });
-}
-
-function getEffectSource(effect: DeathEffect): number | null {
-  switch (effect.kind) {
-    case 'attack':
-    case 'protect':
-    case 'shelter':
-      return effect.source;
-    case 'link':
-      return effect.source;
-    case 'void':
-    case 'immune':
-    case 'reflect':
-    case 'wound':
-      return null;
-  }
-}
-
 function isAttackVoided(
   attack: Extract<DeathEffect, { readonly kind: 'attack' }>,
   voids: readonly Extract<DeathEffect, { readonly kind: 'void' }>[],
 ): boolean {
   return voids.some((voidEffect) => {
     const scope = voidEffect.scope;
-    return 'cause' in scope && scope.cause === attack.cause && scope.target === attack.target;
+    return scope.cause === attack.cause && scope.target === attack.target;
   });
 }
 

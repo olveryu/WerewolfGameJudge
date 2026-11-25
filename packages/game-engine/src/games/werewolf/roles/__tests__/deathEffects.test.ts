@@ -189,15 +189,4 @@ describe('werewolf death effects', () => {
       target: 2,
     });
   });
-
-  it('voids every active effect from a blocked source without cancelling passive immunity', () => {
-    const result = resolveDeathEffects([
-      { kind: 'attack', cause: 'wolfKill', source: 0, target: 2 },
-      { kind: 'protect', source: 3, target: 2, against: ['wolfKill'], conflictGroup: null },
-      { kind: 'immune', seat: 0, against: ['poison'] },
-      { kind: 'void', scope: { source: 3 } },
-    ]);
-
-    expect(result.deaths).toEqual([2]);
-  });
 });

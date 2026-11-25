@@ -72,10 +72,7 @@ const deathEffect = z.discriminatedUnion('kind', [
   }),
   z.strictObject({
     kind: z.literal('void'),
-    scope: z.union([
-      z.strictObject({ source: seat }),
-      z.strictObject({ cause: attackCause, target: seat }),
-    ]),
+    scope: z.strictObject({ cause: attackCause, target: seat }),
   }),
 ]);
 const identityChange = z.discriminatedUnion('kind', [
