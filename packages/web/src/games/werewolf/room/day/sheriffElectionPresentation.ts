@@ -51,15 +51,7 @@ interface SheriffElectionPresentationRoundInput {
  */
 export interface SheriffElectionPresentationInput {
   readonly phase: SheriffElectionState['phase'];
-  /**
-   * The phase description, supplied by the caller — never derived here.
-   * The panel passes its view model's description, which is the host
-   * variant (`报名截止后，请在「主持管理」中结束报名。`) for the host
-   * during registration; the review passes the generic description,
-   * because the archive is read-only and host instructions do not
-   * belong in it. This is the one registered intentional difference
-   * between the two surfaces.
-   */
+  /** The phase description, supplied by the caller — never derived here. */
   readonly phaseDescription: string;
   /** Null while registration identities are not yet public. */
   readonly records: SheriffCandidateRecords | null;

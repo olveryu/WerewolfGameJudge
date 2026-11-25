@@ -559,13 +559,6 @@ const SHOWN_ELSEWHERE: Readonly<Record<string, string>> = {
   推进竞选: 'names the command in the failure message when the host cannot advance',
 };
 
-/**
- * Written but displayed nowhere: the host's variant of the registration description reaches
- * only a presentation row that no surface renders. Listed so that it stays visible until it is
- * either shown or deleted.
- */
-const NEVER_SHOWN: readonly string[] = ['报名截止后，请在「', '」中结束报名。'];
-
 /** Every Chinese fragment written in a source file: literals, template pieces, and JSX text. */
 function collectWrittenFragments(relativePath: string): string[] {
   const filePath = path.join(ROOM_DIRECTORY, relativePath);
@@ -621,6 +614,6 @@ describe('sheriff election step-by-step list', () => {
       .sort();
 
     // Exactly the listed exceptions: a new unshown sentence fails, and so does a stale exception.
-    expect(unshown).toEqual([...Object.keys(SHOWN_ELSEWHERE), ...NEVER_SHOWN].sort());
+    expect(unshown).toEqual(Object.keys(SHOWN_ELSEWHERE).sort());
   });
 });
