@@ -32,6 +32,11 @@ const TREASURE_MASTER_ROLES: RoleId[] = [
   'villager',
 ];
 
+const TREASURE_MASTER_WITCHER_ROLES: RoleId[] = TREASURE_MASTER_ROLES.map((roleId) =>
+  roleId === 'dreamcatcher' ? 'witcher' : roleId,
+);
+const BOTTOM_CARD_SEED_SEARCH_LIMIT = 64;
+
 function getPlayers(state: GameState): readonly { readonly seat: number; readonly role: RoleId }[] {
   return Object.entries(state.players).flatMap(([seat, player]) =>
     player?.role == null ? [] : [{ seat: Number(seat), role: player.role }],
@@ -184,6 +189,26 @@ function playTreasureMaster(seed: string, card: RoleId, poison: boolean): NightO
   });
 }
 
+/** Deal bottom cards deterministically until `card` is one of them. */
+function createGameWithBottomCard(roles: RoleId[], card: RoleId): GameContext {
+  for (let attempt = 1; attempt <= BOTTOM_CARD_SEED_SEARCH_LIMIT; attempt += 1) {
+    const context = createGame(roles, undefined, { randomSeed: `bottom-fixture-${attempt}` });
+    if (context.getGameState().bottomCards?.includes(card) === true) return context;
+  }
+  throw new Error(`[FAIL-FAST] No fixture seed deals ${card} as a bottom card`);
+}
+
+function playPoisonedTreasureMaster(card: RoleId): NightOutcome {
+  const context = createGameWithBottomCard(TREASURE_MASTER_WITCHER_ROLES, card);
+  const state = context.getGameState();
+  return playScenarioNight(context, {
+    treasureMaster: { cardIndex: requireBottomCard(state, card) },
+    wolf: null,
+    poisoner: findRoleSeat(state, 'treasureMaster'),
+    psychic: findRoleSeat(state, 'treasureMaster'),
+  });
+}
+
 const NIGHT_CASES: readonly NightCase[] = [
   ...PRESET_TEMPLATES.map((preset) => ({
     name: `${preset.name} preset: ordinary night`,
@@ -218,6 +243,10 @@ const NIGHT_CASES: readonly NightCase[] = [
   ).map(({ seed, card, poison }) => ({
     name: `treasure master: ${seed} takes the ${card} card${poison ? ' and the poisoner poisons' : ''}`,
     play: () => playTreasureMaster(seed, card, poison),
+  })),
+  ...(['witcher', 'villager'] as const).map((card) => ({
+    name: `treasure master: poisoned after taking the ${card} card`,
+    play: () => playPoisonedTreasureMaster(card),
   })),
   {
     name: '恶灵骑士 preset: seer checks the spirit knight',

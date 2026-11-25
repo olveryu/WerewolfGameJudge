@@ -214,6 +214,32 @@ const POISONER_COVERAGE = [
   'villager',
 ] as const;
 
+const HIDDEN_WOLF_TAIL = ['hiddenWolf', 'seer', 'witch', 'hunter', 'guard'] as const;
+const HIDDEN_WOLF_NIGHTMARE = [
+  ...VILLAGERS,
+  'wolf',
+  'wolf',
+  'nightmare',
+  ...HIDDEN_WOLF_TAIL,
+] as const;
+const HIDDEN_WOLF_GIRL = [...VILLAGERS, 'wolf', 'wolf', 'wolfGirl', ...HIDDEN_WOLF_TAIL] as const;
+const HIDDEN_WOLF_AWAKENED = [
+  ...VILLAGERS,
+  'wolf',
+  'wolf',
+  'awakenedGargoyle',
+  ...HIDDEN_WOLF_TAIL,
+] as const;
+const WOLF_GIRL_MIRROR = [
+  ...VILLAGERS,
+  ...WOLVES,
+  'wolfGirl',
+  'seer',
+  'mirrorSeer',
+  'witch',
+  'guard',
+] as const;
+
 function scenarios(
   board: string,
   roles: readonly RoleId[],
@@ -408,6 +434,7 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
     ['skip learning', { wolfRobot: null, wolf: 1, psychic: 7 }],
   ]),
   ...scenarios('wolf robot seer disguise', ROBOT_SEER, [
+    ['learn the seer', { wolf: 1, wolfRobot: 8, seer: 7 }],
     ['learn villager', { wolfRobot: 0, wolf: 1, seer: 7 }],
     ['learn wolf', { wolfRobot: 4, wolf: 1, seer: 7 }],
     ['skip learning', { wolfRobot: null, wolf: 1, seer: 7 }],
@@ -457,5 +484,17 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
   ]),
   ...scenarios('step coverage', POISONER_COVERAGE, [
     ['crow curse with poisoner override', { crow: 1 }],
+  ]),
+  ...scenarios('hidden wolf', HIDDEN_WOLF_NIGHTMARE, [
+    ['nightmare fears the hidden wolf', { nightmare: 7, wolf: 0, seer: 4 }],
+  ]),
+  ...scenarios('hidden wolf', HIDDEN_WOLF_GIRL, [
+    ['wolf girl confesses the hidden wolf', { wolfGirl: 7, wolf: 0, seer: 4 }],
+  ]),
+  ...scenarios('hidden wolf', HIDDEN_WOLF_AWAKENED, [
+    ['awakened gargoyle converts the hidden wolf', { awakenedGargoyle: 7, wolf: 0, seer: 4 }],
+  ]),
+  ...scenarios('wolf girl', WOLF_GIRL_MIRROR, [
+    ['confesses the mirror seer', { wolfGirl: 9, wolf: 0, seer: 4, mirrorSeer: 4 }],
   ]),
 ];

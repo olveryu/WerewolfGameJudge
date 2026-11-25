@@ -31,13 +31,13 @@ const confessStep = createSingleTargetStep({
   canTargetSelf: false,
   targetUnavailableReason: (context, chosenSeat) => {
     const targetRole = context.role.roleOf(chosenSeat);
-    return context.factionOfRole(targetRole) === 'wolf' ? COPY.wolfTargetDisallowed : null;
+    return context.teamOfRole(targetRole) === 'wolf' ? COPY.wolfTargetDisallowed : null;
   },
   selectionEffects: (context, selection) => ({
     disabledAbilities: [],
     deathEffects: [],
     wolfGirlConfessions:
-      context.factionOfRole(context.role.roleOf(selection.landingSeat)) === 'wolf'
+      context.teamOfRole(context.role.roleOf(selection.landingSeat)) === 'wolf'
         ? []
         : [{ actorSeat: getActingSeat(context), targetSeat: selection.landingSeat }],
   }),
@@ -52,7 +52,7 @@ const confessRevealStep = createGroupConfirmStep({
       (entry) => entry.targetSeat === context.seat,
     );
     if (confession === undefined) return COPY.notConfessed;
-    return context.factionOfRole(context.role.roleOf(confession.targetSeat)) === 'villager'
+    return context.role.roleOf(confession.targetSeat) === 'villager'
       ? renderCopy(COPY.confessedVillager, { seat: formatSeat(confession.actorSeat) })
       : COPY.confessed;
   },

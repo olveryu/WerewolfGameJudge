@@ -67,7 +67,7 @@ const convertStep: WerewolfRoleStepDefinition = {
             disabledAbilities: [],
             deathEffects: [],
             factionChanges:
-              context.factionOfRole(context.role.roleOf(selection.landingSeat)) === 'wolf'
+              context.teamOfRole(context.role.roleOf(selection.landingSeat)) === 'wolf'
                 ? []
                 : [{ seat: selection.landingSeat, faction: 'wolf' }],
           },
@@ -122,7 +122,7 @@ function getTargetUnavailableReason(
   chosenSeat: number,
 ): string | null {
   if (chosenSeat === context.seat) return COPY.selfDisallowed;
-  if (context.factionOfRole(context.role.roleOf(chosenSeat)) === 'wolf') {
+  if (context.teamOfRole(context.role.roleOf(chosenSeat)) === 'wolf') {
     return COPY.wolfDisallowed;
   }
   return context.isAdjacentToWolfFaction(chosenSeat) ? null : COPY.adjacencyDisallowed;

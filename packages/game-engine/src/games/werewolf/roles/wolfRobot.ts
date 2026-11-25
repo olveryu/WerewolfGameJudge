@@ -67,11 +67,9 @@ const wolfRobotLearnStep: WerewolfRoleStepDefinition = {
         return {
           facts: {
             selections: [{ roleId: 'wolfRobot', actorSeat, ...selection }],
-            identityChanges: [
-              { kind: 'grantBorrowedAbility', seat: actorSeat, roleId: result.roleId },
-            ],
+            identityChanges: [],
             sightOverrides: [{ seat: actorSeat, roleId: result.roleId }],
-            disabledAbilities: [{ roleId: result.roleId, seat: actorSeat }],
+            disabledAbilities: [],
             cardSelections: [],
             deathEffects: [],
           },

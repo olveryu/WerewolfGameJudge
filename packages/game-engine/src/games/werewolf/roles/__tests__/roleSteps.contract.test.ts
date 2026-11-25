@@ -572,11 +572,9 @@ describe('werewolf role definitions', () => {
       landingSeat: 4,
       roleId: 'wolf',
     });
-    expect(learningResult.facts?.identityChanges).toEqual([
-      { kind: 'grantBorrowedAbility', seat: 1, roleId: 'hunter' },
-    ]);
+    expect(learningResult.facts?.identityChanges).toEqual([]);
     expect(learningResult.facts?.sightOverrides).toEqual([{ seat: 1, roleId: 'hunter' }]);
-    expect(learningResult.facts?.disabledAbilities).toEqual([{ roleId: 'hunter', seat: 1 }]);
+    expect(learningResult.facts?.disabledAbilities).toEqual([]);
     expect(view.availability?.(context)).toEqual({ kind: 'available' });
     expect(isSeatSettled(context, learnedHunter)).toBe(false);
     expect(

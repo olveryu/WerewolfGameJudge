@@ -120,8 +120,7 @@ function createWerewolfStepContext(input: WerewolfStepContextInput): WerewolfRol
       getWerewolfRoleDefinition(role.roleOf(targetSeat)).traits.wolfKillTargetForbidden === true,
     isAdjacentToWolfFaction: (targetSeat) =>
       state.seatedSeats.some((wolfSeat) => {
-        if (getWerewolfRoleDefinition(role.roleOf(wolfSeat)).traits.faction !== 'wolf')
-          return false;
+        if (getWerewolfRoleDefinition(role.roleOf(wolfSeat)).traits.team !== 'wolf') return false;
         const distance = Math.abs(targetSeat - wolfSeat);
         return distance === 1 || distance === state.seatedSeats.length - 1;
       }),
@@ -151,11 +150,14 @@ export function collectWerewolfDeathEffects(
   const effects: DeathEffect[] = [...context.facts.deathEffects];
   const passiveContext = { ...context, seat: null, record: { bySeat: {} } };
   for (const seat of context.state.seatedSeats) {
-    const role = getWerewolfRoleDefinition(context.role.roleOf(seat));
-    if (role.traits.immunities !== undefined) {
-      effects.push({ kind: 'immune', seat, against: role.traits.immunities });
+    // A card taken for the night brings its passive traits with it.
+    for (const roleId of context.role.activeRoleIdsOf(seat)) {
+      const role = getWerewolfRoleDefinition(roleId);
+      if (role.traits.immunities !== undefined) {
+        effects.push({ kind: 'immune', seat, against: role.traits.immunities });
+      }
+      effects.push(...(role.passiveDeathEffects?.(passiveContext, seat) ?? []));
     }
-    effects.push(...(role.passiveDeathEffects?.(passiveContext, seat) ?? []));
   }
   return effects;
 }

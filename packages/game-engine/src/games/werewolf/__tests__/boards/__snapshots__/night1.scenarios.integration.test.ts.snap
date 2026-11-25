@@ -899,6 +899,120 @@ exports[`Night-1 board scenarios through production commands > guard: skip 1`] =
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > hidden wolf: awakened gargoyle converts the hidden wolf 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "12号守卫未守护",
+    "狼队（5、6、7号）袭击1号",
+    "8号隐狼已确认狼同伴",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "11号猎人可以发动",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "7号觉醒石像鬼转化8号",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "hiddenWolfReveal",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+    "awakenedGargoyleConvert",
+    "awakenedGargoyleConvertReveal",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+    "awakenedGargoyleConvert 转化 1号 2号 3号 9号 10号 11号 12号: 只能选择与狼人阵营相邻的玩家 [7号]",
+    "awakenedGargoyleConvert 转化 5号 6号: 不能选择狼人阵营的玩家 [7号]",
+    "awakenedGargoyleConvert 转化 7号: 不能选择自己 [7号]",
+  ],
+  "views": [
+    "hiddenWolfReveal 你的狼同伴为：5号、6号、7号 [8号]",
+    "hunterConfirm 可以发动技能 [11号]",
+    "awakenedGargoyleConvertReveal 你未被转化 [1号 2号 3号 4号 5号 6号 7号 9号 10号 11号 12号]",
+    "awakenedGargoyleConvertReveal 你已被觉醒石像鬼转化为狼人阵营 [8号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > hidden wolf: nightmare fears the hidden wolf 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "7号噩梦之影恐惧8号（隐狼，技能无效）",
+    "12号守卫未守护",
+    "狼队放弃袭击，被噩梦之影封锁",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "11号猎人可以发动",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "steps": [
+    "nightmareBlock",
+    "guardProtect",
+    "wolfKill",
+    "hiddenWolfReveal",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "wolfKill 袭击: 被噩梦之影恐惧，本夜无法袭击 [5号 6号 7号]",
+    "hiddenWolfReveal 查看狼同伴: 被噩梦之影恐惧，本夜无法使用技能 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "hunterConfirm 可以发动技能 [11号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > hidden wolf: wolf girl confesses the hidden wolf 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "12号守卫未守护",
+    "7号狼女孩向8号表白",
+    "狼队（5、6、7号）袭击1号",
+    "8号隐狼已确认狼同伴",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "11号猎人可以发动",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfGirlConfess",
+    "wolfKill",
+    "hiddenWolfReveal",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+    "wolfGirlConfessReveal",
+  ],
+  "unavailable": [
+    "wolfGirlConfess 表白 5号 6号: 不能选择狼人阵营的玩家 [7号]",
+    "wolfGirlConfess 表白 7号: 不能选择自己 [7号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "hiddenWolfReveal 你的狼同伴为：5号、6号、7号 [8号]",
+    "hunterConfirm 可以发动技能 [11号]",
+    "wolfGirlConfessReveal 你未被表白 [1号 2号 3号 4号 5号 6号 7号 9号 10号 11号 12号]",
+    "wolfGirlConfessReveal 你被表白了 [8号]",
+  ],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > intermediate standard night: witch poisons 1`] = `
 {
   "announcements": [],
@@ -3197,6 +3311,81 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > treasure master: poisoned after taking the villager card 1`] = `
+{
+  "announcements": [
+    "乌鸦信息（放逐投票时公布）: 昨夜没有诅咒",
+  ],
+  "deaths": [
+    "2号 poison",
+  ],
+  "review": [
+    "2号盗宝大师选择平民为身份（获得的技能：平民）",
+    "3号乌鸦未诅咒",
+    "狼队放弃袭击，毒师在场",
+    "9号毒师毒杀2号",
+    "5号猎人可以发动",
+    "11号狼王可以发动",
+  ],
+  "steps": [
+    "treasureMasterChoose",
+    "crowCurse",
+    "wolfKill",
+    "poisonerPoison",
+    "hunterConfirm",
+    "darkWolfKingConfirm",
+    "psychicCheck",
+  ],
+  "unavailable": [
+    "treasureMasterChoose 选择底牌 狼人: 不可选择狼人阵营底牌 [2号]",
+    "crowCurse 诅咒 3号: 不能选择自己 [3号]",
+    "wolfKill 袭击: 本局有毒师在场，首夜无法袭击 [1号 11号 12号]",
+  ],
+  "views": [
+    "hunterConfirm 可以发动技能 [5号]",
+    "darkWolfKingConfirm 可以发动技能 [11号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > treasure master: poisoned after taking the witcher card 1`] = `
+{
+  "announcements": [
+    "乌鸦信息（放逐投票时公布）: 昨夜没有诅咒",
+  ],
+  "deaths": [],
+  "review": [
+    "5号盗宝大师选择猎魔人为身份（获得的技能：猎魔人）",
+    "3号乌鸦未诅咒",
+    "狼队放弃袭击，毒师在场",
+    "1号毒师毒杀5号",
+    "10号猎人可以发动",
+    "9号狼王可以发动",
+    "4号通灵师通灵5号（通灵结果：5号是猎魔人）",
+    "5号免疫毒药",
+  ],
+  "steps": [
+    "treasureMasterChoose",
+    "crowCurse",
+    "wolfKill",
+    "poisonerPoison",
+    "hunterConfirm",
+    "darkWolfKingConfirm",
+    "psychicCheck",
+  ],
+  "unavailable": [
+    "treasureMasterChoose 选择底牌 狼人: 不可选择狼人阵营底牌 [5号]",
+    "crowCurse 诅咒 3号: 不能选择自己 [3号]",
+    "wolfKill 袭击: 本局有毒师在场，首夜无法袭击 [8号 9号 12号]",
+    "psychicCheck 通灵 4号: 不能选择自己 [4号]",
+  ],
+  "views": [
+    "hunterConfirm 可以发动技能 [10号]",
+    "darkWolfKingConfirm 可以发动技能 [9号]",
+  ],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > witch: attacked witch skips 1`] = `
 {
   "announcements": [],
@@ -3522,6 +3711,43 @@ exports[`Night-1 board scenarios through production commands > wolf girl: confes
     "hunterConfirm 可以发动技能 [11号]",
     "wolfGirlConfessReveal 你被表白了，狼女孩是：8号 [1号]",
     "wolfGirlConfessReveal 你未被表白 [2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > wolf girl: confesses the mirror seer 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "12号守卫未守护",
+    "8号狼女孩向10号表白",
+    "狼队（5、6、7、8号）袭击1号",
+    "11号女巫未用解药",
+    "11号女巫未毒杀",
+    "10号灯影预言家查验5号（查验结果：5号是好人）",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfGirlConfess",
+    "wolfKill",
+    "witchAction",
+    "mirrorSeerCheck",
+    "seerCheck",
+    "wolfGirlConfessReveal",
+  ],
+  "unavailable": [
+    "wolfGirlConfess 表白 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
+    "wolfGirlConfess 表白 8号: 不能选择自己 [8号]",
+    "mirrorSeerCheck 查验 10号: 不能选择自己 [10号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "wolfGirlConfessReveal 你未被表白 [1号 2号 3号 4号 5号 6号 7号 8号 9号 11号 12号]",
+    "wolfGirlConfessReveal 你被表白了 [10号]",
   ],
 }
 `;
@@ -3913,6 +4139,37 @@ exports[`Night-1 board scenarios through production commands > wolf robot psychi
   "views": [
     "hunterConfirm 可以发动技能 [11号]",
   ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > wolf robot seer disguise: learn the seer 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "2号 wolfKill",
+  ],
+  "review": [
+    "11号魔术师未交换",
+    "12号守卫未守护",
+    "狼队（5、6、7号）袭击2号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "8号机械狼人学习9号（学习结果：9号是预言家）",
+    "9号预言家查验8号（查验结果：8号是好人）",
+  ],
+  "steps": [
+    "magicianSwap",
+    "guardProtect",
+    "wolfKill",
+    "witchAction",
+    "wolfRobotLearn",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "wolfRobotLearn 学习 8号: 不能选择自己 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
 }
 `;
 
