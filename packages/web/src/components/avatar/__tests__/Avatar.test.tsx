@@ -21,4 +21,12 @@ describe('Avatar', () => {
     render(<Avatar userId="u1" avatarUrl={avatarUrl} size="fill" />);
     expect(screen.getByRole('img', { name: '头像' }).style.borderRadius).toBe(CORNER);
   });
+
+  it.each(['genC001', 'genR001'])('lets %s fill its square, with no shape of its own', (id) => {
+    render(<Avatar userId="u1" avatarUrl={`builtin://${id}`} size={36} />);
+    const avatar = screen.getByRole('img', { name: '头像' });
+    const svg = avatar.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg?.querySelector('mask, clipPath, [mask], [clip-path]')).toBeNull();
+  });
 });

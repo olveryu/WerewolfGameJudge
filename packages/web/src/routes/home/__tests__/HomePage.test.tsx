@@ -140,6 +140,15 @@ describe('HomePage', () => {
       expect(account).toHaveClass(ACCOUNT_ENTRY_CLASS);
       expect(account).not.toHaveClass('icon-button');
     });
+
+    it('renders the signed-in avatar directly inside the account entry', () => {
+      mocks.useAuthContext.mockReturnValue(SIGNED_IN);
+      renderHome();
+
+      const account = screen.getByTestId(TESTIDS.homeSettingsButton);
+      // No wrapper between the entry and the avatar may re-shape it.
+      expect(within(account).getByRole('img', { name: '头像' }).parentElement).toBe(account);
+    });
   });
 
   describe('Navigation', () => {

@@ -3,7 +3,8 @@
  *
  * `Avatar` owns its corners (`AVATAR_CORNER_RATIO`, at every size) and the scene draws avatar
  * frames along the same corner. No stylesheet outside `components/avatar/` may restyle the avatar
- * element's corners or clip it, so the shape cannot drift per page again.
+ * element's corners, nor clip an avatar wrapper (an `*avatar*` class with `overflow: hidden|clip`
+ * plus a radius, or any clip-path/mask), so the shape cannot drift per page again.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -14,6 +15,11 @@ const AVATAR_DIR = 'components/avatar/';
 /** A selector whose subject (last compound) is the avatar element itself. */
 const TARGETS_AVATAR = /\.avatar(?![-\w])[^\s>+~]*$/;
 const SHAPE_PROPERTY = /^\s*(?:border(?:-[a-z]+)*-radius|clip-path|mask(?:-[a-z]+)*)\s*:/m;
+/** Any compound in the selector names an avatar-ish class (`.seat-avatar`, `.room-user-avatar-clip`). */
+const NAMES_AVATAR = /\.[\w-]*avatar[\w-]*/;
+const CLIPS_CONTENT = /^\s*overflow(?:-[xy])?\s*:\s*(?:hidden|clip)\b/m;
+const RADIUS = /^\s*border(?:-[a-z]+)*-radius\s*:/m;
+const CLIP_SHAPE = /^\s*(?:clip-path|mask(?:-[a-z]+)*)\s*:/m;
 
 function cssFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -46,6 +52,21 @@ describe('Avatar shape', () => {
           .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
       );
     expect(overrides).toEqual([]);
+  });
+
+  it('is not cut by an avatar wrapper', () => {
+    const clippers = cssFiles(SRC_DIR)
+      .filter((file) => !relative(SRC_DIR, file).startsWith(AVATAR_DIR))
+      .flatMap((file) =>
+        rules(readFileSync(file, 'utf8'))
+          .filter(
+            ({ selector, body }) =>
+              NAMES_AVATAR.test(selector) &&
+              ((CLIPS_CONTENT.test(body) && RADIUS.test(body)) || CLIP_SHAPE.test(body)),
+          )
+          .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
+      );
+    expect(clippers).toEqual([]);
   });
 
   it('keeps the shape out of the avatar stylesheet', () => {

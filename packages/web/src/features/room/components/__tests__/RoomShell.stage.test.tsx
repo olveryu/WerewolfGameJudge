@@ -262,7 +262,10 @@ describe('RoomShell stage content', () => {
     const entry = screen.getByTestId(TESTIDS.roomUserSettingsButton);
     expect(entry).toHaveClass(ACCOUNT_ENTRY_CLASS);
     expect(entry).not.toHaveClass('icon-button');
-    expect(within(entry).getByRole('img', { name: '头像' })).toHaveClass('avatar');
+    const avatar = within(entry).getByRole('img', { name: '头像' });
+    expect(avatar).toHaveClass('avatar');
+    // No wrapper between the entry and the avatar may re-shape it.
+    expect(avatar.parentElement).toBe(entry);
     expect(within(entry).getByRole('img', { name: '123 张抽奖券' })).toHaveTextContent('99+');
   });
 
