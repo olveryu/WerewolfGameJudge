@@ -27,8 +27,14 @@ export async function alertPrimaryButton(page: Page): Promise<Locator | null> {
   return (await first.count()) > 0 ? first : null;
 }
 
-/** Close only the captured alert body; a replacement alert is left for its caller. */
-export async function dismissCurrentAlert(
+/**
+ * Press the primary button of the alert that is open now, and wait until that alert has closed
+ * or been replaced. An alert stays open while its button's command is in flight, so a caller
+ * that only clicked would still be looking at it. A replacement alert is left for its caller.
+ *
+ * @returns false when no alert was open, or it was gone before its button could be pressed
+ */
+export async function pressCurrentAlertPrimary(
   page: Page,
   timeout = 5000,
   waitForClose = true,
@@ -42,9 +48,7 @@ export async function dismissCurrentAlert(
       .poll(
         async () =>
           !(await modal.isVisible()) || (await page.getByTestId(TESTIDS.alertTitle).count()) > 0,
-        {
-          timeout,
-        },
+        { timeout, message: 'The alert that was closing neither finished nor showed a new body' },
       )
       .toBe(true);
     if (!(await modal.isVisible())) return false;
@@ -75,15 +79,16 @@ export async function dismissCurrentAlert(
       }
       if (!waitForClose) return true;
       await expect
-        .poll(() => title.evaluate((element) => element.isConnected), { timeout })
+        .poll(() => title.evaluate((element) => element.isConnected), {
+          timeout,
+          message: 'The alert stayed open after its primary button was pressed',
+        })
         .toBe(false);
       await expect
         .poll(
           async () =>
             !(await modal.isVisible()) || (await page.getByTestId(TESTIDS.alertTitle).count()) > 0,
-          {
-            timeout,
-          },
+          { timeout, message: 'The pressed alert neither finished closing nor was replaced' },
         )
         .toBe(true);
       return true;
@@ -95,21 +100,55 @@ export async function dismissCurrentAlert(
   }
 }
 
+interface AlertSnapshot {
+  readonly title: string;
+  /** Empty when the alert has no message. */
+  readonly message: string;
+}
+
 /**
- * Wait for an alert and read its title and message, joined by a newline. The
- * message element renders only when the alert has a message.
+ * The open alert's title and message from one page evaluation, or null while no alert body is
+ * mounted. Separate reads can straddle a replacement and pair one alert's title with another
+ * alert's message.
+ */
+async function readAlertSnapshot(page: Page): Promise<AlertSnapshot | null> {
+  return page.getByTestId(TESTIDS.alertModal).evaluateAll(
+    (modals, testIds) => {
+      const open = modals.flatMap((modal) => {
+        const title = modal.querySelector(`[data-testid="${testIds.title}"]`);
+        if (title === null) return [];
+        const message = modal.querySelector(`[data-testid="${testIds.message}"]`);
+        return [{ title: title.textContent ?? '', message: message?.textContent ?? '' }];
+      });
+      if (open.length > 1) throw new Error(`${open.length} alerts are open at once`);
+      return open[0] ?? null;
+    },
+    { title: TESTIDS.alertTitle, message: TESTIDS.alertMessage },
+  );
+}
+
+/**
+ * Wait for an alert and read its title and message, joined by a newline. With `expectedTitle`,
+ * waits for the alert that carries that title; without it, reads whichever alert is open, so
+ * the caller must already know the previous alert is gone.
  */
 export async function readAlertText(
   page: Page,
   timeout = 10_000,
   expectedTitle?: string,
 ): Promise<string> {
-  const title = page.getByTestId(TESTIDS.alertTitle);
-  if (expectedTitle === undefined) await expect(title).toBeVisible({ timeout });
-  else await expect(title).toHaveText(expectedTitle, { timeout });
-  const message = page.getByTestId(TESTIDS.alertMessage);
-  const messageText = (await message.count()) > 0 ? await message.textContent() : '';
-  return `${await title.textContent()}\n${messageText}`;
+  const seen: { alert: AlertSnapshot | null } = { alert: null };
+  await expect(async () => {
+    seen.alert = await readAlertSnapshot(page);
+    expect(seen.alert, 'An alert should be open').not.toBeNull();
+    if (expectedTitle !== undefined) {
+      expect(seen.alert?.title, 'The open alert should carry the expected title').toBe(
+        expectedTitle,
+      );
+    }
+  }).toPass({ timeout });
+  if (seen.alert === null) throw new Error('[FAIL-FAST] The alert wait passed without an alert');
+  return `${seen.alert.title}\n${seen.alert.message}`;
 }
 
 /** Assert the open alert's title, then press the button at `buttonIndex` after asserting its label. */

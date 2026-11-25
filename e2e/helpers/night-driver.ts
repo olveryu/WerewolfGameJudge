@@ -3,7 +3,7 @@ import { errors, expect, type Locator, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { RoomPage } from '../pages/RoomPage';
-import { dismissCurrentAlert, pressAlertButton, readAlertText } from './alerts';
+import { pressAlertButton, pressCurrentAlertPrimary, readAlertText } from './alerts';
 import type { CommandFrameObservation } from './command-frames';
 import type { CapturedRole } from './multi-player';
 import { ensureConnected } from './waits';
@@ -189,12 +189,67 @@ export function nightButton(page: Page, key: string): Locator {
   return page.getByTestId(TESTIDS.stepInteractionButton(key));
 }
 
-async function openActionGroupFor(page: Page, key: string): Promise<void> {
-  const entry = page.getByTestId(TESTIDS.werewolfNightButton('openActionGroup'));
-  if (!(await entry.isVisible())) return;
-  const actionIds = (await entry.getAttribute('data-player-action-ids'))?.split(' ') ?? [];
-  if (!actionIds.includes(TESTIDS.stepInteractionButton(key))) return;
-  await entry.click({ timeout: CLICK_TIMEOUT_MS });
+/**
+ * Read an attribute of whatever the locator matches at this instant. Unlike `getAttribute`,
+ * this never waits for an element to appear: a sweep reads cards that may have left the hand
+ * since its last check, and waiting for one would stall the night it is trying to advance.
+ *
+ * @returns one entry per matching element; empty when nothing matches
+ */
+async function readAttributeNow(
+  locator: Locator,
+  name: string,
+): Promise<readonly (string | null)[]> {
+  return locator.evaluateAll(
+    (elements, attribute) => elements.map((element) => element.getAttribute(attribute)),
+    name,
+  );
+}
+
+/** The hand's group card, which folds several step actions behind one card. */
+function actionGroupCard(page: Page): Locator {
+  return page.getByTestId(TESTIDS.werewolfNightButton('openActionGroup'));
+}
+
+/** Whether the group card is on the hand right now and folds the given action. Never waits. */
+async function isActionFolded(page: Page, actionKey: string): Promise<boolean> {
+  const card = actionGroupCard(page);
+  if (!(await card.isVisible())) return false;
+  const [foldedIds] = await readAttributeNow(card, 'data-player-action-ids');
+  return foldedIds?.split(' ').includes(TESTIDS.stepInteractionButton(actionKey)) === true;
+}
+
+/** Unfold the group card that holds a required action, when the hand shows one. */
+async function openActionGroupFor(page: Page, actionKey: string): Promise<void> {
+  if (await isActionFolded(page, actionKey)) {
+    await actionGroupCard(page).click({ timeout: CLICK_TIMEOUT_MS });
+  }
+}
+
+/**
+ * The sweep's way to unfold the group card that declares an action. A declared action is
+ * required, so a press that cannot land is a failure, with one exception: the declaration was
+ * withdrawn, because the step moved on while the sweep was looking at this page.
+ *
+ * @returns false when the declaration was withdrawn before the card could be pressed
+ * @throws the press's own timeout when the card still declares the action after the click budget
+ */
+async function tryOpenActionGroupFor(page: Page, actionKey: string): Promise<boolean> {
+  if (!(await isActionFolded(page, actionKey))) return true;
+  const deadline = Date.now() + CLICK_TIMEOUT_MS;
+  for (;;) {
+    try {
+      await actionGroupCard(page).click({ timeout: SWEEP_CLICK_TIMEOUT_MS });
+      return true;
+    } catch (error) {
+      if (!(error instanceof errors.TimeoutError)) throw error;
+      if (!(await isActionFolded(page, actionKey))) {
+        log(`sweep deferred — the group card stopped declaring ${actionKey} before it was pressed`);
+        return false;
+      }
+      if (Date.now() >= deadline) throw error;
+    }
+  }
 }
 
 async function actionKeyFor(page: Page, key: string): Promise<string> {
@@ -221,11 +276,17 @@ function alertModal(page: Page): Locator {
   return page.getByTestId(TESTIDS.alertModal);
 }
 
-/** Wait for a two-button confirm alert and press its 确定 button. */
+/**
+ * Wait for a two-button confirm alert, press its 确定 button, and wait until that confirmation
+ * has closed or been replaced. The confirmation stays open while its command is in flight;
+ * returning earlier lets the caller's next read land on it instead of on what follows.
+ */
 async function pressConfirm(page: Page): Promise<void> {
   const confirm = page.getByTestId(TESTIDS.alertButton(1));
   await expect(confirm).toHaveText('确定', { timeout: CONFIRM_TIMEOUT_MS });
-  await confirm.click({ timeout: CLICK_TIMEOUT_MS });
+  if (!(await pressCurrentAlertPrimary(page, CONFIRM_TIMEOUT_MS))) {
+    throw new Error('The confirmation was gone before 确定 could be pressed');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -383,12 +444,20 @@ export async function tryClickNightButton(page: Page, key: string, label = ''): 
   if (step === null || !(await isStepUnlocked(page, step))) return false;
   const actionKey = await actionKeyFor(page, key);
   const bottomButton = nightButton(page, actionKey);
-  if (!(await bottomButton.isVisible()) && !(await alertModal(page).isVisible())) {
-    await openActionGroupFor(page, actionKey);
-  }
+  // A sweep runs on pages whose step can move on at any moment. Every read below returns at
+  // once: a card that has left the hand since the last read makes this round a miss, to be
+  // retried on the next one, instead of a wait for it to come back.
   if (
-    !(await bottomButton.isVisible()) ||
-    (await bottomButton.getAttribute('aria-disabled')) === 'true' ||
+    !(await bottomButton.isVisible()) &&
+    !(await alertModal(page).isVisible()) &&
+    !(await tryOpenActionGroupFor(page, actionKey))
+  ) {
+    return false;
+  }
+  if (!(await bottomButton.isVisible())) return false;
+  const [disabledMark] = await readAttributeNow(bottomButton, 'aria-disabled');
+  if (
+    disabledMark === 'true' ||
     !(await isStepUnlocked(page, step)) ||
     !(await clickCapped(bottomButton, `night button ${key}`))
   ) {
@@ -741,7 +810,7 @@ export async function driveWolfDisabledEmptyVote(
  */
 export async function dismissAlert(page: Page): Promise<void> {
   try {
-    if (await dismissCurrentAlert(page, CLICK_TIMEOUT_MS)) {
+    if (await pressCurrentAlertPrimary(page, CLICK_TIMEOUT_MS)) {
       log('dismissAlert — captured primary clicked');
     }
   } catch (error) {
@@ -752,7 +821,7 @@ export async function dismissAlert(page: Page): Promise<void> {
 /** A scan may defer a blocked click, but never a non-actionability error. */
 async function tryDismissAlert(page: Page): Promise<boolean> {
   try {
-    return await dismissCurrentAlert(page, SWEEP_CLICK_TIMEOUT_MS, false);
+    return await pressCurrentAlertPrimary(page, SWEEP_CLICK_TIMEOUT_MS, false);
   } catch (error) {
     if (!(error instanceof errors.TimeoutError)) throw error;
     const buttons = await Promise.all(
