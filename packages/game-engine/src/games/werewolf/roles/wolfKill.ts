@@ -33,7 +33,7 @@ export const wolfKillStep: WerewolfRoleStepDefinition = {
   id: 'wolfKill',
   wolfPackViewers: 'wolfVoters',
   title: COPY.title,
-  audio: defineWerewolfStepAudio(WOLF_KILL_STEP_OWNER_ROLE_ID),
+  audio: defineWerewolfStepAudio('wolf'),
   actors: getWolfVoters,
   progressActors: getRequiredWolfVoters,
   actions: [
