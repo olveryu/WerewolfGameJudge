@@ -16,6 +16,17 @@ interface Announcement {
 
 /** Announcements keyed by version. Key format matches APP_VERSION: `v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v3.0.0': {
+    title: 'v3.0.0 更新内容',
+    items: [
+      '全新夜间流程重构，狼人、阿瓦隆、希特勒等游戏的操作与确认更清晰',
+      '房间底部统一为卡牌式操作与信息入口，规则、复盘、设置和主持更好找',
+      '暗夜角色技能、夜间提示和复盘记录升级，复杂局的状态一目了然',
+      '阿瓦隆与希特勒新增匿名投票、公开结果和信息轨迹',
+      '狼人、希特勒及其他游戏角色头像全面焕新',
+      '断线重连、画面恢复和弱网操作稳定性全面提升',
+    ],
+  },
   'v2.9.0': {
     title: 'v2.9.0 更新内容',
     items: [

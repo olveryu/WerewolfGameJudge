@@ -1,6 +1,6 @@
 {
   "name": "werewolfgamejudge",
-  "version": "2.9.0",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
     "test": "vitest run",
