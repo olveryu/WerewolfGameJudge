@@ -54,7 +54,8 @@ export function presentStep<TStepId extends string, TState, TContext, TFacts, TR
         definition.situationHints?.(context) ?? [],
         generatedPrompt,
         definition.ruleHints?.(context) ?? [],
-        definition.skippable(context) || lockReason !== null,
+        // Only mention the skip card when it is in the hand.
+        actions.some((action) => action.key === STEP_SKIP_ACTION_KEY),
       )
     : null;
   const progress = getStepProgress(runtime, state, definition, record);
@@ -121,7 +122,10 @@ function presentActions<TContext, TFacts, TResult>(
           key: action.key,
           label: renderCopy(STEP_COPY.viewAction, { title: action.title }),
           availability,
-          content: { title: action.contentTitle ?? action.title, text: action.content(context) },
+          content:
+            availability.kind === 'available'
+              ? { title: action.contentTitle ?? action.title, text: action.content(context) }
+              : null,
         },
       ];
     }

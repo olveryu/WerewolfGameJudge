@@ -164,12 +164,16 @@ export function useStepInteraction(input: UseStepInteractionInput): StepInteract
         return;
       }
       if (action.kind === 'view') {
+        const { content } = action;
+        if (content === null) {
+          throw new Error(`[FAIL-FAST] View card ${action.key} was pressed without content`);
+        }
         const acknowledge = () => submitSelection(action.key).then(() => undefined);
         confirmView({
           label: action.label,
           onView: () => {
             clearConfirmation();
-            showDismissAlert(action.content.title, action.content.text, acknowledge, trackAlert);
+            showDismissAlert(content.title, content.text, acknowledge, trackAlert);
           },
           onShown: trackConfirmation,
         });

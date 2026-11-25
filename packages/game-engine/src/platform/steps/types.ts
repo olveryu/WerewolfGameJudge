@@ -82,7 +82,8 @@ export type PresentedAction =
   | (PresentedActionBase & { readonly kind: 'direct' })
   | (PresentedActionBase & {
       readonly kind: 'view';
-      readonly content: { readonly title: string; readonly text: string };
+      /** Null while the card cannot be opened, so what it would show never leaves the server. */
+      readonly content: { readonly title: string; readonly text: string } | null;
     })
   | (PresentedActionBase & {
       readonly kind: 'pickCard';

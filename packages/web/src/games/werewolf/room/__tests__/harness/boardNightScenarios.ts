@@ -348,7 +348,7 @@ export async function assertBoardNightScenario(scenario: BoardNightScenario): Pr
       await harness.pressLastPrimary();
       await waitFor(() =>
         expect(harness.getLastEvent()?.title).toBe(
-          scenario.action?.kind === 'view' ? scenario.action.content.title : null,
+          scenario.action?.kind === 'view' ? (scenario.action.content?.title ?? null) : null,
         ),
       );
     } else if (scenario.action === null) {
