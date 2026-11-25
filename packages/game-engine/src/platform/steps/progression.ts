@@ -1,10 +1,10 @@
 import { decideSettleCountdownArm, SETTLE_COUNTDOWN_MS } from '../room/settleCountdown';
-import { getAvailability } from './availability';
 import { createAdvanceEvent } from './presentation';
 import { createStepContext, type StepRuntime } from './runtime';
 import { getSeatSettled } from './settled';
 import type { StepEvent } from './state';
 import type { StepCompletion } from './step';
+import { decideStepSubmission } from './submission';
 import type { StepSlice } from './types';
 
 export { getSeatSettled } from './settled';
@@ -21,7 +21,7 @@ export function evaluateStepProgress<TStepId extends string, TState, TContext, T
   const context = createStepContext(runtime, state, null, record);
   const actors = definition.actors(context);
   if (actors.length === 0 && definition.completion === undefined) {
-    throw new Error(`[FAIL-FAST] Empty step ${definition.id} must declare a wait completion`);
+    throw new Error(`[FAIL-FAST] Step ${definition.id} has no actors and no completion rule`);
   }
   const completion: StepCompletion = definition.completion?.(context) ?? {
     kind: actors.every((seat) => {
@@ -36,12 +36,6 @@ export function evaluateStepProgress<TStepId extends string, TState, TContext, T
     return slice.deadlineMs === null ? [] : [{ type: 'deadlineCleared' }];
   }
   if (completion.kind === 'complete') return [createAdvanceEvent(runtime, state)];
-  if (completion.kind === 'waitUntil') {
-    if (slice.deadlineMs === null || slice.deadlineMs !== completion.deadlineMs) {
-      return [{ type: 'deadlineArmed', deadlineMs: completion.deadlineMs }];
-    }
-    return nowMs >= completion.deadlineMs ? [createAdvanceEvent(runtime, state)] : [];
-  }
   return evaluateCountdown(runtime, state, slice, nowMs);
 }
 
@@ -64,6 +58,7 @@ function evaluateCountdown<TStepId extends string, TState, TContext, TFacts, TRe
   return arm.type === 'set' ? [{ type: 'deadlineArmed', deadlineMs: arm.deadlineAt }] : [];
 }
 
+/** Acknowledge the open view of each bot seat through the same decision a player's tap takes. */
 export function planBotAcknowledgements<TStepId extends string, TState, TContext, TFacts, TResult>(
   runtime: StepRuntime<TStepId, TState, TContext, TFacts, TResult>,
   state: TState,
@@ -71,35 +66,18 @@ export function planBotAcknowledgements<TStepId extends string, TState, TContext
 ): readonly StepEvent<TStepId, TFacts, TResult>[] {
   const slice = runtime.getSlice(state);
   if (slice.current === null) return [];
-  const definition = runtime.definitions[slice.current.stepId];
-  const record = slice.records[slice.current.stepId] ?? { bySeat: {} };
-  const actorsContext = createStepContext(runtime, state, null, record);
-  const actors = new Set(definition.actors(actorsContext));
+  const { stepId, serial } = slice.current;
+  const viewKeys = runtime.definitions[stepId].actions
+    .filter((action) => action.kind === 'view')
+    .map((action) => action.key);
   const acknowledgements: StepEvent<TStepId, TFacts, TResult>[] = [];
   for (const seat of botSeats) {
-    if (!actors.has(seat)) continue;
-    const seatRecord = record.bySeat[seat];
-    const context = createStepContext(runtime, state, seat, record);
-    if (seatRecord !== undefined && getSeatSettled(definition, context, seatRecord)) {
-      continue;
+    for (const actionKey of viewKeys) {
+      const decision = decideStepSubmission(runtime, state, seat, { stepId, serial, actionKey });
+      if (decision.kind !== 'accept') continue;
+      acknowledgements.push(...decision.events);
+      break;
     }
-    const viewAction = definition.actions.find((action) => {
-      if (action.kind !== 'view') return false;
-      return (
-        getAvailability(action, context, definition.lock?.(context) ?? null).kind === 'available'
-      );
-    });
-    if (viewAction?.kind !== 'view') continue;
-    const hasAcknowledged = seatRecord?.submissions.some(
-      (submission) => submission.actionKey === viewAction.key,
-    );
-    if (hasAcknowledged) continue;
-    acknowledgements.push({
-      type: 'resultAcknowledged',
-      stepId: slice.current.stepId,
-      seat,
-      actionKey: viewAction.key,
-    });
   }
   return acknowledgements;
 }

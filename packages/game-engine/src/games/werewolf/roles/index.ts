@@ -71,7 +71,6 @@ export {
 export {
   type LocationLayer,
   resolveSelectedSeat,
-  resolveSelectedSeats,
   resolveTargetSelection,
   type SeatSwap,
   type TargetSelection,

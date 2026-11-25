@@ -1,7 +1,7 @@
 import type { AnyStepAction } from './actions';
 import { getAvailability } from './availability';
 import { createStepContext, type StepRuntime } from './runtime';
-import { getSeatSettled } from './settled';
+import { getSeatSettled, hasFinalSubmission } from './settled';
 import type { StepEvent } from './state';
 import { REASON_STEP_STALE, STEP_RESULT_ACK_ACTION_KEY, STEP_SKIP_ACTION_KEY } from './step';
 import type { StepSubmission } from './types';
@@ -60,6 +60,7 @@ export function decideStepSubmission<TStepId extends string, TState, TContext, T
   }
   if (submission.actionKey === STEP_SKIP_ACTION_KEY) {
     if (submission.seats !== undefined || submission.cardIndex !== undefined) return rejectStale();
+    if (hasFinalSubmission(definition, actorRecord)) return rejectStale();
     return decideSkip(
       definition.skippable(context),
       definition.lock?.(context) ?? null,

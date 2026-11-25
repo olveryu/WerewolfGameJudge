@@ -16,7 +16,11 @@ export const STEP_COPY = defineCopy({
   seatListSeparator: '、',
   alreadySubmitted: '已提交',
   hintSeparator: '。',
+  staleStep: '当前行动步骤已变化，请重新选择',
 });
+
+/** The one sentence shown when a submission no longer matches the current step. */
+export const STEP_STALE_MESSAGE = STEP_COPY.staleStep;
 
 export type CopyParams = Readonly<Record<string, string | number>>;
 

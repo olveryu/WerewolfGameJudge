@@ -26,7 +26,8 @@ const COPY = defineCopy({
   reviewVoteSeparator: '、',
   reviewAbstained: '狼队放弃袭击',
   reviewPoisoner: '狼队放弃袭击，毒师在场',
-  reviewNightmare: '狼队放弃袭击，被噩梦之影封锁',
+  reviewNightmare: '狼队放弃袭击，被噩梦之影恐惧',
+  voterSeparator: '、',
 });
 
 export const wolfKillStep: WerewolfRoleStepDefinition = {
@@ -110,11 +111,11 @@ export const wolfKillStep: WerewolfRoleStepDefinition = {
     const verdict = context.resolvedWolfKillVerdict;
     if (verdict === undefined) return [];
     if (verdict === null) {
-      return [
-        context.nightPresence.isFirstNightWolfAttackDisabled
-          ? COPY.reviewPoisoner
-          : COPY.reviewNightmare,
-      ];
+      if (context.nightPresence.isFirstNightWolfAttackDisabled) return [COPY.reviewPoisoner];
+      if (context.facts.disabledAbilities.some((ability) => ability.roleId === 'wolfKill')) {
+        return [COPY.reviewNightmare];
+      }
+      throw new Error('[FAIL-FAST] The wolf attack was disabled without a recorded reason');
     }
     if (verdict.type === 'allAbstain') return [COPY.reviewAbstained];
     if (verdict.type === 'splitTied') {
@@ -137,7 +138,7 @@ export const wolfKillStep: WerewolfRoleStepDefinition = {
       )
       .map(([seat]) => Number(seat) + 1)
       .sort((first, second) => first - second)
-      .join('、');
+      .join(COPY.voterSeparator);
     const chosen = renderCopy(template, { seat: formatSeat(verdict.targetSeat), voters });
     const landing = context.role.landing(verdict.targetSeat);
     const outcome =

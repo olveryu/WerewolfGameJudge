@@ -3,10 +3,12 @@ import {
   type PresentedAction,
   renderCopy,
   STEP_RESULT_ACK_ACTION_KEY,
+  STEP_STALE_MESSAGE,
   type StepPresentation,
   type StepSubmission,
 } from '@game-judge/game-engine/platform/steps';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { toast } from 'sonner';
 
 import { confirmAction, confirmView } from '@/features/room/confirm';
 import { useScopedAlert } from '@/features/room/hooks/useScopedAlert';
@@ -24,8 +26,6 @@ export type StepSelection = Pick<StepSubmission, 'actionKey' | 'seats' | 'cardIn
 
 export const STEP_CANCEL_SELECTION_ACTION_KEY = 'cancelSeatSelection';
 const COPY = defineCopy({
-  staleStep: '当前行动步骤已变化，请重新选择',
-  notice: '提示',
   cancelSelection: '取消选座',
   actionUnavailable: '暂不可操作',
   seatUnavailable: '暂不可选',
@@ -251,7 +251,8 @@ function useStepConfirmationAlerts(contextKey: string) {
   const onStale = useCallback((generation: number) => {
     if (confirmationGeneration.current !== generation) return;
     confirmationGeneration.current = null;
-    showDismissAlert(COPY.notice, COPY.staleStep);
+    // A toast, not a dialog: the step usually changes just as the next narration starts.
+    toast.error(STEP_STALE_MESSAGE);
   }, []);
   const trackAlert = useScopedAlert(contextKey, onStale);
   const trackConfirmation = useCallback(

@@ -29,10 +29,3 @@ function getLandingSeat(seat: number, location: LocationLayer): number {
   if (seat === location.swap.second) return location.swap.first;
   return seat;
 }
-
-export function resolveSelectedSeats(
-  seats: readonly number[],
-  location: LocationLayer,
-): readonly number[] {
-  return seats.map((seat) => resolveSelectedSeat(seat, location));
-}

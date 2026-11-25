@@ -13,6 +13,7 @@ import type {
 const ROLE_STEP_COPY = defineCopy({
   nightmareLocked: '被噩梦之影恐惧，本夜无法使用技能',
   selfTargetDisallowed: '不能选择自己',
+  wolfTeammateDisallowed: '不能选择狼人阵营的玩家',
   actualLanding: '（实际为{seat}）',
   good: '好人',
   wolf: '狼人',
@@ -105,6 +106,14 @@ export function isKnownWolfTeammate(context: WerewolfRoleStepContext, seat: numb
     context.doesRoleVoteWithWolves(context.role.roleOf(seat)) &&
     !(context.facts.conversions ?? []).some((conversion) => conversion.seat === seat)
   );
+}
+
+/** The reason a recognised wolf teammate cannot be chosen, or null for any other seat. */
+export function getWolfTeammateRestriction(
+  context: WerewolfRoleStepContext,
+  seat: number,
+): string | null {
+  return isKnownWolfTeammate(context, seat) ? ROLE_STEP_COPY.wolfTeammateDisallowed : null;
 }
 
 export function resolveRoleTarget(

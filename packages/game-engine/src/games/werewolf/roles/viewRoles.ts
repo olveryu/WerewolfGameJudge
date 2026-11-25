@@ -1,5 +1,5 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
-import { defineCopy } from '../../../platform/steps';
+import { defineCopy, renderCopy } from '../../../platform/steps';
 import { defineWerewolfStepAudio } from './audio';
 import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
@@ -43,6 +43,7 @@ const COPY = defineCopy({
   avengerWolf: '你属于狼人阵营',
   avengerBonded: '你与影子绑定，同属第三方阵营',
   avengerConfirmed: '已确认阵营',
+  seatSeparator: '、',
 });
 
 function createRoleCard(name: string, shortName: string, emoji: string, description: string) {
@@ -186,10 +187,12 @@ export const hiddenWolf = defineRole({
                 .some((roleId) => context.teamOfRole(roleId) === 'wolf'),
           )
           .map(formatSeat);
-        return COPY.hiddenWolfTeammates.replace(
-          '{seats}',
-          teammates.length === 0 ? COPY.hiddenWolfNoTeammates : teammates.join('、'),
-        );
+        return renderCopy(COPY.hiddenWolfTeammates, {
+          seats:
+            teammates.length === 0
+              ? COPY.hiddenWolfNoTeammates
+              : teammates.join(COPY.seatSeparator),
+        });
       },
     }),
   ],

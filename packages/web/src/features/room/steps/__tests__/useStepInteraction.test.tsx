@@ -5,11 +5,14 @@ import type {
 } from '@game-judge/game-engine/platform/steps';
 import { STEP_RESULT_ACK_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 import { act, renderHook } from '@testing-library/react';
+import { toast } from 'sonner';
 
 import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
 import { alertStore, dismissAlert, showAlert } from '@/utils/alert';
 
 import { useStepInteraction } from '../useStepInteraction';
+
+vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 
 const EMPTY_PRESENTATION: StepPresentation = {
   stepId: 'first',
@@ -432,7 +435,8 @@ describe('useStepInteraction', () => {
         actions: [action],
       },
     });
-    expect(alertStore.getSnapshot()?.message).toBe('当前行动步骤已变化，请重新选择');
+    expect(alertStore.getSnapshot()).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith('当前行动步骤已变化，请重新选择');
   });
 
   it('does not report a stale confirmation after its action was submitted', async () => {

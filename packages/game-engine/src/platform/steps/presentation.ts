@@ -4,7 +4,7 @@ import type { AnyStepAction } from './actions';
 import { getAvailability } from './availability';
 import { renderCopy, STEP_COPY } from './copy';
 import { createStepContext, type StepRuntime } from './runtime';
-import { getSeatSettled } from './settled';
+import { getSeatSettled, hasFinalSubmission } from './settled';
 import type { StepDefinition } from './step';
 import { REASON_STEP_STALE, STEP_SKIP_ACTION_KEY } from './step';
 import type {
@@ -139,7 +139,8 @@ function presentActions<TContext, TFacts, TResult>(
       },
     ];
   });
-  if (lockReason !== null || definition.skippable(context)) {
+  const canStillSkip = !hasFinalSubmission(definition, actorRecord);
+  if (canStillSkip && (lockReason !== null || definition.skippable(context))) {
     const skipAction: PresentedAction = {
       kind: 'direct',
       key: STEP_SKIP_ACTION_KEY,

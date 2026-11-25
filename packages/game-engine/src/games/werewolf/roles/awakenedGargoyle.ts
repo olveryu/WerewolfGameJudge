@@ -8,7 +8,7 @@ import {
   createGroupConfirmStep,
   getActingSeat,
   getRoleAbilityLockReason,
-  isKnownWolfTeammate,
+  getWolfTeammateRestriction,
 } from './roleSteps';
 
 const COPY = defineCopy({
@@ -20,7 +20,6 @@ const COPY = defineCopy({
   action: '转化',
   prompt: '请选择狼人阵营相邻的一名神民角色进行转化',
   selfDisallowed: '不能选择自己',
-  wolfDisallowed: '不能选择狼人阵营的玩家',
   adjacencyDisallowed: '只能选择与狼人阵营相邻的玩家',
   conversion: '转化{seat}',
   actualLanding: '（实际为{seat}）',
@@ -127,8 +126,7 @@ function getTargetUnavailableReason(
   chosenSeat: number,
 ): string | null {
   if (chosenSeat === context.seat) return COPY.selfDisallowed;
-  if (isKnownWolfTeammate(context, chosenSeat)) {
-    return COPY.wolfDisallowed;
-  }
+  const teammateRestriction = getWolfTeammateRestriction(context, chosenSeat);
+  if (teammateRestriction !== null) return teammateRestriction;
   return context.isAdjacentToWolfFaction(chosenSeat) ? null : COPY.adjacencyDisallowed;
 }

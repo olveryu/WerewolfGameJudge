@@ -10,7 +10,11 @@ import {
   type RoleId,
   werewolfEngine,
 } from '@game-judge/game-engine/games/werewolf/public';
-import type { StepSubmission } from '@game-judge/game-engine/platform/steps';
+import {
+  STEP_RESULT_ACK_ACTION_KEY,
+  STEP_SKIP_ACTION_KEY,
+  type StepSubmission,
+} from '@game-judge/game-engine/platform/steps';
 
 import { createGame } from './gameFactory';
 import { currentStep, driveNight, executeStepsUntil, presentation, submit } from './nightDriver';
@@ -505,5 +509,44 @@ describe('spec-driven night through production commands', () => {
       getWerewolfViewModel(context.getGameState(), { seat: 10, isHost: false })
         .personalDaytimeViews,
     ).toMatchObject([{ label: '查看负伤状态', text: '你没有负伤' }]);
+  });
+
+  it('offers no skip once the wolf robot has learned, while the hunter status is still unread', () => {
+    const roles: RoleId[] = [
+      'villager',
+      'villager',
+      'villager',
+      'hunter',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolfRobot',
+      'seer',
+      'witch',
+      'guard',
+      'psychic',
+    ];
+    const context = createGame(roles, new Map(roles.map((roleId, seat) => [seat, roleId])));
+    expect(
+      executeStepsUntil(context, 'wolfRobotLearn', {
+        wolfKill: { actionKey: 'wolfKill', seats: [0] },
+      }),
+    ).toBe(true);
+    submit(context, 7, { actionKey: 'wolfRobotLearn', seats: [3] });
+    submit(context, 7, { actionKey: STEP_RESULT_ACK_ACTION_KEY });
+
+    const state = context.getGameState();
+    expect(
+      presentation(state, 7)
+        ?.actions.filter((action) => action.availability.kind === 'available')
+        .map((action) => action.key),
+    ).toEqual(['wolfRobotHunterStatus']);
+    expect(
+      context.dispatchAsSeat(7, {
+        type: 'werewolf.step.submit',
+        gameSequence: state.gameSequence,
+        submission: { ...currentStep(state), actionKey: STEP_SKIP_ACTION_KEY },
+      }).kind,
+    ).toBe('rejected');
   });
 });

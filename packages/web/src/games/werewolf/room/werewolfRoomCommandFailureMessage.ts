@@ -9,12 +9,10 @@ import {
   REASON_DEADLINE_NOT_REACHED,
   REASON_PHASE_NOT_EXPIRABLE,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { REASON_STEP_STALE } from '@game-judge/game-engine/platform/steps';
 
 import { createRoomCommandFailureMessage } from '@/features/room/link/createRoomCommandFailureMessage';
 
 export const getWerewolfRoomCommandFailureMessage = createRoomCommandFailureMessage<GameState>({
   [REASON_PHASE_NOT_EXPIRABLE]: '当前阶段没有倒计时可结算',
   [REASON_DEADLINE_NOT_REACHED]: '倒计时尚未结束',
-  [REASON_STEP_STALE]: '当前行动步骤已变化，请重新选择',
 });

@@ -1028,7 +1028,7 @@ exports[`Night-1 board scenarios through production commands > hidden wolf: nigh
   "review": [
     "7号噩梦之影恐惧8号（隐狼，技能无效）",
     "12号守卫未守护",
-    "狼队放弃袭击，被噩梦之影封锁",
+    "狼队放弃袭击，被噩梦之影恐惧",
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "11号猎人可以发动",
@@ -1845,7 +1845,7 @@ exports[`Night-1 board scenarios through production commands > nightmare: block 
   "review": [
     "8号噩梦之影恐惧8号（噩梦之影，技能无效）",
     "12号守卫未守护",
-    "狼队放弃袭击，被噩梦之影封锁",
+    "狼队放弃袭击，被噩梦之影恐惧",
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "11号猎人可以发动",
@@ -1975,7 +1975,7 @@ exports[`Night-1 board scenarios through production commands > nightmare: block 
   "review": [
     "8号噩梦之影恐惧5号（狼人，技能无效）",
     "12号守卫未守护",
-    "狼队放弃袭击，被噩梦之影封锁",
+    "狼队放弃袭击，被噩梦之影恐惧",
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "11号猎人可以发动",
@@ -2287,7 +2287,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2321,7 +2321,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2355,7 +2355,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2389,7 +2389,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2423,7 +2423,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2457,7 +2457,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2491,7 +2491,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2525,7 +2525,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2559,7 +2559,7 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],
@@ -2955,7 +2955,7 @@ exports[`Night-1 board scenarios through production commands > seed wolf: later 
   "unavailable": [
     "wolfRobotLearn 学习 8号: 不能选择自己 [8号]",
     "seerCheck 查验 9号: 不能选择自己 [9号]",
-    "wolfWitchCheck 查验 5号 7号: 不能选择狼人阵营玩家 [6号]",
+    "wolfWitchCheck 查验 5号 7号: 不能选择狼人阵营的玩家 [6号]",
     "wolfWitchCheck 查验 6号: 不能选择自己 [6号]",
   ],
   "views": [
@@ -3691,7 +3691,7 @@ exports[`Night-1 board scenarios through production commands > step coverage: id
     "wolfKill 袭击 9号: 该角色不能被狼人直接袭击 [5号 7号 8号 9号]",
     "wolfQueenCharm 魅惑 9号: 不能选择自己 [9号]",
     "wolfWitchCheck 查验 5号: 不能选择自己 [5号]",
-    "wolfWitchCheck 查验 7号 8号 9号: 不能选择狼人阵营玩家 [5号]",
+    "wolfWitchCheck 查验 7号 8号 9号: 不能选择狼人阵营的玩家 [5号]",
     "gargoyleCheck 查验 11号: 不能选择自己 [11号]",
     "pureWhiteCheck 查验 4号: 不能选择自己 [4号]",
     "psychicCheck 通灵 12号: 不能选择自己 [12号]",
@@ -5797,7 +5797,7 @@ exports[`Night-1 board scenarios through production commands > 纯白夜影 pres
     "pureWhiteCheck",
   ],
   "unavailable": [
-    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营玩家 [8号]",
+    "wolfWitchCheck 查验 5号 6号 7号: 不能选择狼人阵营的玩家 [8号]",
     "wolfWitchCheck 查验 8号: 不能选择自己 [8号]",
     "pureWhiteCheck 查验 12号: 不能选择自己 [12号]",
   ],

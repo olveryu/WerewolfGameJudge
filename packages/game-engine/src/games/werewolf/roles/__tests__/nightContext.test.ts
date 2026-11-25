@@ -6,7 +6,7 @@ import {
   type IdentityLayer,
   replaceCurrentRole,
 } from '../identity';
-import { resolveSelectedSeat, resolveSelectedSeats, resolveTargetSelection } from '../location';
+import { resolveSelectedSeat, resolveTargetSelection } from '../location';
 import { resolveNightPresenceFacts } from '../presence';
 import { getSeenRole } from '../sight';
 
@@ -53,7 +53,6 @@ describe('werewolf night context layers', () => {
 
     expect(resolveSelectedSeat(1, location)).toBe(6);
     expect(resolveTargetSelection(1, location)).toEqual({ chosenSeat: 1, landingSeat: 6 });
-    expect(resolveSelectedSeats([1, 4, 6], location)).toEqual([6, 4, 1]);
     expect(resolveSelectedSeat(4, { swap: null })).toBe(4);
   });
 

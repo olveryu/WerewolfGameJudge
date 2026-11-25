@@ -2683,7 +2683,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfWitch' 
           },
           {
             "seat": 3,
-            "unavailableReason": "不能选择狼人阵营玩家",
+            "unavailableReason": "不能选择狼人阵营的玩家",
           },
           {
             "seat": 4,

@@ -8,7 +8,7 @@ export type {
 } from './actions';
 export { getAvailability } from './availability';
 export type { CopyParams } from './copy';
-export { defineCopy, renderCopy, STEP_COPY } from './copy';
+export { defineCopy, renderCopy, STEP_COPY, STEP_STALE_MESSAGE } from './copy';
 export { getStepOverrideViolations } from './overrideContract';
 export { createAdvanceEvent, describeStepConfirmation, presentStep } from './presentation';
 export { evaluateStepProgress, getSeatSettled, planBotAcknowledgements } from './progression';

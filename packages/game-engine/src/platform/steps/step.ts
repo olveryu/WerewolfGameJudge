@@ -2,10 +2,7 @@ import type { AnyStepAction } from './actions';
 import type { SeatRecord, StepRecord } from './types';
 
 export type StepCompletion =
-  | { readonly kind: 'pending' }
-  | { readonly kind: 'complete' }
-  | { readonly kind: 'armCountdown' }
-  | { readonly kind: 'waitUntil'; readonly deadlineMs: number };
+  { readonly kind: 'pending' } | { readonly kind: 'complete' } | { readonly kind: 'armCountdown' };
 
 export interface StepContextBase<TState, TFacts, TResult> {
   readonly state: TState;
