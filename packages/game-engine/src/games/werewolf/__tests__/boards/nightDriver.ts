@@ -3,6 +3,7 @@ import {
   type GameState,
   GameStatus,
   getWerewolfDaytimeAnnouncements,
+  getWerewolfNightProgress,
   getWerewolfNightReview,
   getWerewolfViewModel,
   type RoleId,
@@ -15,6 +16,7 @@ import {
 } from '@game-judge/game-engine/platform/steps';
 
 import { formatSeat } from '../../../../platform/room/formatSeat';
+import { describeHand } from '../../../../platform/steps/__tests__/catalogueKit';
 import { getWerewolfRoleDefinition } from '../../roles/nightPlan';
 import type { GameContext, TestCommandExecution } from './gameContext';
 import type { NightAction, NightActions } from './nightScript';
@@ -85,6 +87,8 @@ export interface NightRun {
   readonly reviewLines: readonly { readonly stepId: string | null; readonly text: string }[];
   /** The cards individual seats may open the next day. */
   readonly daytimeViews: readonly string[];
+  /** The name each step goes by in the progress row and in what non-actors are told to wait for. */
+  readonly stepLabels: readonly { readonly stepId: string; readonly label: string }[];
 }
 
 interface NightObserver {
@@ -384,51 +388,6 @@ function describeUnavailable(view: StepPresentation): readonly string[] {
   return lines;
 }
 
-/** The hand as the actor reads it: one line per card, with what it offers and what it refuses. */
-function describeHand(view: StepPresentation): readonly string[] {
-  const lines: string[] = [];
-  for (const action of view.actions) {
-    let card = action.label;
-    if (action.kind === 'pickSeats') {
-      const count = action.min === action.max ? `${action.min}` : `${action.min}–${action.max}`;
-      card += `（选 ${count} 名）`;
-      if (action.committed !== null && action.committed.length > 0) {
-        card += `，已选 ${action.committed.map((seat) => formatSeat(seat)).join(' ')}`;
-      }
-    }
-    if (action.availability.kind === 'unavailable') {
-      card += `（不可用：${action.availability.reason}）`;
-    }
-    lines.push(`· ${card}`);
-    if (action.kind === 'view' && action.content !== null) {
-      lines.push(`  内容「${action.content.title}」${action.content.text}`);
-    }
-    if (action.kind === 'pickCard') {
-      if (action.hint !== null) lines.push(`  提示：${action.hint}`);
-      const cards = action.cards.map((option) =>
-        option.unavailableReason === null
-          ? option.label
-          : `${option.label}（不可选：${option.unavailableReason}）`,
-      );
-      lines.push(`  底牌：${cards.join('、')}`);
-    }
-    if (action.kind === 'pickSeats') {
-      const namesByReason = new Map<string, string[]>();
-      for (const option of action.seats) {
-        if (option.unavailableReason === null) continue;
-        namesByReason.set(option.unavailableReason, [
-          ...(namesByReason.get(option.unavailableReason) ?? []),
-          formatSeat(option.seat),
-        ]);
-      }
-      for (const [reason, names] of namesByReason) {
-        lines.push(`  不可选 ${names.join(' ')}：${reason}`);
-      }
-    }
-  }
-  return lines;
-}
-
 /** The card pressed and what was picked with it. */
 function describeChoice(view: StepPresentation, choice: StepChoice): string {
   const action = view.actions.find((candidate) => candidate.key === choice.actionKey);
@@ -482,6 +441,7 @@ export function playScenarioNight(
   const unavailable = new Map<string, number[]>();
   const views = new Map<string, number[]>();
   const sightings: StepSighting[] = [];
+  const stepLabels: { stepId: string; label: string }[] = [];
   const submissions: {
     stepId: string;
     seat: number;
@@ -500,7 +460,12 @@ export function playScenarioNight(
     },
     {
       observer: {
-        onStep: (stepId) => steps.push(stepId),
+        onStep: (stepId) => {
+          steps.push(stepId);
+          const progress = getWerewolfNightProgress(context.getGameState());
+          if (progress === null) throw new Error(`[FAIL-FAST] ${stepId} has no progress label`);
+          stepLabels.push({ stepId, label: progress.label });
+        },
         onPresentation: (stepId, seat, view, isFollowUp) => {
           sightings.push({
             stepId,
@@ -596,5 +561,6 @@ export function playScenarioNight(
     submissions,
     reviewLines,
     daytimeViews: describeDaytimeViews(state),
+    stepLabels,
   };
 }

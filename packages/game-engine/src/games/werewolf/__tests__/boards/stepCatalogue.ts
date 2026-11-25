@@ -4,6 +4,13 @@
  */
 
 import {
+  CATALOGUE_RULE,
+  renderHand,
+  renderSection,
+  renderStatusLine,
+  Situations,
+} from '../../../../platform/steps/__tests__/catalogueKit';
+import {
   WEREWOLF_ROLE_DEFINITIONS,
   WEREWOLF_SHARED_STEP_OWNER_ROLE_ID,
   WEREWOLF_SHARED_STEPS,
@@ -12,7 +19,7 @@ import { getWerewolfRoleDefinition, WEREWOLF_STEP_DEFINITIONS } from '../../role
 import { NIGHT_STEP_ORDER } from '../../roles/nightStepOrder';
 import type { NightCase } from './nightCases';
 
-const RULE = '='.repeat(72);
+const UNIT = '个夜晚';
 
 /** Longest first, so a name that contains another is replaced whole. */
 const ROLE_NAMES = WEREWOLF_ROLE_DEFINITIONS.map((role) => role.card.name).sort(
@@ -50,47 +57,6 @@ function normalize(text: string): string {
     .join('\n');
 }
 
-interface Entry {
-  readonly lines: readonly string[];
-  readonly example: string;
-  readonly caseNames: Set<string>;
-}
-
-class Situations {
-  private readonly entries = new Map<string, Entry>();
-
-  add(lines: readonly string[], caseName: string, who: string | null): void {
-    const key = normalize(lines.join('\n'));
-    const existing = this.entries.get(key);
-    if (existing !== undefined) {
-      existing.caseNames.add(caseName);
-      return;
-    }
-    this.entries.set(key, {
-      lines,
-      example: who === null ? `「${caseName}」` : `「${caseName}」里的${who}`,
-      caseNames: new Set([caseName]),
-    });
-  }
-
-  get size(): number {
-    return this.entries.size;
-  }
-
-  render(): string[] {
-    return [...this.entries.values()].flatMap((entry, index) => [
-      `(${index + 1}) ${entry.caseNames.size} 个夜晚出现，例如${entry.example}`,
-      ...entry.lines.map((line) => `    ${line}`),
-      '',
-    ]);
-  }
-}
-
-function section(title: string, situations: Situations, emptyNote: string | null): string[] {
-  if (situations.size === 0) return emptyNote === null ? [] : [`【${title}】${emptyNote}`, ''];
-  return [`【${title}】${situations.size} 种`, ...situations.render()];
-}
-
 function ownerRoleIdOf(stepId: string): string {
   if (WEREWOLF_SHARED_STEPS.some((step) => step.id === stepId)) {
     return WEREWOLF_SHARED_STEP_OWNER_ROLE_ID;
@@ -100,14 +66,6 @@ function ownerRoleIdOf(stepId: string): string {
   );
   if (owner === undefined) throw new Error(`[FAIL-FAST] Step ${stepId} belongs to no role`);
   return owner.id;
-}
-
-function statusLine(status: string | null): string {
-  return status === null ? '状态栏：（无）' : `状态栏：${status}`;
-}
-
-function handLines(hand: readonly string[]): string[] {
-  return ['手牌：', ...hand.map((line) => `  ${line}`)];
 }
 
 /** Render the whole list from the played nights. */
@@ -129,8 +87,11 @@ export function renderStepCatalogue(cases: readonly NightCase[]): string {
     '  行动者睁眼就该知道的原因写在状态栏里。',
     '- 相同的显示只列一次：只有座位号、角色名不同而其余文字相同的，算同一种。',
     '  每一种给出一个实例和它出现在多少个夜晚里。',
-    '- 进度句（“已投 2/3”“已查看 3/12”）和非行动者看到的等待提示由网页端生成，',
-    '  不在本清单内。',
+    '- 不在本清单内的夜间文字只有网页端拼的两种句式，它们不随角色变化：',
+    '  多人步骤的进度句（“已投 2/3”“已查看 3/12”“已全部投票，5 秒后结算（可改票或撤回）”），',
+    '  见 packages/web/src/features/room/steps/__tests__/formatStepCompletion.test.ts；',
+    '  其他人看到的“正在等待 … 行动”，名字取自本清单每一步的第一栏，',
+    '  见 packages/web/src/features/room/model/__tests__/RoomBottomActions.test.ts。',
     '',
   ];
 
@@ -139,16 +100,20 @@ export function renderStepCatalogue(cases: readonly NightCase[]): string {
     if (definition === undefined) throw new Error(`[FAIL-FAST] Unknown step ${stepId}`);
     const ownerName = getWerewolfRoleDefinition(ownerRoleIdOf(stepId)).card.name;
     const audience = definition.audience === 'allSeats' ? '，全体玩家都要看' : '';
-    const seen = new Situations();
-    const seenLater = new Situations();
-    const submitted = new Situations();
-    const reviewed = new Situations();
+    const seen = new Situations(normalize, UNIT);
+    const seenLater = new Situations(normalize, UNIT);
+    const submitted = new Situations(normalize, UNIT);
+    const reviewed = new Situations(normalize, UNIT);
+    const labels = new Situations((text) => text, UNIT);
     for (const { name, run } of runs) {
+      for (const entry of run.stepLabels) {
+        if (entry.stepId === stepId) labels.add([entry.label], name, null);
+      }
       for (const sighting of run.sightings) {
         if (sighting.stepId !== stepId) continue;
         const who = `${sighting.seat + 1}号${sighting.roleName}`;
         (sighting.isFollowUp ? seenLater : seen).add(
-          [statusLine(sighting.status), ...handLines(sighting.hand)],
+          [renderStatusLine(sighting.status), ...renderHand(sighting.hand)],
           name,
           who,
         );
@@ -175,20 +140,21 @@ export function renderStepCatalogue(cases: readonly NightCase[]): string {
       }
     }
     out.push(
-      RULE,
+      CATALOGUE_RULE,
       `${index + 1}. ${ownerName} · ${definition.title}（${stepId}${audience}）`,
-      RULE,
+      CATALOGUE_RULE,
       '',
-      ...section('行动者看到的', seen, '没有夜晚到达这一步'),
-      ...section('做完一个动作后，同一步里接着看到的', seenLater, null),
-      ...section('按下之后', submitted, null),
-      ...section('复盘里的句子', reviewed, null),
+      ...renderSection('进度条上的名字，也是其他人看到的“正在等待 … 行动”里的名字', labels, null),
+      ...renderSection('行动者看到的', seen, '没有夜晚到达这一步'),
+      ...renderSection('做完一个动作后，同一步里接着看到的', seenLater, null),
+      ...renderSection('按下之后', submitted, null),
+      ...renderSection('复盘里的句子', reviewed, null),
     );
   });
 
-  const explanations = new Situations();
-  const announcements = new Situations();
-  const daytimeViews = new Situations();
+  const explanations = new Situations(normalize, UNIT);
+  const announcements = new Situations(normalize, UNIT);
+  const daytimeViews = new Situations(normalize, UNIT);
   for (const { name, run } of runs) {
     for (const line of run.reviewLines) {
       if (line.stepId === null) explanations.add([line.text], name, null);
@@ -197,13 +163,13 @@ export function renderStepCatalogue(cases: readonly NightCase[]): string {
     for (const line of run.daytimeViews) daytimeViews.add([line], name, null);
   }
   out.push(
-    RULE,
+    CATALOGUE_RULE,
     '夜晚之后',
-    RULE,
+    CATALOGUE_RULE,
     '',
-    ...section('复盘里的说明句（不属于某一步）', explanations, null),
-    ...section('次日的公告', announcements, null),
-    ...section('次日个人可以打开的牌', daytimeViews, null),
+    ...renderSection('复盘里的说明句（不属于某一步）', explanations, null),
+    ...renderSection('次日的公告', announcements, null),
+    ...renderSection('次日个人可以打开的牌', daytimeViews, null),
   );
   return `${out.join('\n').trimEnd()}\n`;
 }

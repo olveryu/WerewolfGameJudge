@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 import { formatSeat } from '../../../../platform/room/formatSeat';
 import { renderBlockedPrompt } from '../../../../platform/steps';
+import { collectCopy, findUnshownCopy } from '../../../../platform/steps/__tests__/catalogueKit';
 import { NIGHT_CASES } from './nightCases';
 import { collectShownText, renderStepCatalogue } from './stepCatalogue';
 
@@ -31,52 +31,6 @@ const SHOWN_ELSEWHERE: Readonly<Record<string, string>> = {
   'copy.staleStep': 'a submission that arrives after the step moved on; steps.contract.test.ts',
 };
 
-interface CopyEntry {
-  readonly id: string;
-  readonly text: string;
-}
-
-function collectCopy(filePath: string): CopyEntry[] {
-  const source = ts.createSourceFile(
-    filePath,
-    fs.readFileSync(filePath, 'utf8'),
-    ts.ScriptTarget.Latest,
-    true,
-  );
-  const entries: CopyEntry[] = [];
-  const visit = (node: ts.Node): void => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === 'defineCopy'
-    ) {
-      const table = node.arguments[0];
-      if (table !== undefined && ts.isObjectLiteralExpression(table)) {
-        for (const property of table.properties) {
-          if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
-          if (!ts.isStringLiteralLike(property.initializer)) continue;
-          entries.push({
-            id: `${path.basename(filePath, '.ts')}.${property.name.text}`,
-            text: property.initializer.text,
-          });
-        }
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  return entries;
-}
-
-/** A copy template as a pattern: placeholders match anything, the written words must appear. */
-function toPattern(template: string): RegExp {
-  const escaped = template
-    .split(/\{\w+\}/)
-    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('[\\s\\S]+?');
-  return new RegExp(escaped);
-}
-
 describe('Night-1 step-by-step list', () => {
   it('matches the generated list of what every step shows in every situation', async () => {
     await expect(renderStepCatalogue(NIGHT_CASES)).toMatchFileSnapshot(
@@ -86,14 +40,12 @@ describe('Night-1 step-by-step list', () => {
 
   it('shows every sentence written for the night in at least one played night', () => {
     const shown = collectShownText(NIGHT_CASES);
-    const unreached = COPY_SOURCES.flatMap(collectCopy)
-      .filter((entry) => !CARD_KEYS.test(entry.id.split('.')[1] ?? ''))
-      .filter((entry) => /\p{Script=Han}/u.test(entry.text))
-      .filter((entry) => !toPattern(entry.text).test(shown))
-      .map((entry) => entry.id);
+    const written = COPY_SOURCES.flatMap(collectCopy).filter(
+      (entry) => !CARD_KEYS.test(entry.id.split('.')[1] ?? ''),
+    );
 
     // Exactly the listed exceptions: a new unreached sentence fails, and so does a stale exception.
-    expect(unreached.sort()).toEqual(Object.keys(SHOWN_ELSEWHERE).sort());
+    expect(findUnshownCopy(written, shown)).toEqual(Object.keys(SHOWN_ELSEWHERE).sort());
   });
 
   // A greyed card prints no reason, so the status line has to carry it.
