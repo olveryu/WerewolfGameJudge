@@ -49,6 +49,19 @@ and audio.
   same module; `roles/catalog.ts` serves it to role selection,
   templates, and display.
 
-`roles/__tests__/roleSteps.contract.test.ts` checks the role registry,
-generated step output, and representative night behavior. Update its
-expected role ids and snapshots when those outputs intentionally change.
+`roles/__tests__/roleSteps.contract.test.ts` checks the role registry
+and representative night behavior. Update its expected role ids when
+they change.
+
+What each step shows is recorded from played nights, not from this
+test. In `__tests__/boards/`, add a scenario to `nightScenarios.ts` for
+every situation the role introduces, then regenerate both snapshots:
+
+```sh
+corepack pnpm --filter @game-judge/game-engine exec vitest run night1.scenarios night1.catalogue -u
+```
+
+Read the diff of `__snapshots__/night-steps.catalogue.txt`: it is the
+list of every status line, hand, confirmation, result, and review
+sentence the role adds. `night1.catalogue.integration.test.ts` fails
+when a sentence in the role's copy table is shown in no played night.

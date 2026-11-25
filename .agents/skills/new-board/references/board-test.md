@@ -38,7 +38,8 @@ engine imports only):
 - `nightDriver.ts` — drives the night through `werewolf.step.submit`
   using only what each seat's step presentation offers.
   `playScenarioNight(context, choices, randomSeed)` takes role-keyed
-  choices and returns a `NightOutcome`; `driveNight` and
+  choices and returns a `NightRun`: the `NightOutcome` plus what each
+  actor was shown at every step; `driveNight` and
   `executeStepsUntil` take step-keyed choices for tests that inspect
   one step.
 - `nightScript.ts` — the role-keyed choice shapes (`NightActions`:
@@ -46,16 +47,25 @@ engine imports only):
   `{ confirmed }`, `{ cardIndex }`; `wolf` is the pack vote).
 - `nightScenarios.ts` — `NIGHT_SCENARIOS`, the named scenarios grouped
   by board theme.
+- `nightCases.ts` — `NIGHT_CASES`, every played night: one ordinary
+  night per preset in `PRESET_TEMPLATES`, every entry of
+  `NIGHT_SCENARIOS`, and the bottom-card and spirit-knight /
+  cursed-fox variants.
 
 `night1.scenarios.integration.test.ts` snapshots the `NightOutcome` of
-every case: one ordinary night per preset in `PRESET_TEMPLATES`, every
-entry of `NIGHT_SCENARIOS`, and the bottom-card and spirit-knight /
-cursed-fox variants declared in the test. A `NightOutcome` lists the
-steps visited, each unavailable action, seat, or card with its reason
+every entry of `NIGHT_CASES`. A `NightOutcome` lists the steps visited,
+the status line each actor saw, each unavailable action, seat, or card
+with its reason
 and the seats that saw it, the private views grouped by text, the
 review sentences, the deaths with their causes, and the daytime
 announcements. The same file fails when a declared night step is
 reached by no case or when two cases share a name.
+
+`night1.catalogue.integration.test.ts` renders the same nights into
+`__snapshots__/night-steps.catalogue.txt`: per step, every distinct
+status line, hand, confirmation, result, and review sentence, each with
+the number of nights it appears in. A new preset changes those counts,
+so regenerate it together with the scenario snapshot.
 
 `specNight.integration.test.ts` holds the tests that assert one
 behaviour directly (vote revision, stale submissions, persisted state

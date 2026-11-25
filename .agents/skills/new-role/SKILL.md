@@ -62,9 +62,12 @@ runtime behavior out of the legacy schema and resolver registries.
   `roles/__tests__/roleCards.contract.test.ts` enforces it. Role
   selection, templates, and display read the card through
   `roles/catalog.ts`; there is no second place to register a role.
-- Update role-id expectations and generated-step snapshots in
+- Update role-id expectations in
   `roles/__tests__/roleSteps.contract.test.ts` and the relevant catalog
-  contracts. Add focused behavior tests for rules not already covered.
+  contracts. Add a played-night scenario for each situation the role
+  introduces and regenerate the step-by-step list
+  (`references/role-definition.md`). Add focused behavior tests for
+  rules not already covered.
 
 ### 4. Update client surfaces and counts
 

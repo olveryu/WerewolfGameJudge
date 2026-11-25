@@ -18,7 +18,7 @@
 | [step-action-redesign-checkpoint-1.md](step-action-redesign-checkpoint-1.md)               | 步骤与动作重设计停点 1：逐步骤文案清单和各游戏偏离统一写法的清单，含逐条确认结果                                                                           |
 | [step-action-interface.md](step-action-interface.md)                                       | 步骤机制接口设计：动作与步骤的声明、状态、引擎运行接口、客户端渲染接口（I1–I20 已确认，内部类型草图为草稿）                                                |
 | [step-action-implementation-plan.md](step-action-implementation-plan.md)                   | 步骤与动作重设计的开工说明：阅读顺序、硬性决定与草稿的区分、15 个 commit 的计划和四个停点（commit 计划为助手拟定）                                         |
-| [step-action-review-498.md](step-action-review-498.md)                                     | PR #498 审核结论与返工清单：删旧未完成、场景测试缺失、规则更正、实现缺陷，每条含依据和验收标准（返工进行中，第 1–4 段完成）                                |
+| [step-action-review-498.md](step-action-review-498.md)                                     | PR #498 审核结论与返工清单：删旧未完成、场景测试缺失、规则更正、实现缺陷，每条含依据和验收标准（第 1–5 段完成，逐步骤清单待用户重新确认）                  |
 | [game-client-convergence-design.md](game-client-convergence-design.md)                     | 七游戏客户端同构与狼人杀重建：共享控制器、旧夜间交互模型、阶段到期服务端结算、复盘事实入引擎（PR #333 历史记录；夜间交互已由步骤机制取代，§12 为修订记录） |
 | [seat-adapter-field-spec.md](seat-adapter-field-spec.md)                                   | `RoomSeatViewModel` 字段语义与各游戏座位 adapter 填充规则                                                                                                  |
 | [roomscreen-state-machine.md](roomscreen-state-machine.md)                                 | 狼人杀 RoomScreen UI 状态机（GameStatus → 按钮 / Schema Kind → 交互模式）                                                                                  |

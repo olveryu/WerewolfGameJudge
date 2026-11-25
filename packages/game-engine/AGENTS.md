@@ -43,7 +43,7 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
 
 - A role is declared once, in its own module under `games/werewolf/roles/`, with `defineRole` from `roles/role.ts`: its card (name, icon, description sections, tags), its traits (faction, team, wolf recognition, immunities), and its night steps. `roles/catalog.ts` reads role selection, templates, and display data from those modules (`getRoleCard`, `getAllRoleIds`, `Faction`, `Team`); there is no second role table. `WEREWOLF_ROLE_DEFINITIONS` in `roles/index.ts` registers those definitions; the shared wolf attack is declared separately in `roles/wolfKill.ts` and `WEREWOLF_SHARED_STEPS`.
 - `roles/nightPlan.ts` builds the runtime step registry from the role and shared-step definitions. The central execution order is `NIGHT_STEP_ORDER` in `roles/nightStepOrder.ts`; every step id must be declared there and in its role definition.
-- When changing a role, update its module and, for a new step, the step order. `roles/__tests__/roleSteps.contract.test.ts` covers the runtime role set and generated step behavior.
+- When changing a role, update its module and, for a new step, the step order. `roles/__tests__/roleSteps.contract.test.ts` covers the runtime role set and step behavior. What every step shows is generated from played nights into `__tests__/boards/__snapshots__/night-steps.catalogue.txt` by `night1.catalogue.integration.test.ts`, which also fails when a sentence in a night copy table is shown in no played night.
 
 ## Randomness, logging, assertions
 

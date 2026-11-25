@@ -95,8 +95,9 @@ wolf-robot boards have extra checks (`references/board-test.md`).
 `packages/game-engine/src/games/werewolf/__tests__/boards/night1.scenarios.integration.test.ts`
 plays one ordinary night on every entry of `PRESET_TEMPLATES` through
 production commands, so a new preset is picked up without
-registration. Run it once with `-u` to record the new
-`<board name> preset: ordinary night` snapshot, then read the recorded
+registration. Run it and `night1.catalogue.integration.test.ts` once
+with `-u` to record the new `<board name> preset: ordinary night`
+snapshot and the step-by-step list, then read the recorded
 entry: steps visited, unavailable options with their reasons, private
 views, review sentences, deaths, and daytime announcements must all
 match the board's rules.
@@ -115,7 +116,7 @@ proposed before writing one (see the new-e2e-spec skill).
 ## Acceptance commands
 
 ```sh
-pnpm --filter @game-judge/game-engine exec vitest run Template.contract night1.scenarios
+pnpm --filter @game-judge/game-engine exec vitest run Template.contract night1.scenarios night1.catalogue
 pnpm --filter @game-judge/web exec vitest run boardUICoverage.contract <key>.12p.board.ui
 ```
 
