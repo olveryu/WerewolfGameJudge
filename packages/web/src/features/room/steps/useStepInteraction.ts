@@ -164,9 +164,7 @@ export function useStepInteraction(input: UseStepInteractionInput): StepInteract
         return;
       }
       if (action.kind === 'view') {
-        const acknowledge = action.isAcknowledged
-          ? undefined
-          : () => submitSelection(action.key).then(() => undefined);
+        const acknowledge = () => submitSelection(action.key).then(() => undefined);
         confirmView({
           label: action.label,
           onView: () => {
@@ -648,8 +646,6 @@ function projectActions(input: {
       icon: getActionIcon(action),
       opensDialog: action.kind !== 'pickSeats',
       ...(unavailableReason === null ? {} : { showBlockedReason: true }),
-      // An acknowledged view is only there to be read again; it no longer asks for attention.
-      ...(action.kind === 'view' && action.isAcknowledged ? { isPending: false } : {}),
       testID: TESTIDS.stepInteractionButton(action.key),
       state,
     };

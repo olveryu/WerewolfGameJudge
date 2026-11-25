@@ -41,17 +41,14 @@ export function presentStep<TStepId extends string, TState, TContext, TFacts, TR
     hasPendingResult && definition.renderResult !== undefined
       ? definition.renderResult(context, actorRecord.result)
       : null;
-  const isSettled = actorRecord !== undefined && getSeatSettled(definition, context, actorRecord);
-  const presentedActions =
-    isActor && viewerSeat !== null && pendingResult === null
+  const actions =
+    isActor &&
+    viewerSeat !== null &&
+    pendingResult === null &&
+    (actorRecord === undefined || !getSeatSettled(definition, context, actorRecord))
       ? presentActions(definition, context, actorRecord, lockReason)
       : [];
-  // A settled seat has nothing left to do; what it already viewed stays readable.
-  const actions = isSettled
-    ? presentedActions.filter((action) => action.kind === 'view' && action.isAcknowledged)
-    : presentedActions;
-  const generatedPrompt =
-    isActor && !isSettled ? buildActionPrompt(definition, context, actions) : null;
+  const generatedPrompt = isActor ? buildActionPrompt(definition, context, actions) : null;
   const message = isActor
     ? buildMessage(
         definition.situationHints?.(context) ?? [],
@@ -84,8 +81,8 @@ function presentActions<TContext, TFacts, TResult>(
     const isDone =
       actorRecord?.submissions.some((entry) => entry.actionKey === action.key) === true &&
       action.commit !== 'revisable';
-    // A finished action leaves the hand; a view stays so its content can be read again.
-    if (isDone && action.kind !== 'view') return [];
+    // A finished action leaves the hand, a viewed card included.
+    if (isDone) return [];
     const availability = getAvailability(action, context, lockReason);
     if (availability.kind === 'hidden') return [];
     if (action.kind === 'pickSeats') {
@@ -118,8 +115,6 @@ function presentActions<TContext, TFacts, TResult>(
       ];
     }
     if (action.kind === 'view') {
-      const prior =
-        actorRecord?.submissions.some((entry) => entry.actionKey === action.key) ?? false;
       return [
         {
           kind: action.kind,
@@ -127,7 +122,6 @@ function presentActions<TContext, TFacts, TResult>(
           label: renderCopy(STEP_COPY.viewAction, { title: action.title }),
           availability,
           content: { title: action.contentTitle ?? action.title, text: action.content(context) },
-          isAcknowledged: prior,
         },
       ];
     }

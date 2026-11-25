@@ -83,7 +83,6 @@ export type PresentedAction =
   | (PresentedActionBase & {
       readonly kind: 'view';
       readonly content: { readonly title: string; readonly text: string };
-      readonly isAcknowledged: boolean;
     })
   | (PresentedActionBase & {
       readonly kind: 'pickCard';

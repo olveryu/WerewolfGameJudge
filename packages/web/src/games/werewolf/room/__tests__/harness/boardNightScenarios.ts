@@ -135,9 +135,7 @@ function nextActor(
     const recorded = night.slice.records[presentation.stepId]?.bySeat[seat]?.submissions ?? [];
     if (presentation.stepId === 'wolfKill' && recorded.length > 0) continue;
     const available = presentation.actions.filter(
-      (action) =>
-        action.availability.kind === 'available' &&
-        !(action.kind === 'view' && action.isAcknowledged),
+      (action) => action.availability.kind === 'available',
     );
     const action =
       available.find((candidate) => candidate.key !== STEP_SKIP_ACTION_KEY) ?? available[0];

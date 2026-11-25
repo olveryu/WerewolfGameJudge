@@ -54,11 +54,7 @@ function nightInstruction(
   if (view.mySeat === null) return { message: '等待首夜互认完成', action: null };
   const viewAction = view.step?.actions.find((action) => action.kind === 'view');
   const hasViewed = hasViewedSecrethitlerNightStep(state, view.mySeat);
-  const canView =
-    view.step?.isActor === true &&
-    viewAction?.kind === 'view' &&
-    viewAction.availability.kind === 'available' &&
-    !viewAction.isAcknowledged;
+  const canView = view.step?.isActor === true && viewAction?.availability.kind === 'available';
   return {
     message: !canView
       ? hasViewed

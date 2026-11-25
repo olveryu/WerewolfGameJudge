@@ -591,7 +591,6 @@ describe('Avalon engine', () => {
             title: '坏人互认',
             text: `你看到的坏人同伴：${assassin + 1}号·${assassinName}`,
           },
-          isAcknowledged: false,
         },
       ],
     });

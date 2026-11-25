@@ -437,7 +437,6 @@ describe('platform step runtime', () => {
         kind: 'view',
         label: '查看Night information',
         content: { title: 'Fascist recognition', text: 'private' },
-        isAcknowledged: false,
       }),
     );
     const defaultTitleDefinition: StepDefinition<TestStepId, TestContext, TestFacts, string> = {
@@ -467,7 +466,7 @@ describe('platform step runtime', () => {
     });
   });
 
-  it('keeps an acknowledged view readable without accepting it twice', () => {
+  it('removes an acknowledged view from the hand and rejects a second acknowledgement', () => {
     const viewDefinition: StepDefinition<TestStepId, TestContext, TestFacts, string> = {
       ...definition,
       actions: [
@@ -485,13 +484,7 @@ describe('platform step runtime', () => {
       state,
     );
 
-    expect(presentStep(viewRuntime, acknowledgedState, 0)?.actions).toEqual([
-      expect.objectContaining({
-        key: 'view',
-        availability: { kind: 'available' },
-        isAcknowledged: true,
-      }),
-    ]);
+    expect(presentStep(viewRuntime, acknowledgedState, 0)?.actions).toEqual([]);
     expect(decideStepSubmission(viewRuntime, acknowledgedState, 0, submission)).toEqual({
       kind: 'reject',
       reason: 'REASON_STEP_STALE',

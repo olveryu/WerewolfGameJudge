@@ -286,7 +286,6 @@ describe('useStepInteraction', () => {
       label: '查看结果',
       availability: { kind: 'available' },
       content: { title: '秘密结果', text: '内容' },
-      isAcknowledged: false,
     };
     const { result, submit } = renderStepInteraction(action);
     pressRoomAction(result.current.actions[0]);

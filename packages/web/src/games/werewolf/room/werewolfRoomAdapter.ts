@@ -335,7 +335,7 @@ export function createWerewolfStepActionList(input: {
       if (step.actions.length <= 1) {
         return {
           actions: [
-            ...step.actions.map((action) => ({ ...action, isPending: action.isPending ?? true })),
+            ...step.actions.map((action) => ({ ...action, isPending: true })),
             ...roleAction,
           ],
           group: null,
