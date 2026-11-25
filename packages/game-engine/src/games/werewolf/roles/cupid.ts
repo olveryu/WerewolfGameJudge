@@ -27,6 +27,7 @@ const COPY = defineCopy({
 
 const chooseLoversStep: WerewolfRoleStepDefinition = {
   id: 'cupidChooseLovers',
+  survivesConversion: true,
   title: COPY.action,
   audio: defineWerewolfStepAudio('cupid'),
   actors: (context) =>
@@ -87,7 +88,7 @@ const chooseLoversStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => false,
-  lock: (context) => getRoleAbilityLockReason(context, 'cupid'),
+  lock: getRoleAbilityLockReason,
   reviewSubject: () => COPY.name,
 };
 

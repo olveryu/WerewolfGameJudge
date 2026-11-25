@@ -26,10 +26,6 @@ export interface WerewolfNightState {
     readonly attack: DeathEffect | null;
   } | null;
   readonly infection: SeedWolfInfectionResult | null;
-  readonly provisionalInfectionSight: {
-    readonly seat: number;
-    readonly previousRole: string | null;
-  } | null;
 }
 
 const seat = z.number().int().nonnegative();
@@ -111,6 +107,7 @@ const facts = z.strictObject({
   wolfInfections: z.array(z.strictObject({ actorSeat: seat, targetSeat: seat })).optional(),
   wolfGirlConfessions: z.array(z.strictObject({ actorSeat: seat, targetSeat: seat })).optional(),
   sightOverrides: z.array(z.strictObject({ seat, roleId })).optional(),
+  conversions: z.array(z.strictObject({ seat, formerRoleIds: z.array(roleId) })).optional(),
 });
 const roleState = z.strictObject({
   identities: z.record(
@@ -186,7 +183,6 @@ const nightStateSchema = z.strictObject({
     })
     .nullable(),
   infection: infection.nullable(),
-  provisionalInfectionSight: z.strictObject({ seat, previousRole: roleId.nullable() }).nullable(),
 }) satisfies z.ZodType<WerewolfNightState>;
 
 /** Reject malformed persisted night state instead of attempting a migration. */

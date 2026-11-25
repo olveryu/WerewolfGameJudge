@@ -24,6 +24,7 @@ const COPY = defineCopy({
   revealTitle: '感染信息',
   infected: '你已被种狼感染并转化为普通狼人',
   notInfected: '你未被感染',
+  convertedLocked: '已转化为狼人，本夜无法使用技能',
 });
 
 const infectStep: WerewolfRoleStepDefinition = {
@@ -67,7 +68,7 @@ const infectStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => true,
-  lock: (context) => getRoleAbilityLockReason(context, 'seedWolf'),
+  lock: getRoleAbilityLockReason,
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission) => {
     const chosenSeat = submission.seats[0];
@@ -113,6 +114,51 @@ function getInfectionTarget(context: WerewolfRoleStepContext): number | null {
   if (targetSeat === null) return null;
   const landingSeat = context.role.landing(targetSeat);
   return context.factionOfRole(context.role.roleOf(landingSeat)) === 'wolf' ? null : targetSeat;
+}
+
+/**
+ * The step after which the infection is decided: the last later step whose actor can still
+ * undo the wolf attack, or the infection step itself when nobody can.
+ */
+export function getInfectionSettlementStepId(
+  order: readonly string[],
+  definitions: Readonly<Record<string, WerewolfRoleStepDefinition>>,
+  context: WerewolfRoleStepContext,
+): string | null {
+  const infectIndex = order.indexOf(infectStep.id);
+  if (infectIndex === -1) return null;
+  const rescueStepId = order
+    .slice(infectIndex + 1)
+    .findLast((stepId) => definitions[stepId]?.canRescueWolfKillTarget?.(context) === true);
+  return rescueStepId ?? infectStep.id;
+}
+
+/** Keep a converted player in their former role's later steps, with every skill locked. */
+export function withConversionLock(
+  step: WerewolfRoleStepDefinition,
+  ownerRoleId: string,
+): WerewolfRoleStepDefinition {
+  if (step.audience === 'allSeats') return step;
+  const getConvertedActors = (context: WerewolfRoleStepContext): readonly number[] =>
+    (context.facts.conversions ?? [])
+      .filter((conversion) => conversion.formerRoleIds.includes(ownerRoleId))
+      .map((conversion) => conversion.seat);
+  const isConvertedActor = (context: WerewolfRoleStepContext): boolean =>
+    context.seat !== null && getConvertedActors(context).includes(context.seat);
+  return {
+    ...step,
+    actors: (context) => {
+      const actors = step.actors(context);
+      const converted = getConvertedActors(context).filter((seat) => !actors.includes(seat));
+      return converted.length === 0
+        ? actors
+        : [...actors, ...converted].sort((first, second) => first - second);
+    },
+    lock: (context) =>
+      isConvertedActor(context) ? COPY.convertedLocked : (step.lock?.(context) ?? null),
+    situationHints: (context) =>
+      isConvertedActor(context) ? [COPY.infected] : (step.situationHints?.(context) ?? []),
+  };
 }
 
 export function resolveSeedWolfInfection(

@@ -96,7 +96,7 @@ const wolfRobotLearnStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => true,
-  lock: (context) => getRoleAbilityLockReason(context, 'wolfRobot'),
+  lock: getRoleAbilityLockReason,
   renderResult: (context, result) => renderIdentityCheckResult(context, result, COPY.resultTitle),
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission: SeatSubmissionForReview) => {

@@ -2,19 +2,20 @@ import { evolveStepSlice, type StepEvent } from '../../../platform/steps';
 import type { RoleId } from '../domain/models';
 import type { GameState, SeedWolfInfectionResult } from '../domain/protocol/types';
 import type { DeathEffect } from './deathEffects';
-import { replaceCurrentRole } from './identity';
+import { getActiveRoleIds, getSeatIdentity, replaceCurrentRole } from './identity';
 import {
   applyWerewolfRoleFacts,
   createWerewolfNightPlan,
   createWerewolfRoleState,
   EMPTY_WEREWOLF_NIGHT_FACTS,
   mergeWerewolfNightFacts,
+  WEREWOLF_STEP_DEFINITIONS,
   type WerewolfNightDeal,
 } from './nightPlan';
 import { collectWerewolfDeathEffects, createWerewolfStepRuntime } from './nightRuntime';
 import type { WerewolfNightState } from './nightState';
 import type { WerewolfNightFacts, WerewolfRoleStepResult } from './role';
-import { resolveSeedWolfInfection } from './seedWolf';
+import { getInfectionSettlementStepId, resolveSeedWolfInfection } from './seedWolf';
 
 type WerewolfStepEvent = StepEvent<string, WerewolfNightFacts, WerewolfRoleStepResult>;
 
@@ -61,7 +62,6 @@ export function createWerewolfNightState(state: GameState): WerewolfNightState {
     emissions: [],
     wolfKill: null,
     infection: null,
-    provisionalInfectionSight: null,
   };
 }
 
@@ -79,13 +79,13 @@ export function evolveWerewolfNight(
     case 'wolfKillSettled': {
       if (night.wolfKill !== null) throw new Error('[FAIL-FAST] Wolf kill already settled');
       const attack = event.settlement.attack;
-      return refreshInfectionSight(state, {
+      return {
         ...night,
         wolfKill: event.settlement,
         facts: mergeWerewolfNightFacts(night.facts, {
           deathEffects: attack === null ? [] : [attack],
         }),
-      });
+      };
     }
     case 'infectionSettled':
       return finalizeInfection(state, night, event.outcome);
@@ -99,21 +99,20 @@ function evolveStep(
 ): WerewolfNightState {
   const slice = evolveStepSlice(night.slice, event);
   if (event.type === 'submitted') {
-    const cleanNight = clearProvisionalInfectionSight(night);
     const replaced = event.replacesActionKeys ?? [event.submission.actionKey];
     const emissions = event.revisable
-      ? cleanNight.emissions.filter(
+      ? night.emissions.filter(
           (entry) =>
             entry.stepId !== event.stepId ||
             entry.actorSeat !== event.seat ||
             !replaced.includes(entry.actionKey),
         )
-      : cleanNight.emissions;
-    return refreshInfectionSight(state, {
-      ...cleanNight,
+      : night.emissions;
+    return {
+      ...night,
       slice,
-      roles: applyWerewolfRoleFacts(cleanNight.roles, event.facts),
-      facts: mergeWerewolfNightFacts(cleanNight.facts, event.facts),
+      roles: applyWerewolfRoleFacts(night.roles, event.facts),
+      facts: mergeWerewolfNightFacts(night.facts, event.facts),
       emissions: [
         ...emissions,
         {
@@ -123,10 +122,10 @@ function evolveStep(
           facts: event.facts,
         },
       ],
-    });
+    };
   }
   if (event.type === 'withdrawn') {
-    return refreshInfectionSight(state, {
+    return {
       ...night,
       slice,
       facts: {
@@ -139,48 +138,16 @@ function evolveStep(
           entry.actorSeat !== event.seat ||
           entry.actionKey !== event.actionKey,
       ),
-    });
+    };
   }
   return { ...night, slice };
 }
 
-function refreshInfectionSight(state: GameState, night: WerewolfNightState): WerewolfNightState {
-  if (night.infection !== null) return night;
-  const cleanNight = clearProvisionalInfectionSight(night);
-  const roleOverridesBySeat = cleanNight.roles.sight.roleOverridesBySeat;
-  const runtime = createWerewolfStepRuntime(null);
-  const context = runtime.createContext(
-    { ...state, nightState: cleanNight },
-    cleanNight.facts,
-    null,
-    { bySeat: {} },
-  );
-  const outcome = resolveSeedWolfInfection(cleanNight.facts, collectWerewolfDeathEffects(context));
-  if (outcome?.outcome !== 'converted') return cleanNight;
-  const previousRole = roleOverridesBySeat[outcome.targetSeat] ?? null;
-  return {
-    ...cleanNight,
-    roles: {
-      ...cleanNight.roles,
-      sight: { roleOverridesBySeat: { ...roleOverridesBySeat, [outcome.targetSeat]: 'wolf' } },
-    },
-    provisionalInfectionSight: { seat: outcome.targetSeat, previousRole },
-  };
-}
-
-function clearProvisionalInfectionSight(night: WerewolfNightState): WerewolfNightState {
-  const provisional = night.provisionalInfectionSight;
-  if (provisional === null) return night;
-  const roleOverridesBySeat = { ...night.roles.sight.roleOverridesBySeat };
-  if (provisional.previousRole === null) delete roleOverridesBySeat[provisional.seat];
-  else roleOverridesBySeat[provisional.seat] = provisional.previousRole;
-  return {
-    ...night,
-    roles: { ...night.roles, sight: { roleOverridesBySeat } },
-    provisionalInfectionSight: null,
-  };
-}
-
+/**
+ * Settle the infection. A converted player becomes a plain wolf at once: the attack on them
+ * is cancelled and what they did earlier tonight is dropped, except for steps that declare
+ * their effect stays in force.
+ */
 function finalizeInfection(
   state: GameState,
   night: WerewolfNightState,
@@ -191,32 +158,43 @@ function finalizeInfection(
   const target = outcome.targetSeat;
   let roles = createWerewolfRoleState(createNightDeal(state));
   let facts = EMPTY_WEREWOLF_NIGHT_FACTS;
-  const emissions = night.emissions.filter((entry) => entry.actorSeat !== target);
+  const emissions = night.emissions.filter(
+    (entry) =>
+      entry.actorSeat !== target ||
+      WEREWOLF_STEP_DEFINITIONS[entry.stepId]?.survivesConversion === true,
+  );
   for (const emission of emissions) {
     roles = applyWerewolfRoleFacts(roles, emission.facts);
     facts = mergeWerewolfNightFacts(facts, emission.facts);
   }
+  const formerRoleIds = getActiveRoleIds(getSeatIdentity(roles.identities, target));
   const effects: DeathEffect[] = [
     ...(night.wolfKill?.attack == null ? [] : [night.wolfKill.attack]),
     { kind: 'void', scope: { cause: 'wolfKill', target } },
   ];
-  facts = mergeWerewolfNightFacts(facts, { deathEffects: effects });
-  const records = { ...night.slice.records };
-  for (const [stepId, record] of Object.entries(records)) {
-    if (record?.bySeat[target] === undefined) continue;
-    const bySeat = { ...record.bySeat };
-    delete bySeat[target];
-    records[stepId] = { bySeat };
-  }
   return {
     ...night,
-    slice: { ...night.slice, records },
     roles: { ...roles, identities: replaceCurrentRole(roles.identities, target, 'wolf') },
-    facts,
+    facts: mergeWerewolfNightFacts(facts, {
+      deathEffects: effects,
+      conversions: [{ seat: target, formerRoleIds }],
+    }),
     emissions,
     infection: outcome,
-    provisionalInfectionSight: null,
   };
+}
+
+/** Whether the infection must be decided now that `completedStepId` has finished. */
+export function isInfectionSettlementStep(state: GameState, completedStepId: string): boolean {
+  const night = state.nightState;
+  if (night === null) throw new Error('[FAIL-FAST] Infection requires an initialized night');
+  if (night.infection !== null) return false;
+  const runtime = createWerewolfStepRuntime(null);
+  const context = runtime.createContext(state, night.facts, null, { bySeat: {} });
+  return (
+    getInfectionSettlementStepId(night.slice.order, WEREWOLF_STEP_DEFINITIONS, context) ===
+    completedStepId
+  );
 }
 
 /** Decide the infection outcome from the current effective attacks and protections. */

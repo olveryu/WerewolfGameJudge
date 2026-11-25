@@ -61,6 +61,8 @@ export interface StepReviewLine {
   readonly stepId: string;
   readonly seat: number;
   readonly text: string;
+  /** False for the "did not act" sentence. */
+  readonly isDone: boolean;
 }
 
 export interface PresentedActionBase {

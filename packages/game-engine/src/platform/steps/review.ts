@@ -65,6 +65,7 @@ function makeNotDoneLine<TStepId extends string, TContext, TFacts, TResult>(
     stepId,
     seat,
     text: `${definition.reviewSubject(context, seat)}${renderCopy(STEP_COPY.reviewNotDone, { name: actionName })}`,
+    isDone: false,
   };
 }
 
@@ -79,7 +80,12 @@ function makeActionLine<TStepId extends string, TContext, TFacts, TResult>(
   const phrase = getSubmissionPhrase(action, submission, context);
   if (phrase === null) return null;
   const suffix = definition.reviewSuffix?.(context, submission) ?? '';
-  return { stepId, seat, text: `${definition.reviewSubject(context, seat)}${phrase}${suffix}` };
+  return {
+    stepId,
+    seat,
+    text: `${definition.reviewSubject(context, seat)}${phrase}${suffix}`,
+    isDone: true,
+  };
 }
 
 function getSubmissionPhrase<TContext, TFacts, TResult>(

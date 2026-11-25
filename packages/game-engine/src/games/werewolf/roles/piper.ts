@@ -66,7 +66,7 @@ const hypnotizeStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => true,
-  lock: (context) => getRoleAbilityLockReason(context, 'piper'),
+  lock: getRoleAbilityLockReason,
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission) => {
     const chosenSeats = submission.seats;

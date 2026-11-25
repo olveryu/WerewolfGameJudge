@@ -2352,9 +2352,47 @@ exports[`Night-1 board scenarios through production commands > seed wolf: conver
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家未查验",
-    "9号感染成功，转化为狼人",
+    "9号预言家被种狼感染，转化为狼人",
   ],
   "steps": [
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "seerCheck 查验: 已转化为狼人，本夜无法使用技能 [9号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 10号 11号 12号]",
+    "seedWolfInfectReveal 你已被种狼感染并转化为普通狼人 [9号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > seed wolf: converted cupid keeps the lovers 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 poison",
+    "2号 coupleLink",
+  ],
+  "review": [
+    "11号丘比特连接1号和2号为情侣",
+    "12号守卫未守护",
+    "狼队（5、6、7、8号）袭击11号",
+    "8号种狼感染11号",
+    "10号女巫未用解药",
+    "10号女巫毒杀1号",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "11号丘比特被种狼感染，转化为狼人",
+  ],
+  "steps": [
+    "cupidChooseLovers",
+    "cupidLoversReveal",
     "guardProtect",
     "wolfKill",
     "seedWolfInfect",
@@ -2366,8 +2404,77 @@ exports[`Night-1 board scenarios through production commands > seed wolf: conver
     "seerCheck 查验 9号: 不能选择自己 [9号]",
   ],
   "views": [
-    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 10号 11号 12号]",
-    "seedWolfInfectReveal 你已被种狼感染并转化为普通狼人 [9号]",
+    "cupidLoversReveal 你是情侣之一，你的另一半是：2号 [1号]",
+    "cupidLoversReveal 你是情侣之一，你的另一半是：1号 [2号]",
+    "cupidLoversReveal 你不是情侣 [3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 12号]",
+    "seedWolfInfectReveal 你已被种狼感染并转化为普通狼人 [11号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > seed wolf: converted hunter cannot view the skill status 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "12号守卫未守护",
+    "狼队（5、6、7、8号）袭击11号",
+    "8号种狼感染11号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家未查验",
+    "11号猎人被种狼感染，转化为狼人",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "hunterConfirm 查看技能状态: 已转化为狼人，本夜无法使用技能 [11号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 12号]",
+    "seedWolfInfectReveal 你已被种狼感染并转化为普通狼人 [11号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > seed wolf: converted magician keeps the swap 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "11号魔术师交换1号和5号",
+    "12号守卫未守护",
+    "狼队（5、6、7、8号）袭击11号",
+    "8号种狼感染11号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验1号（实际为5号）（查验结果：1号是狼人）",
+    "11号魔术师被种狼感染，转化为狼人",
+  ],
+  "steps": [
+    "magicianSwap",
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 12号]",
+    "seedWolfInfectReveal 你已被种狼感染并转化为普通狼人 [11号]",
   ],
 }
 `;
@@ -2407,13 +2514,13 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
   "announcements": [],
   "deaths": [],
   "review": [
-    "12号守卫未守护",
+    "12号守卫守护2号（已转化，技能无效）",
     "狼队（5、6、7、8号）袭击12号",
     "8号种狼感染12号",
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
-    "12号感染成功，转化为狼人",
+    "12号守卫被种狼感染，转化为狼人",
   ],
   "steps": [
     "guardProtect",
@@ -2444,7 +2551,7 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
-    "10号感染成功，转化为狼人",
+    "10号女巫被种狼感染，转化为狼人",
   ],
   "steps": [
     "guardProtect",
@@ -2455,7 +2562,69 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "seedWolfInfectReveal",
   ],
   "unavailable": [
-    "witchAction 对10号用解药: 本局规则不允许自救 [10号]",
+    "witchAction 对10号用解药: 已转化为狼人，本夜无法使用技能 [10号]",
+    "witchAction 毒杀: 已转化为狼人，本夜无法使用技能 [10号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 11号 12号]",
+    "seedWolfInfectReveal 你已被种狼感染并转化为普通狼人 [10号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > seed wolf: infected witch saves herself when the room allows it 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "12号守卫未守护",
+    "狼队（5、6、7、8号）袭击10号",
+    "8号种狼感染10号",
+    "10号女巫对10号用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "10号感染失败",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > seed wolf: infected witch who poisons instead is converted and the poison is void 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "12号守卫未守护",
+    "狼队（5、6、7、8号）袭击10号",
+    "8号种狼感染10号",
+    "10号女巫未用解药",
+    "10号女巫毒杀1号（已转化，技能无效）",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "10号女巫被种狼感染，转化为狼人",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
     "seerCheck 查验 9号: 不能选择自己 [9号]",
   ],
   "views": [
@@ -2478,7 +2647,7 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "10号女巫未用解药",
     "10号女巫毒杀9号",
     "9号预言家未查验",
-    "9号感染成功，转化为狼人",
+    "9号预言家被种狼感染，转化为狼人",
   ],
   "steps": [
     "guardProtect",
@@ -2489,6 +2658,7 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "seedWolfInfectReveal",
   ],
   "unavailable": [
+    "seerCheck 查验: 已转化为狼人，本夜无法使用技能 [9号]",
     "seerCheck 查验 9号: 不能选择自己 [9号]",
   ],
   "views": [
@@ -2529,6 +2699,44 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > seed wolf: later steps treat the convert as a wolf without marking the seat 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "12号守卫未守护",
+    "狼队（5、6、7号）袭击1号",
+    "7号种狼感染1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "8号机械狼人学习1号（学习结果：1号是狼人）",
+    "9号预言家查验1号（查验结果：1号是狼人）",
+    "6号狼巫查验1号（查验结果：1号是狼人）",
+    "1号平民被种狼感染，转化为狼人",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "wolfRobotLearn",
+    "seerCheck",
+    "wolfWitchCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "wolfRobotLearn 学习 8号: 不能选择自己 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+    "wolfWitchCheck 查验 5号 7号 8号: 不能选择狼人阵营玩家 [6号]",
+    "wolfWitchCheck 查验 6号: 不能选择自己 [6号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你已被种狼感染并转化为普通狼人 [1号]",
+    "seedWolfInfectReveal 你未被感染 [2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > seed wolf: seer sees converted villager 1`] = `
 {
   "announcements": [],
@@ -2540,7 +2748,7 @@ exports[`Night-1 board scenarios through production commands > seed wolf: seer s
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验1号（查验结果：1号是狼人）",
-    "1号感染成功，转化为狼人",
+    "1号平民被种狼感染，转化为狼人",
   ],
   "steps": [
     "guardProtect",
@@ -2572,6 +2780,36 @@ exports[`Night-1 board scenarios through production commands > seed wolf: seer s
     "10号女巫未毒杀",
     "9号预言家查验1号（查验结果：1号是好人）",
     "1号感染失败",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > seed wolf: witch saves the infected seer 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "12号守卫未守护",
+    "狼队（5、6、7、8号）袭击9号",
+    "8号种狼感染9号",
+    "10号女巫对9号用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "9号感染失败",
   ],
   "steps": [
     "guardProtect",

@@ -7,7 +7,11 @@ import { WEREWOLF_PRESENCE_DECLARATIONS } from '../roles';
 import type { DeathReason } from '../roles/deathEffects';
 import { resolveDeathEffects } from '../roles/deathEffects';
 import { resolveSelectedSeat } from '../roles/location';
-import { decideWerewolfInfection, type WerewolfNightEvent } from '../roles/nightEvolution';
+import {
+  decideWerewolfInfection,
+  isInfectionSettlementStep,
+  type WerewolfNightEvent,
+} from '../roles/nightEvolution';
 import { getWerewolfRoleDefinition } from '../roles/nightPlan';
 import {
   collectWerewolfDeathEffects,
@@ -75,10 +79,7 @@ export function runWerewolfNightProgression(
       };
       applyAction(resolved);
     }
-    if (
-      stepEvent.next?.stepId === 'seedWolfInfectReveal' &&
-      requireWerewolfNightState(currentState).infection === null
-    ) {
+    if (isInfectionSettlementStep(currentState, currentStepId)) {
       applyNightEvent({ type: 'infectionSettled', outcome: decideWerewolfInfection(currentState) });
     }
     applyNightEvent({ type: 'step', event: stepEvent });

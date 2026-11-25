@@ -9,6 +9,7 @@ import {
   type WerewolfRoleStepDefinition,
 } from '.';
 import { grantBorrowedAbility, replaceCurrentRole } from './identity';
+import { withConversionLock } from './seedWolf';
 
 export type WerewolfRoleStep = WerewolfRoleStepDefinition;
 
@@ -49,7 +50,7 @@ function createWerewolfStepDefinitions(): Readonly<Record<string, WerewolfRoleSt
       if (definitions[step.id] !== undefined) {
         throw new Error(`[FAIL-FAST] Duplicate new step ${step.id}`);
       }
-      definitions[step.id] = step;
+      definitions[step.id] = withConversionLock(step, role.id);
     }
   }
   for (const step of WEREWOLF_SHARED_STEPS) {
@@ -143,6 +144,7 @@ export function mergeWerewolfNightFacts(
       ...(emitted.wolfGirlConfessions ?? []),
     ],
     sightOverrides: [...(previous.sightOverrides ?? []), ...(emitted.sightOverrides ?? [])],
+    conversions: [...(previous.conversions ?? []), ...(emitted.conversions ?? [])],
   };
 }
 

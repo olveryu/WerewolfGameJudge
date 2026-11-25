@@ -121,6 +121,9 @@ function createWerewolfStepContext(input: WerewolfStepContextInput): WerewolfRol
     isAdjacentToWolfFaction: (targetSeat) =>
       state.seatedSeats.some((wolfSeat) => {
         if (getWerewolfRoleDefinition(role.roleOf(wolfSeat)).traits.team !== 'wolf') return false;
+        if ((facts.conversions ?? []).some((conversion) => conversion.seat === wolfSeat)) {
+          return false;
+        }
         const distance = Math.abs(targetSeat - wolfSeat);
         return distance === 1 || distance === state.seatedSeats.length - 1;
       }),

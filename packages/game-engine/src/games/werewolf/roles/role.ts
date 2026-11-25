@@ -68,6 +68,11 @@ export interface WerewolfNightFacts {
     readonly targetSeat: number;
   }[];
   readonly sightOverrides?: readonly { readonly seat: number; readonly roleId: string }[];
+  /** Seats converted this night, with the roles they held until then. */
+  readonly conversions?: readonly {
+    readonly seat: number;
+    readonly formerRoleIds: readonly string[];
+  }[];
 }
 
 export type WerewolfRoleStepResult =
@@ -135,6 +140,10 @@ export type WerewolfRoleStepDefinition = Omit<
   'audio'
 > & {
   readonly audio: WerewolfStepAudio<WerewolfRoleStepContext>;
+  /** What this step did stays in force when its actor is converted later the same night. */
+  readonly survivesConversion?: true;
+  /** Whether an actor of this later step can still undo the wolf attack on its target. */
+  readonly canRescueWolfKillTarget?: (context: WerewolfRoleStepContext) => boolean;
 };
 
 export interface WerewolfRoleResource {

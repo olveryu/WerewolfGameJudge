@@ -11,7 +11,6 @@ import type {
 } from './role';
 
 const ROLE_STEP_COPY = defineCopy({
-  locked: '你今晚无法使用技能',
   nightmareLocked: '被噩梦之影恐惧，本夜无法使用技能',
   selfTargetDisallowed: '不能选择自己',
   actualLanding: '（实际为{seat}）',
@@ -86,17 +85,22 @@ export function getActingSeat(context: WerewolfRoleStepContext): number {
   return context.seat;
 }
 
-export function getRoleAbilityLockReason(
-  context: WerewolfRoleStepContext,
-  roleId: string,
-  lockedReason: string = ROLE_STEP_COPY.locked,
-): string | null {
+/** Why the acting seat cannot use any skill tonight, or null when it can. */
+export function getRoleAbilityLockReason(context: WerewolfRoleStepContext): string | null {
   if (context.seat === null) return null;
-  const disabled = context.facts.disabledAbilities.filter(
-    (ability) => ability.seat === context.seat,
+  return context.facts.disabledAbilities.some(
+    (ability) => ability.seat === context.seat && ability.roleId === '*',
+  )
+    ? ROLE_STEP_COPY.nightmareLocked
+    : null;
+}
+
+/** A wolf the pack already knew before tonight's conversions; later converts stay unmarked. */
+export function isKnownWolfTeammate(context: WerewolfRoleStepContext, seat: number): boolean {
+  return (
+    context.teamOfRole(context.role.roleOf(seat)) === 'wolf' &&
+    !(context.facts.conversions ?? []).some((conversion) => conversion.seat === seat)
   );
-  if (disabled.some((ability) => ability.roleId === '*')) return ROLE_STEP_COPY.nightmareLocked;
-  return disabled.some((ability) => ability.roleId === roleId) ? lockedReason : null;
 }
 
 export function resolveRoleTarget(
@@ -276,7 +280,7 @@ export function createSingleTargetStep(
       },
     ],
     skippable: () => options.skippable,
-    lock: (context) => getRoleAbilityLockReason(context, options.roleId),
+    lock: getRoleAbilityLockReason,
     ...(options.situationHints === undefined ? {} : { situationHints: options.situationHints }),
     ...(options.ruleHints === undefined ? {} : { ruleHints: options.ruleHints }),
     ...(options.renderResult === undefined ? {} : { renderResult: options.renderResult }),
@@ -341,6 +345,8 @@ export function createCardSelectionStep(
 ): WerewolfRoleStepDefinition {
   return {
     id: options.id,
+    // The card taken is who the player is, not a skill used on someone else.
+    survivesConversion: true,
     title: options.actionName,
     audio: defineWerewolfStepAudio(options.roleId),
     actors: (context) =>

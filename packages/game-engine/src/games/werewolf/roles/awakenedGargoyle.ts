@@ -4,7 +4,12 @@ import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
 import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
-import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
+import {
+  createGroupConfirmStep,
+  getActingSeat,
+  getRoleAbilityLockReason,
+  isKnownWolfTeammate,
+} from './roleSteps';
 
 const COPY = defineCopy({
   name: '觉醒石像鬼',
@@ -76,7 +81,7 @@ const convertStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => false,
-  lock: (context) => getRoleAbilityLockReason(context, 'awakenedGargoyle'),
+  lock: getRoleAbilityLockReason,
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission) => {
     const chosenSeat = submission.seats[0];
@@ -122,7 +127,7 @@ function getTargetUnavailableReason(
   chosenSeat: number,
 ): string | null {
   if (chosenSeat === context.seat) return COPY.selfDisallowed;
-  if (context.teamOfRole(context.role.roleOf(chosenSeat)) === 'wolf') {
+  if (isKnownWolfTeammate(context, chosenSeat)) {
     return COPY.wolfDisallowed;
   }
   return context.isAdjacentToWolfFaction(chosenSeat) ? null : COPY.adjacencyDisallowed;

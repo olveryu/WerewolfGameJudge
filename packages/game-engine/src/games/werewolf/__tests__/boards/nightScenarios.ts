@@ -7,6 +7,7 @@ export interface NightScenario {
   readonly roles: readonly RoleId[];
   readonly choices: NightActions;
   readonly randomSeed?: string;
+  readonly witchCanSelfHeal?: boolean;
 }
 
 type NamedChoices = readonly [name: string, choices: NightActions];
@@ -237,6 +238,22 @@ const WOLF_GIRL_MIRROR = [
   'seer',
   'mirrorSeer',
   'witch',
+  'guard',
+] as const;
+
+const SEED_TAIL = ['seedWolf', 'seer', 'witch'] as const;
+const SEED_MAGICIAN = [...VILLAGERS, ...WOLVES, ...SEED_TAIL, 'magician', 'guard'] as const;
+const SEED_CUPID = [...VILLAGERS, ...WOLVES, ...SEED_TAIL, 'cupid', 'guard'] as const;
+const SEED_HUNTER = [...VILLAGERS, ...WOLVES, ...SEED_TAIL, 'hunter', 'guard'] as const;
+const SEED_WOLF_SIDE = [
+  ...VILLAGERS,
+  'wolf',
+  'wolfWitch',
+  'seedWolf',
+  'wolfRobot',
+  'seer',
+  'witch',
+  'knight',
   'guard',
 ] as const;
 
@@ -508,5 +525,50 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
   ]),
   ...scenarios('wolf girl', WOLF_GIRL_MIRROR, [
     ['confesses the mirror seer', { wolfGirl: 9, wolf: 0, seer: 4, mirrorSeer: 4 }],
+  ]),
+  ...scenarios('seed wolf', SEED, [
+    [
+      'witch saves the infected seer',
+      { wolf: 8, seedWolf: { confirmed: true }, witch: { save: 8, poison: null }, seer: 4 },
+    ],
+  ]),
+  {
+    name: 'seed wolf: infected witch saves herself when the room allows it',
+    roles: SEED,
+    choices: { wolf: 9, seedWolf: { confirmed: true }, witch: { save: 9, poison: null }, seer: 4 },
+    witchCanSelfHeal: true,
+  },
+  {
+    name: 'seed wolf: infected witch who poisons instead is converted and the poison is void',
+    roles: SEED,
+    choices: { wolf: 9, seedWolf: { confirmed: true }, witch: { save: null, poison: 0 }, seer: 4 },
+    witchCanSelfHeal: true,
+  },
+  ...scenarios('seed wolf', SEED_MAGICIAN, [
+    [
+      'converted magician keeps the swap',
+      { magician: { targets: [0, 4] }, wolf: 10, seedWolf: { confirmed: true }, seer: 0 },
+    ],
+  ]),
+  ...scenarios('seed wolf', SEED_CUPID, [
+    [
+      'converted cupid keeps the lovers',
+      {
+        cupid: { targets: [0, 1] },
+        wolf: 10,
+        seedWolf: { confirmed: true },
+        witch: { save: null, poison: 0 },
+        seer: 4,
+      },
+    ],
+  ]),
+  ...scenarios('seed wolf', SEED_HUNTER, [
+    ['converted hunter cannot view the skill status', { wolf: 10, seedWolf: { confirmed: true } }],
+  ]),
+  ...scenarios('seed wolf', SEED_WOLF_SIDE, [
+    [
+      'later steps treat the convert as a wolf without marking the seat',
+      { wolf: 0, seedWolf: { confirmed: true }, wolfRobot: 0, wolfWitch: 0, seer: 0 },
+    ],
   ]),
 ];

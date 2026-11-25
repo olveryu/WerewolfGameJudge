@@ -36,6 +36,15 @@ const witchActionStep: WerewolfRoleStepDefinition = {
     context.state.seatedSeats.filter((seat) =>
       context.role.activeRoleIdsOf(seat).includes('witch'),
     ),
+  canRescueWolfKillTarget: (context) => {
+    const target = context.resolvedWolfKillTarget;
+    if (target === null) return false;
+    return context.state.seatedSeats.some(
+      (seat) =>
+        context.role.activeRoleIdsOf(seat).includes('witch') &&
+        (seat !== target || context.state.rules.witchCanSelfHeal),
+    );
+  },
   situationHints: (context) => {
     const target = context.resolvedWolfKillTarget;
     if (target === null) return [COPY.peacefulNight];
@@ -119,7 +128,7 @@ const witchActionStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => true,
-  lock: (context) => getRoleAbilityLockReason(context, 'witch'),
+  lock: getRoleAbilityLockReason,
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission: SeatSubmissionForReview) => {
     if (submission.actionKey !== 'poison' && submission.actionKey !== 'antidote') return null;

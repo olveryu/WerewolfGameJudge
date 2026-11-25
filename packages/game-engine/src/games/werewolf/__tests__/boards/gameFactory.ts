@@ -42,6 +42,8 @@ interface InternalState {
 interface CreateGameOptions {
   /** Base seed used to derive deterministic, command-scoped random seeds. */
   readonly randomSeed?: string;
+  /** Room rule: the witch may use the antidote on herself. */
+  readonly witchCanSelfHeal?: boolean;
 }
 
 function assertSameRoleMultiset(actual: readonly RoleId[], expected: readonly RoleId[]): void {
@@ -139,7 +141,10 @@ export function createGame(
     state: werewolfEngine.createInitialState(
       {
         templateRoles: configuredRoles,
-        rules: { isSheriffElectionEnabled: false },
+        rules: {
+          isSheriffElectionEnabled: false,
+          witchCanSelfHeal: options?.witchCanSelfHeal ?? false,
+        },
       },
       {
         roomCode: ROOM_CODE,

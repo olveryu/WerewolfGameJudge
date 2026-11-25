@@ -614,24 +614,6 @@ describe('werewolf role definitions', () => {
     ).toBe('accept');
   });
 
-  it('locks borrowed role actions on the night they are learned', () => {
-    const roleIds = ['witch', 'magician', 'cupid', 'piper', 'awakenedGargoyle', 'seedWolf'];
-    const state = createState('wolfRobot');
-
-    for (const roleId of roleIds) {
-      const step = requireRole(roleId).steps[0];
-      if (step === undefined || step.lock === undefined) {
-        throw new Error(`[FAIL-FAST] ${roleId} borrowed ability lock is missing`);
-      }
-      const context = createRoleContext(state, 1, {
-        ...EMPTY_FACTS,
-        disabledAbilities: [{ roleId, seat: 1 }],
-      });
-
-      expect(step.lock(context)).toBe('你今晚无法使用技能');
-    }
-  });
-
   it('creates Cupid links before the magician swap and reveals the partner privately', () => {
     const role = requireRole('cupid');
     const chooseStep = role.steps[0];

@@ -29,6 +29,7 @@ export const magician = defineRole({
   steps: [
     {
       id: 'magicianSwap',
+      survivesConversion: true,
       title: COPY.stepTitle,
       audio: defineWerewolfStepAudio('magician'),
       actors: (context) =>
@@ -81,7 +82,7 @@ export const magician = defineRole({
         },
       ],
       skippable: () => true,
-      lock: (context) => getRoleAbilityLockReason(context, 'magician'),
+      lock: getRoleAbilityLockReason,
       reviewSubject: () => COPY.name,
     },
   ],

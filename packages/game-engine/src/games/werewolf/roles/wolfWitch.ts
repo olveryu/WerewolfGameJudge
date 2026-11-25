@@ -3,6 +3,7 @@ import { defineRole } from './role';
 import {
   createIdentityCheckResult,
   createSingleTargetStep,
+  isKnownWolfTeammate,
   renderIdentityCheckResult,
 } from './roleSteps';
 
@@ -38,7 +39,7 @@ export const wolfWitch = defineRole({
       skippable: true,
       canTargetSelf: false,
       targetUnavailableReason: (context, seat) =>
-        context.teamOfRole(context.role.roleOf(seat)) === 'wolf' ? COPY.targetRestriction : null,
+        isKnownWolfTeammate(context, seat) ? COPY.targetRestriction : null,
       result: createIdentityCheckResult,
       renderResult: (context, result) =>
         renderIdentityCheckResult(context, result, COPY.resultTitle),

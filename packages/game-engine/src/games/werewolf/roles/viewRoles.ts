@@ -105,7 +105,7 @@ function createViewStep(options: ViewStepOptions): WerewolfRoleStepDefinition {
       },
     ],
     skippable: () => false,
-    lock: (context) => getRoleAbilityLockReason(context, options.roleId),
+    lock: getRoleAbilityLockReason,
     reviewSubject: () => options.roleName,
   };
 }

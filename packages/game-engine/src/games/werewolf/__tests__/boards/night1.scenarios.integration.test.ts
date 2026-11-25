@@ -221,7 +221,9 @@ const NIGHT_CASES: readonly NightCase[] = [
     name: scenario.name,
     play: () => {
       const assignment = new Map(scenario.roles.map((roleId, seat) => [seat, roleId]));
-      const context = createGame([...scenario.roles], assignment);
+      const context = createGame([...scenario.roles], assignment, {
+        witchCanSelfHeal: scenario.witchCanSelfHeal ?? false,
+      });
       return playScenarioNight(context, scenario.choices, scenario.randomSeed);
     },
   })),

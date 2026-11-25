@@ -146,7 +146,7 @@ describe('platform step runtime', () => {
       text: 'good',
     });
     expect(buildStepReviewLines(runtime, submittedState)).toEqual([
-      { stepId: 'pick', seat: 0, text: 'Player0inspect2号' },
+      { stepId: 'pick', seat: 0, text: 'Player0inspect2号', isDone: true },
     ]);
 
     const acknowledgement = decideStepSubmission(runtime, submittedState, 0, {

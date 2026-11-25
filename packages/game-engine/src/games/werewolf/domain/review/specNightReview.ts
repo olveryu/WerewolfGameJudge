@@ -9,6 +9,7 @@ import {
   EMPTY_WEREWOLF_NIGHT_FACTS,
   getWerewolfRoleDefinition,
   mergeWerewolfNightFacts,
+  WEREWOLF_STEP_DEFINITIONS,
 } from '../../roles/nightPlan';
 import {
   collectWerewolfDeathEffects,
@@ -16,6 +17,7 @@ import {
   requireWerewolfNightState,
 } from '../../roles/nightRuntime';
 import type { WerewolfNightFacts } from '../../roles/role';
+import { getInfectionSettlementStepId } from '../../roles/seedWolf';
 import { isValidRoleId, type RoleId } from '../models';
 import { findSeatByRole } from '../playerHelpers';
 import type { GameState, ResolvedWolfKillVerdict } from '../protocol/types';
@@ -29,7 +31,8 @@ const COPY = defineCopy({
   conflict: '{seat}同守同救，保护抵消',
   poisonImmune: '{seat}免疫毒药',
   reflection: '{target}反弹伤害，{source}出局',
-  infectionConverted: '{seat}感染成功，转化为狼人',
+  infectionConverted: '{seat}{role}被种狼感染，转化为狼人',
+  conversionVoided: '（已转化，技能无效）',
   infectionFailed: '{seat}感染失败',
   result: '（{title}：{text}）',
 });
@@ -77,8 +80,18 @@ export function buildSpecNightReview(state: GameState): {
     }
   }
   if (night.infection?.outcome === 'converted') {
+    const { targetSeat } = night.infection;
+    const formerRoleId = night.facts.conversions?.find(
+      (conversion) => conversion.seat === targetSeat,
+    )?.formerRoleIds[0];
+    if (formerRoleId === undefined) {
+      throw new Error(`[FAIL-FAST] Converted seat ${targetSeat} has no former role`);
+    }
     explanationLines.add(
-      renderCopy(COPY.infectionConverted, { seat: formatSeat(night.infection.targetSeat) }),
+      renderCopy(COPY.infectionConverted, {
+        seat: formatSeat(targetSeat),
+        role: getWerewolfRoleDefinition(formerRoleId).card.name,
+      }),
     );
   } else if (night.infection?.outcome === 'failed') {
     explanationLines.add(
@@ -128,18 +141,11 @@ function buildActionLines(state: GameState): readonly NightReviewStepLine[] {
   let facts: WerewolfNightFacts = EMPTY_WEREWOLF_NIGHT_FACTS;
   const lines: NightReviewStepLine[] = [];
   const runtime = createWerewolfStepRuntime(null);
+  const convertedSeat =
+    night.infection?.outcome === 'converted' ? night.infection.targetSeat : null;
+  const conversion = night.facts.conversions?.find((entry) => entry.seat === convertedSeat);
+  let isConversionApplied = false;
   for (const stepId of night.slice.order) {
-    if (stepId === 'seedWolfInfectReveal' && night.infection?.outcome === 'converted') {
-      roles = {
-        ...roles,
-        identities: replaceCurrentRole(roles.identities, night.infection.targetSeat, 'wolf'),
-      };
-      facts = mergeWerewolfNightFacts(facts, {
-        deathEffects: [
-          { kind: 'void', scope: { cause: 'wolfKill', target: night.infection.targetSeat } },
-        ],
-      });
-    }
     const reviewNight = {
       ...night,
       roles,
@@ -170,12 +176,18 @@ function buildActionLines(state: GameState): readonly NightReviewStepLine[] {
           renderedResult = renderCopy(COPY.result, rendered);
           resultsAdded.add(line.seat);
         }
+        const isVoidedByConversion =
+          conversion !== undefined &&
+          !isConversionApplied &&
+          line.seat === conversion.seat &&
+          line.isDone &&
+          WEREWOLF_STEP_DEFINITIONS[stepId]?.survivesConversion !== true;
         lines.push({
           kind: 'action',
           seat: line.seat,
           roleId: stepId === 'wolfKill' ? 'wolf' : findStepRole(state.templateRoles, stepId),
           subject,
-          phrase: line.text.slice(subject.length),
+          phrase: `${line.text.slice(subject.length)}${isVoidedByConversion ? COPY.conversionVoided : ''}`,
           result: renderedResult,
         });
       }
@@ -189,6 +201,27 @@ function buildActionLines(state: GameState): readonly NightReviewStepLine[] {
     }
     if (stepId === 'wolfKill' && night.wolfKill?.attack != null) {
       facts = mergeWerewolfNightFacts(facts, { deathEffects: [night.wolfKill.attack] });
+    }
+    if (conversion !== undefined && !isConversionApplied) {
+      const settledState = { ...state, nightState: { ...night, roles, facts } };
+      const settledContext = runtime.createContext(settledState, facts, null, { bySeat: {} });
+      if (
+        getInfectionSettlementStepId(
+          night.slice.order,
+          WEREWOLF_STEP_DEFINITIONS,
+          settledContext,
+        ) === stepId
+      ) {
+        roles = {
+          ...roles,
+          identities: replaceCurrentRole(roles.identities, conversion.seat, 'wolf'),
+        };
+        facts = mergeWerewolfNightFacts(facts, {
+          deathEffects: [{ kind: 'void', scope: { cause: 'wolfKill', target: conversion.seat } }],
+          conversions: [conversion],
+        });
+        isConversionApplied = true;
+      }
     }
   }
   return lines;
