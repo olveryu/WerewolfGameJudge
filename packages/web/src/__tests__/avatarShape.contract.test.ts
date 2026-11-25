@@ -2,15 +2,16 @@
  * Contract test: one avatar shape.
  *
  * `Avatar` owns its corners (`AVATAR_CORNER_RATIO`, at every size) and the scene draws avatar
- * frames along the same corner. No stylesheet outside `components/avatar/` may restyle the avatar
+ * frames along the same corner. No stylesheet but `Avatar.css` (pinned below) may restyle the avatar
  * element's corners, nor clip an avatar wrapper (an `*avatar*` class with `overflow: hidden|clip`
- * plus a radius, or any clip-path/mask), so the shape cannot drift per page again.
+ * plus a radius, or any clip-path/mask), so the shape cannot drift per page again. Declarations
+ * are merged per selector within a file, so splitting a clip across two rules does not hide it.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const SRC_DIR = join(import.meta.dirname, '..');
-const AVATAR_DIR = 'components/avatar/';
+const AVATAR_CSS = 'components/avatar/Avatar.css';
 
 /** A selector whose subject (last compound) is the avatar element itself. */
 const TARGETS_AVATAR = /\.avatar(?![-\w])[^\s>+~]*$/;
@@ -29,50 +30,56 @@ function cssFiles(dir: string): string[] {
   });
 }
 
-/** `selector → declarations` for every rule, comments removed; at-rule wrappers are skipped. */
+/**
+ * `selector → declarations` for every rule, comments removed; at-rule wrappers are skipped. Rules
+ * repeating a selector are merged, so a split declaration is judged as one rule.
+ */
 function rules(source: string): { selector: string; body: string }[] {
   const css = source.replace(/\/\*[\s\S]*?\*\//g, '');
-  return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => ({
-    selector: (match[1] ?? '').trim(),
-    body: match[2] ?? '',
-  }));
+  const merged = new Map<string, string>();
+  for (const match of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = (match[1] ?? '').trim().replace(/\s+/g, ' ');
+    merged.set(selector, `${merged.get(selector) ?? ''}\n${match[2] ?? ''}`);
+  }
+  return [...merged].map(([selector, body]) => ({ selector, body }));
+}
+
+/** Every stylesheet except Avatar's own, whose shape is pinned separately. */
+function otherCssFiles(): string[] {
+  return cssFiles(SRC_DIR).filter((file) => relative(SRC_DIR, file) !== AVATAR_CSS);
 }
 
 describe('Avatar shape', () => {
   it('is set by Avatar alone', () => {
-    const overrides = cssFiles(SRC_DIR)
-      .filter((file) => !relative(SRC_DIR, file).startsWith(AVATAR_DIR))
-      .flatMap((file) =>
-        rules(readFileSync(file, 'utf8'))
-          .filter(
-            ({ selector, body }) =>
-              selector.split(',').some((part) => TARGETS_AVATAR.test(part.trim())) &&
-              SHAPE_PROPERTY.test(body),
-          )
-          .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
-      );
+    const overrides = otherCssFiles().flatMap((file) =>
+      rules(readFileSync(file, 'utf8'))
+        .filter(
+          ({ selector, body }) =>
+            selector.split(',').some((part) => TARGETS_AVATAR.test(part.trim())) &&
+            SHAPE_PROPERTY.test(body),
+        )
+        .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
+    );
     expect(overrides).toEqual([]);
   });
 
   it('is not cut by an avatar wrapper', () => {
-    const clippers = cssFiles(SRC_DIR)
-      .filter((file) => !relative(SRC_DIR, file).startsWith(AVATAR_DIR))
-      .flatMap((file) =>
-        rules(readFileSync(file, 'utf8'))
-          .filter(
-            ({ selector, body }) =>
-              NAMES_AVATAR.test(selector) &&
-              ((CLIPS_CONTENT.test(body) && RADIUS.test(body)) || CLIP_SHAPE.test(body)),
-          )
-          .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
-      );
+    const clippers = otherCssFiles().flatMap((file) =>
+      rules(readFileSync(file, 'utf8'))
+        .filter(
+          ({ selector, body }) =>
+            NAMES_AVATAR.test(selector) &&
+            ((CLIPS_CONTENT.test(body) && RADIUS.test(body)) || CLIP_SHAPE.test(body)),
+        )
+        .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
+    );
     expect(clippers).toEqual([]);
   });
 
   it('keeps the shape out of the avatar stylesheet', () => {
     // Avatar sets its corners inline from AVATAR_CORNER_RATIO; a stylesheet radius would be a
     // second source that the inline value silently wins over.
-    const css = readFileSync(join(SRC_DIR, AVATAR_DIR, 'Avatar.css'), 'utf8');
+    const css = readFileSync(join(SRC_DIR, AVATAR_CSS), 'utf8');
     const avatarRules = rules(css).filter(({ selector }) =>
       selector.split(',').some((part) => TARGETS_AVATAR.test(part.trim())),
     );
