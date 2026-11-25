@@ -46,6 +46,12 @@ const linkCause = z.enum([
   'dreamcatcherLink',
   'scarletLink',
 ]);
+const immunityCause = z.union([
+  attackCause,
+  linkCause,
+  z.literal('reflection'),
+  z.literal('nightDamage'),
+]);
 const deathEffect = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('attack'),
@@ -76,7 +82,7 @@ const deathEffect = z.discriminatedUnion('kind', [
     bypassShelter: z.boolean().optional(),
     bypassSurvival: z.boolean().optional(),
   }),
-  z.strictObject({ kind: z.literal('immune'), seat, against: z.array(attackCause) }),
+  z.strictObject({ kind: z.literal('immune'), seat, against: z.array(immunityCause) }),
   z.strictObject({ kind: z.literal('reflect'), seat, against: z.array(attackCause) }),
   z.strictObject({
     kind: z.literal('wound'),

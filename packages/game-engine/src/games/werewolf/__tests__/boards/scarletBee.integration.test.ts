@@ -78,6 +78,21 @@ describe('scarlet wolf king through production commands', () => {
     expect(getWerewolfDaytimeAnnouncements(state)[0]?.message).toBe('猩红之子：8号');
   });
 
+  it('keeps a marked Spirit Knight alive when the king dies', () => {
+    const roles = [...ROLES];
+    roles[7] = 'spiritKnight';
+    const game = createGame(roles);
+    driveNight(game, {
+      wolfKill: { actionKey: 'wolfKill', seats: [2] },
+      scarletWolfKingMark: { actionKey: 'scarletWolfKingMark', seats: [7] },
+    });
+
+    const state = game.getGameState();
+    expect(state.lastNightDeaths).toEqual([2]);
+    expect(state.deathReasons?.[7]).toBeUndefined();
+    expect(getWerewolfDaytimeAnnouncements(state)[0]?.message).toBe('猩红之子：8号');
+  });
+
   it('does not trigger a link when the wolf king is saved', () => {
     const game = createGame(ROLES);
     driveNight(game, {
