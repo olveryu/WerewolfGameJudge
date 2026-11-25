@@ -12,6 +12,7 @@ import {
   getBottomCardRoleId,
   getPlayerCount,
   getRoleDealPool,
+  isBottomCardRoleRemovedInPlagueMode,
   isValidBottomCardSet,
   isValidRoleId,
   type RoleId,
@@ -25,30 +26,6 @@ import type {
 
 function fail(message: string): never {
   throw new Error(`[FAIL-FAST] Invalid Werewolf state: ${message}`);
-}
-
-function assertNoBottomCardRuntimeState(state: GameState): void {
-  if (state.bottomCards !== undefined) fail('bottomCards exist without an active bottom-card deal');
-  if (state.treasureMasterSeat !== undefined) {
-    fail('treasureMasterSeat exists without an active treasure-master deal');
-  }
-  if (state.thiefSeat !== undefined) fail('thiefSeat exists without an active thief deal');
-}
-
-function assertBottomCardActor(
-  state: GameState,
-  actorSeat: number | undefined,
-  actorRoleId: 'treasureMaster' | 'thief',
-): number {
-  if (actorSeat === undefined) fail(`${actorRoleId} deal has no actor seat`);
-  const actor = state.players[actorSeat];
-  if (actor === undefined || actor === null)
-    fail(`${actorRoleId} actor seat ${actorSeat} is empty`);
-  const dealtRole = state.nightState?.roles.identities[actorSeat]?.dealtRole ?? actor.role;
-  if (dealtRole !== actorRoleId) {
-    fail(`${actorRoleId} actor seat ${actorSeat} contains ${actor.role ?? 'no role'}`);
-  }
-  return actorSeat;
 }
 
 function countRoles(roles: readonly RoleId[]): Map<RoleId, number> {
@@ -519,16 +496,21 @@ export function assertWerewolfStateInvariants(state: GameState): void {
     state.status === GameStatus.Ongoing ||
     state.status === GameStatus.Day ||
     state.status === GameStatus.Ended;
-  const isTreasureMasterDisabledByPlague =
-    bottomCardRoleId === 'treasureMaster' && state.rules?.isPlagueMode === true;
+  // Plague mode deals some bottom-card actors as a villager and sets no deck aside for them.
+  const isDeckRemovedByPlague =
+    bottomCardRoleId !== null &&
+    state.rules?.isPlagueMode === true &&
+    isBottomCardRoleRemovedInPlagueMode(bottomCardRoleId);
 
   const assignedRoles = isAssignedState ? getAssignedRoles(state) : null;
   const roleDealPool = isAssignedState ? getRoleDealPool(state.templateRoles, state.rules) : null;
 
-  if (bottomCardRoleId === null || !isAssignedState || isTreasureMasterDisabledByPlague) {
-    assertNoBottomCardRuntimeState(state);
+  if (bottomCardRoleId === null || !isAssignedState || isDeckRemovedByPlague) {
+    if (state.bottomCards !== undefined) {
+      fail('bottomCards exist without an active bottom-card deal');
+    }
     if (assignedRoles !== null && roleDealPool !== null) {
-      if (isTreasureMasterDisabledByPlague) {
+      if (isDeckRemovedByPlague) {
         assertRoleMultisetSubset(assignedRoles, roleDealPool, 'assigned roles');
       } else {
         assertAssignedRolesMatchDeal(state, assignedRoles, roleDealPool, 'assigned roles');
@@ -551,13 +533,4 @@ export function assertWerewolfStateInvariants(state: GameState): void {
     roleDealPool,
     'assigned roles and bottomCards',
   );
-
-  if (bottomCardRoleId === 'treasureMaster') {
-    assertBottomCardActor(state, state.treasureMasterSeat, bottomCardRoleId);
-    if (state.thiefSeat !== undefined) fail('treasure-master deal also contains thiefSeat');
-    return;
-  }
-
-  assertBottomCardActor(state, state.thiefSeat, bottomCardRoleId);
-  if (state.treasureMasterSeat !== undefined) fail('thief deal also contains treasureMasterSeat');
 }

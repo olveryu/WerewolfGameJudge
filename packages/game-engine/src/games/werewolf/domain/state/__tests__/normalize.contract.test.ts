@@ -59,12 +59,8 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // Night review share permissions
   'nightReviewAllowedSeats',
 
-  // Treasure Master
+  // Bottom cards
   'bottomCards',
-  'treasureMasterSeat',
-
-  // Thief
-  'thiefSeat',
 
   // Board nominations
   'boardNominations',

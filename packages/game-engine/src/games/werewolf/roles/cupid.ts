@@ -124,7 +124,7 @@ export const cupid = defineRole({
     },
     tags: ['link'],
   },
-  traits: { faction: 'special', team: 'good' },
+  traits: { faction: 'special', team: 'good', cannotBeBottomCard: true },
   presence: cupidPresence[0],
   nightSchedule: 'firstNight',
   steps: [chooseLoversStep, loversRevealStep],

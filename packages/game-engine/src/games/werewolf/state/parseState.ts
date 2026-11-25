@@ -524,12 +524,6 @@ export function parseWerewolfState(value: unknown): GameState {
       (seats, p) => parseArray(seats, p, parseSeat),
     ),
     bottomCards: parseOptional(raw.bottomCards, 'GameState.bottomCards', parseRoleIds),
-    treasureMasterSeat: parseOptional(
-      raw.treasureMasterSeat,
-      'GameState.treasureMasterSeat',
-      parseSeat,
-    ),
-    thiefSeat: parseOptional(raw.thiefSeat, 'GameState.thiefSeat', parseSeat),
     boardNominations: parseOptional(
       raw.boardNominations,
       'GameState.boardNominations',

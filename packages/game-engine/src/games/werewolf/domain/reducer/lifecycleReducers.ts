@@ -114,14 +114,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     nightReviewAllowedSeats: undefined,
     seerLabelMap: undefined,
 
-    // Treasure Master
     bottomCards: undefined,
-    treasureMasterSeat: undefined,
-
-    // Thief
-    thiefSeat: undefined,
-
-    // Cupid
 
     // boardNominations: preserved, not cleared on restart
     boardNominations: state.boardNominations,
@@ -258,7 +251,7 @@ export function handleUpdatePlayerProfile(
 
 /** Assign roles (write assignments into players, status transitions to Assigned). */
 export function handleAssignRoles(state: GameState, action: AssignRolesAction): GameState {
-  const { assignments, seerLabelMap, bottomCards, treasureMasterSeat, thiefSeat } = action.payload;
+  const { assignments, seerLabelMap, bottomCards } = action.payload;
   const newPlayers = { ...state.players };
 
   for (const [seatStr, role] of Object.entries(assignments)) {
@@ -276,8 +269,6 @@ export function handleAssignRoles(state: GameState, action: AssignRolesAction): 
     status: GameStatus.Assigned,
     seerLabelMap,
     bottomCards,
-    treasureMasterSeat,
-    thiefSeat,
   };
 }
 

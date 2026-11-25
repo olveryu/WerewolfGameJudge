@@ -265,26 +265,9 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    */
   nightReviewAllowedSeats?: readonly number[];
 
-  // --- Bottom-card actors ---
-  /**
-   * Physical identity cards split from templateRoles during dealing.
-   * Contains three cards for treasureMaster or two cards for thief.
-   */
+  // --- Bottom cards ---
+  /** The cards set aside at the deal for the board's bottom-card actor to choose from. */
   bottomCards?: readonly RoleId[];
-
-  /**
-   * Treasure Master seat number.
-   * Written during dealing, used for resolver actor routing and check disguise.
-   */
-  treasureMasterSeat?: number;
-
-  /**
-   * Thief seat number.
-   * Written during dealing, used for resolver actor routing and check disguise.
-   */
-  thiefSeat?: number;
-
-  // --- Cupid ---
 
   // --- Board Nomination ---
   /**

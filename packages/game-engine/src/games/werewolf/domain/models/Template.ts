@@ -7,9 +7,12 @@
 import type { GameConfigSchema } from '../../../../platform/config/configSchema';
 import {
   countBottomCardRoles,
+  getBottomCardBoardRequirement,
   getBottomCardCount,
   getBottomCardRoleId,
+  getBottomCardRoleIds,
   getValidBottomCardDeals,
+  isBottomCardRoleRemovedInPlagueMode,
 } from './BottomCards';
 import { Faction, getRoleCard, type RoleId } from './roles';
 
@@ -57,7 +60,8 @@ export const MINIMUM_PLAYERS = 1;
 export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
   const bottomCardRoleCount = countBottomCardRoles(roles);
   if (bottomCardRoleCount > 1) {
-    return '盗贼与盗宝大师只能选择一个，且同一角色不能重复选择';
+    const names = getBottomCardRoleIds().map((roleId) => getRoleCard(roleId).displayName);
+    return `${names.join('与')}只能选择一个，且同一角色不能重复选择`;
   }
 
   // Rule 1: must have at least MINIMUM_PLAYERS (actual players, excluding bottom cards)
@@ -70,33 +74,19 @@ export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
   for (const roleId of roles) {
     const count = (roleCounts.get(roleId) ?? 0) + 1;
     roleCounts.set(roleId, count);
-    if (count > 1 && roleId !== 'wolf' && getRoleCard(roleId).nightStepIds.length > 0) {
+    // Only a role without a night step of its own may be on the board more than once.
+    if (count > 1 && getRoleCard(roleId).nightStepIds.length > 0) {
       return `${getRoleCard(roleId).displayName}不能重复选择`;
     }
   }
 
-  // Rule 2: treasureMaster bottom card constraint prerequisites
-  // Bottom cards require exactly 1 wolf (regular) + 1 god + 1 villager.
-  // If template cannot provide these, dealing will always fail.
-  if (roles.includes('treasureMaster')) {
-    const otherRoles = roles.filter((roleId) => roleId !== 'treasureMaster');
-    const hasRegularWolf = otherRoles.includes('wolf');
-    const hasGod = otherRoles.some((r) => getRoleCard(r).faction === Faction.God);
-    const hasVillager = otherRoles.some((r) => getRoleCard(r).faction === Faction.Villager);
-    if (!hasRegularWolf) {
-      return '含宝藏猎人时必须有至少 1 名普通狼人（底牌需要）';
-    }
-    if (!hasGod) {
-      return '含宝藏猎人时必须有至少 1 名神职（底牌需要）';
-    }
-    if (!hasVillager) {
-      return '含宝藏猎人时必须有至少 1 名村民（底牌需要）';
-    }
-  }
+  // Rule 2: the bottom-card actor's deck must be dealable from this board.
+  const bottomCardRequirement = getBottomCardBoardRequirement(roles);
+  if (bottomCardRequirement !== null) return bottomCardRequirement;
 
   const bottomCardRoleId = getBottomCardRoleId(roles);
   if (bottomCardRoleId !== null && getValidBottomCardDeals(roles, bottomCardRoleId).length === 0) {
-    return `当前角色组合无法为${bottomCardRoleId === 'thief' ? '盗贼' : '盗宝大师'}发出合法底牌`;
+    return `当前角色组合无法为${getRoleCard(bottomCardRoleId).displayName}发出合法底牌`;
   }
 
   return null;
@@ -171,12 +161,15 @@ export interface GameTemplate {
   rules?: GameRuleOverrides;
 }
 
+/** The card dealt in place of every card that plague mode removes. */
+const PLAGUE_REPLACEMENT_ROLE_ID: RoleId = 'villager';
+
 /** Build the physical role-card pool used by assignment. */
 export function getRoleDealPool(roles: readonly RoleId[], rules?: GameRuleOverrides): RoleId[] {
   if (rules?.isPlagueMode !== true) return [...roles];
   return roles.map((roleId) =>
-    getRoleCard(roleId).faction === Faction.Wolf || roleId === 'treasureMaster'
-      ? 'villager'
+    getRoleCard(roleId).faction === Faction.Wolf || isBottomCardRoleRemovedInPlagueMode(roleId)
+      ? PLAGUE_REPLACEMENT_ROLE_ID
       : roleId,
   );
 }

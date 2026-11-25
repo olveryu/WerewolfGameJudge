@@ -1,5 +1,5 @@
 import { defineCopy } from '../../../platform/steps';
-import type { PresenceDeclaration } from './presence';
+import type { DealCard, PresenceDeclaration } from './presence';
 import { defineRole } from './role';
 import { createCardSelectionStep } from './roleSteps';
 
@@ -20,10 +20,43 @@ const COPY = defineCopy({
   hint: '你的阵营：狼人阵营',
   resultTitle: '获得的技能',
   wolfCardUnavailable: '不可选择狼人阵营底牌',
+  needsPlainWolf: '含宝藏猎人时必须有至少 1 名普通狼人（底牌需要）',
+  needsGod: '含宝藏猎人时必须有至少 1 名神职（底牌需要）',
+  needsVillager: '含宝藏猎人时必须有至少 1 名村民（底牌需要）',
 });
 
+function isPlainWolf(card: DealCard): boolean {
+  return card.roleId === 'wolf';
+}
+
+function countFaction(cards: readonly DealCard[], faction: DealCard['faction']): number {
+  return cards.filter((card) => card.faction === faction).length;
+}
+
 export const treasureMasterPresence = [
-  { role: 'treasureMaster', effect: { kind: 'useBottomCardSelection' } },
+  {
+    role: 'treasureMaster',
+    effect: {
+      kind: 'useBottomCardSelection',
+      deck: {
+        size: 3,
+        // One plain wolf, one god and one villager.
+        isLegal: (cards) =>
+          countFaction(cards, 'wolf') === 1 &&
+          countFaction(cards, 'god') === 1 &&
+          countFaction(cards, 'villager') === 1 &&
+          cards.some(isPlainWolf),
+        boardRequirement: (otherCards) => {
+          if (!otherCards.some(isPlainWolf)) return COPY.needsPlainWolf;
+          if (countFaction(otherCards, 'god') === 0) return COPY.needsGod;
+          if (countFaction(otherCards, 'villager') === 0) return COPY.needsVillager;
+          return null;
+        },
+        // Plague mode leaves no wolf card to set aside.
+        isRemovedInPlagueMode: true,
+      },
+    },
+  },
 ] as const satisfies readonly PresenceDeclaration<'treasureMaster'>[];
 
 export const treasureMaster = defineRole({

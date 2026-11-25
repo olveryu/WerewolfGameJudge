@@ -20,7 +20,17 @@ const COPY = defineCopy({
 });
 
 export const thiefPresence = [
-  { role: 'thief', effect: { kind: 'useBottomCardSelection' } },
+  {
+    role: 'thief',
+    effect: {
+      kind: 'useBottomCardSelection',
+      deck: {
+        size: 2,
+        // At most one wolf-faction card.
+        isLegal: (cards) => cards.filter((card) => card.faction === 'wolf').length <= 1,
+      },
+    },
+  },
 ] as const satisfies readonly PresenceDeclaration<'thief'>[];
 
 export const thief = defineRole({

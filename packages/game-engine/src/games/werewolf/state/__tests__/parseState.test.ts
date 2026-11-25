@@ -77,7 +77,6 @@ function createFullState(): GameState {
     seerLabelMap: { seer: 1 },
     nightReviewAllowedSeats: [0, 1],
     bottomCards: ['wolf', 'witch', 'villager'],
-    treasureMasterSeat: 0,
     boardNominations: {
       host: {
         userId: 'host',

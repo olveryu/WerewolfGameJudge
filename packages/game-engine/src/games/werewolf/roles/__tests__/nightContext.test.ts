@@ -9,6 +9,7 @@ import {
 import { resolveSelectedSeat, resolveTargetSelection } from '../location';
 import { resolveNightPresenceFacts } from '../presence';
 import { getSeenRole } from '../sight';
+import { thiefPresence } from '../thief';
 
 type TestRole =
   | 'seer'
@@ -87,7 +88,7 @@ describe('werewolf night context layers', () => {
     expect(facts).toEqual({
       firstNightWolfAttackDisabledBy: 'poisoner',
       doesWolfVoteRequireUnanimity: true,
-      bottomCardRoles: ['thief'],
+      bottomCardDecks: [{ role: 'thief', deck: thiefPresence[0].effect.deck }],
       numberedAnnouncementRoles: { seerFamily: ['seer', 'mirrorSeer', 'drunkSeer'] },
     });
     expect(

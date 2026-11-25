@@ -24,7 +24,6 @@ function createTreasureMasterState(overrides: Partial<GameState> = {}): GameStat
     gameSequence: 0,
     pendingAudioEffects: [],
     bottomCards: ['wolf', 'seer', 'villager'],
-    treasureMasterSeat: 0,
     ...overrides,
   };
   return state.status === GameStatus.Ongoing ? withTestNightState(state) : state;
@@ -38,8 +37,6 @@ function createThiefState(overrides: Partial<GameState> = {}): GameState {
       0: { seat: 0, role: 'thief' },
     },
     bottomCards: ['wolf', 'seer'],
-    treasureMasterSeat: undefined,
-    thiefSeat: 0,
     ...overrides,
   };
   return state.status === GameStatus.Ongoing ? withTestNightState(state) : state;
@@ -160,7 +157,7 @@ describe('assertWerewolfStateInvariants', () => {
     ).toThrow('night seat 2 disagrees with its dealt identity');
   });
 
-  it('requires a legal deck and the matching seated actor after assignment', () => {
+  it('requires a legal deck after assignment', () => {
     expect(() =>
       assertWerewolfStateInvariants(createTreasureMasterState({ bottomCards: undefined })),
     ).toThrow('deal has no bottomCards');
@@ -169,9 +166,6 @@ describe('assertWerewolfStateInvariants', () => {
         createTreasureMasterState({ bottomCards: ['wolf', 'seer', 'witch'] }),
       ),
     ).toThrow('bottomCards violate the canonical deck rules');
-    expect(() =>
-      assertWerewolfStateInvariants(createTreasureMasterState({ treasureMasterSeat: 1 })),
-    ).toThrow('actor seat 1 is empty');
   });
 
   it('requires assigned identities and bottom cards to reconstruct the deal pool', () => {
@@ -202,7 +196,6 @@ describe('assertWerewolfStateInvariants', () => {
         0: { seat: 0, role: 'villager' },
       },
       bottomCards: undefined,
-      treasureMasterSeat: undefined,
     });
     expect(() => assertWerewolfStateInvariants(plagueTreasureMasterState)).not.toThrow();
     expect(() =>

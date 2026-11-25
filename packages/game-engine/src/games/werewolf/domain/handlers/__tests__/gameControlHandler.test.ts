@@ -145,8 +145,6 @@ describe('handleAssignRoles', () => {
     if (bottomCards === undefined) throw new Error('expected treasure-master bottom cards');
     expect(action.payload.assignments).toEqual({ 0: 'treasureMaster' });
     expect([...bottomCards].sort()).toEqual(['seer', 'villager', 'wolf']);
-    expect(action.payload.treasureMasterSeat).toBe(0);
-    expect(action.payload.thiefSeat).toBeUndefined();
   });
 
   it('deals transformed thief cards in plague mode instead of dropping the deck', () => {
@@ -169,7 +167,6 @@ describe('handleAssignRoles', () => {
     if (bottomCards === undefined) throw new Error('expected thief bottom cards');
     expect(action.payload.assignments).toEqual({ 0: 'thief' });
     expect([...bottomCards].sort()).toEqual(['seer', 'villager']);
-    expect(action.payload.thiefSeat).toBe(0);
   });
 
   it('should fail when status is not seated (edge case)', () => {

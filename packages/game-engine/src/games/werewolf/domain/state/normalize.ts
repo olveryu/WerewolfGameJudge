@@ -161,12 +161,8 @@ export function normalizeState(raw: GameState): GameState {
     // Night review share permissions (pass-through)
     nightReviewAllowedSeats: raw.nightReviewAllowedSeats,
 
-    // Treasure Master (pass-through)
+    // Bottom cards (pass-through)
     bottomCards: raw.bottomCards,
-    treasureMasterSeat: raw.treasureMasterSeat,
-
-    // Thief (pass-through)
-    thiefSeat: raw.thiefSeat,
 
     // Board nominations (pass-through)
     boardNominations: raw.boardNominations,

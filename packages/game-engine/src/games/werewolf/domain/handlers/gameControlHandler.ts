@@ -25,12 +25,12 @@ import type {
   ShareNightReviewIntent,
 } from '../intents/types';
 import {
-  type BottomCardRoleId,
   GameStatus,
   getBottomCardCount,
   getBottomCardRoleId,
   getRoleDealPool,
   getValidBottomCardDeals,
+  isBottomCardRoleRemovedInPlagueMode,
   type RoleId,
 } from '../models';
 import type { GameState } from '../protocol/types';
@@ -85,11 +85,10 @@ function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): H
 
   let seatedRoles: RoleId[];
   let bottomCards: RoleId[] | undefined;
-  let treasureMasterSeat: number | undefined;
-  let thiefSeat: number | undefined;
 
   const shouldDealBottomCards =
-    bottomCardRoleId !== null && (bottomCardRoleId === 'thief' || !isPlagueMode);
+    bottomCardRoleId !== null &&
+    !(isPlagueMode && isBottomCardRoleRemovedInPlagueMode(bottomCardRoleId));
   if (shouldDealBottomCards) {
     const result = createBottomCardDeal(roleDealPool, bottomCardRoleId, rng);
     if (result.seatedRoles.length !== seatCount) {
@@ -109,17 +108,6 @@ function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): H
 
   for (let i = 0; i < seats.length; i++) {
     assignments[seats[i]!] = seatedRoles[i]!;
-  }
-
-  // Record deck roles / cupid seat
-  if (bottomCardRoleId) {
-    for (const [seatStr, roleId] of Object.entries(assignments)) {
-      if (roleId === 'treasureMaster') {
-        treasureMasterSeat = Number.parseInt(seatStr, 10);
-      } else if (roleId === 'thief') {
-        thiefSeat = Number.parseInt(seatStr, 10);
-      }
-    }
   }
 
   // Roles that announce under the same name are numbered when two or more are on the board.
@@ -148,7 +136,7 @@ function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): H
     payload: {
       assignments,
       ...(seerLabelMap ? { seerLabelMap } : {}),
-      ...(bottomCards ? { bottomCards, treasureMasterSeat, thiefSeat } : {}),
+      ...(bottomCards ? { bottomCards } : {}),
     },
   };
 
@@ -164,7 +152,7 @@ function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): H
  */
 function createBottomCardDeal(
   templateRoles: readonly RoleId[],
-  bottomCardRoleId: BottomCardRoleId,
+  bottomCardRoleId: RoleId,
   rng: Rng,
 ): { seatedRoles: RoleId[]; bottomCards: RoleId[] } {
   const deals = getValidBottomCardDeals(templateRoles, bottomCardRoleId);

@@ -46,7 +46,7 @@ import { witch } from './witch';
 import { witcher } from './witcher';
 import { wolf } from './wolf';
 import { wolfGirl } from './wolfGirl';
-import { wolfKillStep } from './wolfKill';
+import { WOLF_KILL_STEP_OWNER_ROLE_ID, wolfKillStep } from './wolfKill';
 import { wolfKing } from './wolfKing';
 import { wolfQueen } from './wolfQueen';
 import { wolfRobot } from './wolfRobot';
@@ -154,6 +154,9 @@ export const WEREWOLF_ROLE_DEFINITIONS = [
 
 export const WEREWOLF_SHARED_STEPS = [wolfKillStep] as const;
 
+/** The role every shared step is announced and labelled as. */
+export const WEREWOLF_SHARED_STEP_OWNER_ROLE_ID = WOLF_KILL_STEP_OWNER_ROLE_ID;
+
 /** Static narration keys emitted by a role or shared Werewolf step. */
 export interface WerewolfStepAudioDeclaration {
   readonly roleId: RoleId;
@@ -172,7 +175,7 @@ export const WEREWOLF_STEP_AUDIO_DECLARATIONS = [
     })),
   ),
   ...WEREWOLF_SHARED_STEPS.map((step) => ({
-    roleId: 'wolf' as const,
+    roleId: WEREWOLF_SHARED_STEP_OWNER_ROLE_ID,
     stepId: step.id,
     ...step.audio.keys,
   })),

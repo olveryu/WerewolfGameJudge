@@ -106,12 +106,8 @@ export interface AssignRolesAction {
     assignments: Record<number, RoleId>;
     /** Seer label map - set when both seer + mirrorSeer are in template */
     seerLabelMap?: Readonly<Record<string, number>>;
-    /** Deck card role list (TreasureMaster 3 / Thief 2), only exists when deck role is present */
+    /** The cards set aside for the board's bottom-card actor; absent when the board has none. */
     bottomCards?: readonly RoleId[];
-    /** TreasureMaster seat number */
-    treasureMasterSeat?: number;
-    /** Thief seat number */
-    thiefSeat?: number;
   };
 }
 

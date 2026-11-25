@@ -237,6 +237,8 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
       readonly actsSolo?: boolean;
     };
     readonly wolfKillTargetForbidden?: boolean;
+    /** This card is never set aside as a bottom card. */
+    readonly cannotBeBottomCard?: true;
     readonly checkReaction?: WerewolfCheckReaction;
     readonly immunities?: readonly AttackCause[];
   };

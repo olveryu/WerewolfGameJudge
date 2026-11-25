@@ -1,6 +1,7 @@
 import type { RoleId } from '../domain/models';
 import {
   WEREWOLF_ROLE_DEFINITIONS,
+  WEREWOLF_SHARED_STEP_OWNER_ROLE_ID,
   WEREWOLF_SHARED_STEPS,
   type WerewolfConversionDeclaration,
   type WerewolfNightFacts,
@@ -25,9 +26,6 @@ export interface PlannedWerewolfStep {
   readonly roleId: RoleId;
   readonly stepId: string;
 }
-
-/** The wolves' shared step is announced and labelled as the plain wolf's. */
-const SHARED_STEP_OWNER_ROLE_ID = 'wolf' satisfies RoleId;
 
 export const EMPTY_WEREWOLF_NIGHT_FACTS: WerewolfNightFacts = {
   selections: [],
@@ -115,7 +113,8 @@ export function getWerewolfStepOwnerRoleId(
   templateRoles: readonly string[],
   stepId: string,
 ): string | null {
-  if (WEREWOLF_SHARED_STEPS.some((step) => step.id === stepId)) return SHARED_STEP_OWNER_ROLE_ID;
+  if (WEREWOLF_SHARED_STEPS.some((step) => step.id === stepId))
+    return WEREWOLF_SHARED_STEP_OWNER_ROLE_ID;
   return (
     templateRoles.find((role) =>
       getWerewolfRoleDefinition(role).steps.some((step) => step.id === stepId),
@@ -138,7 +137,7 @@ export function createWerewolfNightPlan(deal: WerewolfNightDeal): readonly Plann
     )
   ) {
     for (const step of WEREWOLF_SHARED_STEPS) {
-      stepsById.set(step.id, { roleId: SHARED_STEP_OWNER_ROLE_ID, stepId: step.id });
+      stepsById.set(step.id, { roleId: WEREWOLF_SHARED_STEP_OWNER_ROLE_ID, stepId: step.id });
     }
   }
   const ordered = NIGHT_STEP_ORDER.flatMap((stepId) => {

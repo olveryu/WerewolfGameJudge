@@ -26,11 +26,14 @@ const COPY = defineCopy({
   voterSeparator: '、',
 });
 
+/** The wolves' shared step is announced and labelled as the plain wolf's. */
+export const WOLF_KILL_STEP_OWNER_ROLE_ID = 'wolf' as const;
+
 export const wolfKillStep: WerewolfRoleStepDefinition = {
   id: 'wolfKill',
   wolfPackViewers: 'wolfVoters',
   title: COPY.title,
-  audio: defineWerewolfStepAudio('wolf'),
+  audio: defineWerewolfStepAudio(WOLF_KILL_STEP_OWNER_ROLE_ID),
   actors: getWolfVoters,
   progressActors: getRequiredWolfVoters,
   actions: [
