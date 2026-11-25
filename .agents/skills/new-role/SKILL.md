@@ -124,6 +124,9 @@ relevant Night-1 integration coverage. Run the web tests and typecheck
 when client data or assets change. Fix failures in the role definition,
 catalog, registrations, or affected client surfaces.
 
+For an independent read-only drift audit, use the review-werewolf-addition
+skill; implementation checks do not replace its rule and approval review.
+
 ## Acceptance commands
 
 ```sh
