@@ -130,11 +130,14 @@ describe('HomePage', () => {
       expect(screen.getByText('狼人面杀电子裁判助手')).toBeInTheDocument();
     });
 
-    it('renders shared tactile icon controls in the top bar', () => {
+    it('renders the guide as a tactile key and the account entry as the plain avatar link', () => {
       renderHome();
 
       expect(screen.getByTestId(TESTIDS.homeGuideButton)).toHaveClass('icon-button');
-      expect(screen.getByTestId(TESTIDS.homeSettingsButton)).toHaveClass('icon-button');
+      const account = screen.getByRole('link', { name: '设置' });
+      expect(account).toBe(screen.getByTestId(TESTIDS.homeSettingsButton));
+      expect(account).toHaveClass('home-account');
+      expect(account).not.toHaveClass('icon-button');
     });
   });
 

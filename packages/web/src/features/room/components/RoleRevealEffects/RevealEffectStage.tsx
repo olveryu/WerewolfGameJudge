@@ -27,21 +27,32 @@ export function prefetchRevealEffect(id: RevealEffectType): void {
 export default function RevealEffectStage({
   effectType,
   effectProps,
+  onAvailabilityChange,
 }: {
   readonly effectType: RevealEffectType;
   readonly effectProps: RevealEffectProps;
+  readonly onAvailabilityChange?: (available: boolean) => void;
 }) {
   const stage = use(sceneStagePromise());
   const { Effect } = use(loadRevealEffect(effectType));
   const [scene] = useState(() => new RevealScene(stage.createOverlayRoot()));
   const canvasHostRef = useRef<HTMLDivElement>(null);
+  const availabilityHandler = useRef(onAvailabilityChange);
+  useLayoutEffect(() => {
+    availabilityHandler.current = onAvailabilityChange;
+  }, [onAvailabilityChange]);
 
   useLayoutEffect(() => {
     const host = canvasHostRef.current;
     if (!host) {
       throw new Error('Reveal canvas host is not mounted');
     }
-    return stage.mountOverlay(host, scene.root, (nowMs) => scene.frame(nowMs));
+    return stage.mountOverlay(
+      host,
+      scene.root,
+      (nowMs) => scene.frame(nowMs),
+      (available) => availabilityHandler.current?.(available),
+    );
   }, [stage, scene]);
 
   return (

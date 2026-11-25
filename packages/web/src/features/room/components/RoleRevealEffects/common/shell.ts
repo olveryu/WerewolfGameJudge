@@ -22,6 +22,10 @@ export function revealTitle(effectType: RevealEffectType): string {
   return AUTO_EFFECTS.has(effectType) ? '🎭 你的身份即将揭晓' : '🎭 完成下方操作，揭晓你的身份';
 }
 
+/**
+ * The reveal's full-screen root. Render it in a portal on the body: `#root` isolates every page
+ * z-index (`global.css`), so only a body-level portal is guaranteed to stack above the page.
+ */
 export const REVEAL_ROOT_STYLE: CSSProperties = {
   position: 'fixed',
   inset: 0,

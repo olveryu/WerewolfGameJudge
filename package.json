@@ -38,7 +38,10 @@
     "ignoredBuiltDependencies": [
       "esbuild",
       "workerd"
-    ]
+    ],
+    "patchedDependencies": {
+      "pixi.js@8.23.0": "patches/pixi.js@8.23.0.patch"
+    }
   },
   "engines": {
     "node": ">=22.13.0"

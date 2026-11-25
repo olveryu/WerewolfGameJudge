@@ -1,0 +1,84 @@
+diff --git a/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.js b/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.js
+index 6d539bd83f3c84239bbad1b88ed0cf892d5610e4..f2ed1ca96558cb99f631b0f29f9bf951329858cb 100644
+--- a/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.js
++++ b/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.js
+@@ -22,20 +22,32 @@ function generateIfTestSrc(maxIfs) {
+   return src;
+ }
+ function checkMaxIfStatementsInShader(maxIfs, gl) {
+-  if (maxIfs === 0) {
+-    throw new Error("Invalid value of `0` passed to `checkMaxIfStatementsInShader`");
++  // Patched (pnpm patch): the upstream loop has no exit once the context is lost or nothing
++  // compiles. A lost context returns null from getParameter/getShaderParameter, so maxIfs can
++  // arrive as null or halve to 0, and the loop then spins forever on the main thread.
++  if (!maxIfs) {
++    throw new Error(`Invalid value of \`${maxIfs}\` passed to \`checkMaxIfStatementsInShader\``);
+   }
+   const shader = gl.createShader(gl.FRAGMENT_SHADER);
++  if (!shader) {
++    throw new Error("`checkMaxIfStatementsInShader` could not create a fragment shader");
++  }
+   try {
+     while (true) {
+       const fragmentSrc = fragTemplate.replace(/%forloop%/gi, generateIfTestSrc(maxIfs));
+       gl.shaderSource(shader, fragmentSrc);
+       gl.compileShader(shader);
+-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+-        maxIfs = maxIfs / 2 | 0;
+-      } else {
++      if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+         break;
+       }
++      if (gl.isContextLost()) {
++        throw new Error("WebGL context lost during `checkMaxIfStatementsInShader`");
++      }
++      maxIfs = maxIfs / 2 | 0;
++      if (maxIfs === 0) {
++        // generateIfTestSrc(1) and generateIfTestSrc(0) are the same empty source, which just failed.
++        throw new Error("`checkMaxIfStatementsInShader` found no fragment shader that compiles");
++      }
+     }
+   } finally {
+     gl.deleteShader(shader);
+diff --git a/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.mjs b/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.mjs
+index e5bf0aa39f7197961e2e045de406a10f7c13b54e..727912909430f429115b3a78f7304a5cd9009205 100644
+--- a/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.mjs
++++ b/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.mjs
+@@ -20,20 +20,32 @@ function generateIfTestSrc(maxIfs) {
+   return src;
+ }
+ function checkMaxIfStatementsInShader(maxIfs, gl) {
+-  if (maxIfs === 0) {
+-    throw new Error("Invalid value of `0` passed to `checkMaxIfStatementsInShader`");
++  // Patched (pnpm patch): the upstream loop has no exit once the context is lost or nothing
++  // compiles. A lost context returns null from getParameter/getShaderParameter, so maxIfs can
++  // arrive as null or halve to 0, and the loop then spins forever on the main thread.
++  if (!maxIfs) {
++    throw new Error(`Invalid value of \`${maxIfs}\` passed to \`checkMaxIfStatementsInShader\``);
+   }
+   const shader = gl.createShader(gl.FRAGMENT_SHADER);
++  if (!shader) {
++    throw new Error("`checkMaxIfStatementsInShader` could not create a fragment shader");
++  }
+   try {
+     while (true) {
+       const fragmentSrc = fragTemplate.replace(/%forloop%/gi, generateIfTestSrc(maxIfs));
+       gl.shaderSource(shader, fragmentSrc);
+       gl.compileShader(shader);
+-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+-        maxIfs = maxIfs / 2 | 0;
+-      } else {
++      if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+         break;
+       }
++      if (gl.isContextLost()) {
++        throw new Error("WebGL context lost during `checkMaxIfStatementsInShader`");
++      }
++      maxIfs = maxIfs / 2 | 0;
++      if (maxIfs === 0) {
++        // generateIfTestSrc(1) and generateIfTestSrc(0) are the same empty source, which just failed.
++        throw new Error("`checkMaxIfStatementsInShader` found no fragment shader that compiles");
++      }
+     }
+   } finally {
+     gl.deleteShader(shader);

@@ -36,7 +36,13 @@
 
 .home-account {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
   color: var(--color-primary);
+  text-decoration: none;
 }
 
 .home-account-placeholder {
