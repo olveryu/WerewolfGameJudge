@@ -13,6 +13,7 @@ Scope: `packages/web/**` only. Engine rules live in `packages/game-engine/AGENTS
 
 ## Room shell
 
+- Werewolf room automation stops at the first night, dawn, and sheriff election (root `AGENTS.md`, Werewolf product scope). Show complete role rules in cards and the encyclopedia, but do not turn later-night descriptions into actions, fake first-night confirmation cards, or multi-night room UI. Later play belongs to the in-person host; only an explicit user request reopens this scope.
 - Before adding or redesigning a room HUD or ended screen, inspect the corresponding existing game screens. Reuse shared room presentation; extract repeated visuals instead of copying per-game CSS or importing another game's components. Verify the ended screen as well as gameplay, including ranking, player/self labels, reward eligibility, shared review/restart actions, and narrow-screen layout.
 
 - Shared room actions are `RoomAction` projections: player actions declare `participant` or `anyone` audience and `ready`/`busy`/`blocked` state; multi-action player steps use an explicitly scoped `group`. `createRoomShellModel` validates action ownership, group membership and duplicate task references. Host management is built only for `viewer.isHost`, and its single task references the `actions` inventory by key.
