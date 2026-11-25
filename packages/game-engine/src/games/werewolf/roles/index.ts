@@ -1,31 +1,27 @@
 import type { RoleId } from '../domain/models';
+import { avenger } from './avenger';
 import { awakenedGargoyle } from './awakenedGargoyle';
+import { bloodMoon } from './bloodMoon';
 import { crow } from './crow';
 import { cupid, cupidPresence } from './cupid';
+import { cursedFox } from './cursedFox';
+import { dancer } from './dancer';
+import { darkWolfKing } from './darkWolfKing';
 import { dreamcatcher } from './dreamcatcher';
 import { drunkSeer, drunkSeerPresence } from './drunkSeer';
 import { eclipseWolfQueen } from './eclipseWolfQueen';
 import { gargoyle } from './gargoyle';
+import { graveyardKeeper } from './graveyardKeeper';
 import { guard } from './guard';
+import { hiddenWolf } from './hiddenWolf';
+import { hunter } from './hunter';
+import { idiot } from './idiot';
+import { knight } from './knight';
 import { magician } from './magician';
+import { maskedMan } from './maskedMan';
+import { masquerade } from './masquerade';
 import { mirrorSeer, mirrorSeerPresence } from './mirrorSeer';
 import { nightmare } from './nightmare';
-import {
-  bloodMoon,
-  cursedFox,
-  dancer,
-  graveyardKeeper,
-  idiot,
-  knight,
-  maskedMan,
-  masquerade,
-  sequencePrince,
-  spiritKnight,
-  villager,
-  warden,
-  witcher,
-  wolfKing,
-} from './passiveRoles';
 import { piper } from './piper';
 import { poisonerPresence } from './poisoner';
 import { poisoner } from './poisoner';
@@ -35,18 +31,23 @@ import { pureWhite } from './pureWhite';
 import { seedWolf } from './seedWolf';
 import { seerPresence } from './seer';
 import { seer } from './seer';
+import { sequencePrince } from './sequencePrince';
 import { shadow } from './shadow';
 import { silenceElder } from './silenceElder';
 import { slacker } from './slacker';
+import { spiritKnight } from './spiritKnight';
 import { thief, thiefPresence } from './thief';
 import { treasureMaster, treasureMasterPresence } from './treasureMaster';
-import { avenger, darkWolfKing, hiddenWolf, hunter } from './viewRoles';
+import { villager } from './villager';
 import { votebanElder } from './votebanElder';
+import { warden } from './warden';
 import { wildChild } from './wildChild';
 import { witch } from './witch';
+import { witcher } from './witcher';
 import { wolf } from './wolf';
 import { wolfGirl } from './wolfGirl';
 import { wolfKillStep } from './wolfKill';
+import { wolfKing } from './wolfKing';
 import { wolfQueen } from './wolfQueen';
 import { wolfRobot } from './wolfRobot';
 import { wolfWitch } from './wolfWitch';
