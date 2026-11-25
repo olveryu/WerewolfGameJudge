@@ -417,6 +417,10 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
       { guard: 0, wolf: 8, seedWolf: { confirmed: true }, seer: 4 },
     ],
     ['guard blocks infection', { guard: 8, wolf: 8, seedWolf: { confirmed: true }, seer: 4 }],
+    [
+      'wolves attack a wolf and nothing can be infected',
+      { guard: 0, wolf: 5, seedWolf: null, seer: 0 },
+    ],
     ['seer sees converted villager', { guard: 1, wolf: 0, seedWolf: { confirmed: true }, seer: 0 }],
     [
       'seer sees unconverted villager',

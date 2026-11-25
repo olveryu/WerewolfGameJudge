@@ -3056,6 +3056,38 @@ exports[`Night-1 board scenarios through production commands > seed wolf: witch 
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > seed wolf: wolves attack a wolf and nothing can be infected 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "6号 wolfKill",
+  ],
+  "review": [
+    "12号守卫守护1号",
+    "狼队（5、6、7、8号）袭击6号",
+    "8号种狼未感染",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验1号（查验结果：1号是好人）",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "seedWolfInfect 感染: 本夜没有可感染的狼人袭击目标 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > shadow and avenger: bond with avenger 1`] = `
 {
   "announcements": [],
