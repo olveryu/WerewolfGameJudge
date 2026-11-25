@@ -6,7 +6,7 @@
  */
 import type { LineNode, LineSampler } from '@/scene/decoration';
 
-import { FRAME_VIEWBOX_SIZE, frameRx, frameUnitsToPx } from './frameBox';
+import { FRAME_AVATAR_RX, FRAME_VIEWBOX_SIZE, frameUnitsToPx } from './frameBox';
 
 /** Chord length in viewBox units; short enough that corners read as curves. */
 const SEGMENT_LENGTH = 6;
@@ -59,7 +59,7 @@ function pointAt(s: number, rx: number): PerimeterPoint {
 
 /**
  * Arc length of the dash's leading edge at loop progress `t`, plus the dash opacity. `perimeter`
- * is the lap length, which depends on the corner radius and so on the tile size.
+ * is the lap length of the frame's rounded rect.
  */
 export type SweepSampler = (t: number, perimeter: number) => { arcLength: number; opacity: number };
 
@@ -83,17 +83,16 @@ export function perimeterSweepNodes(sweep: PerimeterSweep): LineNode[] {
   const dashCount = sweep.dashCount ?? 1;
   const segments = Math.max(1, Math.ceil(dashLength / SEGMENT_LENGTH));
   const segmentLength = dashLength / segments;
+  const perimeter = roundedRectPerimeter(FRAME_AVATAR_RX);
+  const dashSpacing = sweep.dashSpacing ?? perimeter / dashCount;
   const nodes: LineNode[] = [];
   for (let dash = 0; dash < dashCount; dash += 1) {
     for (let segment = 0; segment < segments; segment += 1) {
       const chord: LineSampler = (t, size) => {
-        const rx = frameRx(size);
-        const perimeter = roundedRectPerimeter(rx);
-        const dashSpacing = sweep.dashSpacing ?? perimeter / dashCount;
         const { arcLength, opacity } = sample(t, perimeter);
         const tail = arcLength + dash * dashSpacing - dashLength + segment * segmentLength;
-        const a = pointAt(tail, rx);
-        const b = pointAt(tail + segmentLength, rx);
+        const a = pointAt(tail, FRAME_AVATAR_RX);
+        const b = pointAt(tail + segmentLength, FRAME_AVATAR_RX);
         return {
           x1: frameUnitsToPx(a.x, size),
           y1: frameUnitsToPx(a.y, size),

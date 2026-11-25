@@ -30,7 +30,6 @@
   justify-content: center;
   width: var(--size-profile-equipment-preview);
   height: var(--size-profile-equipment-preview);
-  overflow: hidden;
   border-radius: var(--radius-full);
   color: var(--color-text-secondary);
   font-size: var(--font-subtitle);

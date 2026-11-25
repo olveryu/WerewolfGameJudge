@@ -4,7 +4,11 @@ import '@/components/HeaderSurface.css';
 
 import { type ReactElement, type ReactNode, useEffect, useRef } from 'react';
 
-import { Avatar } from '@/components/avatar/Avatar';
+import {
+  ACCOUNT_ENTRY_CLASS,
+  AccountAvatar,
+  AccountTicketBadge,
+} from '@/components/avatar/AccountAvatar';
 import { IconButton } from '@/components/IconButton';
 import { Spinner } from '@/components/Spinner';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
@@ -21,7 +25,6 @@ import type { RoomHeaderUserAction, RoomShellModel } from '@/features/room/model
 import { assertRoomStageShellModel, type RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
-import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 
 import type { RoomSelectionMode } from '../model/RoomHand';
 import { PlayerProfileCard } from './PlayerProfileCard';
@@ -35,7 +38,6 @@ import { RoomStageHud, type RoomStageHudRenderer } from './RoomStageHud';
 import { ConnectionStatusBar, ControlledSeatBanner, RoomSeatConfirmModal } from './RoomStatusBars';
 
 const TITLE_LONG_PRESS_MS = 1000;
-const TICKET_BADGE_MAX = 99;
 
 type RoomShellContent =
   | {
@@ -102,23 +104,13 @@ function RoomUserButton({ action }: { readonly action: RoomHeaderUserAction }) {
   return (
     <button
       type="button"
-      className="room-user-button"
+      className={ACCOUNT_ENTRY_CLASS}
       onClick={action.onPress}
       aria-label="设置"
       data-testid={TESTIDS.roomUserSettingsButton}
     >
-      {user === null ? (
-        <IconPersonCircleOutline aria-hidden />
-      ) : (
-        <span className="room-user-avatar-clip">
-          <Avatar userId={user.id} avatarUrl={user.avatarUrl ?? null} size={32} />
-        </span>
-      )}
-      {ticketCount !== null && ticketCount > 0 && (
-        <span className="room-user-badge">
-          {ticketCount > TICKET_BADGE_MAX ? `${TICKET_BADGE_MAX}+` : ticketCount}
-        </span>
-      )}
+      <AccountAvatar user={user} />
+      {ticketCount !== null && <AccountTicketBadge count={ticketCount} />}
     </button>
   );
 }

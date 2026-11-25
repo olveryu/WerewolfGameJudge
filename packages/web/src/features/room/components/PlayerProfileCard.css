@@ -69,14 +69,17 @@
   opacity: 0.15;
 }
 
-/* The avatar tile; the card's scene layer draws its frame and flair, which overflow the tile. */
+/*
+ * The avatar tile on a surface mat, concentric with the tile's own corners; the card's scene
+ * layer draws its frame and flair, which overflow the tile.
+ */
 .profile-avatar {
   position: relative;
   align-self: center;
   width: calc(var(--size-avatar-xl) + var(--space-tight) * 2);
   margin-top: calc(-1 * (var(--size-avatar-xl) / 2 + var(--space-tight)));
   padding: var(--space-tight);
-  border-radius: var(--radius-full);
+  border-radius: calc(var(--radius-large) + var(--space-tight));
   background: var(--color-surface);
 }
 

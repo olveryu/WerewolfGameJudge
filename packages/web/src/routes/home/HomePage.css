@@ -34,39 +34,6 @@
   gap: var(--space-small);
 }
 
-.home-account {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--size-min-touch-target);
-  min-height: var(--size-min-touch-target);
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.home-account-placeholder {
-  width: var(--size-icon-xl);
-  height: var(--size-icon-xl);
-  color: var(--color-text-secondary);
-}
-
-.home-ticket-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  min-width: var(--size-badge-md);
-  height: var(--size-badge-md);
-  padding: 0 var(--space-micro);
-  border-radius: var(--radius-full);
-  background: var(--color-error);
-  color: var(--color-text-inverse);
-  font-size: var(--font-caption-small);
-  line-height: var(--size-badge-md);
-  font-weight: var(--weight-bold);
-  text-align: center;
-}
-
 .home-auth-error {
   display: flex;
   align-items: center;

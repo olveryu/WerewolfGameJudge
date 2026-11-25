@@ -4,6 +4,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 
+import { ACCOUNT_ENTRY_CLASS } from '@/components/avatar/AccountAvatar';
 import type { ClientGameModeOption } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
 
@@ -136,7 +137,7 @@ describe('HomePage', () => {
       expect(screen.getByTestId(TESTIDS.homeGuideButton)).toHaveClass('icon-button');
       const account = screen.getByRole('link', { name: '设置' });
       expect(account).toBe(screen.getByTestId(TESTIDS.homeSettingsButton));
-      expect(account).toHaveClass('home-account');
+      expect(account).toHaveClass(ACCOUNT_ENTRY_CLASS);
       expect(account).not.toHaveClass('icon-button');
     });
   });
