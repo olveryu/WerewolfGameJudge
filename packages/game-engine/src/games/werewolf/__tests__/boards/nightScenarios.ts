@@ -290,6 +290,20 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
     ['witch', { wolf: 0, seer: 9 }],
     ['idiot', { wolf: 0, seer: 11 }],
   ]),
+  ...scenarios('wolf vote', STANDARD, [
+    [
+      'majority decides when one wolf disagrees',
+      { wolf: { votesBySeat: { 4: 0, 5: 0, 6: 0, 7: 1 } }, seer: 2 },
+    ],
+    [
+      'an even split is settled by lot',
+      { wolf: { votesBySeat: { 4: 0, 5: 0, 6: 1, 7: 1 } }, seer: 2 },
+    ],
+    [
+      'one wolf abstains and the rest agree',
+      { wolf: { votesBySeat: { 4: 0, 5: 0, 6: 0, 7: null } }, seer: 2 },
+    ],
+  ]),
   ...scenarios('intermediate standard night', STANDARD, [
     ['wolf attack and seer check', { wolf: 0, seer: 1 }],
     ['witch saves', { wolf: 0, witch: { save: 0, poison: null }, seer: 1 }],
@@ -528,6 +542,7 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
   ...scenarios('silence elders', ELDERS, [
     ['silence and reach voting ban', { silenceElder: 3 }],
     ['silence and ban', { silenceElder: 3, votebanElder: 4 }],
+    ['ban only, nobody is silenced', { votebanElder: 4 }],
   ]),
   ...scenarios('step coverage', STEP_COVERAGE, [
     ['idols and role steps', { slacker: 0, wildChild: 0 }],
@@ -569,6 +584,12 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
     [
       'converted magician keeps the swap',
       { magician: { targets: [0, 4] }, wolf: 10, seedWolf: { confirmed: true }, seer: 0 },
+    ],
+  ]),
+  ...scenarios('cupid', SEED_CUPID, [
+    [
+      'wolves disagree and the attack is dropped',
+      { cupid: { targets: [0, 1] }, wolf: { votesBySeat: { 4: 2, 5: 2, 6: 3, 7: 3 } }, seer: 4 },
     ],
   ]),
   ...scenarios('seed wolf', SEED_CUPID, [

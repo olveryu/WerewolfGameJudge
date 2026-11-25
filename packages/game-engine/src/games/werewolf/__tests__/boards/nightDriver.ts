@@ -1,4 +1,5 @@
 import {
+  describeWerewolfStepConfirmation,
   type GameState,
   GameStatus,
   getWerewolfDaytimeAnnouncements,
@@ -30,11 +31,13 @@ export interface StepChoice {
 /** Step-keyed choices; a step without an entry takes its default action. */
 export type StepChoices = Readonly<Record<string, StepChoice>>;
 
-type ChoicePicker = (stepId: string, view: StepPresentation) => StepChoice;
+type ChoicePicker = (stepId: string, view: StepPresentation, seat: number) => StepChoice;
 
 /** Everything a full night showed and produced, in the words players read. */
 export interface NightOutcome {
   readonly steps: readonly string[];
+  /** The status line each actor read on first seeing the step. */
+  readonly status: readonly string[];
   readonly unavailable: readonly string[];
   readonly views: readonly string[];
   readonly review: readonly string[];
@@ -42,9 +45,67 @@ export interface NightOutcome {
   readonly announcements: readonly string[];
 }
 
+/** What one actor was shown on reaching a step, before choosing anything. */
+export interface StepSighting {
+  readonly stepId: string;
+  readonly seat: number;
+  /** The role the actor holds at that moment. */
+  readonly roleName: string;
+  /** True when the actor has already acted in this step and is shown a new hand. */
+  readonly isFollowUp: boolean;
+  /** The step's name, shown above the hand. */
+  readonly title: string;
+  readonly status: string | null;
+  readonly hand: readonly string[];
+}
+
+/** One submission as the actor experienced it. */
+export interface StepSubmissionSighting {
+  readonly stepId: string;
+  readonly seat: number;
+  readonly roleName: string;
+  /** The card pressed and what was picked with it. */
+  readonly action: string;
+  /** The confirmation dialog; null for a card that only shows content. */
+  readonly confirmation: string | null;
+  /** The result shown afterwards, when the action has one. */
+  readonly result: string | null;
+  /** The status line and hand left after the submission, when the actor may still act. */
+  readonly after: readonly string[];
+}
+
+/** A played night: the snapshot outcome plus everything each actor was shown. */
+export interface NightRun {
+  readonly outcome: NightOutcome;
+  readonly sightings: readonly StepSighting[];
+  readonly submissions: readonly StepSubmissionSighting[];
+  /** The night report, each sentence with the step it belongs to, if any. */
+  readonly reviewLines: readonly { readonly stepId: string | null; readonly text: string }[];
+  /** The cards individual seats may open the next day. */
+  readonly daytimeViews: readonly string[];
+}
+
 interface NightObserver {
   readonly onStep: (stepId: string) => void;
-  readonly onPresentation: (stepId: string, seat: number, view: StepPresentation) => void;
+  readonly onPresentation: (
+    stepId: string,
+    seat: number,
+    view: StepPresentation,
+    isFollowUp: boolean,
+  ) => void;
+  readonly onSubmit: (
+    stepId: string,
+    seat: number,
+    view: StepPresentation,
+    choice: StepChoice,
+    before: GameState,
+    after: GameState,
+  ) => void;
+  readonly onResult: (
+    stepId: string,
+    seat: number,
+    result: NonNullable<StepPresentation['pendingResult']>,
+  ) => void;
   readonly onView: (stepId: string, seat: number, text: string) => void;
 }
 
@@ -152,11 +213,16 @@ function pickScenarioChoice(
   stepId: string,
   view: StepPresentation,
   choice: NightAction | undefined,
+  seat: number,
 ): StepChoice {
   const available = availableActions(view);
   if (stepId === 'wolfKill') {
-    return typeof choice === 'number' && available.some((action) => action.key === 'wolfKill')
-      ? { actionKey: 'wolfKill', seats: [choice] }
+    const target =
+      choice !== null && typeof choice === 'object' && 'votesBySeat' in choice
+        ? choice.votesBySeat[seat]
+        : choice;
+    return typeof target === 'number' && available.some((action) => action.key === 'wolfKill')
+      ? { actionKey: 'wolfKill', seats: [target] }
       : { actionKey: 'wolfKillAbstain' };
   }
   if (stepId === 'witchAction') return pickWitchChoice(available, choice);
@@ -210,20 +276,25 @@ function actOneSeat(
     const view = presentation(state, seat);
     if (view?.isActor !== true) continue;
     if (view.pendingResult !== null) {
+      observer?.onResult(current.stepId, seat, view.pendingResult);
       submit(context, seat, { actionKey: STEP_RESULT_ACK_ACTION_KEY }, execution);
       return true;
     }
     if (view.actions.length === 0) continue;
     const position = `${current.stepId}:${current.serial}:${seat}`;
-    if (!submitted.has(position)) observer?.onPresentation(current.stepId, seat, view);
-    const choice = pick(current.stepId, view);
+    const choice = pick(current.stepId, view, seat);
     const submissionKey = `${position}:${choice.actionKey}`;
     if (submitted.has(submissionKey)) continue;
+    observer?.onPresentation(current.stepId, seat, view, submitted.has(position));
     const action = view.actions.find((candidate) => candidate.key === choice.actionKey);
-    if (action?.kind === 'view') observer?.onView(current.stepId, seat, action.content.text);
+    if (action?.kind === 'view') {
+      if (action.content === null) throw new Error(`[FAIL-FAST] ${action.key} cannot be opened`);
+      observer?.onView(current.stepId, seat, action.content.text);
+    }
     submitted.add(position);
     submitted.add(submissionKey);
     submit(context, seat, choice, execution);
+    observer?.onSubmit(current.stepId, seat, view, choice, state, context.getGameState());
     return true;
   }
   return false;
@@ -311,6 +382,83 @@ function describeUnavailable(view: StepPresentation): readonly string[] {
   return lines;
 }
 
+/** The hand as the actor reads it: one line per card, with what it offers and what it refuses. */
+function describeHand(view: StepPresentation): readonly string[] {
+  const lines: string[] = [];
+  for (const action of view.actions) {
+    let card = action.label;
+    if (action.kind === 'pickSeats') {
+      const count = action.min === action.max ? `${action.min}` : `${action.min}–${action.max}`;
+      card += `（选 ${count} 名）`;
+      if (action.committed !== null && action.committed.length > 0) {
+        card += `，已选 ${action.committed.map((seat) => formatSeat(seat)).join(' ')}`;
+      }
+    }
+    if (action.availability.kind === 'unavailable') {
+      card += `（不可用：${action.availability.reason}）`;
+    }
+    lines.push(`· ${card}`);
+    if (action.kind === 'view' && action.content !== null) {
+      lines.push(`  内容「${action.content.title}」${action.content.text}`);
+    }
+    if (action.kind === 'pickCard') {
+      if (action.hint !== null) lines.push(`  提示：${action.hint}`);
+      const cards = action.cards.map((option) =>
+        option.unavailableReason === null
+          ? option.label
+          : `${option.label}（不可选：${option.unavailableReason}）`,
+      );
+      lines.push(`  底牌：${cards.join('、')}`);
+    }
+    if (action.kind === 'pickSeats') {
+      const namesByReason = new Map<string, string[]>();
+      for (const option of action.seats) {
+        if (option.unavailableReason === null) continue;
+        namesByReason.set(option.unavailableReason, [
+          ...(namesByReason.get(option.unavailableReason) ?? []),
+          formatSeat(option.seat),
+        ]);
+      }
+      for (const [reason, names] of namesByReason) {
+        lines.push(`  不可选 ${names.join(' ')}：${reason}`);
+      }
+    }
+  }
+  return lines;
+}
+
+/** The card pressed and what was picked with it. */
+function describeChoice(view: StepPresentation, choice: StepChoice): string {
+  const action = view.actions.find((candidate) => candidate.key === choice.actionKey);
+  if (action === undefined) throw new Error(`[FAIL-FAST] ${choice.actionKey} is not in the hand`);
+  if (choice.seats !== undefined && choice.seats.length > 0) {
+    return `${action.label} → ${choice.seats.map((seat) => formatSeat(seat)).join(' ')}`;
+  }
+  if (action.kind === 'pickCard') {
+    const card = action.cards.find((option) => option.index === choice.cardIndex);
+    if (card === undefined) throw new Error(`[FAIL-FAST] Card ${choice.cardIndex} is not offered`);
+    return `${action.label} → ${card.label}`;
+  }
+  return action.label;
+}
+
+function roleNameAt(state: GameState, seat: number): string {
+  const roleId = state.nightState?.roles.identities[seat]?.currentRole;
+  if (roleId === undefined) throw new Error(`[FAIL-FAST] Seat ${seat} holds no role tonight`);
+  return getWerewolfRoleDefinition(roleId).card.name;
+}
+
+/** The cards seats may open the next day, read as if the host had published the deaths. */
+function describeDaytimeViews(state: GameState): readonly string[] {
+  const published: GameState = { ...state, lastNightInfoConfirmed: true };
+  return (state.nightState?.roles.seatedSeats ?? []).flatMap((seat) =>
+    getWerewolfViewModel(published, { seat, isHost: false }).personalDaytimeViews.map(
+      (view) =>
+        `${formatSeat(seat)}${roleNameAt(state, seat)} · ${view.label}（${view.prompt}）→「${view.title}」${view.text}`,
+    ),
+  );
+}
+
 function groupBySeats(entries: ReadonlyMap<string, readonly number[]>): string[] {
   return [...entries].map(
     ([text, seats]) => `${text} [${seats.map((seat) => formatSeat(seat)).join(' ')}]`,
@@ -326,24 +474,87 @@ export function playScenarioNight(
   context: GameContext,
   choices: NightActions,
   randomSeed?: string,
-): NightOutcome {
+): NightRun {
   const steps: string[] = [];
+  const status = new Map<string, number[]>();
   const unavailable = new Map<string, number[]>();
   const views = new Map<string, number[]>();
+  const sightings: StepSighting[] = [];
+  const submissions: {
+    stepId: string;
+    seat: number;
+    roleName: string;
+    action: string;
+    confirmation: string | null;
+    result: string | null;
+    after: readonly string[];
+  }[] = [];
   drive(
     context,
-    (stepId, view) => {
+    (stepId, view, seat) => {
       const state = context.getGameState();
       const roleId = findStepRole(state, stepId);
-      return pickScenarioChoice(stepId, view, choices[roleId]);
+      return pickScenarioChoice(stepId, view, choices[roleId], seat);
     },
     {
       observer: {
         onStep: (stepId) => steps.push(stepId),
-        onPresentation: (stepId, seat, view) => {
+        onPresentation: (stepId, seat, view, isFollowUp) => {
+          sightings.push({
+            stepId,
+            seat,
+            roleName: roleNameAt(context.getGameState(), seat),
+            isFollowUp,
+            title: view.title,
+            status: view.message,
+            hand: describeHand(view),
+          });
+          if (isFollowUp) return;
+          if (view.message !== null) appendSeat(status, `${stepId} ${view.message}`, seat);
           for (const line of describeUnavailable(view)) {
             appendSeat(unavailable, `${stepId} ${line}`, seat);
           }
+        },
+        onSubmit: (stepId, seat, view, choice, before, after) => {
+          const pressed = view.actions.find((candidate) => candidate.key === choice.actionKey);
+          const dialog =
+            pressed?.kind === 'view'
+              ? null
+              : describeWerewolfStepConfirmation(before, seat, choice);
+          const isSameStep =
+            after.status === GameStatus.Ongoing &&
+            after.nightState?.slice.current?.stepId === stepId;
+          const next = isSameStep ? presentation(after, seat) : null;
+          const hasHandLeft =
+            next !== null && next.pendingResult === null && next.actions.length > 0;
+          submissions.push({
+            stepId,
+            seat,
+            roleName: roleNameAt(before, seat),
+            action: describeChoice(view, choice),
+            confirmation:
+              dialog === null
+                ? null
+                : dialog.body === null
+                  ? dialog.title
+                  : `${dialog.title}（${dialog.body}）`,
+            result: null,
+            after: hasHandLeft
+              ? [
+                  ...(next.message === null ? [] : [`状态栏：${next.message}`]),
+                  ...describeHand(next),
+                ]
+              : [],
+          });
+        },
+        onResult: (stepId, seat, result) => {
+          const submission = submissions.findLast(
+            (entry) => entry.stepId === stepId && entry.seat === seat,
+          );
+          if (submission === undefined) {
+            throw new Error(`[FAIL-FAST] ${stepId} showed seat ${seat} a result for no submission`);
+          }
+          submission.result = `「${result.title}」${result.text}`;
         },
         onView: (stepId, seat, text) => appendSeat(views, `${stepId} ${text}`, seat),
       },
@@ -352,22 +563,32 @@ export function playScenarioNight(
   );
 
   const state = context.getGameState();
-  const review = getWerewolfNightReview(state);
+  const reviewLines = getWerewolfNightReview(state).lines.map((line) =>
+    line.kind === 'action'
+      ? {
+          stepId: line.stepId,
+          text: `${formatSeat(line.seat)}${line.subject}${line.phrase}${line.result ?? ''}`,
+        }
+      : { stepId: line.stepId, text: line.text },
+  );
   return {
-    steps,
-    unavailable: groupBySeats(unavailable),
-    views: groupBySeats(views),
-    review: review.lines.map((line) =>
-      line.kind === 'action'
-        ? `${formatSeat(line.seat)}${line.subject}${line.phrase}${line.result ?? ''}`
-        : line.text,
-    ),
-    deaths: (state.lastNightDeaths ?? []).map(
-      (seat) => `${formatSeat(seat)} ${state.deathReasons?.[seat] ?? 'unknown'}`,
-    ),
-    announcements: getWerewolfDaytimeAnnouncements(state).map(
-      (announcement) =>
-        `${announcement.title}（${announcement.timingLabel}）: ${announcement.message}`,
-    ),
+    outcome: {
+      steps,
+      status: groupBySeats(status),
+      unavailable: groupBySeats(unavailable),
+      views: groupBySeats(views),
+      review: reviewLines.map((line) => line.text),
+      deaths: (state.lastNightDeaths ?? []).map(
+        (seat) => `${formatSeat(seat)} ${state.deathReasons?.[seat] ?? 'unknown'}`,
+      ),
+      announcements: getWerewolfDaytimeAnnouncements(state).map(
+        (announcement) =>
+          `${announcement.title}（${announcement.timingLabel}）: ${announcement.message}`,
+      ),
+    },
+    sightings,
+    submissions,
+    reviewLines,
+    daytimeViews: describeDaytimeViews(state),
   };
 }

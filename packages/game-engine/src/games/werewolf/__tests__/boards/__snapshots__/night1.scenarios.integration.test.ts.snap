@@ -15,6 +15,15 @@ exports[`Night-1 board scenarios through production commands > awakened gargoyle
     "8号预言家查验5号（查验结果：5号是狼人）",
     "7号觉醒石像鬼转化4号",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [9号]",
+    "hunterConfirm 请点击「查看技能状态」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "awakenedGargoyleConvert 请选择狼人阵营相邻的一名神民角色进行转化 [7号]",
+    "awakenedGargoyleConvertReveal 请点击「查看转化信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -50,6 +59,15 @@ exports[`Night-1 board scenarios through production commands > awakened gargoyle
     "10号猎人可以发动",
     "8号预言家未查验",
     "7号觉醒石像鬼转化4号",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [9号]",
+    "hunterConfirm 请点击「查看技能状态」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "awakenedGargoyleConvert 请选择狼人阵营相邻的一名神民角色进行转化 [7号]",
+    "awakenedGargoyleConvertReveal 请点击「查看转化信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -89,6 +107,15 @@ exports[`Night-1 board scenarios through production commands > awakened gargoyle
     "8号预言家查验6号（查验结果：6号是狼人）",
     "7号觉醒石像鬼转化4号",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [9号]",
+    "hunterConfirm 请点击「查看技能状态」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "awakenedGargoyleConvert 请选择狼人阵营相邻的一名神民角色进行转化 [7号]",
+    "awakenedGargoyleConvertReveal 请点击「查看转化信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -124,6 +151,11 @@ exports[`Night-1 board scenarios through production commands > blood moon: blood
     "10号女巫未毒杀",
     "9号预言家查验8号（查验结果：8号是狼人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -147,6 +179,11 @@ exports[`Night-1 board scenarios through production commands > blood moon: skip 
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家未查验",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "wolfKill",
@@ -172,6 +209,11 @@ exports[`Night-1 board scenarios through production commands > blood moon: villa
     "10号女巫未毒杀",
     "9号预言家查验1号（查验结果：1号是好人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -196,6 +238,11 @@ exports[`Night-1 board scenarios through production commands > blood moon: witch
     "10号女巫未毒杀",
     "9号预言家查验12号（查验结果：12号是好人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -205,6 +252,52 @@ exports[`Night-1 board scenarios through production commands > blood moon: witch
     "seerCheck 查验 9号: 不能选择自己 [9号]",
   ],
   "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > cupid: wolves disagree and the attack is dropped 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "11号丘比特连接1号和2号为情侣",
+    "12号守卫未守护",
+    "狼队投票不一致（5号投3号、6号投3号、7号投4号、8号投4号），狼队放弃袭击",
+    "8号种狼未感染",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [11号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [5号 6号 7号 8号]",
+    "seedWolfInfect 本夜没有可感染的狼人袭击目标 [8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
+  "steps": [
+    "cupidChooseLovers",
+    "cupidLoversReveal",
+    "guardProtect",
+    "wolfKill",
+    "seedWolfInfect",
+    "witchAction",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "seedWolfInfect 感染: 本夜没有可感染的狼人袭击目标 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "cupidLoversReveal 你是情侣之一，你的另一半是：2号 [1号]",
+    "cupidLoversReveal 你是情侣之一，你的另一半是：1号 [2号]",
+    "cupidLoversReveal 你不是情侣 [3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
 }
 `;
 
@@ -222,6 +315,14 @@ exports[`Night-1 board scenarios through production commands > dreamcatcher: dre
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "dreamcatcherDream",
@@ -258,6 +359,14 @@ exports[`Night-1 board scenarios through production commands > dreamcatcher: dre
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "dreamcatcherDream",
     "wolfKill",
@@ -289,6 +398,14 @@ exports[`Night-1 board scenarios through production commands > dreamcatcher: she
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "dreamcatcherDream",
@@ -324,6 +441,14 @@ exports[`Night-1 board scenarios through production commands > dreamcatcher: ski
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "dreamcatcherDream",
     "wolfKill",
@@ -358,6 +483,15 @@ exports[`Night-1 board scenarios through production commands > drunk seer: rando
     "12号酒鬼预言家查验1号（查验结果：1号是好人）",
     "8号预言家未查验",
     "9号灯影预言家未查验",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "drunkSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -395,6 +529,15 @@ exports[`Night-1 board scenarios through production commands > drunk seer: rando
     "8号预言家未查验",
     "9号灯影预言家未查验",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "drunkSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -427,6 +570,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "eclipseWolfQueenShelter",
     "guardProtect",
@@ -452,6 +602,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫对1号用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "eclipseWolfQueenShelter",
@@ -480,6 +637,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "eclipseWolfQueenShelter",
@@ -510,6 +674,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫毒杀1号（被时间裂隙反弹至自身）",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "eclipseWolfQueenShelter",
     "guardProtect",
@@ -537,6 +708,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（被时间裂隙反弹至自身）（查验结果：9号是好人）",
+  ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "eclipseWolfQueenShelter",
@@ -567,6 +745,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "9号预言家查验5号（查验结果：5号是狼人）",
     "11号同守同救，保护抵消",
   ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 11号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "eclipseWolfQueenShelter",
     "guardProtect",
@@ -592,6 +777,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "eclipseWolfQueenShelter",
@@ -621,6 +813,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "eclipseWolfQueenShelter",
     "guardProtect",
@@ -649,6 +848,13 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "eclipseWolfQueenShelter",
     "guardProtect",
@@ -676,6 +882,13 @@ exports[`Night-1 board scenarios through production commands > gargoyle: hunter 
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "8号石像鬼查验11号（查验结果：11号是猎人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "gargoyleCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
   ],
   "steps": [
     "wolfKill",
@@ -708,6 +921,13 @@ exports[`Night-1 board scenarios through production commands > gargoyle: seer 1`
     "9号预言家查验5号（查验结果：5号是狼人）",
     "8号石像鬼查验9号（查验结果：9号是预言家）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "gargoyleCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -738,6 +958,13 @@ exports[`Night-1 board scenarios through production commands > gargoyle: skip 1`
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "8号石像鬼未查验",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "gargoyleCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
   ],
   "steps": [
     "wolfKill",
@@ -770,6 +997,13 @@ exports[`Night-1 board scenarios through production commands > gargoyle: village
     "9号预言家查验5号（查验结果：5号是狼人）",
     "8号石像鬼查验1号（查验结果：1号是平民）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "gargoyleCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -800,6 +1034,13 @@ exports[`Night-1 board scenarios through production commands > gargoyle: wolf 1`
     "11号猎人可以发动",
     "9号预言家查验6号（查验结果：6号是狼人）",
     "8号石像鬼查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "gargoyleCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
   ],
   "steps": [
     "wolfKill",
@@ -834,6 +1075,14 @@ exports[`Night-1 board scenarios through production commands > guard: guard and 
     "9号预言家查验5号（查验结果：5号是狼人）",
     "1号同守同救，保护抵消",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -864,6 +1113,14 @@ exports[`Night-1 board scenarios through production commands > guard: guard anot
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -898,6 +1155,14 @@ exports[`Night-1 board scenarios through production commands > guard: protect an
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -928,6 +1193,14 @@ exports[`Night-1 board scenarios through production commands > guard: protect at
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -962,6 +1235,14 @@ exports[`Night-1 board scenarios through production commands > guard: skip 1`] =
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 3号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -995,6 +1276,16 @@ exports[`Night-1 board scenarios through production commands > hidden wolf: awak
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "7号觉醒石像鬼转化8号",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "hiddenWolfReveal 请点击「查看狼同伴」 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "awakenedGargoyleConvert 请选择狼人阵营相邻的一名神民角色进行转化 [7号]",
+    "awakenedGargoyleConvertReveal 请点击「查看转化信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -1034,6 +1325,14 @@ exports[`Night-1 board scenarios through production commands > hidden wolf: nigh
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [7号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 平票将随机刀人 [5号 6号 7号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "nightmareBlock",
     "guardProtect",
@@ -1069,6 +1368,16 @@ exports[`Night-1 board scenarios through production commands > hidden wolf: wolf
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfGirlConfess 请选择要表白的玩家 [7号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "hiddenWolfReveal 请点击「查看狼同伴」 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfGirlConfessReveal 请点击「查看表白信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -1108,6 +1417,12 @@ exports[`Night-1 board scenarios through production commands > intermediate stan
     "11号猎人可以发动",
     "9号预言家查验2号（查验结果：2号是好人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -1133,6 +1448,12 @@ exports[`Night-1 board scenarios through production commands > intermediate stan
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验2号（查验结果：2号是好人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "wolfKill",
@@ -1161,6 +1482,12 @@ exports[`Night-1 board scenarios through production commands > intermediate stan
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验2号（查验结果：2号是好人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "wolfKill",
@@ -1192,6 +1519,14 @@ exports[`Night-1 board scenarios through production commands > magician: both sw
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验2号（查验结果：2号是好人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "magicianSwap",
@@ -1226,6 +1561,14 @@ exports[`Night-1 board scenarios through production commands > magician: check s
     "8号狼王可以发动",
     "9号预言家查验1号（实际为5号）（查验结果：1号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -1258,6 +1601,14 @@ exports[`Night-1 board scenarios through production commands > magician: check s
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验5号（实际为1号）（查验结果：5号是好人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "magicianSwap",
@@ -1292,6 +1643,14 @@ exports[`Night-1 board scenarios through production commands > magician: skip sw
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -1324,6 +1683,14 @@ exports[`Night-1 board scenarios through production commands > magician: swap wo
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验3号（实际为8号）（查验结果：3号是狼人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "magicianSwap",
@@ -1358,6 +1725,14 @@ exports[`Night-1 board scenarios through production commands > magician: swapped
     "8号狼王可以发动",
     "9号预言家查验2号（查验结果：2号是好人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -1390,6 +1765,14 @@ exports[`Night-1 board scenarios through production commands > magician: swapped
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验2号（查验结果：2号是好人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "magicianSwap",
@@ -1425,6 +1808,13 @@ exports[`Night-1 board scenarios through production commands > masked man: dies 
     "10号女巫毒杀8号",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -1455,6 +1845,13 @@ exports[`Night-1 board scenarios through production commands > masked man: dies 
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [12号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "cupidChooseLovers",
     "cupidLoversReveal",
@@ -1484,6 +1881,12 @@ exports[`Night-1 board scenarios through production commands > masked man: saved
     "10号女巫未毒杀",
     "9号预言家未查验",
   ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 11号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "dreamcatcherDream",
     "wolfKill",
@@ -1510,6 +1913,12 @@ exports[`Night-1 board scenarios through production commands > masked man: untou
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "dreamcatcherDream",
@@ -1539,6 +1948,12 @@ exports[`Night-1 board scenarios through production commands > masked man: wound
     "9号预言家查验5号（查验结果：5号是狼人）",
     "11号蒙面人负伤，次日发言后出局",
   ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "dreamcatcherDream",
     "wolfKill",
@@ -1565,6 +1980,12 @@ exports[`Night-1 board scenarios through production commands > masked man: wound
     "9号预言家查验5号（查验结果：5号是狼人）",
     "11号蒙面人负伤，次日发言后出局",
   ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 11号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "dreamcatcherDream",
     "wolfKill",
@@ -1590,6 +2011,13 @@ exports[`Night-1 board scenarios through production commands > masked man: wound
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "11号蒙面人负伤，次日发言后出局",
+  ],
+  "status": [
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [12号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [5号 6号 7号 8号]",
+    "witchAction 11号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "cupidChooseLovers",
@@ -1623,6 +2051,12 @@ exports[`Night-1 board scenarios through production commands > masked man: wound
     "9号预言家查验5号（查验结果：5号是狼人）",
     "11号蒙面人负伤，次日发言后出局",
   ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 12号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "dreamcatcherDream",
     "wolfKill",
@@ -1652,6 +2086,15 @@ exports[`Night-1 board scenarios through production commands > mirror and drunk 
     "12号酒鬼预言家查验1号（查验结果：1号是好人）",
     "8号预言家查验1号（查验结果：1号是好人）",
     "9号灯影预言家查验1号（查验结果：1号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "drunkSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -1688,6 +2131,14 @@ exports[`Night-1 board scenarios through production commands > mirror and drunk 
     "9号灯影预言家查验1号（查验结果：1号是狼人）",
     "8号预言家未查验",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -1720,6 +2171,14 @@ exports[`Night-1 board scenarios through production commands > mirror and drunk 
     "7号狼王可以发动",
     "9号灯影预言家查验4号（查验结果：4号是好人）",
     "8号预言家未查验",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
   ],
   "steps": [
     "guardProtect",
@@ -1754,6 +2213,14 @@ exports[`Night-1 board scenarios through production commands > mirror and drunk 
     "9号灯影预言家查验1号（查验结果：1号是狼人）",
     "8号预言家查验1号（查验结果：1号是好人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -1786,6 +2253,14 @@ exports[`Night-1 board scenarios through production commands > mirror and drunk 
     "7号狼王可以发动",
     "9号灯影预言家查验4号（查验结果：4号是好人）",
     "8号预言家查验4号（查验结果：4号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
   ],
   "steps": [
     "guardProtect",
@@ -1820,6 +2295,13 @@ exports[`Night-1 board scenarios through production commands > nightmare: block 
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [8号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "nightmareBlock",
     "guardProtect",
@@ -1850,6 +2332,14 @@ exports[`Night-1 board scenarios through production commands > nightmare: block 
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "nightmareBlock",
@@ -1884,6 +2374,13 @@ exports[`Night-1 board scenarios through production commands > nightmare: block 
     "11号猎人可以发动",
     "9号预言家未查验",
   ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+  ],
   "steps": [
     "nightmareBlock",
     "guardProtect",
@@ -1917,6 +2414,14 @@ exports[`Night-1 board scenarios through production commands > nightmare: block 
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "nightmareBlock",
     "guardProtect",
@@ -1949,6 +2454,14 @@ exports[`Night-1 board scenarios through production commands > nightmare: block 
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "nightmareBlock",
     "guardProtect",
@@ -1980,6 +2493,14 @@ exports[`Night-1 board scenarios through production commands > nightmare: block 
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "nightmareBlock",
@@ -2014,6 +2535,14 @@ exports[`Night-1 board scenarios through production commands > nightmare: skip f
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "nightmareBlock",
     "guardProtect",
@@ -2043,6 +2572,15 @@ exports[`Night-1 board scenarios through production commands > piper: hypnotize 
     "6号猎人可以发动",
     "4号预言家未查验",
     "1号吹笛者催眠4号、6号",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [7号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [2号 3号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [5号]",
+    "hunterConfirm 请点击「查看技能状态」 [6号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [4号]",
+    "piperHypnotize 请选择 1-2 名要催眠的玩家，如不使用请点击「不用技能」 [1号]",
+    "piperHypnotizedReveal 请点击「查看催眠信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2080,6 +2618,14 @@ exports[`Night-1 board scenarios through production commands > psychic: guard 1`
     "8号机械狼人未学习",
     "9号通灵师通灵12号（通灵结果：12号是守卫）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2112,6 +2658,14 @@ exports[`Night-1 board scenarios through production commands > psychic: skip 1`]
     "11号猎人可以发动",
     "8号机械狼人未学习",
     "9号通灵师未通灵",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -2146,6 +2700,14 @@ exports[`Night-1 board scenarios through production commands > psychic: villager
     "8号机械狼人未学习",
     "9号通灵师通灵1号（通灵结果：1号是平民）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2178,6 +2740,14 @@ exports[`Night-1 board scenarios through production commands > psychic: witch 1`
     "11号猎人可以发动",
     "8号机械狼人未学习",
     "9号通灵师通灵10号（通灵结果：10号是女巫）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -2212,6 +2782,14 @@ exports[`Night-1 board scenarios through production commands > psychic: wolf 1`]
     "8号机械狼人未学习",
     "9号通灵师通灵5号（通灵结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2245,6 +2823,14 @@ exports[`Night-1 board scenarios through production commands > psychic: wolf rob
     "8号机械狼人未学习",
     "9号通灵师通灵8号（通灵结果：8号是机械狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2277,6 +2863,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "11号猎人可以发动",
     "8号狼巫查验4号（查验结果：4号是平民）",
     "12号纯白之女查验1号（查验结果：1号是平民）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2312,6 +2906,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "8号狼巫查验3号（查验结果：3号是平民）",
     "12号纯白之女查验10号（查验结果：10号是女巫）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2345,6 +2947,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "11号猎人可以发动",
     "8号狼巫查验3号（查验结果：3号是平民）",
     "12号纯白之女查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2380,6 +2990,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "8号狼巫查验3号（查验结果：3号是平民）",
     "12号纯白之女查验8号（查验结果：8号是狼巫）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2413,6 +3031,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "11号猎人可以发动",
     "8号狼巫查验3号（查验结果：3号是平民）",
     "12号纯白之女未查验",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2448,6 +3074,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "8号狼巫查验9号（查验结果：9号是守卫）",
     "12号纯白之女查验3号（查验结果：3号是平民）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2481,6 +3115,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "11号猎人可以发动",
     "8号狼巫查验12号（查验结果：12号是纯白之女）",
     "12号纯白之女查验3号（查验结果：3号是平民）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2516,6 +3158,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "8号狼巫查验1号（查验结果：1号是平民）",
     "12号纯白之女查验4号（查验结果：4号是平民）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2550,6 +3200,14 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
     "8号狼巫未查验",
     "12号纯白之女查验3号（查验结果：3号是平民）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2581,6 +3239,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: conver
     "10号女巫未毒杀",
     "9号预言家未查验",
     "9号预言家被种狼感染，转化为狼人",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 9号被狼人袭击 [8号]",
+    "witchAction 9号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 你已被种狼感染并转化为普通狼人 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2618,6 +3284,16 @@ exports[`Night-1 board scenarios through production commands > seed wolf: conver
     "9号预言家查验5号（查验结果：5号是狼人）",
     "11号丘比特被种狼感染，转化为狼人",
   ],
+  "status": [
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [11号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [5号 6号 7号 8号]",
+    "seedWolfInfect 11号被狼人袭击 [8号]",
+    "witchAction 11号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "cupidChooseLovers",
     "cupidLoversReveal",
@@ -2654,6 +3330,15 @@ exports[`Night-1 board scenarios through production commands > seed wolf: conver
     "9号预言家未查验",
     "11号猎人被种狼感染，转化为狼人",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 11号被狼人袭击 [8号]",
+    "witchAction 11号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 你已被种狼感染并转化为普通狼人 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2688,6 +3373,15 @@ exports[`Night-1 board scenarios through production commands > seed wolf: conver
     "9号预言家查验1号（实际为5号）（查验结果：1号是狼人）",
     "11号魔术师被种狼感染，转化为狼人",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [11号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 11号被狼人袭击 [8号]",
+    "witchAction 11号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "magicianSwap",
     "guardProtect",
@@ -2720,6 +3414,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: guard 
     "9号预言家查验5号（查验结果：5号是狼人）",
     "9号感染失败",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 9号被狼人袭击 [8号]",
+    "witchAction 9号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2749,6 +3451,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "12号守卫被种狼感染，转化为狼人",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 12号被狼人袭击 [8号]",
+    "witchAction 12号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2780,6 +3490,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "10号女巫被种狼感染，转化为狼人",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 10号被狼人袭击 [8号]",
+    "witchAction 你已被种狼感染并转化为普通狼人 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2814,6 +3532,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "9号预言家查验5号（查验结果：5号是狼人）",
     "10号感染失败",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 10号被狼人袭击 [8号]",
+    "witchAction 你被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2843,6 +3569,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "10号女巫毒杀1号（已转化，技能无效）",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "10号女巫被种狼感染，转化为狼人",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 10号被狼人袭击 [8号]",
+    "witchAction 你被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2877,6 +3611,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "9号预言家未查验",
     "9号预言家被种狼感染，转化为狼人",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 9号被狼人袭击 [8号]",
+    "witchAction 9号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 你已被种狼感染并转化为普通狼人 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2910,6 +3652,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: infect
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 1号被狼人袭击 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -2941,6 +3691,16 @@ exports[`Night-1 board scenarios through production commands > seed wolf: later 
     "9号预言家查验1号（查验结果：1号是狼人）",
     "6号狼巫查验1号（查验结果：1号是狼人）",
     "1号平民被种狼感染，转化为狼人",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "seedWolfInfect 1号被狼人袭击 [7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [6号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -2978,6 +3738,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: seer s
     "9号预言家查验1号（查验结果：1号是狼人）",
     "1号平民被种狼感染，转化为狼人",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 1号被狼人袭击 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3009,6 +3777,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: seer s
     "9号预言家查验1号（查验结果：1号是好人）",
     "1号感染失败",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 1号被狼人袭击 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3038,6 +3814,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: witch 
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "9号感染失败",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 9号被狼人袭击 [8号]",
+    "witchAction 9号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -3070,6 +3854,14 @@ exports[`Night-1 board scenarios through production commands > seed wolf: wolves
     "10号女巫未毒杀",
     "9号预言家查验1号（查验结果：1号是好人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 本夜没有可感染的狼人袭击目标 [8号]",
+    "witchAction 6号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3101,6 +3893,15 @@ exports[`Night-1 board scenarios through production commands > shadow and avenge
     "8号女巫未用解药",
     "8号女巫未毒杀",
     "7号预言家未查验",
+  ],
+  "status": [
+    "slackerChooseIdol 请选择你的榜样。你将与榜样同阵营 [3号]",
+    "shadowChooseMimic 请选择要模仿的玩家。其出局后你将继承其身份 [1号]",
+    "avengerConfirm 请点击「查看阵营」 [2号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [7号]",
   ],
   "steps": [
     "slackerChooseIdol",
@@ -3136,6 +3937,15 @@ exports[`Night-1 board scenarios through production commands > shadow and avenge
     "8号女巫未毒杀",
     "7号预言家未查验",
   ],
+  "status": [
+    "slackerChooseIdol 请选择你的榜样。你将与榜样同阵营 [3号]",
+    "shadowChooseMimic 请选择要模仿的玩家。其出局后你将继承其身份 [1号]",
+    "avengerConfirm 请点击「查看阵营」 [2号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [7号]",
+  ],
   "steps": [
     "slackerChooseIdol",
     "shadowChooseMimic",
@@ -3156,6 +3966,50 @@ exports[`Night-1 board scenarios through production commands > shadow and avenge
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > silence elders: ban only, nobody is silenced 1`] = `
+{
+  "announcements": [
+    "禁言信息（警下发言时公布）: 昨夜没有禁言",
+    "禁票信息（警下发言时公布）: 5号被禁票",
+  ],
+  "deaths": [],
+  "review": [
+    "3号守卫未守护",
+    "1号禁言长老未禁言",
+    "2号禁票长老禁票5号",
+    "狼队放弃袭击",
+    "5号女巫未用解药",
+    "5号女巫未毒杀",
+    "6号猎人可以发动",
+    "4号预言家未查验",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [3号]",
+    "silenceElderSilence 请选择要禁言的玩家，如不使用请点击「不用技能」 [1号]",
+    "votebanElderBan 请选择要禁票的玩家，如不使用请点击「不用技能」 [2号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [7号 8号 9号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [5号]",
+    "hunterConfirm 请点击「查看技能状态」 [6号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [4号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "silenceElderSilence",
+    "votebanElderBan",
+    "wolfKill",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 4号: 不能选择自己 [4号]",
+  ],
+  "views": [
+    "hunterConfirm 可以发动技能 [6号]",
+  ],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > silence elders: silence and ban 1`] = `
 {
   "announcements": [
@@ -3172,6 +4026,15 @@ exports[`Night-1 board scenarios through production commands > silence elders: s
     "5号女巫未毒杀",
     "6号猎人可以发动",
     "4号预言家未查验",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [3号]",
+    "silenceElderSilence 请选择要禁言的玩家，如不使用请点击「不用技能」 [1号]",
+    "votebanElderBan 请选择要禁票的玩家，如不使用请点击「不用技能」 [2号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [7号 8号 9号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [5号]",
+    "hunterConfirm 请点击「查看技能状态」 [6号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [4号]",
   ],
   "steps": [
     "guardProtect",
@@ -3208,6 +4071,15 @@ exports[`Night-1 board scenarios through production commands > silence elders: s
     "6号猎人可以发动",
     "4号预言家未查验",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [3号]",
+    "silenceElderSilence 请选择要禁言的玩家，如不使用请点击「不用技能」 [1号]",
+    "votebanElderBan 请选择要禁票的玩家，如不使用请点击「不用技能」 [2号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [7号 8号 9号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [5号]",
+    "hunterConfirm 请点击「查看技能状态」 [6号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [4号]",
+  ],
   "steps": [
     "guardProtect",
     "silenceElderSilence",
@@ -3237,6 +4109,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: gu
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 9号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -3269,6 +4148,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: se
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3299,6 +4185,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: se
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验1号（查验结果：1号是好人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -3333,6 +4226,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: se
     "9号预言家查验8号（查验结果：8号是狼人）",
     "8号反弹伤害，9号出局",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3366,6 +4266,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: se
     "9号预言家查验8号（查验结果：8号是狼人）",
     "8号反弹伤害，9号出局",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3397,6 +4304,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: se
     "11号猎人可以发动",
     "9号预言家未查验",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3427,6 +4341,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: wi
     "10号女巫毒杀1号",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -3461,6 +4382,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: wi
     "8号免疫毒药",
     "8号反弹伤害，10号出局",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3492,6 +4420,13 @@ exports[`Night-1 board scenarios through production commands > spirit knight: wo
     "11号猎人可以发动",
     "9号预言家查验2号（查验结果：2号是好人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -3522,6 +4457,12 @@ exports[`Night-1 board scenarios through production commands > standard seer: id
     "11号猎人可以发动",
     "9号预言家查验12号（查验结果：12号是好人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -3549,6 +4490,12 @@ exports[`Night-1 board scenarios through production commands > standard seer: sk
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家未查验",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "wolfKill",
@@ -3578,6 +4525,12 @@ exports[`Night-1 board scenarios through production commands > standard seer: vi
     "11号猎人可以发动",
     "9号预言家查验1号（查验结果：1号是好人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -3606,6 +4559,12 @@ exports[`Night-1 board scenarios through production commands > standard seer: wi
     "11号猎人可以发动",
     "9号预言家查验10号（查验结果：10号是好人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -3633,6 +4592,12 @@ exports[`Night-1 board scenarios through production commands > standard seer: wo
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "wolfKill",
@@ -3663,6 +4628,15 @@ exports[`Night-1 board scenarios through production commands > step coverage: cr
     "3号猎人可以发动",
     "9号狼王可以发动",
     "5号预言家未查验",
+  ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [4号]",
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [1号]",
+    "wolfKill 平票将随机刀人 [6号 7号 8号 9号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [2号]",
+    "hunterConfirm 请点击「查看技能状态」 [3号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [9号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [5号]",
   ],
   "steps": [
     "dreamcatcherDream",
@@ -3703,6 +4677,19 @@ exports[`Night-1 board scenarios through production commands > step coverage: id
     "11号石像鬼未查验",
     "4号纯白之女未查验",
     "12号通灵师未通灵",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [1号]",
+    "slackerChooseIdol 请选择你的榜样。你将与榜样同阵营 [2号]",
+    "wildChildChooseIdol 请选择你的榜样。榜样被投票出局时你将变为狼人 [3号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [6号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 7号 8号 9号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [9号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [5号]",
+    "gargoyleCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [11号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [4号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [12号]",
   ],
   "steps": [
     "magicianSwap",
@@ -3748,6 +4735,16 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
     "9号狼王可以发动",
     "4号通灵师通灵8号（通灵结果：8号是狼人）",
   ],
+  "status": [
+    "treasureMasterChoose 请点击「选择底牌」 [5号]",
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [5号]",
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [3号]",
+    "wolfKill 平票将随机刀人 [8号 9号 12号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [1号]",
+    "hunterConfirm 请点击「查看技能状态」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [9号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [4号]",
+  ],
   "steps": [
     "treasureMasterChoose",
     "dreamcatcherDream",
@@ -3789,6 +4786,15 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
     "9号狼王可以发动",
     "4号通灵师通灵8号（通灵结果：8号是狼人）",
   ],
+  "status": [
+    "treasureMasterChoose 请点击「选择底牌」 [5号]",
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [3号]",
+    "wolfKill 平票将随机刀人 [8号 9号 12号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [1号]",
+    "hunterConfirm 请点击「查看技能状态」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [9号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [4号]",
+  ],
   "steps": [
     "treasureMasterChoose",
     "dreamcatcherDream",
@@ -3827,6 +4833,16 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
     "3号猎人可以发动",
     "4号狼王可以发动",
     "7号通灵师通灵10号（通灵结果：10号是狼人）",
+  ],
+  "status": [
+    "treasureMasterChoose 请点击「选择底牌」 [2号]",
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [8号]",
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [2号]",
+    "wolfKill 平票将随机刀人 [4号 10号 12号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [1号]",
+    "hunterConfirm 请点击「查看技能状态」 [3号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [4号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [7号]",
   ],
   "steps": [
     "treasureMasterChoose",
@@ -3867,6 +4883,15 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
     "4号狼王可以发动",
     "7号通灵师通灵10号（通灵结果：10号是狼人）",
   ],
+  "status": [
+    "treasureMasterChoose 请点击「选择底牌」 [2号]",
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [8号]",
+    "wolfKill 平票将随机刀人 [4号 10号 12号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [1号]",
+    "hunterConfirm 请点击「查看技能状态」 [3号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [4号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [7号]",
+  ],
   "steps": [
     "treasureMasterChoose",
     "dreamcatcherDream",
@@ -3906,6 +4931,14 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
     "5号猎人可以发动",
     "11号狼王可以发动",
   ],
+  "status": [
+    "treasureMasterChoose 请点击「选择底牌」 [2号]",
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [3号]",
+    "wolfKill 平票将随机刀人 [1号 11号 12号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [9号]",
+    "hunterConfirm 请点击「查看技能状态」 [5号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [11号]",
+  ],
   "steps": [
     "treasureMasterChoose",
     "crowCurse",
@@ -3942,6 +4975,15 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
     "9号狼王可以发动",
     "4号通灵师通灵5号（通灵结果：5号是猎魔人）",
     "5号免疫毒药",
+  ],
+  "status": [
+    "treasureMasterChoose 请点击「选择底牌」 [5号]",
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [3号]",
+    "wolfKill 平票将随机刀人 [8号 9号 12号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [1号]",
+    "hunterConfirm 请点击「查看技能状态」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [9号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [4号]",
   ],
   "steps": [
     "treasureMasterChoose",
@@ -3980,6 +5022,16 @@ exports[`Night-1 board scenarios through production commands > unseen wolf: awak
     "8号机械狼人未学习",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "7号觉醒石像鬼转化8号",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "awakenedGargoyleConvert 请选择狼人阵营相邻的一名神民角色进行转化 [7号]",
+    "awakenedGargoyleConvertReveal 请点击「查看转化信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -4020,6 +5072,14 @@ exports[`Night-1 board scenarios through production commands > witch: attacked w
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 你被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -4054,6 +5114,14 @@ exports[`Night-1 board scenarios through production commands > witch: no save 1`
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -4084,6 +5152,14 @@ exports[`Night-1 board scenarios through production commands > witch: only attac
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "magicianSwap",
@@ -4118,6 +5194,14 @@ exports[`Night-1 board scenarios through production commands > witch: poison vil
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -4151,6 +5235,14 @@ exports[`Night-1 board scenarios through production commands > witch: poison wol
     "8号狼王可以发动",
     "9号预言家查验6号（查验结果：6号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -4181,6 +5273,14 @@ exports[`Night-1 board scenarios through production commands > witch: save attac
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "magicianSwap",
@@ -4215,6 +5315,14 @@ exports[`Night-1 board scenarios through production commands > witch: skip antid
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -4246,6 +5354,14 @@ exports[`Night-1 board scenarios through production commands > witch: witch cont
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -4275,6 +5391,15 @@ exports[`Night-1 board scenarios through production commands > wolf girl: confes
     "10号毒师未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfGirlConfess 请选择要表白的玩家 [8号]",
+    "wolfKill 平票将随机刀人 [5号 6号 7号 8号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfGirlConfessReveal 请点击「查看表白信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -4310,6 +5435,15 @@ exports[`Night-1 board scenarios through production commands > wolf girl: confes
     "10号毒师未毒杀",
     "11号猎人可以发动",
     "9号预言家查验1号（查验结果：1号是好人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfGirlConfess 请选择要表白的玩家 [8号]",
+    "wolfKill 平票将随机刀人 [5号 6号 7号 8号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfGirlConfessReveal 请点击「查看表白信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -4349,6 +5483,15 @@ exports[`Night-1 board scenarios through production commands > wolf girl: confes
     "10号灯影预言家查验5号（查验结果：5号是好人）",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfGirlConfess 请选择要表白的玩家 [8号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [11号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfGirlConfessReveal 请点击「查看表白信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfGirlConfess",
@@ -4382,6 +5525,15 @@ exports[`Night-1 board scenarios through production commands > wolf girl: confir
     "10号毒师未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfGirlConfess 请选择要表白的玩家 [8号]",
+    "wolfKill 平票将随机刀人 [5号 6号 7号 8号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfGirlConfessReveal 请点击「查看表白信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -4420,6 +5572,13 @@ exports[`Night-1 board scenarios through production commands > wolf queen: charm
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -4449,6 +5608,13 @@ exports[`Night-1 board scenarios through production commands > wolf queen: charm
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -4480,6 +5646,13 @@ exports[`Night-1 board scenarios through production commands > wolf queen: charm
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -4509,6 +5682,13 @@ exports[`Night-1 board scenarios through production commands > wolf queen: charm
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -4541,6 +5721,13 @@ exports[`Night-1 board scenarios through production commands > wolf queen: poiso
     "10号女巫毒杀8号",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -4570,6 +5757,13 @@ exports[`Night-1 board scenarios through production commands > wolf queen: skip 
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -4602,6 +5796,15 @@ exports[`Night-1 board scenarios through production commands > wolf robot hunter
     "8号机械狼人学习4号（学习结果：4号是猎人）",
     "9号预言家查验5号（查验结果：5号是狼人）",
     "12号通灵师通灵6号（通灵结果：6号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [4号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [12号]",
   ],
   "steps": [
     "guardProtect",
@@ -4641,6 +5844,15 @@ exports[`Night-1 board scenarios through production commands > wolf robot hunter
     "9号预言家查验5号（查验结果：5号是狼人）",
     "12号通灵师通灵6号（通灵结果：6号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [4号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -4677,6 +5889,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot psychi
     "8号机械狼人学习1号（学习结果：1号是平民）",
     "9号通灵师通灵8号（通灵结果：8号是平民）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -4709,6 +5929,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot psychi
     "11号猎人可以发动",
     "8号机械狼人学习5号（学习结果：5号是狼人）",
     "9号通灵师通灵8号（通灵结果：8号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -4743,6 +5971,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot psychi
     "8号机械狼人未学习",
     "9号通灵师通灵8号（通灵结果：8号是机械狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -4776,6 +6012,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot seer d
     "8号机械狼人学习9号（学习结果：9号是预言家）",
     "9号预言家查验8号（查验结果：8号是好人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [11号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "guardProtect",
@@ -4806,6 +6050,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot seer d
     "10号女巫未毒杀",
     "8号机械狼人学习1号（学习结果：1号是平民）",
     "9号预言家查验8号（查验结果：8号是好人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [11号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "magicianSwap",
@@ -4838,6 +6090,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot seer d
     "8号机械狼人学习5号（学习结果：5号是狼人）",
     "9号预言家查验8号（查验结果：8号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [11号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "guardProtect",
@@ -4868,6 +6128,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot seer d
     "10号女巫未毒杀",
     "8号机械狼人未学习",
     "9号预言家查验8号（查验结果：8号是狼人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [11号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "magicianSwap",
@@ -4900,6 +6168,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot seer d
     "8号机械狼人学习10号（学习结果：10号是女巫）",
     "9号预言家查验1号（实际为8号）（查验结果：1号是好人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [11号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "guardProtect",
@@ -4931,6 +6207,14 @@ exports[`Night-1 board scenarios through production commands > wolf robot seer d
     "8号机械狼人学习1号（学习结果：1号是平民）",
     "9号预言家查验8号（实际为5号）（查验结果：8号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [11号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "guardProtect",
@@ -4947,6 +6231,108 @@ exports[`Night-1 board scenarios through production commands > wolf robot seer d
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > wolf vote: an even split is settled by lot 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "狼队投票不一致（5号投1号、6号投1号、7号投2号、8号投2号），平票抽中1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "11号猎人可以发动",
+    "9号预言家查验3号（查验结果：3号是好人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "wolfKill",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "hunterConfirm 可以发动技能 [11号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > wolf vote: majority decides when one wolf disagrees 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "狼队投票不一致（5号投1号、6号投1号、7号投1号、8号投2号），按多数票击杀1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "11号猎人可以发动",
+    "9号预言家查验3号（查验结果：3号是好人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "wolfKill",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "hunterConfirm 可以发动技能 [11号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > wolf vote: one wolf abstains and the rest agree 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "狼队（5、6、7号）袭击1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "11号猎人可以发动",
+    "9号预言家查验3号（查验结果：3号是好人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "wolfKill",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "hunterConfirm 可以发动技能 [11号]",
+  ],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > 假面舞会 preset: ordinary night 1`] = `
 {
   "announcements": [],
@@ -4958,6 +6344,11 @@ exports[`Night-1 board scenarios through production commands > 假面舞会 pres
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "wolfKill",
@@ -4985,6 +6376,15 @@ exports[`Night-1 board scenarios through production commands > 吹笛者 preset:
     "11号猎人可以发动",
     "9号预言家查验4号（查验结果：4号是狼人）",
     "8号吹笛者催眠1号",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "piperHypnotize 请选择 1-2 名要催眠的玩家，如不使用请点击「不用技能」 [8号]",
+    "piperHypnotizedReveal 请点击「查看催眠信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -5024,6 +6424,14 @@ exports[`Night-1 board scenarios through production commands > 咒狐乌鸦 pres
     "7号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "crowCurse",
     "wolfKill",
@@ -5061,6 +6469,14 @@ exports[`Night-1 board scenarios through production commands > 咒狐乌鸦 pres
     "7号狼王可以发动",
     "9号预言家查验8号（查验结果：8号是好人）",
   ],
+  "status": [
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "crowCurse",
     "wolfKill",
@@ -5094,6 +6510,15 @@ exports[`Night-1 board scenarios through production commands > 唯邻是从 pres
     "10号猎人可以发动",
     "8号预言家查验5号（查验结果：5号是狼人）",
     "7号觉醒石像鬼转化4号",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [9号]",
+    "hunterConfirm 请点击「查看技能状态」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "awakenedGargoyleConvert 请选择狼人阵营相邻的一名神民角色进行转化 [7号]",
+    "awakenedGargoyleConvertReveal 请点击「查看转化信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -5133,6 +6558,14 @@ exports[`Night-1 board scenarios through production commands > 噩梦之影守�
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "nightmareBlock",
     "guardProtect",
@@ -5163,6 +6596,13 @@ exports[`Night-1 board scenarios through production commands > 孤注一掷 pres
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "dreamcatcherDream",
@@ -5196,6 +6636,15 @@ exports[`Night-1 board scenarios through production commands > 影子复仇者 p
     "11号女巫未用解药",
     "11号女巫未毒杀",
     "10号预言家查验4号（查验结果：4号是狼人）",
+  ],
+  "status": [
+    "slackerChooseIdol 请选择你的榜样。你将与榜样同阵营 [9号]",
+    "shadowChooseMimic 请选择要模仿的玩家。其出局后你将继承其身份 [7号]",
+    "avengerConfirm 请点击「查看阵营」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [10号]",
   ],
   "steps": [
     "slackerChooseIdol",
@@ -5231,6 +6680,13 @@ exports[`Night-1 board scenarios through production commands > 恶灵骑士 pres
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -5263,6 +6719,13 @@ exports[`Night-1 board scenarios through production commands > 恶灵骑士 pres
     "11号猎人可以发动",
     "9号预言家查验8号（查验结果：8号是狼人）",
     "8号反弹伤害，9号出局",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -5298,6 +6761,13 @@ exports[`Night-1 board scenarios through production commands > 恶灵骑士 pres
     "8号免疫毒药",
     "8号反弹伤害，10号出局",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -5329,6 +6799,14 @@ exports[`Night-1 board scenarios through production commands > 机械狼人通�
     "11号猎人可以发动",
     "8号机械狼人未学习",
     "9号通灵师通灵5号（通灵结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfRobotLearn 请选择要学习的玩家，如不使用请点击「不用技能」 [8号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -5362,6 +6840,13 @@ exports[`Night-1 board scenarios through production commands > 永序之轮 pres
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [8号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "eclipseWolfQueenShelter",
     "guardProtect",
@@ -5390,6 +6875,14 @@ exports[`Night-1 board scenarios through production commands > 灯影预言家 p
     "7号狼王可以发动",
     "8号预言家查验4号（查验结果：4号是狼人）",
     "9号灯影预言家查验4号（查验结果：4号是好人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [7号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "mirrorSeerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "guardProtect",
@@ -5420,6 +6913,15 @@ exports[`Night-1 board scenarios through production commands > 狼女孩 preset:
     "10号毒师未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfGirlConfess 请选择要表白的玩家 [8号]",
+    "wolfKill 平票将随机刀人 [5号 6号 7号 8号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfGirlConfessReveal 请点击「查看表白信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -5459,6 +6961,14 @@ exports[`Night-1 board scenarios through production commands > 狼王守卫 pres
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -5491,6 +7001,14 @@ exports[`Night-1 board scenarios through production commands > 狼王摄梦人 p
     "11号猎人可以发动",
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "dreamcatcherDream",
@@ -5526,6 +7044,14 @@ exports[`Night-1 board scenarios through production commands > 狼王魔术师 p
     "8号狼王可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "magicianSwap",
     "wolfKill",
@@ -5558,6 +7084,13 @@ exports[`Night-1 board scenarios through production commands > 狼美守卫 pres
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "wolfQueenCharm 请选择要魅惑的玩家，如不使用请点击「不用技能」 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -5588,6 +7121,13 @@ exports[`Night-1 board scenarios through production commands > 白狼王守卫 p
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -5615,6 +7155,14 @@ exports[`Night-1 board scenarios through production commands > 盗宝大师 pres
     "7号毒师未毒杀",
     "1号狼王可以发动",
     "2号通灵师通灵1号（通灵结果：1号是狼王）",
+  ],
+  "status": [
+    "treasureMasterChoose 请点击「选择底牌」 [10号]",
+    "dreamcatcherDream 请选择要摄梦的玩家，如不使用请点击「不用技能」 [8号]",
+    "wolfKill 平票将随机刀人 [1号 11号 12号]",
+    "poisonerPoison 请选择要毒杀的玩家，如不使用请点击「不用技能」 [7号]",
+    "darkWolfKingConfirm 请点击「查看技能状态」 [1号]",
+    "psychicCheck 请选择要通灵的玩家，如不使用请点击「不用技能」 [2号]",
   ],
   "steps": [
     "treasureMasterChoose",
@@ -5652,6 +7200,15 @@ exports[`Night-1 board scenarios through production commands > 盗贼丘比特 p
     "8号猎人可以发动",
     "2号预言家查验1号（查验结果：1号是狼人）",
   ],
+  "status": [
+    "thiefChoose 请点击「选择底牌」 [6号]",
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [10号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [1号 11号 12号]",
+    "witchAction 3号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [7号]",
+    "hunterConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [2号]",
+  ],
   "steps": [
     "thiefChoose",
     "cupidChooseLovers",
@@ -5673,6 +7230,52 @@ exports[`Night-1 board scenarios through production commands > 盗贼丘比特 p
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > 盗贼丘比特 preset: thief must take the wolf card 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "6号盗贼选择底牌（选择的身份：狼人）",
+    "11号丘比特连接3号和4号为情侣",
+    "狼队（6、8、12号）袭击1号",
+    "7号女巫未用解药",
+    "7号女巫未毒杀",
+    "2号猎人可以发动",
+    "5号预言家查验8号（查验结果：8号是狼人）",
+  ],
+  "status": [
+    "thiefChoose 请点击「选择底牌」 [6号]",
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [11号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [6号 8号 12号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [7号]",
+    "hunterConfirm 请点击「查看技能状态」 [2号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [5号]",
+  ],
+  "steps": [
+    "thiefChoose",
+    "cupidChooseLovers",
+    "cupidLoversReveal",
+    "wolfKill",
+    "witchAction",
+    "hunterConfirm",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "thiefChoose 选择底牌 愚者: 底牌中有狼人阵营的牌，必须选择狼人 [6号]",
+    "seerCheck 查验 5号: 不能选择自己 [5号]",
+  ],
+  "views": [
+    "cupidLoversReveal 你不是情侣 [1号 2号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "cupidLoversReveal 你是情侣之一，你的另一半是：4号 [3号]",
+    "cupidLoversReveal 你是情侣之一，你的另一半是：3号 [4号]",
+    "hunterConfirm 可以发动技能 [2号]",
+  ],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > 盗贼丘比特 preset: thief takes the idiot card 1`] = `
 {
   "announcements": [],
@@ -5685,6 +7288,15 @@ exports[`Night-1 board scenarios through production commands > 盗贼丘比特 p
     "7号女巫未毒杀",
     "8号猎人可以发动",
     "2号预言家查验3号（查验结果：3号是好人）",
+  ],
+  "status": [
+    "thiefChoose 请点击「选择底牌」 [6号]",
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [10号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [1号 11号 12号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [7号]",
+    "hunterConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [2号]",
   ],
   "steps": [
     "thiefChoose",
@@ -5722,6 +7334,15 @@ exports[`Night-1 board scenarios through production commands > 盗贼丘比特 p
     "8号猎人可以发动",
     "2号预言家查验1号（查验结果：1号是狼人）",
   ],
+  "status": [
+    "thiefChoose 请点击「选择底牌」 [6号]",
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [10号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [1号 11号 12号]",
+    "witchAction 3号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [7号]",
+    "hunterConfirm 请点击「查看技能状态」 [8号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [2号]",
+  ],
   "steps": [
     "thiefChoose",
     "cupidChooseLovers",
@@ -5757,6 +7378,13 @@ exports[`Night-1 board scenarios through production commands > 石像鬼守墓�
     "9号预言家查验5号（查验结果：5号是狼人）",
     "8号石像鬼查验1号（查验结果：1号是平民）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "gargoyleCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -5787,6 +7415,14 @@ exports[`Night-1 board scenarios through production commands > 种狼骑士 pres
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "seedWolfInfect 1号被狼人袭击 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
   "steps": [
     "guardProtect",
@@ -5820,6 +7456,14 @@ exports[`Night-1 board scenarios through production commands > 纯白夜影 pres
     "8号狼巫查验1号（查验结果：1号是平民）",
     "12号纯白之女查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [9号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "wolfWitchCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [8号]",
+    "pureWhiteCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [12号]",
+  ],
   "steps": [
     "guardProtect",
     "wolfKill",
@@ -5851,6 +7495,11 @@ exports[`Night-1 board scenarios through production commands > 血月猎魔 pres
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -5879,6 +7528,14 @@ exports[`Night-1 board scenarios through production commands > 隐狼乌鸦 pres
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "crowCurse 请选择要诅咒的玩家，如不使用请点击「不用技能」 [12号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "hiddenWolfReveal 请点击「查看狼同伴」 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "crowCurse",
@@ -5912,6 +7569,12 @@ exports[`Night-1 board scenarios through production commands > 预女猎白 pres
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
   ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号 8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
   "steps": [
     "wolfKill",
     "witchAction",
@@ -5940,6 +7603,13 @@ exports[`Night-1 board scenarios through production commands > 预女猎白混 p
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验4号（查验结果：4号是狼人）",
+  ],
+  "status": [
+    "slackerChooseIdol 请选择你的榜样。你将与榜样同阵营 [8号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [4号 5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "slackerChooseIdol",
@@ -5971,6 +7641,13 @@ exports[`Night-1 board scenarios through production commands > 预女猎白野 p
     "10号女巫未毒杀",
     "11号猎人可以发动",
     "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "wildChildChooseIdol 请选择你的榜样。榜样被投票出局时你将变为狼人 [8号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "hunterConfirm 请点击「查看技能状态」 [11号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
   ],
   "steps": [
     "wildChildChooseIdol",
