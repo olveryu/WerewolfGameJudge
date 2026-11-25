@@ -20,9 +20,9 @@ const COPY = defineCopy({
   hint: '你的阵营：狼人阵营',
   resultTitle: '获得的技能',
   wolfCardUnavailable: '不可选择狼人阵营底牌',
-  needsPlainWolf: '含宝藏猎人时必须有至少 1 名普通狼人（底牌需要）',
-  needsGod: '含宝藏猎人时必须有至少 1 名神职（底牌需要）',
-  needsVillager: '含宝藏猎人时必须有至少 1 名村民（底牌需要）',
+  needsPlainWolf: '含盗宝大师时必须有至少 1 名普通狼人（底牌需要）',
+  needsGod: '含盗宝大师时必须有至少 1 名神职（底牌需要）',
+  needsVillager: '含盗宝大师时必须有至少 1 名村民（底牌需要）',
 });
 
 function isPlainWolf(card: DealCard): boolean {
