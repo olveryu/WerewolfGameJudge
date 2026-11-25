@@ -16,6 +16,7 @@ export async function withSetup(
   opts: {
     playerCount: number;
     configure: (config: ConfigPage) => Promise<void>;
+    isSheriffElectionEnabled?: boolean;
   },
   body: (ctx: {
     setup: GameSetupWithRolesResult;
@@ -28,6 +29,7 @@ export async function withSetup(
     setup = await setupNPlayerGameWithRoles(browser, {
       playerCount: opts.playerCount,
       configureTemplate: opts.configure,
+      isSheriffElectionEnabled: opts.isSheriffElectionEnabled,
     });
     await body({
       setup,

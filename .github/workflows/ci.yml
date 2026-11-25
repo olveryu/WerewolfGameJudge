@@ -667,7 +667,7 @@ jobs:
         include:
           # ── Balanced by measured runtime (target ~10min wall each) ──
           - shard: '1'
-            specs: 'werewolf-night-block.spec.ts werewolf-night-seed-wolf.spec.ts werewolf-night-special-roles.spec.ts'
+            specs: 'werewolf-night-block.spec.ts werewolf-night-seed-wolf.spec.ts werewolf-night-special-roles.spec.ts werewolf-night-scarlet-bee.spec.ts'
           - shard: '2'
             specs: 'werewolf-night-protect.spec.ts werewolf-night-gargoyle.spec.ts'
           - shard: '3'
