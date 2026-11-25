@@ -28,6 +28,8 @@ import {
   editExpectedPhaseDeadlineVariants,
   editGameTypes,
   editGuidanceMatrixRegistry,
+  editNightCatalogueRegistry,
+  editNightCatalogueIndex,
   editProductionGameTypes,
   editRegistry,
   editReviewContractRegistry,
@@ -62,6 +64,13 @@ const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 't
  * assembly. In-file wiring uses the same switches through `//#cap` segments.
  */
 export const FILE_CAPABILITY_GATES = {
+  'packages/game-engine/src/games/__GAME_ID__/domain/nightSteps.ts': 'sharedSteps',
+  'packages/game-engine/src/games/__GAME_ID__/state/nightCodec.ts': 'sharedSteps',
+  'packages/game-engine/src/games/__GAME_ID__/__tests__/nightDriver.ts': 'sharedSteps',
+  'packages/game-engine/src/games/__GAME_ID__/__tests__/nightSteps.contract.test.ts': 'sharedSteps',
+  'packages/game-engine/src/games/__GAME_ID__/__tests__/nightScenarios.ts': 'sharedSteps',
+  'packages/game-engine/src/games/__GAME_ID__/__tests__/nightCatalogue.integration.test.ts':
+    'sharedSteps',
   'packages/game-engine/src/games/__GAME_ID__/publicStats.ts': 'businessStats',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/publicStats.test.ts': 'businessStats',
   'packages/api-worker/src/games/__GAME_ID__/dbSchema.ts': 'businessStats',
@@ -88,6 +97,8 @@ export const FILE_CAPABILITY_GATES = {
 export const DEFAULT_REWARDS = { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 };
 
 export const SHARED_EDITS = [
+  { file: 'scripts/lib/catalogues/registry.mjs', apply: editNightCatalogueRegistry },
+  { file: 'docs/catalogues/README.md', apply: editNightCatalogueIndex },
   {
     file: 'packages/game-engine/src/platform/protocol/gameTypes.ts',
     apply: (content, ctx) => editGameTypes(content, ctx),
@@ -362,6 +373,7 @@ function createGenerationContext(options) {
   // delayed until play begins only when identity viewing precedes it.
   const renderCapabilities = {
     ...capabilities,
+    sharedSteps: capabilities.nightPhase,
     armDeadlineAtBegin: capabilities.identityViewing && capabilities.stageDeadline,
     stageDeadlineAtStart: !capabilities.identityViewing && capabilities.stageDeadline,
     businessStats: true,
@@ -384,9 +396,14 @@ function createGenerationContext(options) {
     __GAME_FEATURE_WORD_SUPPLY__: formatFeatureValue(features.wordSupply),
     __GAME_COMPLETION_TYPE__: `${names.pascal}CompletionPayload | `,
     __GAME_REQUIREMENT_COUNT__: '11',
-    __GAME_TEST_BEGIN__: capabilities.identityViewing
-      ? 'viewAllAndBegin(session);'
-      : `session.send({ type: '${gameId}.game.begin' });`,
+    __GAME_TEST_BEGIN__: [
+      capabilities.identityViewing
+        ? 'viewAllAndBegin(session);'
+        : `session.send({ type: '${gameId}.game.begin' });`,
+      ...(capabilities.nightPhase && !capabilities.identityViewing
+        ? ['finishScaffoldNight(session.session);']
+        : []),
+    ].join('\n'),
   };
   const ctx = {
     gameId,

@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { verifyCatalogue } from '../../../../../../../scripts/lib/catalogues/verify.mjs';
 import { formatSeat } from '../../../../platform/room/formatSeat';
 import { renderBlockedPrompt } from '../../../../platform/steps';
 import { collectCopy, findUnshownCopy } from '../../../../platform/steps/__tests__/catalogueKit';
@@ -32,10 +33,8 @@ const SHOWN_ELSEWHERE: Readonly<Record<string, string>> = {
 };
 
 describe('Night-1 step-by-step list', () => {
-  it('matches the generated list of what every step shows in every situation', async () => {
-    await expect(renderStepCatalogue(NIGHT_CASES)).toMatchFileSnapshot(
-      './__snapshots__/night-steps.catalogue.txt',
-    );
+  it('matches the generated list of what every step shows in every situation', () => {
+    verifyCatalogue('werewolf-night', renderStepCatalogue(NIGHT_CASES));
   });
 
   it('shows every sentence written for the night in at least one played night', () => {

@@ -54,6 +54,13 @@ browser `SpeechSynthesis`. Games without narration state that explicitly and
 wire no audio player.
 
 For narrated steps, inspect Werewolf and Avalon before filling the skeleton.
+`night=narrated` already wires `StepSlice`, formal `step.submit`, strict parsing,
+`useStepInteraction`, seat selection and `StepCardPicker`. Replace the explicit
+TODO definition; do not add independent completion flags or per-action dialogs.
+Add approved scenarios in `nightScenarios.ts`, cover every declared step and
+written sentence, and review the full candidate against its baseline through
+[the catalogue workflow](../../../../docs/catalogues/README.md). Empty scenarios,
+unfinished copy and missing baselines must fail, including on CI.
 Use `useRoomAudioOrchestration` plus `useRoomAudioResume`/`RoomAudioResumeDialog`,
 and shared `useRoomBgmControl` for saved volumes, host-only music, dawn stopping,
 and cleanup on host loss or room exit. Games supply playback and acknowledgement

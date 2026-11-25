@@ -23,6 +23,9 @@ import { type AudioEffect, parseAudioBatchId } from '../../../platform/audio';
 //#end
 import { parseRoomRoster } from '../../../platform/room/roster';
 import { normalize__GAME_PASCAL__State } from './normalize';
+//#cap sharedSteps
+import { parse__GAME_PASCAL__NightSlice } from './nightCodec';
+//#end
 import {
   isValid__GAME_PASCAL__Config,
   __GAME_UPPER___GAME_TYPE,
@@ -91,6 +94,10 @@ function phase(value: unknown, path: string): __GAME_PASCAL__Phase {
   switch (kind) {
     case 'lobby':
       return finishObject(raw, { kind: 'lobby' as const }, path);
+//#cap sharedSteps
+    case 'night':
+      return finishObject(raw, { kind: 'night' as const, steps: parse__GAME_PASCAL__NightSlice(raw.steps, `${path}.steps`) }, path);
+//#end
 //#cap identityViewing
     case 'viewing':
       return finishObject(raw, { kind: 'viewing' as const }, path);

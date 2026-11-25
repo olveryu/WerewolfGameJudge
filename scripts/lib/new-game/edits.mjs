@@ -66,6 +66,37 @@ function replaceOnce(file, content, pattern, replacement) {
   return content.replace(pattern, replacement);
 }
 
+/** Register narrated nights without generating or approving their first baseline. */
+export function editNightCatalogueRegistry(content, { gameId, capabilities }) {
+  if (!capabilities.nightPhase) return content;
+  const file = 'scripts/lib/catalogues/registry.mjs';
+  if (content.includes(`id: '${gameId}-night'`)) fail(file, 'catalogue already registered.');
+  const entry = [
+    '  {',
+    `    id: '${gameId}-night',`,
+    `    title: '${gameId} 夜晚',`,
+    "    packageName: '@game-judge/game-engine',",
+    `    test: 'src/games/${gameId}/__tests__/nightCatalogue.integration.test.ts',`,
+    `    baseline: 'packages/game-engine/src/games/${gameId}/__tests__/__snapshots__/night-steps.catalogue.txt',`,
+    '  },',
+  ].join('\n');
+  return replaceOnce(file, content, /\n\];/, `\n${entry}\n];`);
+}
+
+/** Append the catalogue's owning location to the unified documentation entrypoint. */
+export function editNightCatalogueIndex(content, { gameId, capabilities }) {
+  if (!capabilities.nightPhase) return content;
+  const file = 'docs/catalogues/README.md';
+  if (content.includes(`\`${gameId}-night\``)) fail(file, 'catalogue already indexed.');
+  const row = `| ${gameId} 夜晚（待实现与批准） | [清单](../../packages/game-engine/src/games/${gameId}/__tests__/__snapshots__/night-steps.catalogue.txt) | \`${gameId}-night\` |\n`;
+  return replaceOnce(
+    file,
+    content,
+    /<!-- catalogue-index:end -->/,
+    `${row}<!-- catalogue-index:end -->`,
+  );
+}
+
 /** Append the game id to the canonical GAME_TYPES list (order is welded to the registry). */
 export function editGameTypes(content, { gameId }) {
   const file = 'gameTypes.ts';

@@ -1,0 +1,67 @@
+/** Test-only formal-command driver for the explicit scaffold, not an approved gameplay scenario. */
+
+import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import type { PlayedNight, PlayedStepSighting } from '../../../platform/steps/__tests__/catalogueKit';
+import { isBotSeat } from '../../../platform/room/seating';
+import { formatSeat } from '../../../platform/room/formatSeat';
+import { create__GAME_PASCAL__NightRuntime, present__GAME_PASCAL__Night } from '../domain/nightSteps';
+import { __GAME_CAMEL__Engine } from '../engine';
+import { parse__GAME_PASCAL__State } from '../state/parseState';
+import { DEFAULT___GAME_UPPER___CONFIG } from '../state/types';
+
+export function createScaffoldNight(numberOfPlayers = 4) {
+  const session = createEngineSession(__GAME_CAMEL__Engine, {
+    config: { ...DEFAULT___GAME_UPPER___CONFIG, numberOfPlayers },
+    parse: parse__GAME_PASCAL__State,
+    randomSeed: '__GAME_ID__-night-scaffold',
+  });
+  for (let seat = 0; seat < numberOfPlayers; seat += 1) {
+    session.send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seat === 0 ? 'host' : `u${seat}`);
+  }
+//#cap identityViewing
+  session.send({ type: '__GAME_ID__.roles.assign' });
+  for (let seat = 0; seat < numberOfPlayers; seat += 1) session.send({ type: '__GAME_ID__.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
+//#end
+  session.send({ type: '__GAME_ID__.game.begin' });
+  return session;
+}
+
+type NightSession = ReturnType<typeof createScaffoldNight>;
+
+/** Advance only by authorised submissions and audio acknowledgements; detect stalled scripts. */
+export function finishScaffoldNight(session: Pick<NightSession, 'state' | 'send'>): PlayedNight {
+  const sightings: PlayedStepSighting[] = [];
+  const visited = new Set<string>();
+  const runtime = create__GAME_PASCAL__NightRuntime();
+  while (session.state.phase.kind === 'night') {
+    if (session.state.isAudioPlaying) {
+      const batch = session.state.audioBatchId;
+      session.send({ type: '__GAME_ID__.audio.ack', audioBatchId: batch });
+      if (session.state.isAudioPlaying && session.state.audioBatchId === batch) {
+        throw new Error('[TEST] Audio acknowledgement did not release or advance the batch');
+      }
+      continue;
+    }
+    const position = session.state.phase.steps.current;
+    if (position === null) throw new Error('[TEST] Night did not finish after narration');
+    const identity = `${position.stepId}:${position.serial}`;
+    if (visited.has(identity)) throw new Error(`[TEST] Night driver stalled at ${identity}`);
+    visited.add(identity);
+    for (const seat of runtime.seatedSeats(session.state)) {
+      const view = present__GAME_PASCAL__Night(session.state, seat);
+      if (view === null) throw new Error('[TEST] Night ended before the declared actors viewed');
+      if (!view.isActor || view.actions.length === 0) continue;
+      const action = view.actions.find((entry) => entry.kind === 'view' && entry.availability.kind === 'available');
+      if (action === undefined) throw new Error('[TEST] Replace scaffold driver with the approved action script');
+      sightings.push({ stepId: view.stepId, who: formatSeat(seat), view });
+      const isBot = isBotSeat(session.state.roster, seat);
+      session.send({
+        type: '__GAME_ID__.step.submit',
+        gameSequence: session.state.gameSequence,
+        submission: { stepId: view.stepId, serial: view.serial, actionKey: action.key },
+      }, isBot || seat === 0 ? 'host' : `u${seat}`, isBot ? seat : null);
+    }
+  }
+  if (session.state.isAudioPlaying) throw new Error('[TEST] Night finished while narration was playing');
+  return { name: `${session.state.config.numberOfPlayers} 人示例`, sightings };
+}

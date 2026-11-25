@@ -14,6 +14,10 @@
 import {
   DEFAULT___GAME_UPPER___CONFIG,
   get__GAME_PASCAL__OccupiedSeatCount,
+//#cap sharedSteps
+  get__GAME_PASCAL__ViewModel,
+  describe__GAME_PASCAL__NightConfirmation,
+//#end
 //#cap !stageDeadline
   end__GAME_PASCAL__Game,
 //#end
@@ -52,6 +56,15 @@ import { createFakeBgm } from '@/test-utils/fakeBgm';
 //#end
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
+//#cap sharedSteps
+import { finishScaffoldNight } from '../../../../../../game-engine/src/games/__GAME_ID__/__tests__/nightDriver';
+import { useStepInteraction, type StepInteraction } from '@/features/room/steps/useStepInteraction';
+import type { StepSubmission } from '@game-judge/game-engine/platform/steps';
+import { showDismissAlert } from '@/utils/alertPresets';
+//#cap !identityViewing
+import { act, renderHook } from '@testing-library/react';
+//#end
+//#end
 
 import { __GAME_UPPER___GUIDANCE_MATRIX } from '../__GAME_CAMEL__GuidanceMatrix';
 import { create__GAME_PASCAL__HostManagement, create__GAME_PASCAL__RoomShellModel } from '../__GAME_CAMEL__RoomAdapter';
@@ -59,6 +72,11 @@ import {
   confirmAction,
 //#cap identityViewing
   confirmView,
+//#end
+//#cap sharedSteps
+//#cap !identityViewing
+  confirmView,
+//#end
 //#end
 } from '@/features/room/confirm';
 //#cap identityViewing
@@ -69,7 +87,7 @@ import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock'
 //#end
 
 vi.mock('@/features/room/confirm', () => ({ confirmAction: vi.fn(), confirmView: vi.fn() }));
-vi.mock('@/utils/alertPresets', () => ({ showErrorAlert: vi.fn() }));
+vi.mock('@/utils/alertPresets', () => ({ showErrorAlert: vi.fn(), showDismissAlert: vi.fn() }));
 //#cap identityViewing
 const testAuth = vi.hoisted(() => ({ userId: 'host' }));
 vi.mock('@/contexts/AuthContext', () => ({
@@ -141,7 +159,7 @@ function viewingState(): __GAME_PASCAL__State {
 }
 //#end
 
-function playingState(): __GAME_PASCAL__State {
+function startedState(): __GAME_PASCAL__State {
 //#cap identityViewing
   let state = viewingState();
   state = drive(state, { type: '__GAME_ID__.role.viewed' });
@@ -158,6 +176,23 @@ function playingState(): __GAME_PASCAL__State {
 //#cap !identityViewing
   const state = drive(lobbyState(), { type: '__GAME_ID__.game.begin' });
 //#end
+  return state;
+}
+
+function playingState(): __GAME_PASCAL__State {
+//#cap sharedSteps
+  let state = startedState();
+  finishScaffoldNight({
+    get state() { return state; },
+    send: (command, userId = 'host', controlledSeat = null) => {
+      state = drive(state, command, { userId, controlledSeat });
+      return state;
+    },
+  });
+//#end
+//#cap !sharedSteps
+  const state = startedState();
+//#end
   if (state.phase.kind !== 'playing') throw new Error('expected playing');
   return state;
 }
@@ -166,6 +201,10 @@ function stateFor(phase: __GAME_PASCAL__PhaseKind): __GAME_PASCAL__State {
   switch (phase) {
     case 'lobby':
       return lobbyState();
+//#cap sharedSteps
+    case 'night':
+      return startedState();
+//#end
 //#cap identityViewing
     case 'viewing':
       return viewingState();
@@ -270,6 +309,9 @@ describe('__GAME_PASCAL__ host controls', () => {
     }
 //#end
     if (phase === 'playing') expectedKeys.push(HOST_ACTION_KEYS.restart);
+//#cap sharedSteps
+    if (phase === 'night') expectedKeys.push(HOST_ACTION_KEYS.restart);
+//#end
 //#cap identityViewing
     if (phase === 'viewing') expectedKeys.push(HOST_ACTION_KEYS.restart);
 //#end
@@ -498,6 +540,9 @@ function shellModel(
   audience: RoomViewerAudience,
   buildHostManagement = () => ({ task: null, actions: [] }),
   options: {
+//#cap sharedSteps
+    stepInteraction?: StepInteraction;
+//#end
     controlledSeat?: number | null;
     isSubmitting?: boolean;
 //#cap identityViewing
@@ -506,7 +551,23 @@ function shellModel(
   } = {},
 ) {
   const viewer = viewerFor(audience);
+//#cap sharedSteps
+  const step = get__GAME_PASCAL__ViewModel(state, options.controlledSeat ?? viewer.seat).step;
+//#end
   return create__GAME_PASCAL__RoomShellModel({
+//#cap sharedSteps
+    stepInteraction: options.stepInteraction ?? {
+      message: step?.message ?? null,
+      progress: state.phase.kind === 'night' && step !== null
+        ? { current: state.phase.steps.order.findIndex((id) => id === step.stepId) + 1, total: state.phase.steps.order.length, label: step.title }
+        : null,
+      completionProgress: step?.progress ?? null,
+      actions: [],
+      seatSelection: null,
+      onSeatTap: () => false,
+      cardPicker: null,
+    },
+//#end
     roomCode: '1234',
     viewer,
     capabilities: capabilities(),
@@ -563,6 +624,48 @@ function bottomMessage(
 ): string | null {
   return shellModel(state, audience, buildHostManagement).playerActions.message;
 }
+
+//#cap sharedSteps
+it('binds the shared night hand and removes a viewed action after its authorised acknowledgement', async () => {
+  let state = startedState();
+  const submit = vi.fn(async (submission: StepSubmission) => {
+    state = drive(state, { type: '__GAME_ID__.step.submit', gameSequence: state.gameSequence, submission });
+    return true;
+  });
+  const hook = renderHook(() => {
+    const step = get__GAME_PASCAL__ViewModel(state, 0).step;
+    return useStepInteraction({
+      presentation: step,
+      draftIdentity: { userId: 'host', roomId: 'night-test' },
+      describeConfirmation: (selection) => {
+        if (state.phase.kind !== 'night' || state.phase.steps.current === null) throw new Error('Expected an active night step');
+        return describe__GAME_PASCAL__NightConfirmation(state, 0, { ...state.phase.steps.current, ...selection });
+      },
+      submit,
+      isSuspended: false,
+      hasPendingCommand: false,
+      progress: step === null ? null : { current: 1, total: 1, label: step.title },
+    });
+  });
+  const hand = shellModel(state, 'host', undefined, { stepInteraction: hook.result.current });
+  const action = hook.result.current.actions[0];
+  if (action?.state.kind !== 'ready') throw new Error('Expected a ready night view during narration');
+  expect(hand.playerActions.actions).toContainEqual(action);
+  expect(hand.playerActions.progress).not.toBeNull();
+  await act(() => action.state.kind === 'ready' && action.state.onPress());
+  const request = vi.mocked(confirmView).mock.calls.at(-1)?.[0];
+  if (request === undefined) throw new Error('Expected shared view confirmation');
+  await act(() => request.onView());
+  const acknowledge = vi.mocked(showDismissAlert).mock.calls.at(-1)?.[2];
+  if (acknowledge === undefined) throw new Error('Expected acknowledgement on dismiss');
+  await act(async () => { await acknowledge(); });
+  hook.rerender();
+  expect(submit).toHaveBeenCalledOnce();
+  expect(hook.result.current.actions).toEqual([]);
+  expect(state.phase.kind).toBe('night');
+  expect(get__GAME_PASCAL__ViewModel(state, null).step?.actions).toEqual([]);
+});
+//#end
 
 //#cap identityViewing
 function renderRoomState(state: __GAME_PASCAL__State, userId = 'host', rejectCompletion = false) {

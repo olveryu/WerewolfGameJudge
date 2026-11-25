@@ -28,6 +28,19 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
   z.strictObject({ type: z.literal('__GAME_ID__.roles.assign') }),
 //#end
   z.strictObject({ type: z.literal('__GAME_ID__.game.begin') }),
+//#cap sharedSteps
+  z.strictObject({
+    type: z.literal('__GAME_ID__.step.submit'),
+    gameSequence: z.number().int().nonnegative(),
+    submission: z.strictObject({
+      stepId: z.string().min(1),
+      serial: z.number().int().positive(),
+      actionKey: z.string().min(1),
+      seats: z.array(z.number().int().nonnegative()).readonly().optional(),
+      cardIndex: z.number().int().nonnegative().optional(),
+    }),
+  }),
+//#end
   z.strictObject({
     type: z.literal('__GAME_ID__.game.restart'),
     gameSequence: z.number().int().nonnegative(),

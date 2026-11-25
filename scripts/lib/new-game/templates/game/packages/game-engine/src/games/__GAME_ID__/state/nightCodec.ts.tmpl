@@ -1,0 +1,56 @@
+/** Strict codec for the example view-only night. Extend the result decoder with approved gameplay. */
+
+import {
+  failDecode, finishObject, parseArray, parseBoolean, parseChoice, parseInteger,
+  parseNonEmptyString, parseNullable, parseObject, parseSeat,
+} from '../../../platform/protocol/runtimeDecoder';
+import type { SeatRecord, StepRecord, StepSlice } from '../../../platform/steps';
+import { __GAME_UPPER___NIGHT_STEP_IDS, type __GAME_PASCAL__NightStepId } from './types';
+
+function seatRecord(value: unknown, path: string): SeatRecord<never> {
+  const raw = parseObject(value, path);
+  if (raw.result !== null) failDecode(`${path}.result`, 'null (the scaffold has no private result)');
+  return finishObject(raw, {
+    submissions: parseArray(raw.submissions, `${path}.submissions`, (item, itemPath) => {
+      const submission = parseObject(item, itemPath);
+      return finishObject(submission, {
+        actionKey: parseNonEmptyString(submission.actionKey, `${itemPath}.actionKey`),
+        seats: parseArray(submission.seats, `${itemPath}.seats`, parseSeat),
+        cardIndex: parseNullable(submission.cardIndex, `${itemPath}.cardIndex`, parseSeat),
+      }, itemPath);
+    }),
+    result: null,
+    isResultAcknowledged: parseBoolean(raw.isResultAcknowledged, `${path}.isResultAcknowledged`),
+  }, path);
+}
+
+/** Decode the current shape only; invalid step ids and extra fields fail rather than migrate. */
+export function parse__GAME_PASCAL__NightSlice(value: unknown, path: string): StepSlice<__GAME_PASCAL__NightStepId, never> {
+  const raw = parseObject(value, path);
+  const rawRecords = parseObject(raw.records, `${path}.records`);
+  const records: Partial<Record<__GAME_PASCAL__NightStepId, StepRecord<never>>> = {};
+  for (const [key, item] of Object.entries(rawRecords)) {
+    const stepId = parseChoice(key, `${path}.records.${key}`, __GAME_UPPER___NIGHT_STEP_IDS);
+    const recordPath = `${path}.records.${key}`;
+    const record = parseObject(item, recordPath);
+    const rawSeats = parseObject(record.bySeat, `${recordPath}.bySeat`);
+    const bySeat: Partial<Record<number, SeatRecord<never>>> = {};
+    for (const [seat, value] of Object.entries(rawSeats)) {
+      if (!/^(0|[1-9]\d*)$/.test(seat)) failDecode(`${recordPath}.bySeat.${seat}`, 'a canonical seat key');
+      bySeat[parseSeat(Number(seat), `${recordPath}.bySeat.${seat}`)] = seatRecord(value, `${recordPath}.bySeat.${seat}`);
+    }
+    records[stepId] = finishObject(record, { bySeat }, recordPath);
+  }
+  return finishObject(raw, {
+    order: parseArray(raw.order, `${path}.order`, (item, itemPath) => parseChoice(item, itemPath, __GAME_UPPER___NIGHT_STEP_IDS)),
+    current: parseNullable(raw.current, `${path}.current`, (item, itemPath) => {
+      const current = parseObject(item, itemPath);
+      return finishObject(current, {
+        stepId: parseChoice(current.stepId, `${itemPath}.stepId`, __GAME_UPPER___NIGHT_STEP_IDS),
+        serial: parseInteger(current.serial, `${itemPath}.serial`),
+      }, itemPath);
+    }),
+    records,
+    deadlineMs: parseNullable(raw.deadlineMs, `${path}.deadlineMs`, parseInteger),
+  }, path);
+}

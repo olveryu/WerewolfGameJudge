@@ -15,7 +15,7 @@ corepack pnpm new-game <gameId> \
 | Feature           | Allowed values                          | Derived capabilities and required behavior                                                                                       |
 | ----------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `identity`        | `none`, `private`                       | `private` derives `identityViewing`, `botBulkViewing`, and `revealAnimation`; every human and bot must satisfy the viewing gate. |
-| `night`           | `none`, `narrated`                      | `narrated` derives `nightPhase` and `audioOrchestration`; the game cannot have a night feature without narration wiring.         |
+| `night`           | `none`, `narrated`                      | `narrated` derives night steps, shared interaction, narration and catalogue acceptance; no separate step opt-in.                 |
 | `guidedNarration` | `none`, `narrated`                      | `narrated` derives `audioOrchestration` but does not invent a night phase.                                                       |
 | `stageDeadline`   | `none`, `enabled`                       | `enabled` derives deadline wiring and protocol tests. Identity viewing delays arming until play begins.                          |
 | `wordSupply`      | `none`, `in-game`, `background`, `both` | Any supplied mode derives `wordLibrary`; the report requires the matching workflow and deployment integration.                   |

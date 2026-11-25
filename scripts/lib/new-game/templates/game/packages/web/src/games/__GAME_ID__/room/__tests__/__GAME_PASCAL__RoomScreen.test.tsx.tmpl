@@ -18,6 +18,9 @@ import { createFakeBgm } from '@/test-utils/fakeBgm';
 //#end
 import {
   build__GAME_PASCAL__TestLobby,
+//#cap sharedSteps
+  build__GAME_PASCAL__TestNight,
+//#end
 //#cap identityViewing
   drive__GAME_PASCAL__TestCommand,
 //#end
@@ -55,7 +58,7 @@ vi.mock('@/features/room/components/RoomShell', () => ({
     content,
     gameOverlays,
     directory,
-    actionSurface,
+    actionSurface = 'hand',
     phaseLabel,
     lobbyAction,
   }: {
@@ -74,7 +77,7 @@ vi.mock('@/features/room/components/RoomShell', () => ({
     phaseLabel: string | null;
     lobbyAction: { label: string; occupiedSeats: number } | null;
   }) => (
-    <section aria-label="房间内容" data-kind={content.kind}>
+    <section aria-label="房间内容" data-kind={content.kind} data-action-surface={actionSurface}>
       {phaseLabel && <span data-testid="phase-label">{phaseLabel}</span>}
       {lobbyAction && <span data-testid="lobby-action">{`${lobbyAction.label} · ${lobbyAction.occupiedSeats}`}</span>}
       {content.beforeSeatBoard}
@@ -91,6 +94,9 @@ vi.mock('@/features/room/components/RoomShell', () => ({
 vi.mock('../hooks/use__GAME_PASCAL__RoomState', () => ({
   use__GAME_PASCAL__RoomState: () => ({
     state,
+//#cap sharedSteps
+    stepInteraction: { cardPicker: null },
+//#end
     viewModel: get__GAME_PASCAL__ViewModel(state, 0),
     shellModel: null,
     reviewOverlay: null,
@@ -151,6 +157,16 @@ it('provides the lobby status and action to the room shell', () => {
   expect(screen.getByTestId('lobby-action')).toHaveTextContent('开始游戏 · 4');
 //#end
 });
+
+//#cap sharedSteps
+it('keeps the seat board and shared hand during night rather than opening the stage menu', () => {
+  state = build__GAME_PASCAL__TestNight(build__GAME_PASCAL__TestLobby());
+  renderRoom();
+  expect(screen.getByRole('region', { name: '房间内容' })).toHaveAttribute('data-kind', 'seats');
+  expect(screen.getByRole('region', { name: '房间内容' })).toHaveAttribute('data-action-surface', 'hand');
+  expect(screen.getByTestId('phase-label')).toHaveTextContent('夜晚');
+});
+//#end
 
 //#cap identityViewing
 it.each(['lobby', 'viewing', 'playing', 'ended'] as const)(

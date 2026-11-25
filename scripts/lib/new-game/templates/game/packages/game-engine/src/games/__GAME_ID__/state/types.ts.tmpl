@@ -8,6 +8,9 @@
 import type { GameConfigSchema } from '../../../platform/config/configSchema';
 import { isValidConfig } from '../../../platform/config/configSchema';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+//#cap sharedSteps
+import type { StepSlice } from '../../../platform/steps';
+//#end
 //#cap audioOrchestration
 import type { AudioEffect } from '../../../platform/audio';
 //#end
@@ -26,6 +29,11 @@ import {
 } from '../../../platform/room/seating';
 
 export const __GAME_UPPER___GAME_TYPE = '__GAME_ID__' as const;
+//#cap sharedSteps
+// TODO(gameplay): replace the scaffold step with the approved step ids and execution order.
+export const __GAME_UPPER___NIGHT_STEP_IDS = ['todoNight'] as const;
+export type __GAME_PASCAL__NightStepId = (typeof __GAME_UPPER___NIGHT_STEP_IDS)[number];
+//#end
 
 // TODO(gameplay): 人数上下限与默认值是骨架占位，按 docs/__GAME_ID__-game-design.md 定稿后改。
 export const __GAME_UPPER___MIN_PLAYERS = 4;
@@ -61,6 +69,9 @@ export function isValid__GAME_PASCAL__Config(config: __GAME_PASCAL__Config): boo
 
 export type __GAME_PASCAL__Phase =
   | { readonly kind: 'lobby' }
+//#cap sharedSteps
+  | { readonly kind: 'night'; readonly steps: StepSlice<__GAME_PASCAL__NightStepId, never> }
+//#end
 //#cap identityViewing
   | { readonly kind: 'viewing' }
 //#end
@@ -85,11 +96,21 @@ export type __GAME_PASCAL__Phase =
 //#end
   | { readonly kind: 'ended' };
 
+//#cap sharedSteps
+//#cap identityViewing
+export const __GAME_UPPER___PHASES = ['lobby', 'viewing', 'night', 'playing', 'ended'] as const;
+//#end
+//#cap !identityViewing
+export const __GAME_UPPER___PHASES = ['lobby', 'night', 'playing', 'ended'] as const;
+//#end
+//#end
+//#cap !sharedSteps
 //#cap identityViewing
 export const __GAME_UPPER___PHASES = ['lobby', 'viewing', 'playing', 'ended'] as const;
 //#end
 //#cap !identityViewing
 export const __GAME_UPPER___PHASES = ['lobby', 'playing', 'ended'] as const;
+//#end
 //#end
 export type __GAME_PASCAL__PhaseKind = (typeof __GAME_UPPER___PHASES)[number];
 

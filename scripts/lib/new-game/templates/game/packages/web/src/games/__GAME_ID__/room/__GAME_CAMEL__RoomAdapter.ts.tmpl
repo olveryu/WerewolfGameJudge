@@ -74,6 +74,11 @@ import type { RoomHostManagementModel } from '@/features/room/model/RoomHostMana
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
+//#cap sharedSteps
+import { formatStepCompletion } from '@/features/room/steps/formatStepCompletion';
+import type { StepInteraction } from '@/features/room/steps/useStepInteraction';
+import { get__GAME_PASCAL__ViewModel } from '@game-judge/game-engine/games/__GAME_ID__/public';
+//#end
 import {
   buildReviewHostAction,
   buildViewerReviewBottomButtons,
@@ -90,6 +95,9 @@ const get__GAME_PASCAL__ProfileTarget = (
 ): RoomProfileTarget | null => getRoomProfileTarget(state.roster, seat);
 
 export interface __GAME_PASCAL__SeatSourceInput {
+//#cap sharedSteps
+  readonly stepInteraction?: StepInteraction;
+//#end
   readonly state: __GAME_PASCAL__State;
   readonly revision: number;
   readonly userId: string;
@@ -104,6 +112,11 @@ export function create__GAME_PASCAL__SeatDataSource(
 ): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
   return createRoomSeatDataSource({
+//#cap sharedSteps
+    revisionKey: `${revision}:${controlledSeat ?? 'self'}:${input.stepInteraction?.seatSelection?.selected.join(',') ?? ''}`,
+    resolveHighlight: (seat) => input.stepInteraction?.seatSelection?.selected.includes(seat) ? 'selected' : undefined,
+    resolveDisabledReason: (seat) => input.stepInteraction?.seatSelection?.unavailableReasons[seat],
+//#end
     seatCount: state.config.numberOfPlayers,
     revision,
     roster: state.roster,
@@ -137,6 +150,9 @@ export function create__GAME_PASCAL__SeatDataSource(
 export interface __GAME_PASCAL__RoomShellModelInput extends Omit<
   RoomShellModelInput, 'phase' | 'step' | 'isAudioPlaying' | 'seatSource' | 'seatConfirmation' | 'profile' | 'playerActions' | 'controlledSeat'
 > {
+//#cap sharedSteps
+  readonly stepInteraction: StepInteraction;
+//#end
   readonly state: __GAME_PASCAL__State;
   readonly revision: number;
   readonly controlledSeat: number | null;
@@ -379,6 +395,9 @@ export function create__GAME_PASCAL__RoomShellModel(
     revision: input.revision,
     userId: input.viewer.userId,
     controlledSeat: input.controlledSeat,
+//#cap sharedSteps
+    stepInteraction: input.stepInteraction,
+//#end
   });
 //#cap identityViewing
   const identityAction = resolveViewIdentityAction({
@@ -405,7 +424,12 @@ export function create__GAME_PASCAL__RoomShellModel(
 //#end
     seatSource,
     phase: state.phase.kind,
+//#cap sharedSteps
+    step: state.phase.kind === 'night' ? state.phase.steps.current?.stepId ?? null : null,
+//#end
+//#cap !sharedSteps
     step: null,
+//#end
     seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
     profile: createRoomProfileCardModel({
       selection: input.profileSelection,
@@ -419,6 +443,20 @@ export function create__GAME_PASCAL__RoomShellModel(
     playerActions: {
       // 底部按钮必须声明 audience（participant / host / anyone），壳工厂按 viewer 校验。
       message:
+//#cap sharedSteps
+        state.phase.kind === 'night'
+          ? [
+              input.stepInteraction.message,
+              formatStepCompletion({
+                isActor: get__GAME_PASCAL__ViewModel(state, input.controlledSeat ?? input.viewer.seat).step?.isActor ?? false,
+                progressKind: 'confirmation',
+                progress: input.stepInteraction.completionProgress,
+                deadlineMs: state.phase.steps.deadlineMs,
+                nowMs: 0,
+              }),
+            ].filter((line) => line !== null).join(' ') || null
+          :
+//#end
         state.phase.kind === 'ended'
           ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
           : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
@@ -426,9 +464,17 @@ export function create__GAME_PASCAL__RoomShellModel(
       // TODO(gameplay): Count player actions/confirmations, not opening, closing or dawn audio clips.
       // Assert exact current/total against the action plan; batch cues and lock actions through closing narration.
 //#end
+//#cap sharedSteps
+      progress: input.stepInteraction.progress,
+//#end
+//#cap !sharedSteps
       progress: null,
+//#end
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
       actions: [
+//#cap sharedSteps
+        ...input.stepInteraction.actions,
+//#end
 //#cap identityViewing
         ...(identityButton === null ? [] : [identityButton]),
 //#end
@@ -436,7 +482,20 @@ export function create__GAME_PASCAL__RoomShellModel(
           ? []
           : buildViewerReviewBottomButtons(input.review, input.viewer)),
       ],
+//#cap sharedSteps
+      group: state.phase.kind === 'night' && input.stepInteraction.actions.length > 1 && input.stepInteraction.progress !== null
+        ? {
+            key: `night:${state.phase.steps.current?.stepId}:${state.phase.steps.current?.serial}`,
+            label: input.stepInteraction.progress.label,
+            audience: 'participant',
+            isPending: input.stepInteraction.actions.some((action) => action.isPending === true),
+            actions: input.stepInteraction.actions,
+          }
+        : null,
+//#end
+//#cap !sharedSteps
       group: null,
+//#end
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

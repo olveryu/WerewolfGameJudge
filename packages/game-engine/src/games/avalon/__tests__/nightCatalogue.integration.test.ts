@@ -7,6 +7,7 @@ import path from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { verifyCatalogue } from '../../../../../../scripts/lib/catalogues/verify.mjs';
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import { formatSeat } from '../../../platform/room/formatSeat';
 import {
@@ -108,8 +109,9 @@ const NIGHTS = withFixedDeal(() =>
 );
 
 describe('Avalon night step-by-step list', () => {
-  it('matches the generated list of what every step shows on every board', async () => {
-    await expect(
+  it('matches the generated list of what every step shows on every board', () => {
+    verifyCatalogue(
+      'avalon-night',
       renderViewNightCatalogue({
         heading: '阿瓦隆夜晚逐步骤清单',
         generatedBy: 'avalon/__tests__/nightCatalogue.integration.test.ts',
@@ -118,7 +120,7 @@ describe('Avalon night step-by-step list', () => {
         nights: NIGHTS,
         normalize,
       }),
-    ).toMatchFileSnapshot('./__snapshots__/night-steps.catalogue.txt');
+    );
   });
 
   it('reaches every night step on some board', () => {
