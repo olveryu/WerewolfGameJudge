@@ -159,7 +159,7 @@ describe('structuredDescription contract', () => {
     it('should return multi-field RoleDescription for spiritKnight', () => {
       const desc = getRoleStructuredDescription('spiritKnight');
       expect(desc).toBeDefined();
-      expect(desc.passive).toBeDefined();
+      expect(desc.passive).toContain('免疫所有夜间致死效果');
       expect(desc.trigger).toBeDefined();
       expect(desc.restriction).toBeDefined();
     });
