@@ -32,6 +32,8 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+import { StepCardPicker } from '@/features/room/steps/StepCardPicker';
+import { STEP_CANCEL_SELECTION_ACTION_KEY } from '@/features/room/steps/useStepInteraction';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { BoardStrategyContent } from '@/games/werewolf/components/BoardStrategy/BoardStrategyContent';
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardStrategyData';
@@ -48,7 +50,6 @@ import IconPause from '~icons/ion/pause';
 import IconTimeOutline from '~icons/ion/time-outline';
 
 import { BoardNominationModal } from './components/BoardNominationList';
-import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { MvpSelectionModal } from './components/MvpSelectionModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { SheriffElectionDialog } from './components/SheriffElectionDetailsSurfaces';
@@ -56,11 +57,7 @@ import { SheriffElectionHud } from './components/SheriffElectionHud';
 import { SheriffElectionPanel } from './components/SheriffElectionPanel';
 import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
 import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
-import {
-  createWerewolfBoardInfoSections,
-  isWerewolfSetup,
-  WEREWOLF_SEAT_SELECTION_ESCAPE_KEY,
-} from './werewolfRoomAdapter';
+import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoomAdapter';
 
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 const STRATEGY_MATCH_THRESHOLD = 0.1;
@@ -197,7 +194,7 @@ function WerewolfRoomContent(
       lobbyAction={isSetup ? { label: '分配角色', occupiedSeats: viewModel.seats.length } : null}
       selectionMode={
         night.seatSelection !== null
-          ? { kind: 'player', escapeActionKey: WEREWOLF_SEAT_SELECTION_ESCAPE_KEY }
+          ? { kind: 'player', escapeActionKey: STEP_CANCEL_SELECTION_ACTION_KEY }
           : undefined
       }
       directory={{
@@ -436,14 +433,7 @@ function WerewolfRoomContent(
             />
           )}
 
-          {night.chooseCardModal !== null && (
-            <ChooseBottomCardModal
-              choice={night.chooseCardModal.model.choice}
-              confirmText={night.chooseCardModal.model.confirmText}
-              onChoose={night.chooseCardModal.choose}
-              onClose={night.chooseCardModal.close}
-            />
-          )}
+          {night.cardPicker !== null && <StepCardPicker {...night.cardPicker} />}
 
           {isGuideOpen && (
             <RoomDialog

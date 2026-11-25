@@ -3,6 +3,7 @@
 import { acknowledgeAudioQueue, queueAudioBatch } from '../../../platform/audio';
 import { markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges } from '../../../platform/room/seating';
+import { evolveStepSlice } from '../../../platform/steps';
 import type {
   SecrethitlerGameplayPatch,
   SecrethitlerLastPublicResult,
@@ -118,6 +119,24 @@ export function evolveSecrethitlerState(
     case 'secrethitler.role.viewed': {
       if (state.roleViewedSeats.includes(event.seat)) return state;
       return { ...bumped, roleViewedSeats: markSeatViewed(state.roleViewedSeats, event.seat) };
+    }
+    case 'secrethitler.night.step': {
+      if (state.phase.kind !== 'night') return state;
+      if (event.event.type === 'advanced' && event.event.next === null) {
+        return {
+          ...bumped,
+          phase: {
+            kind: 'election',
+            presidentSeat: state.nextPresidentSeat,
+            returnToSeat: null,
+            preselectedChancellorSeat: null,
+          },
+        };
+      }
+      return {
+        ...bumped,
+        phase: { kind: 'night', steps: evolveStepSlice(state.phase.steps, event.event) },
+      };
     }
     case 'secrethitler.review.completed':
       return state.reviewCompletedUserIds.includes(event.userId)

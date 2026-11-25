@@ -3,12 +3,12 @@
 import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
 import { fireEvent, render } from '@testing-library/react';
 
+import { confirmAction } from '@/features/room/confirm';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { AvalonQuestModal } from '../AvalonQuestModal';
 
-vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn() }));
+vi.mock('@/features/room/confirm', () => ({ confirmAction: vi.fn() }));
 
 function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewModel {
   return {
@@ -28,6 +28,7 @@ function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMod
     merlinSees: null,
     percivalSees: null,
     nightConfirmed: false,
+    step: null,
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: null,
@@ -125,9 +126,10 @@ describe('AvalonQuestModal', () => {
     const { getByTestId, onPlay } = renderModal({ myRole: 'minion' });
     fireEvent.click(getByTestId('avalon-quest-fail'));
     expect(onPlay).not.toHaveBeenCalled();
-    const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+    const confirmation = vi.mocked(confirmAction).mock.calls.at(-1)?.[0];
     if (confirmation === undefined) throw new Error('expected play confirmation');
-    void confirmation[2]();
+    expect(confirmation.label).toBe('打出失败');
+    void confirmation.onConfirm();
     expect(onPlay).toHaveBeenCalledWith('fail');
   });
 

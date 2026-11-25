@@ -116,7 +116,7 @@ function ForwardGuide({ model }: { readonly model: RoomShareModel }) {
         <p className="room-share-hint">好友打开直接进入房间 🎉</p>
       </div>
       <div className="room-share-actions">
-        <Button onClick={model.close}>我知道了</Button>
+        <Button onClick={model.close}>知道了</Button>
       </div>
     </>
   );

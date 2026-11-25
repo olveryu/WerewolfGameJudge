@@ -1,23 +1,62 @@
 import { act, renderHook } from '@testing-library/react';
 
-import { dismissAlert } from '@/utils/alert';
+import { alertStore, dismissAlert, showAlertWithGeneration } from '@/utils/alert';
 
 import { useScopedAlert } from '../useScopedAlert';
 
-vi.mock('@/utils/alert', () => ({ dismissAlert: vi.fn() }));
-
 describe('useScopedAlert', () => {
-  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    const alert = alertStore.getSnapshot();
+    if (alert !== null) dismissAlert(alert.generation);
+  });
 
-  it('dismisses the tracked alert when its owning identity changes', () => {
-    const { result, rerender } = renderHook(({ identity }) => useScopedAlert(identity), {
+  it('dismisses and reports the visible alert when its owning identity changes', () => {
+    const onStale = vi.fn();
+    const { result, rerender } = renderHook(({ identity }) => useScopedAlert(identity, onStale), {
       initialProps: { identity: 'night:1' },
     });
 
-    act(() => result.current(7));
+    const generation = showAlertWithGeneration('Old action');
+    if (generation === null) throw new Error('Expected the tracked alert');
+    act(() => result.current(generation));
     rerender({ identity: 'night:2' });
 
-    expect(dismissAlert).toHaveBeenCalledWith(7);
+    expect(alertStore.getSnapshot()).toBeNull();
+    expect(onStale).toHaveBeenCalledOnce();
+    expect(onStale).toHaveBeenCalledWith(generation);
+  });
+
+  it('leaves a replacement alert intact without reporting the old one as visible', () => {
+    const onStale = vi.fn();
+    const { result, rerender } = renderHook(({ identity }) => useScopedAlert(identity, onStale), {
+      initialProps: { identity: 'night:1' },
+    });
+
+    const generation = showAlertWithGeneration('Old action');
+    if (generation === null) throw new Error('Expected the tracked alert');
+    act(() => result.current(generation));
+    const replacement = showAlertWithGeneration('New message');
+    rerender({ identity: 'night:2' });
+
+    expect(alertStore.getSnapshot()?.generation).toBe(replacement);
+    expect(onStale).not.toHaveBeenCalled();
+  });
+
+  it('uses the latest stale callback when the identity and callback change together', () => {
+    const previous = vi.fn();
+    const latest = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ identity, onStale }) => useScopedAlert(identity, onStale),
+      { initialProps: { identity: 'night:1', onStale: previous } },
+    );
+    const generation = showAlertWithGeneration('Old action');
+    if (generation === null) throw new Error('Expected the tracked alert');
+    act(() => result.current(generation));
+
+    rerender({ identity: 'night:2', onStale: latest });
+
+    expect(previous).not.toHaveBeenCalled();
+    expect(latest).toHaveBeenCalledWith(generation);
   });
 
   it('only dismisses the most recently tracked alert', () => {
@@ -26,12 +65,11 @@ describe('useScopedAlert', () => {
     });
 
     act(() => {
-      result.current(7);
-      result.current(8);
+      result.current(showAlertWithGeneration('First action'));
+      result.current(showAlertWithGeneration('Second action'));
     });
     rerender({ identity: 'night:2' });
 
-    expect(dismissAlert).toHaveBeenCalledTimes(1);
-    expect(dismissAlert).toHaveBeenCalledWith(8);
+    expect(alertStore.getSnapshot()).toBeNull();
   });
 });

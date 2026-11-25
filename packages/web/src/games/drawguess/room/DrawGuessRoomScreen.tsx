@@ -30,6 +30,7 @@ import {
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { confirmAction } from '@/features/room/confirm';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
@@ -45,7 +46,7 @@ import {
   renderDrawGuessDrawing,
 } from '@/games/drawguess/services/renderDrawGuessDrawing';
 import { TESTIDS } from '@/testids';
-import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -432,7 +433,13 @@ function DrawGuessDrawingView({
               onUndo={sync.undo}
               onRedo={sync.redo}
               onClear={() =>
-                showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', sync.clear)
+                confirmAction({
+                  label: '清空画布？',
+                  body: '所有绘画内容都会被删除。',
+                  tone: 'danger',
+                  confirmText: '清空',
+                  onConfirm: sync.clear,
+                })
               }
             />
           ) : (

@@ -2,7 +2,7 @@
  * ConfigScreen — werewolf role configuration (render-only); the Rules step that follows owns
  * create/save, except nominate mode, which submits the board here.
  *
- * The role list is data-driven from FACTION_GROUPS + ROLE_SPECS; all state and callbacks come
+ * The role list is data-driven from FACTION_GROUPS + the role catalog; all state and callbacks come
  * from useConfigScreenState.
  */
 import '@/components/GameSettings.css';
@@ -11,20 +11,20 @@ import '@/games/werewolf/components/faction.css';
 import './ConfigScreen.css';
 
 import { Tabs } from '@ark-ui/react/tabs';
-import { type Faction, ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { type Faction, getRoleCard } from '@game-judge/game-engine/games/werewolf/public';
 import { Fragment, type ReactNode, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
+import { confirmAction } from '@/features/room/confirm';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigParams, WerewolfRulesParams } from '@/games/werewolf/navigation/types';
 import { BoardPickerScreen } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen';
 import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconTrashOutline from '~icons/ion/trash-outline';
 
@@ -139,7 +139,7 @@ export function ConfigScreen({
                   {bulkSlot !== undefined ? (
                     <RoleStepper
                       roleId={bulkSlot.roleId}
-                      label={ROLE_SPECS[bulkSlot.roleId].displayName}
+                      label={getRoleCard(bulkSlot.roleId).displayName}
                       count={state.getBulkCount(bulkSlot.roleId, bulkSlot.count ?? 1)}
                       maxCount={bulkSlot.count ?? 1}
                       onCountChange={state.handleBulkCountChange}
@@ -217,7 +217,11 @@ export function ConfigScreen({
     const requestClose = () => {
       if (state.isSubmitting) return;
       if (state.isDirty || settingsDialog?.rulesDirty === true) {
-        showConfirmAlert('放弃修改？', '还没有保存此次修改。', dialog.onClose);
+        confirmAction({
+          label: '放弃修改？',
+          body: '还没有保存此次修改。',
+          onConfirm: dialog.onClose,
+        });
       } else {
         dialog.onClose();
       }

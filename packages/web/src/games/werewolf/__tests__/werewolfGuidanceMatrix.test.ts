@@ -1,22 +1,27 @@
 /**
  * Every (status × viewer) cell of WEREWOLF_GUIDANCE_MATRIX holds against
- * the real assembly: engine projection → night model → bottom layout →
+ * the real assembly: engine projection → shared step → bottom layout →
  * bottom actions → shell model. The probed viewer is never the actor
  * (actors read the schema action sentence instead — same cell).
  */
-import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus, getWerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  GameStatus,
+  getWerewolfViewModel,
+  PRESET_TEMPLATES,
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
+import type { StepInteraction } from '@/features/room/steps/useStepInteraction';
+import { createEngineGame } from '@/games/werewolf/room/__tests__/harness/engineGame';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
-import { resolveNightInteraction } from '@/games/werewolf/room/night/resolveNightInteraction';
 import { buildWerewolfGuideMessage } from '@/games/werewolf/room/werewolfGuideMessage';
 import {
-  createWerewolfPlayerActionList,
   createWerewolfPlayerActions,
   createWerewolfRoomCapabilities,
   createWerewolfRoomShellModel,
+  createWerewolfStepActionList,
 } from '@/games/werewolf/room/werewolfRoomAdapter';
 import { viewerFor } from '@/test-utils/roomViewer';
 
@@ -32,40 +37,29 @@ const STATUSES: readonly GameStatus[] = [
   GameStatus.Ended,
 ];
 
+let activeNight: GameState;
+beforeAll(() => {
+  const preset = PRESET_TEMPLATES.find((candidate) => candidate.name === '预女猎白');
+  if (preset === undefined) throw new Error('[FAIL-FAST] Missing guidance-matrix preset');
+  activeNight = createEngineGame(
+    preset.name,
+    new Map(preset.roles.map((role, seat) => [seat, role])),
+  ).getGameState();
+});
+
 function createGameState(overrides: Partial<GameState> = {}): GameState {
-  return {
-    gameType: 'werewolf',
-    roomCode: 'ROOM',
-    hostUserId: 'HOST',
-    status: GameStatus.Ongoing,
-    templateRoles: ['wolf', 'witch', 'seer'] as RoleId[],
-    players: {
-      0: { seat: 0, role: 'wolf' as RoleId },
-      1: { seat: 1, role: 'witch' as RoleId },
-      2: { seat: 2, role: 'seer' as RoleId },
-    },
-    roleViewedSeats: [],
-    nightStep: { kind: 'inStep', stepId: 'seerCheck' },
-    isAudioPlaying: false,
-    audioBatchId: 0,
-    gameSequence: 0,
-    pendingAudioEffects: [],
-    actions: [],
-    pendingRevealAcks: [],
-    hypnotizedSeats: [],
-    piperRevealAcks: [],
-    conversionRevealAcks: [],
-    wolfGirlConfessionRevealAcks: [],
-    cupidLoversRevealAcks: [],
-    seedWolfInfectionRevealAcks: [],
-    roster: {
-      0: { seat: 0, userId: 'HOST', profile: { displayName: '房主' } },
-      1: { seat: 1, userId: 'p1', profile: { displayName: 'P2' } },
-      2: { seat: 2, userId: 'p2', profile: { displayName: 'P3' } },
-    },
-    ...overrides,
-  };
+  return { ...activeNight, ...overrides };
 }
+
+const EMPTY_STEP: StepInteraction = {
+  message: null,
+  progress: null,
+  completionProgress: null,
+  actions: [],
+  seatSelection: null,
+  onSeatTap: () => false,
+  cardPicker: null,
+};
 
 const ELECTION_VIEW: SheriffElectionViewModel = {
   phase: 'registration',
@@ -102,14 +96,15 @@ function createElection(): SheriffElectionPanelModel {
 }
 
 function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message: string | null } {
-  const viewer = viewerFor(audience, { hostUserId: 'HOST', seatedUserId: 'p1' });
-  const state = createGameState({ status });
-  const viewModel = getWerewolfViewModel(state, { seat: viewer.seat, isHost: viewer.isHost });
-  const night = resolveNightInteraction({
-    viewModel,
-    locks: { isAudioPlaying: false, hasPendingCommand: false },
-    nowMs: 0,
+  const viewer = viewerFor(audience, {
+    hostUserId: activeNight.hostUserId,
+    seatedUserId: 'player_1',
   });
+  const state = createGameState({
+    status,
+    ...(status === GameStatus.Assigned ? { roleViewedSeats: [] } : {}),
+  });
+  const viewModel = getWerewolfViewModel(state, { seat: viewer.seat, isHost: viewer.isHost });
   const sheriffElectionPanel = status === GameStatus.Day ? createElection() : null;
   // The review exists from Day on; guidance does not depend on its content.
   const review =
@@ -132,16 +127,15 @@ function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message:
     takeOverBots: { isAllowed: false, reason: null },
     shareRoom: vi.fn(),
   });
-  const actionList = createWerewolfPlayerActionList({
+  const actionList = createWerewolfStepActionList({
     viewModel,
-    night,
-    actionGroupKey: 'guidance-matrix',
+    step: EMPTY_STEP,
     isHost: viewer.isHost,
     effectiveSeat: viewer.seat,
     isAudioPlaying: false,
     review,
-    onNightButton: vi.fn(),
     onViewRole: vi.fn(),
+    onPersonalView: vi.fn(),
   });
   const playerActions = createWerewolfPlayerActions({
     state,
@@ -151,6 +145,7 @@ function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message:
     actions: actionList,
     actionMessage: null,
     nightStatusLine: null,
+    isStepActor: viewModel.step?.isActor === true,
     guideMessage: buildWerewolfGuideMessage({
       isHost: viewer.isHost,
       roomStatus: status,
@@ -207,6 +202,9 @@ function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message:
     review,
     onGrantReviewAccess: vi.fn(),
     onLastNightInfo: vi.fn(),
+    onLastNightDeaths: vi.fn(),
+    announcements: [],
+    onAnnouncement: vi.fn(),
     onSelectMvp: vi.fn(),
   });
   return { message: model.playerActions.message };

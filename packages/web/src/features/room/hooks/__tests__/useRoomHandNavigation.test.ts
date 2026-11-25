@@ -99,6 +99,23 @@ describe('useRoomHandNavigation', () => {
     expect(result.current.face).toEqual({ kind: 'main' });
   });
 
+  it('returns from a host sub-hand to its host entry and closes it when unavailable', () => {
+    const { result, rerender } = renderHook<ReturnType<typeof useRoomHandNavigation>, Input>(
+      (props) => useRoomHandNavigation(props),
+      { initialProps: { ...initial, hostGroupKey: 'information' } },
+    );
+    act(() => result.current.openHost());
+    act(() => result.current.openHostGroup('information'));
+    expect(result.current.face).toEqual({ kind: 'host-group', key: 'information' });
+    expect(result.current.focus).toBe('host-group:information:back');
+    act(() => result.current.back());
+    expect(result.current.face).toEqual({ kind: 'host' });
+    expect(result.current.focus).toBe('host-management:information');
+    act(() => result.current.openHostGroup('information'));
+    rerender({ ...initial, hostGroupKey: null });
+    expect(result.current.face).toEqual({ kind: 'main' });
+  });
+
   it('returns from a menu manual to its entry and then to the menu trigger', () => {
     const { result } = renderHook(() => useRoomHandNavigation({ ...initial, surface: 'menu' }));
     act(() => result.current.openMenu());

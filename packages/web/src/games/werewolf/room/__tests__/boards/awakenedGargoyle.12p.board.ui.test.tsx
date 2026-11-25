@@ -1,215 +1,28 @@
-/**
- * AwakenedGargoyle 12P Board UI Test
- *
- * Board: Adjacent-Only (Follow Your Neighbor)
- * Roles: 4x villager, 2x wolf, awakenedGargoyle, seer, witch, hunter, guard, graveyardKeeper
- *
- * Required UI coverage:
- * - actionPrompt, wolfVote, wolfVoteEmpty, witchSavePrompt, witch poison selection,
- *   witchNoKill, confirmTrigger, seat selection, skipConfirm
- *
- * Server-data required (covered by integration):
- * - seerReveal
- */
-
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { waitFor } from '@testing-library/react';
-
 import {
-  actorStep,
-  chainConfirmTrigger,
-  chainWolfVote,
-  confirmStep,
-  coverageChainActionPrompt,
-  coverageChainConfirmTrigger,
-  coverageChainSeatSelection,
-  coverageChainSkipConfirm,
-  coverageChainWitchPoisonSelection,
-  coverageChainWitchSavePrompt,
-  coverageChainWolfVote,
-  coverageChainWolfVoteEmpty,
-  draftSeatSelection,
-  getBoardByName,
-  mountRoomFor as mount,
-  pressText,
-  recordAlerts,
-  requireBottomActionText,
-  requireEmptyVoteText,
-  RoomScreenTestHarness,
-  witchStep,
-  wolfKillStep,
-} from '@/games/werewolf/room/__tests__/harness';
+  assertBoardNightScenario,
+  collectBoardNightScenarios,
+} from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
-const BOARD_NAME = '唯邻是从';
-const _board = getBoardByName(BOARD_NAME)!;
-const WOLVES = new Map<number, RoleId>([
-  [4, 'wolf'],
-  [5, 'wolf'],
-  [6, 'awakenedGargoyle'],
-]);
-const SEER_STEP = actorStep('seerCheck', 'seer', 7);
-const WOLF_STEP = wolfKillStep('wolf', 4, WOLVES);
+const scenarios = collectBoardNightScenarios('唯邻是从');
 
-let harness: RoomScreenTestHarness;
-let detachAlerts: () => void;
-
-describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
-  beforeEach(() => {
-    harness = new RoomScreenTestHarness();
-    detachAlerts = recordAlerts(harness);
-  });
-  afterEach(() => detachAlerts());
-
-  describe('actionPrompt coverage', () => {
-    it('awakenedGargoyle action: shows action prompt', async () => {
-      await mount(actorStep('awakenedGargoyleConvert', 'awakenedGargoyle', 6));
-      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
-    });
-  });
-
-  describe('wolf vote selection coverage', () => {
-    it('wolf vote: drafting a target enables vote submission', async () => {
-      const view = await mount(WOLF_STEP);
-      await draftSeatSelection(view, 1);
-    });
-  });
-
-  describe('witchSavePrompt coverage', () => {
-    it('witch action: shows save prompt', async () => {
-      await mount(witchStep(8, 1));
-      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
-    });
-  });
-
-  describe('witch poison selection coverage', () => {
-    it('witch action: drafting a poison target enables submission', async () => {
-      const view = await mount(witchStep(8, -1));
-      await draftSeatSelection(view, 1);
-    });
-  });
-
-  describe('witchNoKill coverage', () => {
-    it('witch: shows witchNoKill when killedSeat=-1', async () => {
-      await mount(witchStep(8, -1));
-      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
-    });
-  });
-
-  describe('confirmTrigger coverage', () => {
-    it('hunter confirm: pressing bottom button shows confirmTrigger dialog', async () => {
-      const view = await mount(
-        confirmStep('hunterConfirm', 'hunter', 9, { role: 'hunter', canShoot: true }),
-      );
-      const bottomActionText = requireBottomActionText('hunterConfirm');
-      await pressText(view, bottomActionText);
-      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
-    });
-  });
-
-  describe('seat selection coverage', () => {
-    it('seer: drafting a target enables submission', async () => {
-      const view = await mount(SEER_STEP);
-      await draftSeatSelection(view, 1);
-    });
-  });
-
-  describe('skipConfirm coverage', () => {
-    it('seer: skip button shows skipConfirm dialog', async () => {
-      const view = await mount(SEER_STEP);
-      harness.clear();
-      await pressText(view, requireBottomActionText('seerCheck'));
-      await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
-    });
-  });
-
-  describe('wolfVoteEmpty coverage', () => {
-    it('wolf: empty knife button shows wolfVoteEmpty dialog', async () => {
-      const view = await mount(WOLF_STEP);
-      harness.clear();
-      await pressText(view, requireEmptyVoteText());
-      await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
-    });
-  });
-
-  // ===========================================================================
-  // Chain Interaction (press button → assert callback)
-  // ===========================================================================
-
-  describe('chain interaction', () => {
-    it('wolf target submission → submitAction called', async () => {
-      await chainWolfVote('wolf', 4, WOLVES, 1);
-    });
-
-    it('confirmTrigger (hunter) → dialog dismissed', async () => {
-      await chainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 9);
-    });
-  });
-
-  describe('Coverage Assertion (MUST PASS)', () => {
-    it('all required UI flows covered with chain interactions and effect assertions', async () => {
-      // Step 1: actionPrompt (awakenedGargoyle)
-      await coverageChainActionPrompt(
-        harness,
+describe('WerewolfRoomScreen UI: 唯邻是从', () => {
+  it('covers the board’s night steps with engine-produced states', () => {
+    expect(scenarios.map((scenario) => scenario.presentation.stepId)).toEqual(
+      expect.arrayContaining([
+        'wolfKill',
         'awakenedGargoyleConvert',
-        'awakenedGargoyle',
-        'awakenedGargoyle',
-        6,
-      );
-
-      // Step 2: wolf target selection → submit → submitAction(1) called
-      const { submitAction: wolfVoteAction } = await coverageChainWolfVote('wolf', 4, WOLVES, 1);
-      expect(wolfVoteAction).toHaveBeenCalledWith({ kind: 'target', target: 1 });
-
-      // Step 3: witchSavePrompt
-      await coverageChainWitchSavePrompt(harness, 8);
-
-      // Step 4: witch poison selection
-      await coverageChainWitchPoisonSelection(harness, 8);
-
-      // Step 5: confirmTrigger (hunter) → press primary + assertNoLoop
-      await coverageChainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 9);
-
-      // Step 6: seat selection (seer) → submit → submitAction called
-      const { submitAction: seerSubmit } = await coverageChainSeatSelection(
+        'awakenedGargoyleConvertReveal',
         'seerCheck',
-        'seer',
-        'seer',
-        7,
-        1,
-      );
-      expect(seerSubmit).toHaveBeenCalled();
+        'witchAction',
+        'hunterConfirm',
+        'guardProtect',
+      ]),
+    );
+  });
 
-      // Step 7: skipConfirm (seer) → press primary → submitAction called
-      const { submitAction: seerSkip } = await coverageChainSkipConfirm(
-        harness,
-        'seerCheck',
-        'seer',
-        'seer',
-        7,
-      );
-      expect(seerSkip).toHaveBeenCalled();
-
-      // Step 8: wolfVoteEmpty → press confirm → submitAction(null) called
-      const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
-        harness,
-        'wolf',
-        4,
-        WOLVES,
-      );
-      expect(emptyVote).toHaveBeenCalledWith({ kind: 'target', target: null });
-
-      // Final: literal coverage requirements
-      harness.assertCoverage([
-        'actionPrompt',
-        'wolfVoteEmpty',
-        'witchSavePrompt',
-        'witchNoKill',
-
-        'skipConfirm',
-        'confirmTrigger',
-      ]);
-    });
+  it.each(scenarios)('$label submits through the real room screen', async (scenario) => {
+    await assertBoardNightScenario(scenario);
   });
 });

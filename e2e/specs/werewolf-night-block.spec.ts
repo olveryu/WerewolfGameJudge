@@ -7,6 +7,7 @@ import {
   clickSeatAndConfirm,
   driveWolfDisabledEmptyVote,
   driveWolfVote,
+  expectUnavailableNightAction,
   findAllRolePageIndices,
   findRolePageIndex,
   viewLastNightInfo,
@@ -130,7 +131,11 @@ test.describe('Werewolf Night — Block', () => {
           waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages));
 
         // Verify blocked text
-        await expect(pages[seerIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('封锁');
+        await expectUnavailableNightAction(
+          pages[seerIdx]!,
+          'seerCheck',
+          '被噩梦之影恐惧，本夜无法使用技能',
+        );
         await expect(pages[seerIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
 
         // Finish night
@@ -181,7 +186,11 @@ test.describe('Werewolf Night — Block', () => {
           waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages));
 
         // Verify blocked text
-        await expect(pages[witchIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('封锁');
+        await expectUnavailableNightAction(
+          pages[witchIdx]!,
+          'poison',
+          '被噩梦之影恐惧，本夜无法使用技能',
+        );
         await expect(pages[witchIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
 
         // Finish night — villager dies (witch couldn't save)
@@ -272,12 +281,16 @@ test.describe('Werewolf Night — Block', () => {
         await test.step('Dreamcatcher should see blocked prompt', () =>
           waitForRoleTurn(pages[dcIdx]!, 'dreamcatcherDream', pages));
 
-        await expect(pages[dcIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('封锁');
+        await expectUnavailableNightAction(
+          pages[dcIdx]!,
+          'dreamcatcherDream',
+          '被噩梦之影恐惧，本夜无法使用技能',
+        );
         await expect(pages[dcIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
 
         // Skip the blocked step on DC's page
-        await clickNightButton(pages[dcIdx]!, 'skip', '确认跳过');
-        await confirmAlert(pages[dcIdx]!, '跳过本次行动？');
+        await clickNightButton(pages[dcIdx]!, 'skip', '不用技能');
+        await confirmAlert(pages[dcIdx]!, '不用技能？');
 
         // Wolf kill — nightmare is wolf faction
         const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), nightmareIdx].filter(

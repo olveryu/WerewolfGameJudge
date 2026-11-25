@@ -328,7 +328,7 @@ test('four humans write four turns without restoring unsubmitted input and revea
       const finish = hostPage.getByTestId(TESTIDS.galleryFinishButton);
       await expect(finish).toHaveText('全部揭晓');
       await finish.click();
-      await confirmAlert(hostPage, '全部揭晓');
+      await confirmAlert(hostPage, '全部揭晓？');
       await expect(spectator.page.getByTestId(TESTIDS.storyRelayGalleryShareButton)).toHaveText(
         '分享本篇故事',
       );

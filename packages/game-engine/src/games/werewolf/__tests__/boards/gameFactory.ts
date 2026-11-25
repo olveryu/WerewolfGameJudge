@@ -1,15 +1,15 @@
 /** Production-command Werewolf fixture builder for cross-package board tests. */
 
 import {
-  buildNightPlan,
   createTemplateFromRoles,
   type GameState,
+  GameStatus,
   getBottomCardCount,
   getPlayerCount,
   isBotOccupant,
+  type NightStepId,
   PRESET_TEMPLATES,
   type RoleId,
-  type SchemaId,
   type WerewolfCommand,
   werewolfEngine,
   type WerewolfInternalCommand,
@@ -24,7 +24,7 @@ import { createSeededRng, shuffleArray } from '@game-judge/game-engine/platform/
 
 import type { GameContext, TestCommandActor, TestCommandExecution } from './gameContext';
 
-const ROOM_CODE = 'TEST01';
+const ROOM_CODE = '1234';
 const HOST_USER_ID = 'host-uid';
 const INITIAL_NOW_MS = 1_000_000;
 const DEFAULT_RANDOM_SEED = 'board-test-seed';
@@ -41,6 +41,8 @@ interface InternalState {
 interface CreateGameOptions {
   /** Base seed used to derive deterministic, command-scoped random seeds. */
   readonly randomSeed?: string;
+  /** Room rule: the witch may use the antidote on herself. */
+  readonly witchCanSelfHeal?: boolean;
 }
 
 function assertSameRoleMultiset(actual: readonly RoleId[], expected: readonly RoleId[]): void {
@@ -138,7 +140,10 @@ export function createGame(
     state: werewolfEngine.createInitialState(
       {
         templateRoles: configuredRoles,
-        rules: { isSheriffElectionEnabled: false },
+        rules: {
+          isSheriffElectionEnabled: false,
+          witchCanSelfHeal: options?.witchCanSelfHeal ?? false,
+        },
       },
       {
         roomCode: ROOM_CODE,
@@ -155,9 +160,6 @@ export function createGame(
 
   const getGameState = (): GameState => internal.state;
   const getRevision = (): number => internal.revision;
-  const getNightPlan = () =>
-    buildNightPlan(internal.state.templateRoles, internal.state.seerLabelMap);
-
   const nextExecution = (
     execution: TestCommandExecution = {},
   ): { commandId: string; nowMs: number; randomSeed: string } => {
@@ -294,9 +296,8 @@ export function createGame(
     );
   };
 
-  const assertStep = (expectedStepId: SchemaId): void => {
-    const currentStepId =
-      internal.state.nightStep?.kind === 'inStep' ? internal.state.nightStep.stepId : undefined;
+  const assertStep = (expectedStepId: NightStepId): void => {
+    const currentStepId = internal.state.nightState?.slice.current?.stepId;
     if (currentStepId !== expectedStepId) {
       throw new Error(`Step mismatch: expected ${expectedStepId}, got ${String(currentStepId)}`);
     }
@@ -314,7 +315,6 @@ export function createGame(
   const context: GameContext = {
     getGameState,
     getRevision,
-    getNightPlan,
     dispatch,
     dispatchAsSeat,
     dispatchOrThrow,
@@ -364,11 +364,13 @@ export function createGame(
     );
   }
   context.dispatchOrThrow({ type: 'werewolf.game.begin' }, 'start night');
+  if (
+    internal.state.status === GameStatus.Ended &&
+    internal.state.nightState?.slice.order.length === 0
+  ) {
+    return context;
+  }
   context.acknowledgePendingAudioOrThrow('complete initial night audio');
 
   return context;
-}
-
-export function cleanupGame(): void {
-  // Each fixture owns isolated state; no process-global cleanup is required.
 }

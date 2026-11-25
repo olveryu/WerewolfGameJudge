@@ -5,11 +5,11 @@
 import {
   CAMP_ORDER,
   type CampBucket,
+  Faction,
   getAllRoleIds,
   getRoleCamp,
-  getRoleSpec,
+  getRoleCard,
 } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
-import { Faction } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
 
 describe('getRoleCamp', () => {
   it('maps every role to a valid camp bucket', () => {
@@ -26,7 +26,7 @@ describe('getRoleCamp', () => {
       [Faction.Special]: 'third',
     };
     for (const id of getAllRoleIds()) {
-      expect(getRoleCamp(id)).toBe(factionToCamp[getRoleSpec(id).faction]);
+      expect(getRoleCamp(id)).toBe(factionToCamp[getRoleCard(id).faction]);
     }
   });
 

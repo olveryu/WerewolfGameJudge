@@ -181,7 +181,7 @@ export function RoomShell({
   ) => ReactNode;
 }) {
   const stageMenuEntryRef = useRef<HTMLButtonElement>(null);
-  const hostManagement = model.hostManagement;
+  const rawHostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
   const resolvedActionSurface = actionSurface ?? 'hand';
   // A hidden hand (werewolf narration) keeps the board status visible.
@@ -189,7 +189,9 @@ export function RoomShell({
   const seatsMissing =
     lobbyAction === null ? 0 : model.seats.source.count - lobbyAction.occupiedSeats;
   const lobbyTask =
-    lobbyAction === null || hostManagement === null ? null : resolveHostTaskView(hostManagement);
+    lobbyAction === null || rawHostManagement === null
+      ? null
+      : resolveHostTaskView(rawHostManagement);
   const lobbyTitle =
     lobbyAction === null
       ? null
@@ -206,11 +208,29 @@ export function RoomShell({
     selection:
       selectionMode === undefined
         ? null
-        : { escapeCardId: selectionEscapeCardId(selectionMode, hostManagement) },
+        : { escapeCardId: selectionEscapeCardId(selectionMode, rawHostManagement) },
     hasManual: directory.manual.length > 0,
-    hasHost: hostManagement !== null,
+    hasHost: rawHostManagement !== null,
     groupKey: model.playerActions.group?.key ?? null,
+    hostGroupKey: rawHostManagement?.group?.actionKey ?? null,
   });
+  const hostManagement =
+    rawHostManagement?.group === undefined
+      ? rawHostManagement
+      : {
+          ...rawHostManagement,
+          actions: rawHostManagement.actions.map((action) =>
+            action.key === rawHostManagement.group?.actionKey && action.state.kind === 'ready'
+              ? {
+                  ...action,
+                  state: {
+                    kind: 'ready' as const,
+                    onPress: () => navigation.openHostGroup(action.key),
+                  },
+                }
+              : action,
+          ),
+        };
   const hand =
     resolvedActionSurface === 'hidden' ||
     (resolvedActionSurface === 'menu' && !navigation.isMenuOpen)

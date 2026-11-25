@@ -8,7 +8,6 @@ import {
   resolveAssassinInstruction,
   resolveEndedInstruction,
   resolveLadyInstruction,
-  resolveNightInstruction,
   resolveNominateInstruction,
   resolveQuestInstruction,
   resolveVoteInstruction,
@@ -32,6 +31,7 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     merlinSees: null,
     percivalSees: null,
     nightConfirmed: false,
+    step: null,
     hasViewedRole: false,
     unviewedRoleSeats: [],
     requiredSize: null,
@@ -63,48 +63,6 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     ...overrides,
   };
 }
-
-describe('resolveNightInstruction', () => {
-  it('shows evil peers to a bad player', () => {
-    const instruction = resolveNightInstruction(
-      baseViewModel({ phase: 'night', nightStep: 'evilReveal', evilPeers: [1, 2] }),
-    );
-    expect(instruction).toEqual({ kind: 'evilPeers', peers: [1, 2] });
-  });
-
-  it('shows the seen evils to Merlin', () => {
-    const instruction = resolveNightInstruction(
-      baseViewModel({ phase: 'night', nightStep: 'merlinReveal', merlinSees: [3] }),
-    );
-    expect(instruction).toEqual({ kind: 'merlin', sees: [3] });
-  });
-
-  it('shows Merlin and Morgana to Percival', () => {
-    const instruction = resolveNightInstruction(
-      baseViewModel({ phase: 'night', nightStep: 'percivalReveal', percivalSees: [0, 1] }),
-    );
-    expect(instruction).toEqual({ kind: 'percival', sees: [0, 1] });
-  });
-
-  it('shows waiting to non-participants', () => {
-    expect(
-      resolveNightInstruction(baseViewModel({ phase: 'night', nightStep: 'merlinReveal' })),
-    ).toEqual({ kind: 'waiting' });
-  });
-
-  it('shows confirmed after the viewer confirms', () => {
-    expect(
-      resolveNightInstruction(
-        baseViewModel({
-          phase: 'night',
-          nightStep: 'merlinReveal',
-          merlinSees: [3],
-          nightConfirmed: true,
-        }),
-      ),
-    ).toEqual({ kind: 'confirmed' });
-  });
-});
 
 describe('resolveNominateInstruction', () => {
   it('identifies the leader', () => {

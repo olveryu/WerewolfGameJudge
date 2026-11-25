@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import { dismissAlert } from '@/utils/alert';
+import { alertStore, dismissAlert } from '@/utils/alert';
 
 interface ScopedAlert {
   readonly generation: number;
@@ -11,14 +11,22 @@ interface ScopedAlert {
  * Dismisses an alert when its owning state identity changes or unmounts.
  * The generation guard leaves any newer global alert untouched.
  */
-export function useScopedAlert(identity: string) {
+export function useScopedAlert(identity: string, onStale?: (generation: number) => void) {
   const alertRef = useRef<ScopedAlert | null>(null);
+  const onStaleRef = useRef(onStale);
+
+  useEffect(() => {
+    onStaleRef.current = onStale;
+  }, [onStale]);
 
   useEffect(() => {
     const alert = alertRef.current;
     if (alert === null || alert.identity === identity) return;
+    const wasVisible =
+      onStaleRef.current !== undefined && alertStore.getSnapshot()?.generation === alert.generation;
     dismissAlert(alert.generation);
     alertRef.current = null;
+    if (wasVisible) onStaleRef.current?.(alert.generation);
   }, [identity]);
 
   useEffect(

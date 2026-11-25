@@ -77,13 +77,13 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
         // === GroupConfirm: all players ack convert reveal ===
         await test.step('all players ack convert reveal', async () => {
           await test.step('ConvertReveal step should become active', () =>
-            waitForGroupConfirmStep(pages, '转化状态'));
+            waitForGroupConfirmStep(pages, 'awakenedGargoyleConvertReveal', '查看转化信息'));
 
           for (let i = 0; i < pages.length; i++) {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveGroupConfirmAck(pages[i]!, '转化状态', '知道了');
+            const msg = await driveGroupConfirmAck(pages[i]!, '查看转化信息', '知道了');
 
             if (role.seat === convertTargetSeat) {
               // Converted player sees conversion message
@@ -169,11 +169,11 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === GroupConfirm: verify exact messages ===
         await test.step('verify personal messages for all players', async () => {
-          await waitForGroupConfirmStep(pages, '转化状态');
+          await waitForGroupConfirmStep(pages, 'awakenedGargoyleConvertReveal', '查看转化信息');
 
           const messages: string[] = [];
           for (let i = 0; i < pages.length; i++) {
-            const msg = await driveGroupConfirmAck(pages[i]!, '转化状态', '知道了');
+            const msg = await driveGroupConfirmAck(pages[i]!, '查看转化信息', '知道了');
             messages.push(msg);
 
             const role = roleMap.get(i);

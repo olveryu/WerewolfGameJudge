@@ -22,15 +22,11 @@ Source: `scripts/generate_audio_edge_tts.py`.
   each role's begin clip, night end) and `assets/audio_end/` (each
   role's end clip). The engine marks end clips with `isEndAudio`
   (`packages/game-engine/src/platform/audio/audioQueue.ts`).
-- The client registry that resolves an `audioKey` to its clips is part
-  of the werewolf web client, which lands in P3
-  (`docs/web-client-rewrite.md` §8.2). Until then the only check is
-  the engine contract that every step carries an audio key
-  (`nightPlanSchemas.contract.test.ts`). In the removed client (last
-  present in commit `ccedf18b5`) the registry kept role audio keyed by
-  role id plus step-specific entries for keys that differ from a role
-  id, and threw on a missing key with no fallback; read that commit
-  when porting it.
+- The web client resolves `audioKey` values through its current
+  werewolf audio registry. Update the registry and its contract test at
+  `packages/web/src/games/werewolf/audio/__tests__/audioRegistry.test.ts`
+  along with engine step declarations. A missing clip is a registration
+  failure; do not rely on the removed pre-port registry behavior.
 
 ## Badge
 
@@ -55,7 +51,8 @@ Source: `scripts/badge-config.mjs`.
   `packages/web/src/components/avatar/avatarSources.ts`, which throws
   at import when an id in `HAND_DRAWN_AVATAR_IDS` has no file. Raw
   avatar source files live under `assets/avatars/raw/`. In-game role
-  badge art belongs to the werewolf web client and lands with the P3
-  port. The art-production workflow (prompts, approval, processing
-  script options) was not verified for this draft: follow the scripts
-  in `scripts/` at run time.
+  badge art belongs to the werewolf web client. Update its current role
+  presentation mapping and tests when the new role needs custom art.
+  The art-production workflow (prompts, approval, processing script
+  options) is project-specific; follow the current scripts in
+  `scripts/` at run time.

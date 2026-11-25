@@ -136,7 +136,7 @@ it('switches between policy and president records without mixing their order', (
   expect(screen.getByText('第 2 张 · 法西斯政策')).toBeInTheDocument();
   expect(screen.getByText('三次失败自动施行')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: '总统行动' }));
-  expect(screen.getByRole('heading', { name: '调查阵营' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: '调查' })).toBeInTheDocument();
   expect(screen.getByText('总统 1 号 · 目标 2 号')).toBeInTheDocument();
   expect(screen.queryByText('第 1 张 · 自由派政策')).not.toBeInTheDocument();
 });

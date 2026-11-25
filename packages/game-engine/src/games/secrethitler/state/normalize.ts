@@ -10,6 +10,7 @@ import { getSecrethitlerNightParticipants, getSecrethitlerRoleCounts } from '../
 import {
   isSecrethitlerOccupiedSeat,
   isValidSecrethitlerConfig,
+  SECRETHITLER_NIGHT_STEP_IDS,
   type SecrethitlerHumanSeat,
   type SecrethitlerPolicy,
   type SecrethitlerState,
@@ -311,13 +312,42 @@ function assertPhaseState(state: SecrethitlerState): void {
     }
   }
   if (state.phase.kind === 'night') {
-    invariant(state.phase.step === 1, 'night step');
-    const participants = getSecrethitlerNightParticipants(state);
-    assertUniqueSeats(
-      state.phase.confirmedSeats,
-      (seat) => participants.includes(seat),
-      'night confirmations',
+    const steps = state.phase.steps;
+    const current = steps.current;
+    invariant(
+      steps.order.length === SECRETHITLER_NIGHT_STEP_IDS.length &&
+        steps.order.every((step, index) => step === SECRETHITLER_NIGHT_STEP_IDS[index]) &&
+        current !== null &&
+        current.serial === steps.order.indexOf(current.stepId) &&
+        steps.deadlineMs === null,
+      'night step position',
     );
+    const participants = getSecrethitlerNightParticipants(state);
+    for (const step of SECRETHITLER_NIGHT_STEP_IDS) {
+      const bySeat = steps.records[step]?.bySeat ?? {};
+      const seats = Object.keys(bySeat).map(Number);
+      invariant(
+        seats.every(
+          (seat) => isSecrethitlerOccupiedSeat(state, seat) && participants.includes(seat),
+        ),
+        'night step records',
+      );
+      for (const record of Object.values(bySeat)) {
+        invariant(
+          record !== undefined &&
+            record.result === null &&
+            record.isResultAcknowledged &&
+            record.submissions.length === 1 &&
+            record.submissions.every(
+              (submission) =>
+                submission.actionKey === 'viewNightInfo' &&
+                submission.seats.length === 0 &&
+                submission.cardIndex === null,
+            ),
+          'night view records',
+        );
+      }
+    }
   }
   if (state.phase.kind === 'election') {
     invariant(state.livingSeats.includes(state.phase.presidentSeat), 'election president');

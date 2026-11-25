@@ -7,12 +7,12 @@ import {
   chooseFirstEnabledBottomCard,
   clickNightButton,
   clickSeatAndConfirm,
-  clickSeatAndReadNotice,
   dismissAlert,
   driveGroupConfirmAck,
   driveMultiSelect,
   driveWolfDisabledEmptyVote,
   driveWolfVote,
+  expectUnavailableNightAction,
   findAllRolePageIndices,
   findRolePageIndex,
   viewLastNightInfo,
@@ -190,15 +190,15 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
           await driveMultiSelect(
             pages[cupidIdx]!,
             [lover1Seat, lover2Seat],
-            '确认连接',
-            '让这两名玩家成为情侣？',
+            '确认连接情侣',
+            `连接${formatSeat(lover1Seat)}和${formatSeat(lover2Seat)}为情侣？`,
           );
         });
 
         // === Step 3: CupidLoversReveal groupConfirm — all players ack ===
         await test.step('all players ack cupidLoversReveal', async () => {
           await test.step('CupidLoversReveal step should become active', () =>
-            waitForGroupConfirmStep(pages, '情侣状态', 60));
+            waitForGroupConfirmStep(pages, 'cupidLoversReveal', '查看情侣信息', 60));
 
           const nonCupidEntries = [...roleMap.entries()].filter(([idx]) => idx !== cupidIdx);
           const lover1Seat = nonCupidEntries[0]![1].seat;
@@ -209,7 +209,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveGroupConfirmAck(pages[i]!, '情侣状态', '知道了');
+            const msg = await driveGroupConfirmAck(pages[i]!, '查看情侣信息', '知道了');
 
             if (loverSeats.includes(role.seat)) {
               expect(msg).toContain('情侣');
@@ -284,7 +284,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
  */
 
 test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', () => {
-  test('seat tap shows kill-disabled hint → empty votes show settle countdown → night completes', async ({
+  test('attack card shows kill-disabled reason → empty votes show settle countdown → night completes', async ({
     browser,
   }) => {
     await withSetup(
@@ -307,21 +307,12 @@ test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', ()
         expect(seerIdx, 'seer must be a player').not.toBe(-1);
         expect(poisonerIdx, 'poisoner must be a player').not.toBe(-1);
 
-        const wolfSet = new Set(wolfIndices);
-        const targetSeat = [...roleMap.entries()].find(([idx]) => !wolfSet.has(idx))![1].seat;
-
-        // === Step 1: Wolf's turn — seat tap shows the hint, not a confirm ===
-        await test.step('seat tap shows the kill-disabled hint', async () => {
+        await test.step('attack card shows the kill-disabled reason', async () => {
           await test.step('Wolf turn should be detected', () =>
             waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages));
 
           const wolfPage = pages[wolfIndices[0]!]!;
-          const alertText = await clickSeatAndReadNotice(wolfPage, targetSeat, '首夜无法袭击');
-          expect(alertText).toContain('本局有毒师在场，首夜无法袭击');
-          expect(alertText).not.toContain('确定袭击');
-          await expect(wolfPage.getByTestId(TESTIDS.alertButton(0))).toHaveText('知道了');
-          await expect(wolfPage.getByTestId(TESTIDS.alertButton(1))).toHaveCount(0);
-          await dismissAlert(wolfPage);
+          await expectUnavailableNightAction(wolfPage, 'wolfKill', '本局有毒师在场，首夜无法袭击');
         });
 
         // === Step 2: All wolves confirm the empty vote → countdown visible ===
@@ -331,7 +322,7 @@ test.describe('Werewolf Night — Special Roles: Poisoner Override Feedback', ()
           await expect(
             pages[wolfIndices[0]!]!.getByTestId(TESTIDS.actionMessage),
             'Settle countdown should be visible after all empty votes',
-          ).toContainText('秒后确认', { timeout: 4_500 });
+          ).toContainText('秒后结算', { timeout: 4_500 });
         });
 
         // === Step 3: Poisoner & Seer skip their skills ===

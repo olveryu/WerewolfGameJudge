@@ -1,31 +1,49 @@
 /**
  * Bottom-card rules shared by template validation, dealing, and state validation.
  *
- * This module owns deck-role cardinality and legal card combinations. It has no
- * random source, state mutation, or resolver dependency.
+ * Which roles set cards aside, how many, and which combinations are legal is
+ * declared by those roles (`useBottomCardSelection` in their role files). This
+ * module applies the declarations; it has no random source and names no role.
  */
 
-import { Faction, getRoleSpec, type RoleId } from './roles';
+import { WEREWOLF_PRESENCE_DECLARATIONS } from '../../roles';
+import { getWerewolfRoleDefinition } from '../../roles/nightPlan';
+import {
+  type BottomCardDeck,
+  type DealCard,
+  resolveNightPresenceFacts,
+} from '../../roles/presence';
+import { getAllRoleIds, type RoleId } from './roles';
 
-export type BottomCardRoleId = 'treasureMaster' | 'thief';
+const DECKS: ReadonlyMap<string, BottomCardDeck> = new Map(
+  resolveNightPresenceFacts(getAllRoleIds(), WEREWOLF_PRESENCE_DECLARATIONS).bottomCardDecks.map(
+    ({ role, deck }) => [role, deck],
+  ),
+);
 
-const BOTTOM_CARD_COUNTS: Readonly<Record<BottomCardRoleId, number>> = {
-  treasureMaster: 3,
-  thief: 2,
-};
+function requireDeck(roleId: RoleId): BottomCardDeck {
+  const deck = DECKS.get(roleId);
+  if (deck === undefined) throw new Error(`[FAIL-FAST] ${roleId} sets no bottom cards aside`);
+  return deck;
+}
 
-function isBottomCardRoleId(roleId: RoleId): roleId is BottomCardRoleId {
-  return roleId === 'treasureMaster' || roleId === 'thief';
+function toDealCard(roleId: RoleId): DealCard {
+  return { roleId, faction: getWerewolfRoleDefinition(roleId).traits.faction };
+}
+
+/** Every role that sets bottom cards aside, in the order roles are listed to players. */
+export function getBottomCardRoleIds(): RoleId[] {
+  return getAllRoleIds().filter((roleId) => DECKS.has(roleId));
 }
 
 /** Count physical bottom-card actor cards in a template role multiset. */
 export function countBottomCardRoles(roles: readonly RoleId[]): number {
-  return roles.filter(isBottomCardRoleId).length;
+  return roles.filter((roleId) => DECKS.has(roleId)).length;
 }
 
 /** Return the sole bottom-card actor, rejecting ambiguous role multisets. */
-export function getBottomCardRoleId(roles: readonly RoleId[]): BottomCardRoleId | null {
-  const matches = roles.filter(isBottomCardRoleId);
+export function getBottomCardRoleId(roles: readonly RoleId[]): RoleId | null {
+  const matches = roles.filter((roleId) => DECKS.has(roleId));
   if (matches.length > 1) {
     throw new Error('[FAIL-FAST] A template must contain at most one bottom-card actor');
   }
@@ -39,27 +57,36 @@ export function getBottomCardCount(roles: readonly RoleId[]): number {
 }
 
 /** Return the fixed deck size for a known bottom-card actor. */
-export function getBottomCardCountForRole(roleId: BottomCardRoleId): number {
-  return BOTTOM_CARD_COUNTS[roleId];
+export function getBottomCardCountForRole(roleId: RoleId): number {
+  return requireDeck(roleId).size;
+}
+
+/** Whether plague mode deals this bottom-card actor as a villager, with no deck. */
+export function isBottomCardRoleRemovedInPlagueMode(roleId: RoleId): boolean {
+  return DECKS.get(roleId)?.isRemovedInPlagueMode === true;
+}
+
+/**
+ * Why this board can never give its bottom-card actor a legal deck, in the
+ * actor's own words; null when the board has no such actor or no objection.
+ */
+export function getBottomCardBoardRequirement(roles: readonly RoleId[]): string | null {
+  const actorRoleId = getBottomCardRoleId(roles);
+  if (actorRoleId === null) return null;
+  const otherCards = roles.filter((roleId) => roleId !== actorRoleId).map(toDealCard);
+  return requireDeck(actorRoleId).boardRequirement?.(otherCards) ?? null;
 }
 
 /** Validate a complete bottom-card set for its actor. */
-export function isValidBottomCardSet(
-  cards: readonly RoleId[],
-  actorRoleId: BottomCardRoleId,
-): boolean {
-  if (cards.length !== getBottomCardCountForRole(actorRoleId)) return false;
-  if (cards.includes(actorRoleId) || cards.includes('cupid')) return false;
-
-  const wolfCount = cards.filter((roleId) => getRoleSpec(roleId).faction === Faction.Wolf).length;
-
-  if (actorRoleId === 'thief') return wolfCount <= 1;
-
-  const godCount = cards.filter((roleId) => getRoleSpec(roleId).faction === Faction.God).length;
-  const villagerCount = cards.filter(
-    (roleId) => getRoleSpec(roleId).faction === Faction.Villager,
-  ).length;
-  return wolfCount === 1 && godCount === 1 && villagerCount === 1 && cards.includes('wolf');
+export function isValidBottomCardSet(cards: readonly RoleId[], actorRoleId: RoleId): boolean {
+  const deck = requireDeck(actorRoleId);
+  if (cards.length !== deck.size) return false;
+  // A card that itself sets cards aside, or that may never be set aside, cannot be in a deck.
+  const hasExcludedCard = cards.some(
+    (roleId) =>
+      DECKS.has(roleId) || getWerewolfRoleDefinition(roleId).traits.cannotBeBottomCard === true,
+  );
+  return !hasExcludedCard && deck.isLegal(cards.map(toDealCard));
 }
 
 function collectIndexCombinations(
@@ -90,7 +117,7 @@ function collectIndexCombinations(
  */
 export function getValidBottomCardDeals(
   roles: readonly RoleId[],
-  actorRoleId: BottomCardRoleId,
+  actorRoleId: RoleId,
 ): readonly {
   readonly seatedRoles: readonly RoleId[];
   readonly bottomCards: readonly RoleId[];

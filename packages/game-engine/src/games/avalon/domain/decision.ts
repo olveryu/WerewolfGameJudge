@@ -10,6 +10,7 @@ import {
 import type { GameCompletionPayload } from '../../../platform/engine/completionEffect';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { type RosterChange } from '../../../platform/room/seating';
+import type { StepEvent } from '../../../platform/steps';
 import type { AvalonCompletionPayload } from '../publicStats';
 import type {
   AvalonBallot,
@@ -40,7 +41,6 @@ export const AVALON_REASONS = {
   notHostMarkBots: 'avalon_not_host_mark_bots',
   noBotSeats: 'avalon_no_bot_seats',
   full: 'avalon_room_not_full',
-  notNightParticipant: 'avalon_not_night_participant',
   notLeader: 'avalon_not_leader',
   notVotePhase: 'avalon_not_vote_phase',
   deadline: 'avalon_deadline_not_reached',
@@ -87,11 +87,12 @@ export type AvalonEvent =
       readonly gameSequence: number;
     }
   | { readonly type: 'avalon.game.begun' }
-  | { readonly type: 'avalon.night.confirmed'; readonly seat: number }
   | { readonly type: 'avalon.role.viewed'; readonly seat: number }
   | { readonly type: 'avalon.review.completed'; readonly userId: string }
-  | { readonly type: 'avalon.night.stepped'; readonly step: AvalonNightStep }
-  | { readonly type: 'avalon.night.completed' }
+  | {
+      readonly type: 'avalon.night.step';
+      readonly event: StepEvent<AvalonNightStep, Readonly<Record<string, never>>, never>;
+    }
   | {
       readonly type: 'avalon.audio.queued';
       readonly effects: readonly AudioEffect[];

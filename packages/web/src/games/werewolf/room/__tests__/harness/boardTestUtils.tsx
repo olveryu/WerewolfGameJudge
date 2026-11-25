@@ -2,42 +2,31 @@
  * Board UI test utilities: a real `GameState` behind a fake room link.
  *
  * The screen under test is the production `WerewolfRoomScreen` (entry boundary included)
- * mounted on `createFakeRoomLink` inside a memory router; the view model, the night model and
- * every dialog come from the real projection and hooks. Options describe the night-step
- * situation (step, roles, seat, server facts) and the factory writes the matching
- * authoritative state, including the engine's own UI hint for the step. Dispatch is recorded:
- * `werewolf.action.submit` goes through the overridable `submitAction` mock, everything else
- * succeeds.
+ * mounted on `createFakeRoomLink` inside a memory router. General room fixtures
+ * support setup and daytime tests; night tests use engine-produced state and
+ * dispatch commands through the real engine.
  *
  * Test files mock the auth context with `testAuthContext` so the screen renders as
  * `TEST_USER_ID`.
  */
 
-import { maybeCreateUiHintAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/uiHint';
 import type {
   GameState,
-  RevealKind,
+  NightStepId,
   RoleId,
-  SchemaId,
-  WerewolfActionInput,
   WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
-  buildNightPlan,
   GameStatus,
-  getRoleDisplayName,
-  getSchema,
-  SCHEMAS,
-  Team,
-  WOLF_KILL_OVERRIDE_TEXTS,
+  isNightStepId,
+  werewolfEngine,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { isBotOccupant } from '@game-judge/game-engine/platform/room/seating/roster';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, type RenderResult, waitFor } from '@testing-library/react';
+import { render, type RenderResult } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import type { Mock } from 'vitest';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
@@ -50,12 +39,15 @@ import {
   type FakeRoomLink,
   readyLinkSnapshot,
 } from '@/test-utils/linkSnapshot';
-import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import {
+  domainRejectedRoomCommand,
+  rejectedRoomCommand,
+  successfulRoomCommand,
+} from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
-import { alertStore, dismissAlert } from '@/utils/alert';
 
-import type { DialogEvent, RoomScreenTestHarness } from './RoomScreenTestHarness';
+import { playBoardNight } from './boardNightScenarios';
 import { TEST_USER_ID } from './testAuthContext';
 
 const OTHER_HOST_USER_ID = 'host-uid';
@@ -70,60 +62,19 @@ const mockRoom: RoomRecord<'werewolf'> = {
 
 export type WerewolfDispatchOutcome = DispatchOutcome<GameState>;
 
-export function successfulWerewolfCommand(
+function successfulWerewolfCommand(
   stateOverrides: Partial<GameState> = {},
 ): WerewolfDispatchOutcome {
   return successfulRoomCommand(buildWerewolfTestState(stateOverrides));
-}
-
-function revealState(revealKind: RevealKind, targetSeat: number): Partial<GameState> {
-  switch (revealKind) {
-    case 'seer':
-      return { seerReveal: { targetSeat, result: '好人' } };
-    case 'mirrorSeer':
-      return { mirrorSeerReveal: { targetSeat, result: '好人' } };
-    case 'drunkSeer':
-      return { drunkSeerReveal: { targetSeat, result: '好人' } };
-    case 'psychic':
-      return { psychicReveal: { targetSeat, result: 'villager' } };
-    case 'gargoyle':
-      return { gargoyleReveal: { targetSeat, result: 'villager' } };
-    case 'pureWhite':
-      return { pureWhiteReveal: { targetSeat, result: 'villager' } };
-    case 'wolfWitch':
-      return { wolfWitchReveal: { targetSeat, result: 'villager' } };
-    case 'wolfRobot':
-      return {
-        wolfRobotReveal: { targetSeat, result: 'villager', learnedRoleId: 'villager' },
-      };
-  }
-}
-
-/** A committed action result carrying the reveal the step produces, for reveal schemas. */
-function successfulWerewolfActionCommand(
-  schemaId: SchemaId,
-  input: WerewolfActionInput,
-): WerewolfDispatchOutcome {
-  const schema = getSchema(schemaId);
-  const revealKind = schema.kind === 'chooseSeat' ? schema.ui?.revealKind : undefined;
-  // A skip on a reveal schema produces no reveal; only a target does.
-  if (revealKind === undefined || input.kind !== 'target' || input.target === null) {
-    return successfulWerewolfCommand();
-  }
-  return successfulWerewolfCommand(revealState(revealKind, input.target));
 }
 
 // =============================================================================
 // Room mock
 // =============================================================================
 
-export type SubmitActionMock = Mock<
-  (input: WerewolfActionInput) => Promise<WerewolfDispatchOutcome>
->;
-
 export interface WerewolfRoomMockOptions {
   /** Schema ID for the current step. */
-  schemaId: SchemaId;
+  schemaId: NightStepId;
   /** The step's acting role; must be on the board (placed on a villager seat when absent). */
   currentActionRole: RoleId;
   /** The viewer's role. */
@@ -131,35 +82,14 @@ export interface WerewolfRoomMockOptions {
   /** The viewer's seat. */
   mySeat?: number;
   numberOfPlayers?: number;
-  /** Seat → role; unassigned seats are villagers, `mySeat` is `myRole`. */
-  roleAssignments?: Map<number, RoleId>;
   isHost?: boolean;
   /** False renders the test user as a spectator: `mySeat` is held by another player. */
   isViewerSeated?: boolean;
   isAudioPlaying?: boolean;
-  nightmareBlockedSeat?: number | null;
-  /** Arms the nightmare wolf-kill override (the engine hint restricts wolves to an empty vote). */
-  wolfKillDisabled?: boolean;
-  currentNightResults?: GameState['currentNightResults'];
-  witchContext?: GameState['witchContext'] | null;
-  actionRejected?: {
-    action: string;
-    reason: string;
-    targetSeat: number;
-    rejectionId?: string;
-  } | null;
-  seerReveal?: GameState['seerReveal'] | null;
-  psychicReveal?: GameState['psychicReveal'] | null;
-  gargoyleReveal?: GameState['gargoyleReveal'] | null;
-  /** The learned role; target seat and result text are filled in. */
-  wolfRobotReveal?: { learnedRoleId: RoleId; canShootAsHunter?: boolean } | null;
-  wolfRobotHunterStatusViewed?: boolean;
-  /** Raw state fields merged last (witchContext, confirmStatus, status, …). */
+  /** Raw state fields merged last. */
   gameStateOverrides?: Partial<GameState>;
   hookOverrides?: {
-    /** Handles every `werewolf.action.submit`; defaults to a success carrying the step's reveal. */
-    submitAction?: SubmitActionMock;
-    /** Handles every other command (acks, host flow); defaults to a committed success. */
+    /** Handles commands (acks, host flow); defaults to a committed success. */
     dispatchCommand?: (command: WerewolfPublicCommand) => Promise<WerewolfDispatchOutcome>;
     /** Room status when not Ongoing (Day / Ended perspectives). */
     roomStatus?: GameStatus;
@@ -173,9 +103,20 @@ export interface WerewolfRoomMock {
   readonly room: RoomRecord<'werewolf'>;
   readonly session: FakeRoomLink<GameState, WerewolfPublicCommand>;
   readonly audio: WerewolfAudioRuntime;
-  readonly submitAction: SubmitActionMock;
   /** Every command the screen dispatched (same mock as `session.dispatch`). */
   readonly dispatch: FakeRoomLink<GameState, WerewolfPublicCommand>['dispatch'];
+}
+
+/** Read the returned outcome of a specific command without treating thrown values as outcomes. */
+export async function getDispatchOutcome(
+  mock: WerewolfRoomMock,
+  callIndex: number,
+): Promise<WerewolfDispatchOutcome> {
+  const result = mock.dispatch.mock.results[callIndex];
+  if (result?.type !== 'return') {
+    throw new Error(`[TEST] Dispatch call ${callIndex} did not return an outcome`);
+  }
+  return result.value;
 }
 
 function createAudioStub(): WerewolfAudioRuntime {
@@ -191,9 +132,9 @@ function createAudioStub(): WerewolfAudioRuntime {
 }
 
 function resolveBoardRoles(options: WerewolfRoomMockOptions): RoleId[] {
-  const { currentActionRole, myRole, mySeat = 0, numberOfPlayers = 12, roleAssignments } = options;
+  const { currentActionRole, myRole, mySeat = 0, numberOfPlayers = 12 } = options;
   const roles: RoleId[] = Array.from({ length: numberOfPlayers }, (_, seat) =>
-    seat === mySeat ? myRole : (roleAssignments?.get(seat) ?? 'villager'),
+    seat === mySeat ? myRole : 'villager',
   );
   if (!roles.includes(currentActionRole)) {
     const slot = roles.findIndex((role, seat) => seat !== mySeat && role === 'villager');
@@ -205,18 +146,6 @@ function resolveBoardRoles(options: WerewolfRoomMockOptions): RoleId[] {
   return roles;
 }
 
-/**
- * The engine sets `confirmStatus` whenever a confirm step is entered with
- * its role on the board; fixtures default it the same way.
- */
-function defaultConfirmStatus(role: RoleId): NonNullable<GameState['confirmStatus']> {
-  if (role === 'avenger') return { role: 'avenger', faction: Team.Good };
-  if (role === 'hiddenWolf') return { role: 'hiddenWolf', wolfTeammates: [1, 2, 3] };
-  if (role === 'seedWolf') return { role: 'seedWolf', availability: 'available', targetSeat: 5 };
-  if (role === 'hunter' || role === 'darkWolfKing') return { role, canShoot: true };
-  throw new Error(`[TEST] ${role} has no confirm status`);
-}
-
 /** The authoritative state for one night-step situation. */
 function buildWerewolfRoomMockState(options: WerewolfRoomMockOptions): GameState {
   const {
@@ -225,16 +154,6 @@ function buildWerewolfRoomMockState(options: WerewolfRoomMockOptions): GameState
     isHost = false,
     isViewerSeated = true,
     isAudioPlaying = false,
-    nightmareBlockedSeat = null,
-    wolfKillDisabled = false,
-    currentNightResults = {},
-    witchContext = null,
-    actionRejected = null,
-    seerReveal = null,
-    psychicReveal = null,
-    gargoyleReveal = null,
-    wolfRobotReveal = null,
-    wolfRobotHunterStatusViewed,
     gameStateOverrides = {},
     hookOverrides = {},
   } = options;
@@ -249,79 +168,53 @@ function buildWerewolfRoomMockState(options: WerewolfRoomMockOptions): GameState
       profile: { displayName: `P${seat + 1}` },
     };
   });
-  const learnedSeat = roles.findIndex((_, seat) => seat !== mySeat);
-  const schema = getSchema(schemaId);
-  const confirmStatus =
-    schema.kind === 'confirm' && gameStateOverrides.confirmStatus === undefined
-      ? { confirmStatus: defaultConfirmStatus(options.currentActionRole) }
-      : {};
   const status = gameStateOverrides.status ?? hookOverrides.roomStatus ?? GameStatus.Ongoing;
-  const base = buildWerewolfTestState({
+  const identity = {
     roomCode: mockRoom.roomCode,
     hostUserId: isHost ? TEST_USER_ID : OTHER_HOST_USER_ID,
     status,
+    roster,
+    isAudioPlaying,
+  };
+  if (status === GameStatus.Ongoing) {
+    // A room inside the night is a real night parked on the requested step.
+    return {
+      ...playBoardNight(roles, { isQuiet: true, stopAtStepId: schemaId }),
+      ...identity,
+      ...gameStateOverrides,
+    };
+  }
+  if (status === GameStatus.Day || status === GameStatus.Ended) {
+    // After the night the room reads the settled night, so play a real, uneventful one.
+    return {
+      ...playBoardNight(roles, { isQuiet: true }),
+      ...identity,
+      ...gameStateOverrides,
+    };
+  }
+  return buildWerewolfTestState({
+    ...identity,
     templateRoles: roles,
     players,
-    roster,
     roleViewedSeats: roles.map((_, seat) => seat),
-    // The engine clears the step when the night ends; only Ongoing carries one.
-    nightStep: status === GameStatus.Ongoing ? { kind: 'inStep', stepId: schemaId } : null,
-    isAudioPlaying,
-    currentNightResults,
-    ...(nightmareBlockedSeat === null ? {} : { nightmareBlockedSeat }),
-    ...(wolfKillDisabled
-      ? { wolfKillOverride: { source: 'nightmare', ui: WOLF_KILL_OVERRIDE_TEXTS.nightmare } }
-      : {}),
-    ...(witchContext === null ? {} : { witchContext }),
-    ...(actionRejected === null
-      ? {}
-      : {
-          actionRejected: {
-            ...actionRejected,
-            rejectionId:
-              actionRejected.rejectionId ?? `${actionRejected.action}:${actionRejected.targetSeat}`,
-          },
-        }),
-    ...(seerReveal === null ? {} : { seerReveal }),
-    ...(psychicReveal === null ? {} : { psychicReveal }),
-    ...(gargoyleReveal === null ? {} : { gargoyleReveal }),
-    ...(wolfRobotReveal === null
-      ? {}
-      : {
-          wolfRobotReveal: {
-            targetSeat: learnedSeat,
-            result: getRoleDisplayName(wolfRobotReveal.learnedRoleId),
-            learnedRoleId: wolfRobotReveal.learnedRoleId,
-            canShootAsHunter: wolfRobotReveal.canShootAsHunter,
-          },
-        }),
-    ...(wolfRobotHunterStatusViewed === undefined ? {} : { wolfRobotHunterStatusViewed }),
-    ...confirmStatus,
     ...gameStateOverrides,
   });
-  if (base.status !== GameStatus.Ongoing) return base;
-  // The engine sets the step's UI hint on transition; reproduce it for the armed step.
-  const plan = buildNightPlan(base.templateRoles, base.seerLabelMap);
-  const step = plan.steps.find((candidate) => candidate.stepId === schemaId);
-  if (step === undefined) {
-    throw new Error(`[TEST] Step ${schemaId} is not in the night plan for ${roles.join(',')}`);
-  }
-  const hint = maybeCreateUiHintAction(step, base).payload.currentActorHint;
-  return hint === null ? base : { ...base, ui: { currentActorHint: hint } };
 }
 
 function createRoomMockForState(
   options: WerewolfRoomMockOptions,
   state: GameState,
-  submitAction: SubmitActionMock,
 ): WerewolfRoomMock {
-  const room: RoomRecord<'werewolf'> = { ...mockRoom, hostUserId: state.hostUserId };
+  const room: RoomRecord<'werewolf'> = {
+    ...mockRoom,
+    roomCode: state.roomCode,
+    hostUserId: state.hostUserId,
+  };
   const session = createFakeRoomLink<GameState, WerewolfPublicCommand>(
     readyLinkSnapshot({ room, userId: TEST_USER_ID }, createRoomSnapshot(state, 1)),
-    async (command) =>
-      command.type === 'werewolf.action.submit'
-        ? submitAction(command.input)
-        : (options.hookOverrides?.dispatchCommand?.(command) ?? successfulWerewolfCommand()),
+    async (command) => {
+      return options.hookOverrides?.dispatchCommand?.(command) ?? successfulWerewolfCommand();
+    },
   );
   return {
     options,
@@ -329,24 +222,18 @@ function createRoomMockForState(
     room,
     session,
     audio: createAudioStub(),
-    submitAction,
     dispatch: session.dispatch,
   };
 }
 
 export function createWerewolfRoomMock(options: WerewolfRoomMockOptions): WerewolfRoomMock {
   const state = buildWerewolfRoomMockState(options);
-  const submitAction: SubmitActionMock =
-    options.hookOverrides?.submitAction ??
-    vi.fn(async (input: WerewolfActionInput) =>
-      successfulWerewolfActionCommand(options.schemaId, input),
-    );
-  return createRoomMockForState(options, state, submitAction);
+  return createRoomMockForState(options, state);
 }
 
 /**
- * A room mock over an engine-produced state (vertical slices): the viewer
- * seat's occupant becomes the test auth user so the screen renders as them.
+ * A room mock over an engine-produced state. Commands are decided and evolved
+ * by the real engine before the fake link publishes the resulting snapshot.
  */
 export function createWerewolfRoomMockFromState(
   state: GameState,
@@ -361,20 +248,48 @@ export function createWerewolfRoomMockFromState(
     hostUserId: state.hostUserId === occupant.userId ? TEST_USER_ID : state.hostUserId,
     roster: { ...state.roster, [viewerSeat]: { ...occupant, userId: TEST_USER_ID } },
   };
-  const stepId = state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : null;
-  if (stepId === null) throw new Error('[TEST] Vertical slice state must be inside a night step');
+  const stepId = state.nightState?.slice.current?.stepId;
+  if (stepId === undefined || !isNightStepId(stepId)) {
+    throw new Error('[TEST] Vertical slice state must be inside a night step');
+  }
   const role = state.players[viewerSeat]?.role;
   if (role === undefined || role === null) {
     throw new Error(`[TEST] Viewer seat ${viewerSeat} has no role`);
   }
-  const submitAction: SubmitActionMock = vi.fn(async (input: WerewolfActionInput) =>
-    successfulWerewolfActionCommand(stepId, input),
-  );
-  return createRoomMockForState(
-    { schemaId: stepId, currentActionRole: role, myRole: role, mySeat: viewerSeat },
+  let currentState = viewerState;
+  let revision = 1;
+  const dispatchCommand = async (
+    command: WerewolfPublicCommand,
+  ): Promise<WerewolfDispatchOutcome> => {
+    const commandId = `board-ui-command-${revision}`;
+    const decision = werewolfEngine.decide(currentState, command, {
+      actor: { kind: 'user', userId: TEST_USER_ID },
+      controlledSeat: null,
+      commandId,
+      nowMs: Date.now(),
+      randomSeed: commandId,
+    });
+    if (decision.kind === 'reject') return rejectedRoomCommand(decision.reason, commandId);
+    for (const event of decision.events) currentState = werewolfEngine.evolve(currentState, event);
+    currentState = werewolfEngine.normalize(currentState);
+    revision += 1;
+    mock.session.publishRoom(createRoomSnapshot(currentState, revision));
+    if (decision.outcome.kind === 'domainRejected') {
+      return domainRejectedRoomCommand(currentState, decision.outcome.reason, commandId, revision);
+    }
+    return successfulRoomCommand(currentState, commandId, revision, decision.outcome.reason);
+  };
+  const mock = createRoomMockForState(
+    {
+      schemaId: stepId,
+      currentActionRole: role,
+      myRole: role,
+      mySeat: viewerSeat,
+      hookOverrides: { dispatchCommand },
+    },
     viewerState,
-    submitAction,
   );
+  return mock;
 }
 
 /**
@@ -393,11 +308,6 @@ export function createReactiveWerewolfRoomMock(initialOptions: WerewolfRoomMockO
   };
   return {
     mock,
-    /** Host rejected an action: the rejection lands in state for the acting seat. */
-    simulateHostReject(rejection: NonNullable<WerewolfRoomMockOptions['actionRejected']>) {
-      currentOptions = { ...currentOptions, actionRejected: rejection };
-      push();
-    },
     simulateStateUpdate(overrides: Partial<WerewolfRoomMockOptions>) {
       currentOptions = { ...currentOptions, ...overrides };
       push();
@@ -422,7 +332,7 @@ export interface RenderRoomOptions {
  * a fresh browser: Web Storage starts empty, so a night draft one scenario stored (the
  * magician's first pick) cannot leak into the next.
  */
-export function renderWerewolfRoom(
+function renderWerewolfRoom(
   mock: WerewolfRoomMock,
   { viewportWidth = PHONE_VIEWPORT_WIDTH }: RenderRoomOptions = {},
 ): RenderResult {
@@ -459,18 +369,13 @@ export function renderWerewolfRoom(
   );
 }
 
-export async function waitForRoomScreen(view: RenderResult): Promise<void> {
+async function waitForRoomScreen(view: RenderResult): Promise<void> {
   await view.findByTestId(TESTIDS.roomScreenRoot);
 }
 
 /** One user click (pointer down/up + click), without userEvent's inter-action timer. */
 export async function click(element: Element): Promise<void> {
   await userEvent.setup({ delay: null }).click(element);
-}
-
-async function revealBottomActionText(view: RenderResult, text: string): Promise<void> {
-  if (view.queryByText(text) !== null) return;
-  await openNightActionGroup(view);
 }
 
 export async function openNightActionGroup(view: RenderResult): Promise<void> {
@@ -480,114 +385,6 @@ export async function openNightActionGroup(view: RenderResult): Promise<void> {
 
 export async function tapSeat(view: RenderResult, seat: number): Promise<void> {
   await click(view.getByTestId(TESTIDS.seatTilePressable(seat)));
-}
-
-export function expectSeatSelectionUnavailable(view: RenderResult): void {
-  const startId = TESTIDS.werewolfNightButton('startSeatSelection');
-  expect(view.queryByTestId(startId)).not.toBeInTheDocument();
-  const moreActions = view.queryByTestId(TESTIDS.roomMoreActionsButton);
-  expect(moreActions?.getAttribute('data-player-action-ids')?.split(' ') ?? []).not.toContain(
-    startId,
-  );
-  expect(
-    view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection')),
-  ).not.toBeInTheDocument();
-}
-
-async function pressSeatSelectionAction(
-  view: RenderResult,
-  key: 'startSeatSelection' | 'cancelSeatSelection',
-): Promise<void> {
-  const testId = TESTIDS.werewolfNightButton(key);
-  if (view.queryByTestId(testId) === null) await openNightActionGroup(view);
-  await click(await view.findByTestId(testId));
-}
-
-export async function startSeatSelection(view: RenderResult): Promise<void> {
-  await pressSeatSelectionAction(view, 'startSeatSelection');
-  const submit = view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'));
-  if (submit !== null) expect(submit).toHaveAttribute('aria-disabled', 'true');
-}
-
-export async function cancelSeatSelection(view: RenderResult): Promise<void> {
-  await pressSeatSelectionAction(view, 'cancelSeatSelection');
-  expect(
-    view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection')),
-  ).not.toBeInTheDocument();
-}
-
-export async function submitSeatSelection(view: RenderResult): Promise<void> {
-  const button = view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'));
-  if (button !== null) {
-    expect(button).toBeEnabled();
-    await click(button);
-  }
-  const alert = alertStore.getSnapshot();
-  if (alert === null || alert.buttons[1]?.onPress === undefined) {
-    throw new Error('[TEST] Missing seat selection confirmation');
-  }
-  await act(async () => alert.buttons[1]?.onPress?.());
-  dismissAlert(alert.generation);
-}
-
-/** Enter selection mode and verify that tapping a target creates a submittable draft. */
-export async function draftSeatSelection(view: RenderResult, seat: number): Promise<void> {
-  await startSeatSelection(view);
-  await tapSeat(view, seat);
-  expect(view.getByTestId(TESTIDS.seatTilePressable(seat))).toHaveAttribute('aria-pressed', 'true');
-  const button = view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'));
-  if (button !== null) expect(button).toBeEnabled();
-  else
-    expect(alertStore.getSnapshot()?.buttons.map((entry) => entry.text)).toEqual(['取消', '确定']);
-}
-
-/** Opens a room action and, by default, chooses to view a private status when prompted. */
-export async function pressText(
-  view: RenderResult,
-  text: string,
-  viewPrivateStatus = true,
-): Promise<void> {
-  await revealBottomActionText(view, text);
-  await click(await view.findByText(text));
-  const alert = alertStore.getSnapshot();
-  if (viewPrivateStatus && alert?.title === '查看状态？') {
-    const viewStatus = alert.buttons[1]?.onPress;
-    if (viewStatus === undefined) throw new Error('[TEST] Missing private status view action');
-    await act(async () => viewStatus());
-    dismissAlert(alert.generation);
-  }
-}
-
-// =============================================================================
-// Chain Interaction Drivers
-// =============================================================================
-//
-// render → trigger dialog → press button → assert the command was dispatched.
-
-/** The step's bottom action copy (skip / status / gate button); fails fast when absent. */
-export function requireBottomActionText(schemaId: SchemaId, chain = 'board'): string {
-  const text = getSchema(schemaId).ui?.bottomActionText;
-  if (text === undefined) {
-    throw new Error(`[TEST] Missing schema.ui.bottomActionText for ${chain} chain: ${schemaId}`);
-  }
-  return text;
-}
-
-/** The wolves' empty-knife button copy; fails fast when absent. */
-export function requireEmptyVoteText(): string {
-  const emptyVoteText = SCHEMAS.wolfKill.ui?.emptyVoteText;
-  if (emptyVoteText === undefined) {
-    throw new Error('[TEST] Missing SCHEMAS.wolfKill.ui.emptyVoteText');
-  }
-  return emptyVoteText;
-}
-
-function requireHunterGateButtonText(): string {
-  const gateButtonText = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;
-  if (gateButtonText === undefined) {
-    throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGateButtonText');
-  }
-  return gateButtonText;
 }
 
 /** Renders the room for `mock` and waits for the screen root. */
@@ -608,408 +405,10 @@ export function mountRoomFor(options: WerewolfRoomMockOptions): Promise<RenderRe
 // Step fixtures shared by the board files: the viewer is the step's actor.
 
 /** The viewer holds `role` on `seat` and acts in `schemaId`. */
-export function actorStep(schemaId: SchemaId, role: RoleId, seat: number): WerewolfRoomMockOptions {
+export function actorStep(
+  schemaId: NightStepId,
+  role: RoleId,
+  seat: number,
+): WerewolfRoomMockOptions {
   return { schemaId, currentActionRole: role, myRole: role, mySeat: seat };
-}
-
-/** The wolf kill seen by the wolf-team member `role` on `seat`. */
-export function wolfKillStep(
-  role: RoleId,
-  seat: number,
-  roleAssignments: Map<number, RoleId>,
-): WerewolfRoomMockOptions {
-  return {
-    schemaId: 'wolfKill',
-    currentActionRole: 'wolf',
-    myRole: role,
-    mySeat: seat,
-    roleAssignments,
-  };
-}
-
-/** The witch on `seat`; `killedSeat` -1 is a peaceful night (save unavailable). */
-export function witchStep(seat: number, killedSeat: number): WerewolfRoomMockOptions {
-  return {
-    ...actorStep('witchAction', 'witch', seat),
-    witchContext: { killedSeat, canSave: killedSeat >= 0, canPoison: true },
-  };
-}
-
-/** A confirm step (hunter, dark wolf king, …) with its armed confirm status. */
-export function confirmStep(
-  schemaId: SchemaId,
-  role: RoleId,
-  seat: number,
-  confirmStatus: NonNullable<GameState['confirmStatus']>,
-): WerewolfRoomMockOptions {
-  return { ...actorStep(schemaId, role, seat), gameStateOverrides: { confirmStatus } };
-}
-
-/** Draft a wolf target and submit `werewolf.action.submit { target }`. */
-export async function chainWolfVote(
-  wolfRole: RoleId,
-  wolfSeat: number,
-  wolfAssignments: Map<number, RoleId>,
-  targetSeat: number,
-): Promise<SubmitActionMock> {
-  const mock = createWerewolfRoomMock({
-    schemaId: 'wolfKill',
-    currentActionRole: 'wolf',
-    myRole: wolfRole,
-    mySeat: wolfSeat,
-    roleAssignments: wolfAssignments,
-  });
-  const view = await mountWerewolfRoom(mock);
-  await draftSeatSelection(view, targetSeat);
-  expect(mock.submitAction).not.toHaveBeenCalled();
-  await submitSeatSelection(view);
-  expect(mock.submitAction).toHaveBeenCalledTimes(1);
-  expect(mock.submitAction).toHaveBeenCalledWith({ kind: 'target', target: targetSeat });
-
-  view.unmount();
-  return mock.submitAction;
-}
-
-/** Bottom skip → skipConfirm → `werewolf.action.submit { skip }`. */
-export async function chainSkipConfirm(
-  harness: RoomScreenTestHarness,
-  schemaId: SchemaId,
-  actionRole: RoleId,
-  playerRole: RoleId,
-  seat: number,
-): Promise<SubmitActionMock> {
-  const mock = createWerewolfRoomMock({
-    schemaId,
-    currentActionRole: actionRole,
-    myRole: playerRole,
-    mySeat: seat,
-  });
-  const view = await mountWerewolfRoom(mock);
-  harness.clear();
-
-  await pressText(view, requireBottomActionText(schemaId, 'skipConfirm'));
-  await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
-  await harness.pressButtonOnType('skipConfirm', '确定');
-  expect(mock.submitAction).toHaveBeenCalledTimes(1);
-
-  view.unmount();
-  return mock.submitAction;
-}
-
-/** Status button → confirmTrigger dialog → confirm. */
-export async function chainConfirmTrigger(
-  harness: RoomScreenTestHarness,
-  schemaId: SchemaId,
-  actionRole: RoleId,
-  playerRole: RoleId,
-  seat: number,
-): Promise<void> {
-  const view = await mountWerewolfRoom(
-    createWerewolfRoomMock({
-      schemaId,
-      currentActionRole: actionRole,
-      myRole: playerRole,
-      mySeat: seat,
-      gameStateOverrides: { confirmStatus: defaultConfirmStatus(actionRole) },
-    }),
-  );
-  harness.clear();
-
-  const bottomActionText = requireBottomActionText(schemaId, 'confirmTrigger');
-  await view.findByText(bottomActionText);
-  await pressText(view, bottomActionText);
-  await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
-  await harness.pressPrimaryOnType('confirmTrigger');
-
-  view.unmount();
-}
-
-/** Wolf robot learned hunter → gate button → status dialog → `wolfRobot.ackHunterStatus`. */
-export async function chainWolfRobotHunterStatus(
-  harness: RoomScreenTestHarness,
-  seat: number,
-): Promise<WerewolfRoomMock['dispatch']> {
-  const mock = createWerewolfRoomMock({
-    schemaId: 'wolfRobotLearn',
-    currentActionRole: 'wolfRobot',
-    myRole: 'wolfRobot',
-    mySeat: seat,
-    wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-    wolfRobotHunterStatusViewed: false,
-  });
-  const view = await mountWerewolfRoom(mock);
-  harness.clear();
-
-  await pressText(view, requireHunterGateButtonText());
-  await waitFor(() => expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(true));
-  await harness.pressPrimaryOnType('wolfRobotHunterStatus');
-  await waitFor(() =>
-    expect(mock.dispatch).toHaveBeenCalledWith(
-      { type: 'werewolf.wolfRobot.ackHunterStatus' },
-      expect.anything(),
-    ),
-  );
-
-  view.unmount();
-  return mock.dispatch;
-}
-
-// Coverage-integrated drivers: the harness keeps the recorded dialogs for assertCoverage.
-
-export async function coverageChainWolfVote(
-  wolfRole: RoleId,
-  wolfSeat: number,
-  wolfAssignments: Map<number, RoleId>,
-  targetSeat: number,
-): Promise<{ submitAction: SubmitActionMock }> {
-  return { submitAction: await chainWolfVote(wolfRole, wolfSeat, wolfAssignments, targetSeat) };
-}
-
-export async function coverageChainSkipConfirm(
-  harness: RoomScreenTestHarness,
-  schemaId: SchemaId,
-  actionRole: RoleId,
-  playerRole: RoleId,
-  seat: number,
-): Promise<{ submitAction: SubmitActionMock }> {
-  const mock = createWerewolfRoomMock({
-    schemaId,
-    currentActionRole: actionRole,
-    myRole: playerRole,
-    mySeat: seat,
-  });
-  const view = await mountWerewolfRoom(mock);
-
-  await pressText(view, requireBottomActionText(schemaId, 'skipConfirm coverage'));
-  await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
-  await harness.pressPrimaryOnType('skipConfirm');
-  expect(mock.submitAction).toHaveBeenCalledTimes(1);
-  expect(mock.submitAction).toHaveBeenCalledWith({ kind: 'skip' });
-
-  view.unmount();
-  return { submitAction: mock.submitAction };
-}
-
-export async function coverageChainConfirmTrigger(
-  harness: RoomScreenTestHarness,
-  schemaId: SchemaId,
-  actionRole: RoleId,
-  playerRole: RoleId,
-  seat: number,
-): Promise<void> {
-  const view = await mountWerewolfRoom(
-    createWerewolfRoomMock({
-      schemaId,
-      currentActionRole: actionRole,
-      myRole: playerRole,
-      mySeat: seat,
-      gameStateOverrides: { confirmStatus: defaultConfirmStatus(actionRole) },
-    }),
-  );
-
-  const bottomActionText = requireBottomActionText(schemaId, 'confirmTrigger coverage');
-  await waitFor(() => harness.expectInlineStatus('actionPrompt'));
-  await pressText(view, bottomActionText);
-  await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
-  await harness.pressPrimaryOnType('confirmTrigger');
-  harness.assertNoLoop({ type: 'confirmTrigger', maxTimesPerStep: 3 });
-
-  view.unmount();
-}
-
-export async function coverageChainWolfRobotHunterStatus(
-  harness: RoomScreenTestHarness,
-  seat: number,
-): Promise<{ dispatch: WerewolfRoomMock['dispatch'] }> {
-  const mock = createWerewolfRoomMock({
-    schemaId: 'wolfRobotLearn',
-    currentActionRole: 'wolfRobot',
-    myRole: 'wolfRobot',
-    mySeat: seat,
-    wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
-    wolfRobotHunterStatusViewed: false,
-  });
-  const view = await mountWerewolfRoom(mock);
-
-  await pressText(view, requireHunterGateButtonText());
-  await waitFor(() => expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(true));
-  await harness.pressPrimaryOnType('wolfRobotHunterStatus');
-  await waitFor(() =>
-    expect(mock.dispatch).toHaveBeenCalledWith(
-      { type: 'werewolf.wolfRobot.ackHunterStatus' },
-      expect.anything(),
-    ),
-  );
-  harness.assertNoLoop({ type: 'wolfRobotHunterStatus', maxTimesPerStep: 3 });
-
-  view.unmount();
-  return { dispatch: mock.dispatch };
-}
-
-export async function coverageChainActionPrompt(
-  harness: RoomScreenTestHarness,
-  schemaId: SchemaId,
-  actionRole: RoleId,
-  playerRole: RoleId,
-  seat: number,
-): Promise<void> {
-  const view = await mountWerewolfRoom(
-    createWerewolfRoomMock({
-      schemaId,
-      currentActionRole: actionRole,
-      myRole: playerRole,
-      mySeat: seat,
-    }),
-  );
-  await waitFor(() => harness.expectInlineStatus('actionPrompt'));
-  view.unmount();
-}
-
-export async function coverageChainWitchSavePrompt(
-  harness: RoomScreenTestHarness,
-  seat: number,
-): Promise<void> {
-  const view = await mountWerewolfRoom(
-    createWerewolfRoomMock({
-      schemaId: 'witchAction',
-      currentActionRole: 'witch',
-      myRole: 'witch',
-      mySeat: seat,
-      witchContext: { killedSeat: seat === 1 ? 0 : 1, canSave: true, canPoison: true },
-    }),
-  );
-  await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
-  view.unmount();
-}
-
-export async function coverageChainWitchPoisonSelection(
-  harness: RoomScreenTestHarness,
-  seat: number,
-): Promise<void> {
-  const view = await mountWerewolfRoom(
-    createWerewolfRoomMock({
-      schemaId: 'witchAction',
-      currentActionRole: 'witch',
-      myRole: 'witch',
-      mySeat: seat,
-      witchContext: { killedSeat: -1, canSave: false, canPoison: true },
-    }),
-  );
-
-  await waitFor(() => harness.expectInlineStatus('witchNoKill'));
-  await draftSeatSelection(view, seat === 1 ? 0 : 1);
-  view.unmount();
-}
-
-export async function coverageChainMagicianSwap(
-  seat: number,
-  firstTarget: number,
-  secondTarget: number,
-): Promise<{ submitAction: SubmitActionMock }> {
-  const mock = createWerewolfRoomMock({
-    schemaId: 'magicianSwap',
-    currentActionRole: 'magician',
-    myRole: 'magician',
-    mySeat: seat,
-  });
-  const view = await mountWerewolfRoom(mock);
-
-  await startSeatSelection(view);
-  await tapSeat(view, firstTarget);
-  expect(view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'))).toBeNull();
-  await tapSeat(view, secondTarget);
-  expect(mock.submitAction).not.toHaveBeenCalled();
-  await submitSeatSelection(view);
-  expect(mock.submitAction).toHaveBeenCalledTimes(1);
-  expect(mock.submitAction).toHaveBeenCalledWith({
-    kind: 'multiTarget',
-    targets: [firstTarget, secondTarget],
-  });
-
-  view.unmount();
-  return { submitAction: mock.submitAction };
-}
-
-/** The blocked actor taps a seat, the server rejects, the rejection alert shows once. */
-export async function coverageChainNightmareBlocked(
-  harness: RoomScreenTestHarness,
-  blockedSchemaId: SchemaId,
-  blockedRole: RoleId,
-  blockedSeat: number,
-  blockedMessage: string,
-): Promise<{ rejectedEvents: DialogEvent[] }> {
-  const reactive = createReactiveWerewolfRoomMock({
-    schemaId: blockedSchemaId,
-    currentActionRole: blockedRole,
-    myRole: blockedRole,
-    mySeat: blockedSeat,
-    nightmareBlockedSeat: blockedSeat,
-    currentNightResults: { blockedSeat },
-  });
-  const view = await mountWerewolfRoom(reactive.mock);
-
-  await tapSeat(view, 1);
-  reactive.simulateHostReject({
-    action: blockedSchemaId,
-    reason: blockedMessage,
-    targetSeat: blockedSeat,
-    rejectionId: 'nightmare-block-coverage',
-  });
-
-  await waitFor(() => expect(harness.hasSeen('actionRejected')).toBe(true));
-  harness.assertNoLoop({ type: 'actionRejected', maxTimesPerStep: 3 });
-
-  const rejectedEvents = harness.eventsOfType('actionRejected');
-  view.unmount();
-  return { rejectedEvents };
-}
-
-export async function coverageChainSeatSelection(
-  schemaId: SchemaId,
-  actionRole: RoleId,
-  playerRole: RoleId,
-  seat: number,
-  targetSeat: number,
-): Promise<{ submitAction: SubmitActionMock }> {
-  const mock = createWerewolfRoomMock({
-    schemaId,
-    currentActionRole: actionRole,
-    myRole: playerRole,
-    mySeat: seat,
-  });
-  const view = await mountWerewolfRoom(mock);
-
-  await draftSeatSelection(view, targetSeat);
-  expect(mock.submitAction).not.toHaveBeenCalled();
-  await submitSeatSelection(view);
-  expect(mock.submitAction).toHaveBeenCalledTimes(1);
-  expect(mock.submitAction).toHaveBeenCalledWith({ kind: 'target', target: targetSeat });
-
-  view.unmount();
-  return { submitAction: mock.submitAction };
-}
-
-export async function coverageChainWolfVoteEmpty(
-  harness: RoomScreenTestHarness,
-  wolfRole: RoleId,
-  wolfSeat: number,
-  wolfAssignments: Map<number, RoleId>,
-): Promise<{ submitAction: SubmitActionMock }> {
-  const mock = createWerewolfRoomMock({
-    schemaId: 'wolfKill',
-    currentActionRole: 'wolf',
-    myRole: wolfRole,
-    mySeat: wolfSeat,
-    roleAssignments: wolfAssignments,
-  });
-  const view = await mountWerewolfRoom(mock);
-
-  await pressText(view, requireEmptyVoteText());
-  await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
-  await harness.pressPrimaryOnType('wolfVoteEmpty');
-  expect(mock.submitAction).toHaveBeenCalledTimes(1);
-  expect(mock.submitAction).toHaveBeenCalledWith({ kind: 'target', target: null });
-
-  view.unmount();
-  return { submitAction: mock.submitAction };
 }

@@ -10,17 +10,11 @@
  */
 
 import type { AudioEffect } from '../../../platform/audio';
-import type { SetPendingAudioEffectsAction, StateAction } from './reducer/types';
-
-export type AudioQueueAction = SetPendingAudioEffectsAction;
+import type { SetPendingAudioEffectsAction } from './reducer/types';
 
 /** Queue one playback batch; the reducer's shared transition validates it, closes the gate and assigns the id. */
 export function createAudioQueueAction(
   effects: readonly AudioEffect[],
 ): SetPendingAudioEffectsAction {
   return { type: 'SET_PENDING_AUDIO_EFFECTS', payload: { effects: [...effects] } };
-}
-
-export function isAudioQueueAction(action: StateAction): action is AudioQueueAction {
-  return action.type === 'SET_PENDING_AUDIO_EFFECTS';
 }

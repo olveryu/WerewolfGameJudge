@@ -9,6 +9,7 @@ import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/publi
 import { type Dispatch, type SetStateAction, useState } from 'react';
 
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
+import { showDismissAlert } from '@/utils/alertPresets';
 
 import type { AvalonStrikeConfirmation } from '../components/AvalonStrikeConfirmModal';
 import {
@@ -16,6 +17,10 @@ import {
   resolveAssassinInstruction,
   resolveLadyInstruction,
 } from '../policy/avalonInteractionPolicy';
+
+const SEAT_UNAVAILABLE_TITLE = '暂不可选';
+const SELF_SEAT_REASON = '不能选择自己';
+const FORMER_LADY_REASON = '已当过湖仙';
 
 export interface AvalonSeatPicking {
   /** 刺杀二次确认（指认 / 提前刺杀）；null 为关闭。 */
@@ -76,8 +81,23 @@ export function useAvalonSeatPicking({
     storage: { kind: 'local' },
     onPick: (seat) => setStrikeConfirm({ seat, mode: 'accuse' }),
   });
+  const unavailableReason = (seat: number): string | null => {
+    if (viewModel === null) return null;
+    if (strikePickActive || assassinInstruction?.kind === 'assassinPick') {
+      return seat === viewModel.mySeat ? SELF_SEAT_REASON : null;
+    }
+    if (ladyInstruction?.kind === 'holderPick') {
+      return ladyInstruction.eligibleSeats.includes(seat) ? null : FORMER_LADY_REASON;
+    }
+    return null;
+  };
   const handleSeatTap = (seat: number): boolean => {
     if (viewModel === null) return false;
+    const reason = unavailableReason(seat);
+    if (reason !== null) {
+      showDismissAlert(SEAT_UNAVAILABLE_TITLE, reason);
+      return true;
+    }
     // 提前刺杀选人模式独占点按；其余按湖仙 → 刺杀指认逐个尝试消费。
     if (strikePickActive) return strikePicking.handleSeatTap(seat);
     return ladyPicking.handleSeatTap(seat) || assassinPicking.handleSeatTap(seat);

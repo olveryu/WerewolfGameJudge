@@ -1,6 +1,6 @@
 ---
 name: new-board
-description: 'Add a preset board to PRESET_TEMPLATES: verify every role id in ROLE_SPECS, add the entry with its category and role list, update the cited preset counts, add its web board UI test and register it in the board UI coverage contract, add its Night-1 engine integration test and register it in the Night-1 board coverage contract, then verify with the engine template, night-plan, and coverage contracts. Use when adding a preset board; never for a new role or game.'
+description: 'Add a preset board to PRESET_TEMPLATES: verify every role id in the role catalog, add the entry with its category and role list, update the cited preset counts, add its web board UI test and register it in the board UI coverage contract, record its Night-1 scenario snapshot and add a scenario for each new role interaction, then verify with the engine template contract, the Night-1 scenarios, and the board UI coverage contract. Use when adding a preset board; never for a new role or game.'
 ---
 
 # New board
@@ -26,8 +26,8 @@ Do not use when:
 
 ## Must-read references
 
-1. `references/role-index.md` — current 47-role index, regenerated
-   from `ROLE_SPECS`, with faction and night steps per role.
+1. `references/role-index.md` — current 48-role catalog index; every
+   role is declared in its module under `roles/`.
 2. `references/preset-rules.md` — schema, categories, seat-count
    rule, bottom cards, contract checks, count surfaces.
 3. `references/board-test.md` — the web board UI tests, the Night-1
@@ -38,9 +38,9 @@ Do not use when:
 ### 1. Collect and verify the board
 
 Get the board name, category, and full role list from the requester.
-Verify every role id in `references/role-index.md` (or in `specs.ts`
-directly). A missing role stops the work: add the role first, do not
-invent an id. Agree the category using the enum meanings in
+Verify every role id in `references/role-index.md` (or in
+`WEREWOLF_ROLE_DEFINITIONS` in `roles/index.ts` directly). A missing role stops the work: add the role
+first, do not invent an id. Agree the category using the enum meanings in
 `references/preset-rules.md`.
 
 ### 2. Check the design
@@ -90,19 +90,28 @@ mount and interaction, and one literal `harness.assertCoverage([...])`
 holding every `getRequiredUiDialogTypes(board)` type; nightmare and
 wolf-robot boards have extra checks (`references/board-test.md`).
 
-### 6. Add a Night-1 integration test and register it in the coverage contract
+### 6. Record the Night-1 scenario and add board-specific scenarios
 
-Add `night1.<theme>.12p.integration.test.ts` under
-`packages/game-engine/src/games/werewolf/__tests__/boards/`,
-modeled on the nearest board with the same roles: declare
-`const TEMPLATE_NAME = '<board name>'`, fix the seat-role map, drive
-the night with `createGame` and `executeStepsUntil` /
-`executeFullNight`, and assert at least one theme field (reveal,
-`currentNightResults`, `actions`), not only deaths. For a 12-seat
-board, add the name to `REQUIRED_12P_TEMPLATES` and
-`TEMPLATE_TO_TEST_PATTERN` in
-`packages/game-engine/src/games/werewolf/__tests__/boards/night1.boards.coverage.contract.test.ts`
-(details in `references/board-test.md`).
+`packages/game-engine/src/games/werewolf/__tests__/boards/night1.scenarios.integration.test.ts`
+plays one ordinary night on every entry of `PRESET_TEMPLATES` through
+production commands, so a new preset is picked up without
+registration. Run it and `night1.catalogue.integration.test.ts` once
+with `-u` to record the new `<board name> preset: ordinary night`
+snapshot and the step-by-step list, then read the recorded
+entry: steps visited, unavailable options with their reasons, private
+views, review sentences, deaths, and daytime announcements must all
+match the board's rules.
+
+If the board introduces a role interaction no existing scenario
+plays, add role-keyed scenarios for it to `nightScenarios.ts` in the
+same directory (details in `references/board-test.md`). The suite
+fails when a declared night step is reached by no scenario.
+
+Report every changed line of
+`__snapshots__/night-steps.catalogue.txt` to the user. A new board
+normally changes only the counts; a new or changed sentence is a
+user-facing change and needs the user's confirmation before it is
+committed.
 
 ### 7. Verify
 
@@ -113,7 +122,7 @@ proposed before writing one (see the new-e2e-spec skill).
 ## Acceptance commands
 
 ```sh
-pnpm --filter @game-judge/game-engine exec vitest run Template.contract nightPlanSchemas.contract night1.boards.coverage.contract night1RoleCoverage.contract night1.<theme>.12p
+pnpm --filter @game-judge/game-engine exec vitest run Template.contract night1.scenarios night1.catalogue
 pnpm --filter @game-judge/web exec vitest run boardUICoverage.contract <key>.12p.board.ui
 ```
 
@@ -132,11 +141,11 @@ checks on the changed files before pushing.
    count subtracts bottom cards; `thief`/`treasureMaster` boards
    have 14/15 `roles` entries for 12 seats.
 2. Adding a board name with a player-count suffix — `models/__tests__/Template.contract.test.ts` rejects names matching `/\d+人$/`.
-3. Naming the Night-1 test by role count (`.14p`, `.15p`) for a
-   bottom-card board — the coverage contract scans only
-   `night1.*.12p.integration.test.ts`; name it by seat count.
+3. Accepting the recorded Night-1 snapshot without reading it — the
+   snapshot is the expectation; a wrong sentence or death recorded
+   with `-u` becomes the baseline.
 4. Claiming the board is covered end to end — only the engine
-   contracts, its Night-1 integration test, and its board UI test
+   template contract, its Night-1 scenarios, and its board UI test
    run for it.
 5. Updating a non-existent guide-content file, or copying the old
    "27 → 28" count example — derive the count from the template

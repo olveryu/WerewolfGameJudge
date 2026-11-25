@@ -28,6 +28,7 @@ export const TESTIDS = {
   seatNumberBadge: (seat: number) => `seat-number-badge-${seat}`,
   seatNameRow: (seat: number) => `seat-name-row-${seat}`,
   seatSecondaryLabel: (seat: number) => `seat-secondary-label-${seat}`,
+  seatSelectionReason: (seat: number) => `seat-selection-reason-${seat}`,
   mySeatBadge: 'my-seat-badge',
 
   // Home / Config / Room readiness gates (stable, non-copy based)
@@ -129,6 +130,7 @@ export const TESTIDS = {
   roomHostTaskEscapeButton: 'room-host-task-card-escape',
   roomHostManagementPanel: 'room-host-management-panel',
   roomHostManagementCloseButton: 'room-host-management-close-button',
+  roomHostGroupBackButton: 'room-host-group-back-button',
   roomViewIdentityButton: 'room-view-identity-button',
   roomDialogCloseButton: 'room-dialog-close-button',
   playerProfileCard: 'player-profile-card',
@@ -153,11 +155,17 @@ export const TESTIDS = {
   returnLobbyButton: 'return-lobby-button',
   restartButton: 'restart-button',
   lastNightInfoButton: 'last-night-info-button',
+  lastNightDeathsButton: 'last-night-deaths-button',
+  personalDaytimeViewButton: (key: string) => `personal-daytime-view-${key}`,
+  werewolfAnnouncementButton: (key: string) => `werewolf-announcement-${key}`,
   lastNightInfoBottomButton: 'last-night-info-bottom-button',
   nextRoundBottomButton: 'next-round-bottom-button',
   returnLobbyBottomButton: 'return-lobby-bottom-button',
   chooseBottomCardModal: 'choose-bottom-card-modal',
   chooseBottomCardOption: (cardIndex: number) => `choose-bottom-card-option-${cardIndex}`,
+  stepCardPicker: 'step-card-picker',
+  stepCardOption: (cardIndex: number) => `step-card-option-${cardIndex}`,
+  stepInteractionButton: (actionKey: string) => `step-interaction-button-${actionKey}`,
   bgmToggleButton: 'bgm-toggle-button',
   connectionStatusContainer: 'connection-status-container',
   connectionPendingContainer: 'connection-pending-container',
@@ -174,7 +182,6 @@ export const TESTIDS = {
   werewolfNightButton: (key: string) => `werewolf-night-button-${key}`,
 
   // Avalon night step button
-  avalonNightInfo: 'avalon-night-info',
 
   // Avalon bottom actions
   avalonEarlyStrike: 'avalon-early-strike',

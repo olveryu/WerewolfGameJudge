@@ -1,6 +1,9 @@
 /** Pure Werewolf host-management projection. It does not execute or authorize game commands. */
 
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  GameStatus,
+  type WerewolfDaytimeAnnouncement,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
@@ -75,6 +78,9 @@ interface WerewolfHostManagementInput {
   /** Opens the seat picker that grants seats access to the review. */
   readonly onGrantReviewAccess: () => void;
   readonly onLastNightInfo: () => void;
+  readonly onLastNightDeaths: () => void;
+  readonly announcements: readonly WerewolfDaytimeAnnouncement[];
+  readonly onAnnouncement: (announcement: WerewolfDaytimeAnnouncement) => void;
 }
 
 function createSheriffAdvanceAction(election: SheriffElectionPanelModel): RoomHostAction | null {
@@ -370,12 +376,39 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostActi
     category: 'host',
     testID: TESTIDS.shareReviewButton,
   } as const;
+  const announcementActions: RoomHostAction[] =
+    input.announcements.length === 0
+      ? []
+      : [
+          buildEnabledHostAction(
+            {
+              key: 'last-night-deaths',
+              label: '查看昨夜死讯',
+              icon: 'moon-outline',
+              category: 'resource',
+              testID: TESTIDS.lastNightDeathsButton,
+            },
+            input.onLastNightDeaths,
+          ),
+          ...input.announcements.map((announcement) =>
+            buildEnabledHostAction(
+              {
+                key: `last-night-announcement:${announcement.key}`,
+                label: `查看${announcement.title}（${announcement.timingLabel}）`,
+                icon: 'information-circle-outline',
+                category: 'resource',
+                testID: TESTIDS.werewolfAnnouncementButton(announcement.key),
+              },
+              () => input.onAnnouncement(announcement),
+            ),
+          ),
+        ];
   return [
     buildReviewHostAction(review),
     buildEnabledHostAction(
       {
         key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
-        label: '昨夜信息',
+        label: '查看昨夜信息',
         icon: 'moon-outline',
         category: 'resource',
         testID: TESTIDS.lastNightInfoButton,
@@ -385,6 +418,7 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostActi
     input.panelFlow.lastNightInfoConfirmed
       ? buildEnabledHostAction(grantDescriptor, input.onGrantReviewAccess)
       : { ...grantDescriptor, state: { kind: 'blocked', reason: '请先查看昨夜信息' } },
+    ...announcementActions,
   ];
 }
 
@@ -452,6 +486,20 @@ export function createWerewolfHostManagement(
     {
       task: createHostTask(input),
       actions,
+      ...(input.announcements.length > 0 &&
+      (input.roomStatus === GameStatus.Day || input.roomStatus === GameStatus.Ended)
+        ? {
+            group: {
+              actionKey: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
+              actionKeys: [
+                'last-night-deaths',
+                ...input.announcements.map(
+                  (announcement) => `last-night-announcement:${announcement.key}`,
+                ),
+              ],
+            },
+          }
+        : {}),
       ...(input.roomStatus === GameStatus.Unseated || input.roomStatus === GameStatus.Seated
         ? { pendingActionKeys: [HOST_ACTION_KEYS.assignRoles] }
         : input.roomStatus === GameStatus.Assigned

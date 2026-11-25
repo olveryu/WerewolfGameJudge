@@ -8,6 +8,7 @@ import {
   getDrawGuessOccupiedSeatCount,
 } from '@game-judge/game-engine/games/drawguess/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
@@ -44,7 +45,6 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** Public lobby timing and round settings, including fixed engine rules. */
 export function createDrawGuessRoomSummarySettings(
@@ -174,7 +174,11 @@ export function createDrawGuessHostManagement(
       );
     const startAction = buildStartGameAction({
       onPress: () =>
-        showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局绘画猜词', submitStart),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.startTitle,
+          body: '将开始本局绘画猜词',
+          onConfirm: submitStart,
+        }),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -188,13 +192,15 @@ export function createDrawGuessHostManagement(
   const expectedPhase = state.phase.kind === 'ended' ? 'ended' : 'playing';
   const restart = buildResetToLobbyAction({
     onPress: () =>
-      showDestructiveAlert(
-        '重新开始？',
-        expectedPhase === 'ended'
-          ? '保留座位和配置，清除本局画作、猜词记录和比分并回到准备。已结算的战绩和奖励保留；之后可能无法查看复盘。'
-          : '保留座位和配置，清除本局画作、猜词记录和比分并回到准备。本局中止，不结算战绩与奖励。',
-        '重新开始',
-        async () => {
+      confirmAction({
+        label: '重新开始？',
+        body:
+          expectedPhase === 'ended'
+            ? '保留座位和配置，清除本局画作、猜词记录和比分并回到准备。已结算的战绩和奖励保留；之后可能无法查看复盘。'
+            : '保留座位和配置，清除本局画作、猜词记录和比分并回到准备。本局中止，不结算战绩与奖励。',
+        tone: 'danger',
+        confirmText: '重新开始',
+        onConfirm: async () => {
           await input.submit(
             '重新开始',
             {
@@ -205,7 +211,7 @@ export function createDrawGuessHostManagement(
             { actionKey: HOST_ACTION_KEYS.restart },
           );
         },
-      ),
+      }),
     isEnabled: !input.isSubmitting,
     isLoading: input.isSubmitting,
   });

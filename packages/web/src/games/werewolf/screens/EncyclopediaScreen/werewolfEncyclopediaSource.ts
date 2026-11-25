@@ -5,8 +5,8 @@
 import {
   Faction,
   getAllRoleIds,
+  getRoleCard,
   isWolfRole,
-  ROLE_SPECS,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 
@@ -30,7 +30,7 @@ const FACTION_GROUP_KEY: Record<Faction, string> = {
 
 function getFactionColorKey(roleId: RoleId): EncyclopediaFactionColorKey {
   if (isWolfRole(roleId)) return 'wolf';
-  const faction = ROLE_SPECS[roleId].faction;
+  const faction = getRoleCard(roleId).faction;
   if (faction === Faction.God) return 'god';
   if (faction === Faction.Special) return 'third';
   return 'villager';
@@ -39,7 +39,7 @@ function getFactionColorKey(roleId: RoleId): EncyclopediaFactionColorKey {
 /** Werewolf encyclopedia data source, built once. */
 export const WEREWOLF_ENCYCLOPEDIA_SOURCE: EncyclopediaRoleSource = {
   roles: getAllRoleIds().map((roleId) => {
-    const spec = ROLE_SPECS[roleId];
+    const spec = getRoleCard(roleId);
     return {
       id: roleId,
       displayName: spec.displayName,

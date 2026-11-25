@@ -16,6 +16,7 @@ import {
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
+import type { StepSlice } from '../../../platform/steps';
 
 export const AVALON_GAME_TYPE = 'avalon' as const;
 
@@ -238,8 +239,8 @@ export type AvalonPhase =
   | { readonly kind: 'viewing' }
   | {
       readonly kind: 'night';
-      readonly step: AvalonNightStep;
-      readonly confirmedSeats: readonly number[];
+      /** The night reveals on the shared step mechanism; reveals carry no result. */
+      readonly steps: StepSlice<AvalonNightStep, never>;
     }
   | {
       readonly kind: 'nominate';

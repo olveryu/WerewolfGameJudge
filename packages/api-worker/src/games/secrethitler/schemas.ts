@@ -2,6 +2,7 @@
 
 import {
   SECRETHITLER_CONFIG_SCHEMA,
+  SECRETHITLER_NIGHT_STEP_IDS,
   type SecrethitlerConfig,
   type SecrethitlerInternalCommand,
   type SecrethitlerPublicCommand,
@@ -45,8 +46,17 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
     audioBatchId: z.number().int().nonnegative(),
   }),
   z.strictObject({
-    type: z.literal('secrethitler.night.confirm'),
-    step: z.number().int().min(1).max(1),
+    type: z.literal('secrethitler.step.submit'),
+    gameSequence: z.number().int().nonnegative(),
+    submission: z.strictObject({
+      stepId: z
+        .string()
+        .refine((value): boolean => SECRETHITLER_NIGHT_STEP_IDS.some((step) => step === value)),
+      serial: z.number().int().nonnegative(),
+      actionKey: z.string().min(1).max(128),
+      seats: z.array(z.number().int().nonnegative()).readonly().optional(),
+      cardIndex: z.number().int().nonnegative().optional(),
+    }),
   }),
   z.strictObject({
     type: z.literal('secrethitler.government.preselect'),

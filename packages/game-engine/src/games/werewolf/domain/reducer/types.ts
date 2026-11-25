@@ -6,21 +6,14 @@
 
 import type { AudioEffect } from '../../../../platform/audio';
 import type { RosterChange } from '../../../../platform/room/seating';
-import type { DeathReason } from '../DeathCalculator';
+import type { DeathReason } from '../../roles/deathEffects';
 import type { GameRuleOverrides, RoleId } from '../models';
-import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type {
-  ConfirmStatus,
   Player,
-  ProtocolAction,
-  ResolvedNightEffect,
-  ResolvedWolfKillVerdict,
-  SeedWolfInfectionResult,
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
   WerewolfHumanSeat,
-  WerewolfNightStep,
 } from '../protocol/types';
 import type { BoardNomination } from '../protocol/types';
 
@@ -113,31 +106,13 @@ export interface AssignRolesAction {
     assignments: Record<number, RoleId>;
     /** Seer label map - set when both seer + mirrorSeer are in template */
     seerLabelMap?: Readonly<Record<string, number>>;
-    /** Deck card role list (TreasureMaster 3 / Thief 2), only exists when deck role is present */
+    /** The cards set aside for the board's bottom-card actor; absent when the board has none. */
     bottomCards?: readonly RoleId[];
-    /** TreasureMaster seat number */
-    treasureMasterSeat?: number;
-    /** Thief seat number */
-    thiefSeat?: number;
-    /** Cupid seat number */
-    cupidSeat?: number;
   };
 }
 
 export interface StartNightAction {
   type: 'START_NIGHT';
-  payload: {
-    /** First plan step, or the exhausted variant when the plan has no night steps. */
-    nightStep: WerewolfNightStep;
-  };
-}
-
-export interface AdvanceToNextActionAction {
-  type: 'ADVANCE_TO_NEXT_ACTION';
-  payload: {
-    /** Next plan step, or the exhausted variant when the night is complete. */
-    nightStep: WerewolfNightStep;
-  };
 }
 
 export interface EndNightAction {
@@ -201,101 +176,6 @@ export interface CompleteSheriffElectionAction {
 }
 
 // =============================================================================
-// Night action actions
-// =============================================================================
-
-export interface RecordActionAction {
-  type: 'RECORD_ACTION';
-  payload: {
-    action: ProtocolAction;
-  };
-}
-
-export interface ApplyResolverResultAction {
-  type: 'APPLY_RESOLVER_RESULT';
-  payload: ResolvedNightEffect;
-}
-
-/** Atomically finalize Seed Wolf's result and invalidate a converted actor's night effects. */
-export interface FinalizeSeedWolfInfectionAction {
-  type: 'FINALIZE_SEED_WOLF_INFECTION';
-  payload: { result: SeedWolfInfectionResult };
-}
-
-export interface SetWitchContextAction {
-  type: 'SET_WITCH_CONTEXT';
-  payload: {
-    killedSeat: number;
-    canSave: boolean;
-    canPoison: boolean;
-  };
-}
-
-/**
- * Persist the wolf-kill target and verdict settled exactly once for
- * this night, in this one action. A seat number is the settled kill
- * target; null is a settled no-kill. The verdict is null exactly when
- * the no-kill comes from a wolf-kill override (no vote verdict); in
- * every other settled case it is the verdict twin of the target.
- * Emitted by the first handler that settles the votes (advance past
- * wolfKill, witch entry, or END_NIGHT when no wolf-kill step ran); later
- * handlers reuse GameState.resolvedWolfKillTarget and
- * GameState.resolvedWolfKillVerdict and never emit it again for the
- * same night.
- */
-export interface SetResolvedWolfKillTargetAction {
-  type: 'SET_RESOLVED_WOLF_KILL_TARGET';
-  payload: {
-    target: number | null;
-    verdict: ResolvedWolfKillVerdict | null;
-  };
-}
-
-export interface SetConfirmStatusAction {
-  type: 'SET_CONFIRM_STATUS';
-  payload: ConfirmStatus;
-}
-
-export interface ClearRevealStateAction {
-  type: 'CLEAR_REVEAL_STATE';
-}
-
-export interface SetWolfKillOverrideAction {
-  type: 'SET_WOLF_KILL_OVERRIDE';
-  payload: {
-    override?: WolfKillOverride;
-    blockedSeat?: number;
-  };
-}
-
-// =============================================================================
-// UI Hint actions (Host broadcast driven, UI read-only)
-// =============================================================================
-
-/**
- * Set current step UI Hint
- *
- * Purpose: Host writes after resolver/handler determination, cleared on next step entry.
- * UI read-only display, no derivation. Filters "who can see" by targetRoleIds.
- */
-export interface SetUiHintAction {
-  type: 'SET_UI_HINT';
-  payload: {
-    currentActorHint: {
-      kind:
-        | 'blocked_by_nightmare'
-        | 'wolf_kill_disabled'
-        | 'wolf_unanimity_required'
-        | 'wolf_tie_random';
-      targetRoleIds: RoleId[];
-      message: string;
-      bottomAction?: 'skipOnly' | 'wolfEmptyOnly';
-      promptOverride?: { title?: string; text?: string };
-    } | null;
-  };
-}
-
-// =============================================================================
 // Player state actions
 // =============================================================================
 
@@ -303,55 +183,6 @@ export interface PlayerViewedRoleAction {
   type: 'PLAYER_VIEWED_ROLE';
   payload: {
     seat: number;
-  };
-}
-
-// =============================================================================
-// Error/rejection actions
-// =============================================================================
-
-export interface ActionRejectedAction {
-  type: 'ACTION_REJECTED';
-  payload: {
-    action: string;
-    reason: string;
-    /** The acting seat whose action was rejected. */
-    targetSeat: number;
-    /**
-     * Unique id for this rejection event.
-     * Used by UI to avoid accidentally deduping distinct rejections that share the same reason.
-     */
-    rejectionId: string;
-  };
-}
-
-export interface ClearActionRejectedAction {
-  type: 'CLEAR_ACTION_REJECTED';
-}
-
-// =============================================================================
-// Reveal ACK actions
-// =============================================================================
-
-export interface AddRevealAckAction {
-  type: 'ADD_REVEAL_ACK';
-  payload: {
-    ackKey: string;
-  };
-}
-
-export interface ClearRevealAcksAction {
-  type: 'CLEAR_REVEAL_ACKS';
-}
-
-// =============================================================================
-// Wolf Robot Hunter Gate actions
-// =============================================================================
-
-export interface SetWolfRobotHunterStatusViewedAction {
-  type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED';
-  payload: {
-    viewed: boolean;
   };
 }
 
@@ -374,30 +205,6 @@ export interface FillWithBotsAction {
 // (No MARK_ALL_BOTS_VIEWED action: the scaffold emits one
 // PLAYER_VIEWED_ROLE action per unviewed bot seat via the shared
 // platform skeleton.)
-
-// =============================================================================
-// Step progression deadline (unified deadline-gate)
-// =============================================================================
-
-/**
- * Set current step progression deadline (epoch ms).
- * - wolfKill step: set (now + SETTLE_COUNTDOWN_MS) after all votes
- * - Empty deck step: set (now + random(5000, 10000)) on entry
- */
-export interface SetStepDeadlineAction {
-  type: 'SET_STEP_DEADLINE';
-  payload: {
-    deadline: number;
-  };
-}
-
-/**
- * Clear current step progression deadline.
- * Cleared when wolf retract vote results in not all voted.
- */
-export interface ClearStepDeadlineAction {
-  type: 'CLEAR_STEP_DEADLINE';
-}
 
 // =============================================================================
 // Pending audio queue actions
@@ -438,72 +245,6 @@ export interface ConfirmLastNightInfoAction {
 export interface CompleteReviewAction {
   type: 'COMPLETE_REVIEW';
   userId: string;
-}
-
-// =============================================================================
-// Piper groupConfirm ACK
-// =============================================================================
-
-/**
- * Record seat confirmed hypnotize status (idempotent: duplicate ack ignored).
- * Server progresses to next step after all seated players ack.
- */
-export interface AddPiperRevealAckAction {
-  type: 'ADD_PIPER_REVEAL_ACK';
-  payload: {
-    seat: number;
-  };
-}
-
-// =============================================================================
-// Awakened Gargoyle groupConfirm ACK
-// =============================================================================
-
-/**
- * Record seat confirmed conversion status (idempotent: duplicate ack ignored).
- * Server progresses to next step after all seated players ack.
- */
-export interface AddConversionRevealAckAction {
-  type: 'ADD_CONVERSION_REVEAL_ACK';
-  payload: {
-    seat: number;
-  };
-}
-
-/** Record a seat's acknowledgement of the Seed Wolf infection result. */
-export interface AddSeedWolfInfectionRevealAckAction {
-  type: 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK';
-  payload: { seat: number };
-}
-
-// =============================================================================
-// Cupid groupConfirm ACK
-// =============================================================================
-
-/**
- * Record seat confirmed lover status (idempotent: duplicate ack ignored).
- * Server progresses to next step after all seated players ack.
- */
-export interface AddCupidLoversRevealAckAction {
-  type: 'ADD_CUPID_LOVERS_REVEAL_ACK';
-  payload: {
-    seat: number;
-  };
-}
-
-// =============================================================================
-// Wolf Girl groupConfirm ACK
-// =============================================================================
-
-/**
- * Record seat confirmed confession status (idempotent: duplicate ack ignored).
- * Server progresses to next step after all seated players ack.
- */
-export interface AddWolfGirlConfessionRevealAckAction {
-  type: 'ADD_WOLF_GIRL_CONFESSION_REVEAL_ACK';
-  payload: {
-    seat: number;
-  };
 }
 
 // =============================================================================
@@ -551,6 +292,10 @@ export interface UpdateRosterLevelsAction {
 
 export type StateAction =
   | { readonly type: 'SELECT_MVP'; readonly mvpUserId: string }
+  | {
+      readonly type: 'WEREWOLF_NIGHT_EVENT';
+      readonly event: import('../../roles/nightEvolution').WerewolfNightEvent;
+    }
   | CompleteReviewAction
   // Lifecycle
   | InitializeGameAction
@@ -564,7 +309,6 @@ export type StateAction =
   // Game phase
   | AssignRolesAction
   | StartNightAction
-  | AdvanceToNextActionAction
   | EndNightAction
   // First-day sheriff election
   | RegisterSheriffCandidateAction
@@ -576,32 +320,16 @@ export type StateAction =
   | ClearSheriffElectionDeadlineAction
   | CompleteSheriffElectionAction
   // Night actions
-  | RecordActionAction
-  | ApplyResolverResultAction
-  | FinalizeSeedWolfInfectionAction
-  | SetWitchContextAction
-  | SetResolvedWolfKillTargetAction
-  | SetConfirmStatusAction
-  | ClearRevealStateAction
   // Wolf related
-  | SetWolfKillOverrideAction
   // Wolf Robot Hunter Gate
-  | SetWolfRobotHunterStatusViewedAction
   // UI Hint (Host broadcast driven)
-  | SetUiHintAction
   // Player state
   | PlayerViewedRoleAction
   // Error
-  | ActionRejectedAction
-  | ClearActionRejectedAction
   // Reveal ACK
-  | AddRevealAckAction
-  | ClearRevealAcksAction
   // Debug Bots
   | FillWithBotsAction
   // Step progression deadline
-  | SetStepDeadlineAction
-  | ClearStepDeadlineAction
   // Pending audio queue
   | SetPendingAudioEffectsAction
   | ClearPendingAudioEffectsAction
@@ -609,14 +337,9 @@ export type StateAction =
   | SetNightReviewAllowedSeatsAction
   | ConfirmLastNightInfoAction
   // Piper groupConfirm ACK
-  | AddPiperRevealAckAction
   // Awakened Gargoyle groupConfirm ACK
-  | AddConversionRevealAckAction
-  | AddSeedWolfInfectionRevealAckAction
   // Cupid groupConfirm ACK
-  | AddCupidLoversRevealAckAction
   // Wolf Girl groupConfirm ACK
-  | AddWolfGirlConfessionRevealAckAction
   // Board Nomination
   | SetBoardNominationAction
   | UpvoteBoardNominationAction

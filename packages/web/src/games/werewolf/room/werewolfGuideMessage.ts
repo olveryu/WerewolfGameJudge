@@ -31,7 +31,7 @@ export function buildWerewolfGuideMessage(input: {
       if (mySeat === null) return '等待玩家查看身份';
       const viewedCount = viewModel.seats.filter((seat) => seat.hasViewedRole).length;
       if (viewedCount < viewModel.template.numberOfPlayers) {
-        return `请点击下方「${VIEW_IDENTITY_LABEL}」查看你的身份`;
+        return `请点击「${VIEW_IDENTITY_LABEL}」`;
       }
       return null;
     }

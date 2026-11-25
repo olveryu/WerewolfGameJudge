@@ -34,9 +34,9 @@ import {
   type SecrethitlerEvent,
 } from './decision';
 import { evolveSecrethitlerState } from './evolve';
+import { createSecrethitlerNightSlice } from './nightSteps';
 import {
   getSecrethitlerFaction,
-  getSecrethitlerNightParticipants,
   getSecrethitlerPolicyPower,
   tallySecrethitlerVotes,
 } from './rules';
@@ -323,50 +323,6 @@ function nextElectionAfterGovernment(
       ? nextLivingSeat(livingSeats, state.config.numberOfPlayers, presidentSeat)
       : livingSeatAtOrAfter(livingSeats, state.config.numberOfPlayers, returnToSeat);
   return { nextSeat, returnToSeat: null };
-}
-
-/** Audio completion and authorized confirmations jointly advance the electronic first night. */
-export function evaluateSecrethitlerNightCompletion(
-  state: SecrethitlerState,
-): readonly SecrethitlerEvent[] {
-  const phase = state.phase;
-  if (phase.kind !== 'night' || state.isAudioPlaying) return [];
-  if (!getSecrethitlerNightParticipants(state).every((seat) => phase.confirmedSeats.includes(seat)))
-    return [];
-  return [
-    {
-      type: 'secrethitler.gameplay.updated',
-      patch: {
-        phase: {
-          kind: 'election',
-          presidentSeat: state.nextPresidentSeat,
-          returnToSeat: null,
-          preselectedChancellorSeat: null,
-        },
-      },
-    },
-    {
-      type: 'secrethitler.audio.queued',
-      effects: [{ audioKey: 'evil_close', isEndAudio: true }, { audioKey: 'night_end' }],
-    },
-  ];
-}
-
-function decideNightConfirm(
-  state: SecrethitlerState,
-  command: Extract<SecrethitlerCommand, { readonly type: 'secrethitler.night.confirm' }>,
-  context: CommandContext,
-): SecrethitlerDecision {
-  if (state.phase.kind !== 'night' || state.phase.step !== 1)
-    return reject(SECRETHITLER_REASONS.phase);
-  if (command.step !== state.phase.step) return reject(SECRETHITLER_REASONS.nightStep);
-  const seat = checkSeat(state, context);
-  if (seat === null || !getSecrethitlerNightParticipants(state).includes(seat))
-    return reject(SECRETHITLER_REASONS.nightParticipant);
-  if (state.phase.confirmedSeats.includes(seat)) return reject(SECRETHITLER_REASONS.phase);
-  return patch({
-    phase: { ...state.phase, confirmedSeats: [...state.phase.confirmedSeats, seat] },
-  });
 }
 
 function decideNomination(
@@ -975,8 +931,6 @@ export function decideSecrethitlerGameplay(
   context: CommandContext,
 ): SecrethitlerDecision | null {
   switch (command.type) {
-    case 'secrethitler.night.confirm':
-      return decideNightConfirm(state, command, context);
     case 'secrethitler.government.nominate':
     case 'secrethitler.government.preselect':
       return decideNomination(state, command, context);
@@ -1011,7 +965,7 @@ export function beginSecrethitlerNight(state: SecrethitlerState): SecrethitlerDe
   return commitSecrethitler([
     {
       type: 'secrethitler.gameplay.updated',
-      patch: { phase: { kind: 'night', step: 1, confirmedSeats: [] } },
+      patch: { phase: { kind: 'night', steps: createSecrethitlerNightSlice() } },
     },
     {
       type: 'secrethitler.audio.queued',

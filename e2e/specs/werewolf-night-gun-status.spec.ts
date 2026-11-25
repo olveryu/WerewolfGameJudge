@@ -66,13 +66,13 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[hunterIdx]!);
 
         // Click "发动状态"
-        await clickNightButton(pages[hunterIdx]!, 'confirm', '发动状态', {
+        await clickNightButton(pages[hunterIdx]!, 'confirm', '查看技能状态', {
           revealPrivateStatus: true,
         });
 
-        // Read the alert — should say "猎人可以发动技能" or "猎人不能发动技能"
+        // Read the private skill status.
         const alertText = await readAlertText(pages[hunterIdx]!);
-        expect(alertText).toContain('猎人');
+        expect(alertText).toContain('技能状态');
         expect(alertText).toMatch(/可以发动技能|不能发动技能/);
         await dismissAlert(pages[hunterIdx]!);
 
@@ -114,13 +114,13 @@ test.describe('Werewolf Night — Gun Status', () => {
         await dismissAlert(pages[dwkIdx]!);
 
         // Click "发动状态"
-        await clickNightButton(pages[dwkIdx]!, 'confirm', '发动状态', {
+        await clickNightButton(pages[dwkIdx]!, 'confirm', '查看技能状态', {
           revealPrivateStatus: true,
         });
 
-        // Read alert — "狼王可以发动技能" or "狼王不能发动技能"
+        // Read the private skill status.
         const alertText = await readAlertText(pages[dwkIdx]!);
-        expect(alertText).toContain('狼王');
+        expect(alertText).toContain('技能状态');
         expect(alertText).toMatch(/可以发动技能|不能发动技能/);
         await dismissAlert(pages[dwkIdx]!);
 
@@ -172,12 +172,12 @@ test.describe('Werewolf Night — Gun Status', () => {
         await waitForRoleTurn(pages[hunterIdx]!, 'hunterConfirm', pages);
 
         await dismissAlert(pages[hunterIdx]!);
-        await clickNightButton(pages[hunterIdx]!, 'confirm', '发动状态', {
+        await clickNightButton(pages[hunterIdx]!, 'confirm', '查看技能状态', {
           revealPrivateStatus: true,
         });
 
         const alertText = await readAlertText(pages[hunterIdx]!);
-        expect(alertText).toContain('猎人');
+        expect(alertText).toContain('技能状态');
         expect(alertText).toContain('不能发动技能');
         await dismissAlert(pages[hunterIdx]!);
 
@@ -193,7 +193,7 @@ test.describe('Werewolf Night — Gun Status', () => {
   // --------------------------------------------------------------------------
   // WolfRobot learns hunter → hunter gate
   // --------------------------------------------------------------------------
-  test('wolfRobot learns hunter → hunter gate shows 可发动技能', async ({ browser }) => {
+  test('wolfRobot learns hunter → hunter gate shows 可以发动技能', async ({ browser }) => {
     await withSetup(
       browser,
       {
@@ -238,10 +238,10 @@ test.describe('Werewolf Night — Gun Status', () => {
           revealPrivateStatus: true,
         });
 
-        // Gate dialog shows hunter shoot status — "可发动技能" (not poisoned)
+        // Gate dialog shows hunter shoot status (not poisoned).
         const gateText = await readAlertText(pages[wrIdx]!);
-        expect(gateText).toContain('可发动技能');
-        expect(gateText).not.toContain('不可发动技能');
+        expect(gateText).toContain('可以发动技能');
+        expect(gateText).not.toContain('不能发动技能');
         await dismissAlert(pages[wrIdx]!);
 
         // Night should complete after gate is acknowledged
@@ -253,7 +253,7 @@ test.describe('Werewolf Night — Gun Status', () => {
   // --------------------------------------------------------------------------
   // WolfRobot learns hunter while poisoned → hunter gate shows cannot-activate-ability
   // --------------------------------------------------------------------------
-  test('wolfRobot learns hunter while poisoned → gate shows 不可发动技能', async ({ browser }) => {
+  test('wolfRobot learns hunter while poisoned → gate shows 不能发动技能', async ({ browser }) => {
     await withSetup(
       browser,
       {
@@ -300,12 +300,12 @@ test.describe('Werewolf Night — Gun Status', () => {
         expect(revealText).toContain('猎人');
         await dismissAlert(pages[wrIdx]!);
 
-        // Hunter gate — poisoned wolfRobot should see "不可发动技能"
+        // Hunter gate — poisoned wolfRobot cannot activate the skill.
         await clickNightButton(pages[wrIdx]!, 'viewHunterStatus', '查看技能状态', {
           revealPrivateStatus: true,
         });
         const gateText = await readAlertText(pages[wrIdx]!);
-        expect(gateText).toContain('不可发动技能');
+        expect(gateText).toContain('不能发动技能');
         await dismissAlert(pages[wrIdx]!);
 
         await waitForNightEnd(pages);

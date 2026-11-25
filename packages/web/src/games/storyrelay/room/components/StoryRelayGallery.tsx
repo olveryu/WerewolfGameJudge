@@ -13,9 +13,9 @@ import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlayb
 import { GalleryRevealText } from '@/features/room/components/GalleryRevealText';
 import { GalleryPagerControls } from '@/features/room/components/RoomControls';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { confirmAction } from '@/features/room/confirm';
 import { useGalleryClock } from '@/features/room/hooks/useGalleryClock';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import IconImageOutline from '~icons/ion/image-outline';
 import IconPeopleOutline from '~icons/ion/people-outline';
 
@@ -132,8 +132,12 @@ export function StoryRelayGallery({
             control(playback.isPlaying ? 'storyrelay.gallery.pause' : 'storyrelay.gallery.resume')
           }
           onFinish={() =>
-            showConfirmAlert('全部揭晓', '立即公开剩余故事并结束回放？', () => {
-              control('storyrelay.gallery.finish');
+            confirmAction({
+              label: '全部揭晓',
+              body: '立即公开剩余故事并结束回放。',
+              onConfirm: () => {
+                control('storyrelay.gallery.finish');
+              },
             })
           }
         />

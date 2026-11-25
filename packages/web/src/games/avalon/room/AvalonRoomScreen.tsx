@@ -46,7 +46,6 @@ import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
 import { AvalonLadyCheckConfirmModal } from './components/AvalonLadyCheckConfirmModal';
 import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
-import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
 import { AvalonRoomTracks } from './components/AvalonRoomTracks';
@@ -174,11 +173,6 @@ function AvalonRoomContent(
       );
     setStrikePickMode(false);
   };
-  const strikeName =
-    strikeConfirm === null || viewModel === null
-      ? ''
-      : (viewModel.seats.find((seatView) => seatView.seat === strikeConfirm.seat)?.displayName ??
-        `座位${strikeConfirm.seat + 1}`);
   // 结果确认是权威阶段，重连也必须显示，直到全员确认。
   const voteResult = viewModel?.lastVoteResult ?? null;
   // 投票/出牌弹窗：每轮自动弹一次（按轮次键去重），关后不重弹，底部按钮可重开。
@@ -369,7 +363,6 @@ function AvalonRoomContent(
               )}
               <AvalonStrikeConfirmModal
                 confirmation={strikeConfirm}
-                seatName={strikeName}
                 onConfirm={confirmStrike}
                 onClose={closeStrike}
               />
@@ -436,27 +429,8 @@ function AvalonRoomContent(
                   onClose={() => setQuestModalOpen(false)}
                 />
               ) : null}
-              {isNight && screen.nightModalVisible ? (
-                <AvalonNightConfirmModal
-                  key={`${screen.state.gameSequence}:${viewModel.nightStep}:${screen.effectiveSeat}`}
-                  viewModel={viewModel}
-                  isSubmitting={screen.isSubmitting}
-                  onConfirm={() => {
-                    void screen
-                      .submit(
-                        '确认信息',
-                        { type: 'avalon.night.confirm' },
-                        { controlledSeat: screen.controlledSeat, actionKey: null },
-                      )
-                      .then((success) => {
-                        if (success) screen.setNightModalVisible(false);
-                      });
-                  }}
-                  onClose={() => screen.setNightModalVisible(false)}
-                />
-              ) : null}
               <AvalonLadyCheckConfirmModal
-                targetName={ladyCheckTarget === null ? null : seatDisplayName(ladyCheckTarget)}
+                targetSeat={ladyCheckTarget}
                 onConfirm={() => {
                   if (ladyCheckTarget === null) return;
                   const seat = ladyCheckTarget;

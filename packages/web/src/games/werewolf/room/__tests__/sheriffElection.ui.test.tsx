@@ -274,7 +274,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           cards.indexOf(screen.getByTestId(TESTIDS.shareReviewButton)),
         );
         await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
-        await harness.pressButton('确定查看');
+        await harness.pressButton('查看');
         await harness.pressButton('知道了');
         expect(mock.dispatch).toHaveBeenCalledWith(
           { type: 'werewolf.lastNightInfo.confirm', gameSequence: mock.state.gameSequence },
@@ -331,7 +331,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
       const screen = await mountWerewolfRoom(mock);
       await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
       await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
-      await harness.pressButton('确定查看');
+      await harness.pressButton('查看');
       await harness.pressButton('知道了');
       await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
       expect(screen.getByTestId(TESTIDS.shareReviewButton)).toHaveAttribute(
@@ -382,7 +382,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         let hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
         expect(hostHand.queryByRole('list')).not.toBeInTheDocument();
         await click(hostHand.getByTestId(TESTIDS.lastNightInfoButton));
-        await harness.pressButton('确定查看');
+        await harness.pressButton('查看');
         await harness.pressButton('知道了');
         act(() =>
           reactive.simulateStateUpdate({
@@ -480,7 +480,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
       expect(screen.queryByTestId(TESTIDS.sheriffAdvanceButton)).not.toBeInTheDocument();
 
       await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
-      await harness.pressButton('确定查看');
+      await harness.pressButton('查看');
       await harness.pressButton('知道了');
       act(() =>
         mock.session.publishRoom(

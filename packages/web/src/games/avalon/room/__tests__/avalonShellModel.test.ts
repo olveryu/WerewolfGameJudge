@@ -4,13 +4,17 @@
  * bots (takeover hint live) and a started night (view-role action live).
  */
 import {
+  AVALON_NIGHT_VIEW_ACTION_KEY,
   type AvalonCommand,
   avalonEngine,
   type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
+  getAvalonViewModel,
+  hasViewedNightStep,
 } from '@game-judge/game-engine/games/avalon/public';
+import { act, renderHook } from '@testing-library/react';
 
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import {
@@ -19,13 +23,16 @@ import {
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
 import { TESTIDS } from '@/testids';
+import { alertStore, dismissAlert } from '@/utils/alert';
 
 import {
   type AvalonRoomShellModelInput,
   createAvalonRoomShellModel,
   deriveAvalonBottomProgress,
 } from '../avalonRoomAdapter';
+import { useAvalonNightInteraction } from '../hooks/useAvalonNightInteraction';
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
@@ -165,7 +172,8 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     viewer: { userId: 'host', isHost: true, seat: 0 },
     effectiveSeat: 0,
     onViewRolePress: vi.fn(),
-    onNightInfoPress: vi.fn(),
+    nightActions: [],
+    nightMessage: null,
     isSubmitting: false,
     settleCountdownSeconds: null,
     onOpenVotePress: vi.fn(),
@@ -250,7 +258,7 @@ describe('createAvalonRoomShellModel', () => {
       effectiveSeat: 2,
     };
     const before = createAvalonRoomShellModel(input);
-    expect(before.playerActions.message).toBe('请点击下方「查看身份」，查看你的角色');
+    expect(before.playerActions.message).toBe('请点击「查看身份」');
     expect(before.playerActions.actions.find((action) => action.key === 'viewRole')).toMatchObject({
       isPending: true,
       category: 'resource',
@@ -284,66 +292,72 @@ describe('createAvalonRoomShellModel', () => {
     expect(onViewRolePress).toHaveBeenCalledTimes(1);
   });
 
-  it('pins the night info action: confirm stays available while audio plays', () => {
+  it('forwards the night step actions and keeps them live while audio plays', () => {
     const running = session(5);
     running.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       running.send({ type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
     }
     running.send({ type: 'avalon.game.begin' });
-    const evilSeat = Number(
-      Object.entries(running.state.roles).find(([, roleId]) =>
-        ['morgana', 'assassin', 'mordred', 'oberon', 'minion'].includes(roleId),
-      )?.[0],
+    const evilSeat = evilSeats(running).find((seat) =>
+      getAvalonNightParticipants(running.state.roles, 'evilReveal').includes(seat),
     );
-    const onNightInfoPress = vi.fn();
+    if (evilSeat === undefined) throw new Error('expected an evilReveal participant');
+    // Viewing runs parallel to the narration: right after the start,
+    // while the audio is still playing, the hand already holds the
+    // enabled view action (no disabled audio-waiting placeholder).
+    expect(running.state.isAudioPlaying).toBe(true);
+    const { interaction, submit } = renderNightInteraction(running.state, evilSeat);
     const nightInput = {
       ...baseInput(running.state),
       isLobby: false,
       viewer: {
-        userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
+        userId: seatUser(evilSeat),
         isHost: evilSeat === 0,
         seat: evilSeat,
       },
       effectiveSeat: evilSeat,
-      onNightInfoPress,
+      nightActions: interaction.actions,
+      nightMessage: interaction.message,
     };
-    // Confirmation runs parallel to the narration: right after the
-    // start, while the audio is still playing, the action is already
-    // the enabled confirm step (no disabled audio-waiting placeholder).
-    expect(running.state.isAudioPlaying).toBe(true);
     const during = createAvalonRoomShellModel(nightInput);
-    const duringInfo = during.playerActions.actions.find((action) => action.key === 'nightInfo');
     expect(during.playerActions.actions.map((action) => action.key)).toEqual([
-      'nightInfo',
+      AVALON_NIGHT_VIEW_ACTION_KEY,
       'viewRole',
     ]);
-    expect(duringInfo).toMatchObject({
-      label: '确认信息',
+    expect(during.playerActions.message).toBe('请点击「查看坏人互认」');
+    const viewNight = findStageAction(during.playerActions, AVALON_NIGHT_VIEW_ACTION_KEY);
+    expect(viewNight).toMatchObject({
+      label: '查看坏人互认',
       state: { kind: 'ready' },
-      testID: 'avalon-night-info',
+      testID: TESTIDS.stepInteractionButton(AVALON_NIGHT_VIEW_ACTION_KEY),
     });
-    if (duringInfo?.state.kind === 'ready') duringInfo.state.onPress();
-    expect(onNightInfoPress).toHaveBeenCalledTimes(1);
     // The night step progress rides the bottom model during the night.
     expect(during.playerActions.progress).toEqual(deriveAvalonBottomProgress(running.state));
     expect(during.playerActions.progress).not.toBeNull();
-    // Drain the queued narration; the confirm action stays the same.
-    let guard = 0;
-    while (running.state.isAudioPlaying && guard < 10) {
-      running.send({ type: 'avalon.audio.ack', audioBatchId: running.state.audioBatchId });
-      guard += 1;
-    }
-    expect(running.state.isAudioPlaying).toBe(false);
-    const after = createAvalonRoomShellModel({ ...nightInput, state: running.state });
-    const nightInfo = after.playerActions.actions.find((action) => action.key === 'nightInfo');
-    expect(nightInfo).toMatchObject({
-      label: '确认信息',
-      state: { kind: 'ready' },
-      testID: 'avalon-night-info',
+
+    // 先问 → 内容 → 知道了: the content keeps its step title and sentence,
+    // and only 知道了 submits the view for the current step.
+    if (viewNight?.state.kind !== 'ready') throw new Error('expected a ready view action');
+    const { onPress } = viewNight.state;
+    act(() => onPress());
+    expect(alertStore.getSnapshot()).toMatchObject({ title: '查看坏人互认？' });
+    act(() => {
+      void alertStore.getSnapshot()?.buttons[1]?.onPress?.();
     });
-    if (nightInfo?.state.kind === 'ready') nightInfo.state.onPress();
-    expect(onNightInfoPress).toHaveBeenCalledTimes(2);
+    expect(alertStore.getSnapshot()).toMatchObject({ title: '坏人互认' });
+    expect(alertStore.getSnapshot()?.message).toMatch(/^你看到的坏人同伴：/);
+    expect(submit).not.toHaveBeenCalled();
+    const acknowledge = alertStore.getSnapshot()?.buttons[0];
+    expect(acknowledge?.text).toBe('知道了');
+    act(() => {
+      void acknowledge?.onPress?.();
+    });
+    expect(submit).toHaveBeenCalledWith(
+      '查看夜间信息',
+      avalonViewNightCommand(running.state),
+      expect.objectContaining({ controlledSeat: null, durable: true }),
+    );
 
     for (const state of [nightInput.state, running.state]) {
       for (const mySeat of [0, 1, null]) {
@@ -362,7 +376,7 @@ describe('createAvalonRoomShellModel', () => {
     }
   });
 
-  it('lets a night participant confirm while the narration is still queued', () => {
+  it('records a night view sent while the narration is still queued', () => {
     const running = session(5);
     running.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
@@ -372,38 +386,16 @@ describe('createAvalonRoomShellModel', () => {
     // The opening narration is queued and playing; nobody has acked yet.
     expect(running.state.isAudioPlaying).toBe(true);
     expect(running.state.pendingAudioEffects.length).toBeGreaterThan(0);
-    const evilSeat = Number(
-      Object.entries(running.state.roles).find(([, roleId]) =>
-        ['morgana', 'assassin', 'mordred', 'oberon', 'minion'].includes(roleId),
-      )?.[0],
+    const evilSeat = evilSeats(running).find((seat) =>
+      getAvalonNightParticipants(running.state.roles, 'evilReveal').includes(seat),
     );
-    const onNightInfoPress = vi.fn();
-    const model = createAvalonRoomShellModel({
-      ...baseInput(running.state),
-      isLobby: false,
-      viewer: {
-        userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
-        isHost: evilSeat === 0,
-        seat: evilSeat,
-      },
-      effectiveSeat: evilSeat,
-      onNightInfoPress,
-    });
-    const nightInfo = model.playerActions.actions.find((action) => action.key === 'nightInfo');
-    expect(nightInfo).toMatchObject({
-      label: '确认信息',
-      state: { kind: 'ready' },
-      testID: 'avalon-night-info',
-    });
-    if (nightInfo?.state.kind === 'ready') nightInfo.state.onPress();
-    expect(onNightInfoPress).toHaveBeenCalledTimes(1);
-    // The confirm command itself dispatches and is recorded while the
-    // audio gate is still open; the step settles only once the host ack
-    // also lands (confirm-first and ack-first are equivalent by design).
-    running.send({ type: 'avalon.night.confirm' }, seatUser(evilSeat));
+    if (evilSeat === undefined) throw new Error('expected an evilReveal participant');
+    // The view dispatches and is recorded while the audio gate is still
+    // open; the step settles only once the host ack also lands
+    // (view-first and ack-first are equivalent by design).
+    running.send(avalonViewNightCommand(running.state), seatUser(evilSeat));
     expect(running.state.isAudioPlaying).toBe(true);
-    if (running.state.phase.kind !== 'night') throw new Error('expected night phase');
-    expect(running.state.phase.confirmedSeats).toContain(evilSeat);
+    expect(hasViewedNightStep(running.state, 'evilReveal', evilSeat)).toBe(true);
   });
 });
 
@@ -422,7 +414,7 @@ function daytimeSession() {
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (running.state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(running.state.roles, step)) {
-      running.send({ type: 'avalon.night.confirm' }, seatUser(seat));
+      running.send(avalonViewNightCommand(running.state), seatUser(seat));
     }
     if (running.state.isAudioPlaying)
       running.send({ type: 'avalon.audio.ack', audioBatchId: running.state.audioBatchId }, 'host');
@@ -481,7 +473,7 @@ function ninePlayerDaytimeSession(): RunningSession {
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(state.roles, step)) {
-      send({ type: 'avalon.night.confirm' }, seatUser(seat));
+      send(avalonViewNightCommand(state), seatUser(seat));
     }
     if (state.isAudioPlaying)
       send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
@@ -524,6 +516,29 @@ function shellFor(
     ...overrides,
   });
   return model.playerActions;
+}
+
+afterEach(() => {
+  const alert = alertStore.getSnapshot();
+  if (alert !== null) dismissAlert(alert.generation);
+});
+
+/** Renders the real night step hook for `seat` and returns its interaction. */
+function renderNightInteraction(state: AvalonState, seat: number) {
+  const submit = vi.fn().mockResolvedValue(true);
+  const { result } = renderHook(() =>
+    useAvalonNightInteraction({
+      state,
+      viewModel: getAvalonViewModel(state, seat),
+      userId: seatUser(seat),
+      roomId: 'room-1',
+      effectiveSeat: seat,
+      controlledSeat: null,
+      submit,
+      hasPendingCommand: false,
+    }),
+  );
+  return { interaction: result.current, submit };
 }
 
 /** Finds a player action by its stable key. */
@@ -590,7 +605,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const onPreselectTeamPress = vi.fn();
     const onProposeTeamPress = vi.fn();
     const empty = shellFor(running, leader, { onPreselectTeamPress, onProposeTeamPress });
-    expect(empty.message).toContain('点「预选队伍」打开选人');
+    expect(empty.message).toBe('请点击「预选队伍」。需要 2 名队员，确认后全房可见');
     // 未预选时主按钮是「预选队伍」，只负责打开 modal（满员门在 modal
     // 确认按钮上），草稿为空也不禁用；最终队伍按钮在预选回声到之前不存在。
     const preselect = findStageAction(empty, 'preselectTeam');
@@ -610,7 +625,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       seatUser(leader),
     );
     const preselected = shellFor(running, leader, { onPreselectTeamPress, onProposeTeamPress });
-    expect(preselected.message).toContain('预选已确认');
+    expect(preselected.message).toBe('请点击「最终队伍」。可调整预选的队伍');
     expect(findStageAction(preselected, 'preselectTeam')).toBeUndefined();
     const final = findStageAction(preselected, 'proposeTeam');
     expect(final).toMatchObject({
@@ -665,9 +680,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const assassin = roleSeat(running, 'assassin');
     const onCancelEarlyStrikePress = vi.fn();
     const bottom = shellFor(running, assassin, { strikePickMode: true, onCancelEarlyStrikePress });
-    expect(bottom.message).toBe(
-      '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。',
-    );
+    expect(bottom.message).toBe('请选择要提前刺杀的玩家。刺中梅林坏人直接获胜，刺错好人直接获胜');
     expect(bottom.actions.map((action) => action.key)).toEqual(['viewRole', 'earlyStrike']);
     const cancel = findStageAction(bottom, 'earlyStrike');
     expect(cancel).toMatchObject({
@@ -769,8 +782,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (running.state.phase.kind !== 'lady') throw new Error('expected the lady phase');
     const { holderSeat, examinedSeats } = running.state.phase;
     const holderBottom = shellFor(running, holderSeat);
-    expect(holderBottom.message).toContain('点座位盘点选');
-    expect(holderBottom.message).toContain('查验');
+    expect(holderBottom.message).toBe('请选择要查验的玩家。只能看到阵营：好人或坏人');
     const seats = Array.from({ length: 9 }, (_, seat) => seat);
     const target = seats.find((seat) => seat !== holderSeat && !examinedSeats.includes(seat));
     if (target === undefined) throw new Error('no eligible lady target');
@@ -795,7 +807,9 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     completeLadyIfPresent(running);
     if (running.state.phase.kind !== 'assassin') throw new Error('expected the assassin phase');
     const assassin = roleSeat(running, 'assassin');
-    expect(shellFor(running, assassin).message).toContain('指认其为梅林');
+    expect(shellFor(running, assassin).message).toBe(
+      '请选择要指认为梅林的玩家。指认正确坏人获胜，指认错误好人直接获胜',
+    );
     const otherEvil = evilSeats(running).find((seat) => seat !== assassin);
     if (otherEvil === undefined) throw new Error('expected a second evil seat');
     expect(shellFor(running, otherEvil).message).toBe('坏人商量时间（线下口头），等待刺客指认。');
@@ -831,13 +845,22 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     expect(shellFor(running, nonParticipant).message).toBe('等待本步玩家确认');
     const pending = participants[0];
     if (pending === undefined) throw new Error('expected a participant seat');
-    const pendingShell = shellFor(running, pending);
-    expect(pendingShell.message).toBeNull();
-    expect(findStageAction(pendingShell, 'nightInfo')).toMatchObject({ isPending: true });
-    running.send({ type: 'avalon.night.confirm' }, seatUser(pending));
-    const confirmedShell = shellFor(running, pending);
+    const { interaction } = renderNightInteraction(running.state, pending);
+    const pendingShell = shellFor(running, pending, {
+      nightActions: interaction.actions,
+      nightMessage: interaction.message,
+    });
+    expect(pendingShell.message).toBe('请点击「查看坏人互认」');
+    expect(findStageAction(pendingShell, AVALON_NIGHT_VIEW_ACTION_KEY)).toBeDefined();
+    running.send(avalonViewNightCommand(running.state), seatUser(pending));
+    const viewed = renderNightInteraction(running.state, pending).interaction;
+    expect(viewed.actions).toEqual([]);
+    const confirmedShell = shellFor(running, pending, {
+      nightActions: viewed.actions,
+      nightMessage: viewed.message,
+    });
     expect(confirmedShell.message).toBe('等待本步玩家确认');
-    expect(findStageAction(confirmedShell, 'nightInfo')).toBeUndefined();
+    expect(findStageAction(confirmedShell, AVALON_NIGHT_VIEW_ACTION_KEY)).toBeUndefined();
   });
 
   it('vote: seated voters get no sentence whether or not they voted', () => {

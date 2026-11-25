@@ -23,6 +23,7 @@ function nominateViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonView
     merlinSees: null,
     percivalSees: null,
     nightConfirmed: false,
+    step: null,
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: 2,

@@ -5,7 +5,16 @@ import { createSheriffElectionPlayerActions } from '@/games/werewolf/room/day/sh
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
-import * as alertPresets from '@/utils/alertPresets';
+import { alertStore, dismissAlert } from '@/utils/alert';
+
+async function confirmAlert(expected: { title: string; message?: string }): Promise<void> {
+  const alert = alertStore.getSnapshot();
+  expect(alert).toMatchObject({ ...expected, buttons: [{ text: '取消' }, { text: '确定' }] });
+  const onConfirm = alert?.buttons[1]?.onPress;
+  if (alert === null || onConfirm === undefined) throw new Error('Missing confirmation');
+  dismissAlert(alert.generation);
+  await onConfirm();
+}
 
 const BASE_VIEW: SheriffElectionViewModel = {
   phase: 'registration',
@@ -92,7 +101,6 @@ describe('createSheriffElectionPlayerActions', () => {
   });
 
   it('keeps the personal action without projecting the host advance command', async () => {
-    const confirm = vi.spyOn(alertPresets, 'showConfirmAlert').mockImplementation(() => {});
     const election = createElection({
       canRegister: true,
       canAdvance: true,
@@ -116,19 +124,15 @@ describe('createSheriffElectionPlayerActions', () => {
       throw new Error('Expected executable personal sheriff action');
     personalAction.state.onPress();
     expect(election.register).not.toHaveBeenCalled();
-    const onConfirm = confirm.mock.calls[0]?.[2];
-    if (onConfirm === undefined) throw new Error('Missing registration confirmation');
-    await onConfirm();
+    await confirmAlert({ title: '报名上警？' });
     expect(election.register).toHaveBeenCalledTimes(1);
     expect(election.advance).not.toHaveBeenCalled();
-    confirm.mockRestore();
   });
 
   it.each([
-    ['canCancelRegistration', 'cancelRegistration'],
-    ['canWithdraw', 'withdraw'],
-  ] as const)('confirms %s before dispatch', async (availability, action) => {
-    const confirm = vi.spyOn(alertPresets, 'showConfirmAlert').mockImplementation(() => {});
+    ['canCancelRegistration', 'cancelRegistration', { title: '撤回报名？' }],
+    ['canWithdraw', 'withdraw', { title: '退水？', message: '退水后将退出本次警长竞选。' }],
+  ] as const)('confirms %s before dispatch', async (availability, action, expected) => {
     const election = createElection({ [availability]: true });
     const dock = createSheriffElectionPlayerActions({
       election,
@@ -141,11 +145,8 @@ describe('createSheriffElectionPlayerActions', () => {
     if (personalAction?.state.kind !== 'ready') throw new Error('Missing action');
     personalAction.state.onPress();
     expect(election[action]).not.toHaveBeenCalled();
-    const onConfirm = confirm.mock.calls[0]?.[2];
-    if (onConfirm === undefined) throw new Error('Missing confirmation');
-    await onConfirm();
+    await confirmAlert(expected);
     expect(election[action]).toHaveBeenCalledOnce();
-    confirm.mockRestore();
   });
 
   it('shows a waiting message when only Host advancement is available', () => {
@@ -184,7 +185,7 @@ describe('createSheriffElectionPlayerActions', () => {
       dock.actions.find((action) => action.key === 'sheriff-cancel-registration'),
     ).toMatchObject({
       key: 'sheriff-cancel-registration',
-      label: '取消报名',
+      label: '撤回报名',
     });
   });
 
@@ -222,7 +223,7 @@ describe('createSheriffElectionPlayerActions', () => {
       dock.actions.find((action) => action.key === 'sheriff-cancel-registration'),
     ).toMatchObject({
       key: 'sheriff-cancel-registration',
-      label: '取消报名',
+      label: '撤回报名',
     });
   });
 

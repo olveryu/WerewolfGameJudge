@@ -1,6 +1,8 @@
 /** Elimination confirmation; accepts only public player identity and reports intent. */
 import './UndercoverRevealModal.css';
 
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
+
 import { Avatar } from '@/components/avatar/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
@@ -13,7 +15,6 @@ import { TESTIDS } from '@/testids';
 import IconPersonRemoveOutline from '~icons/ion/person-remove-outline';
 
 const AVATAR_SIZE = 56;
-const REVEAL_TITLE = '确认出局？';
 
 interface UndercoverRevealModalProps {
   readonly seat: number;
@@ -32,6 +33,7 @@ export function UndercoverRevealModal({
   onConfirm,
 }: UndercoverRevealModalProps) {
   const isWideLayout = usesRoomSideInspector(useViewportWidth());
+  const revealTitle = `让${formatSeat(seat)}出局？`;
   const details = (
     <>
       <div className="undercover-reveal-identity">
@@ -82,7 +84,7 @@ export function UndercoverRevealModal({
   if (isWideLayout) {
     return (
       <RoomDialog
-        title={REVEAL_TITLE}
+        title={revealTitle}
         testId={TESTIDS.undercoverRevealModal}
         onClose={onClose}
         footer={actions}
@@ -93,7 +95,7 @@ export function UndercoverRevealModal({
   }
   return (
     <BottomSheet title="确认玩家出局" testId={TESTIDS.undercoverRevealModal} onClose={onClose}>
-      <h2 className="undercover-reveal-sheet-title">{REVEAL_TITLE}</h2>
+      <h2 className="undercover-reveal-sheet-title">{revealTitle}</h2>
       <div className="undercover-reveal-sheet-body">{details}</div>
       <div className="undercover-reveal-sheet-footer">{actions}</div>
     </BottomSheet>

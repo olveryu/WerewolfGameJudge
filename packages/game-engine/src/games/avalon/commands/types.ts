@@ -5,6 +5,7 @@ import type {
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
+import type { StepSubmission } from '../../../platform/steps';
 import type { AvalonBallot, AvalonConfig, AvalonPlay } from '../state/types';
 
 export type AvalonPublicCommand =
@@ -22,7 +23,11 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.role.viewed' }
   | { readonly type: 'avalon.bots.markAllBotsViewed' }
   | { readonly type: 'avalon.bots.markAllBotsGroupConfirmed' }
-  | { readonly type: 'avalon.night.confirm' }
+  | {
+      readonly type: 'avalon.step.submit';
+      readonly gameSequence: number;
+      readonly submission: StepSubmission;
+    }
   | { readonly type: 'avalon.audio.ack'; readonly audioBatchId: number }
   | { readonly type: 'avalon.team.preselect'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }

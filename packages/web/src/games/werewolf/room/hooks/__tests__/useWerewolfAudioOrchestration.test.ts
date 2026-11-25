@@ -32,7 +32,6 @@ const BATCH_ID = 3;
 function nightState(overrides: Partial<GameState>): GameState {
   return buildWerewolfTestState({
     status: GameStatus.Ongoing,
-    nightStep: { kind: 'inStep', stepId: 'seerCheck' },
     pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: true }, { audioKey: 'seer' }],
     isAudioPlaying: true,
     audioBatchId: BATCH_ID,
@@ -188,7 +187,6 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
     const audio = createAudio();
     const fake = createLink(
       nightState({
-        nightStep: { kind: 'exhausted' },
         pendingAudioEffects: [
           { audioKey: 'seer', isEndAudio: true },
           { audioKey: NIGHT_END_AUDIO_KEY },

@@ -13,6 +13,7 @@
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
+import { STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 import { waitFor } from '@testing-library/react';
 
 import {
@@ -53,22 +54,32 @@ function createRoleAssignment(): Map<number, RoleId> {
 function completeWolfKill(game: EngineGame): void {
   for (const [seatText, player] of Object.entries(game.getGameState().players)) {
     if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-      game.submitActionOrThrow(
-        Number.parseInt(seatText, 10),
-        { kind: 'target', target: 0 },
-        'wolfKill',
-      );
+      submitCurrentStep(game, Number.parseInt(seatText, 10), 'wolfKill', [0]);
     }
   }
   const wolfVoteState = game.getGameState();
-  const wolfVoteDeadline =
-    wolfVoteState.nightStep?.kind === 'inStep' ? wolfVoteState.nightStep.stepDeadline : undefined;
-  if (wolfVoteDeadline === undefined) {
+  const wolfVoteDeadline = wolfVoteState.nightState?.slice.deadlineMs ?? null;
+  if (wolfVoteDeadline === null) {
     throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
   }
   game.dispatchSystemOrThrow({ type: 'werewolf.phase.settleExpired' }, 'past wolfKill deadline', {
     nowMs: wolfVoteDeadline,
   });
+}
+
+function submitCurrentStep(
+  game: EngineGame,
+  seat: number,
+  actionKey: string,
+  seats?: readonly number[],
+): void {
+  const current = game.getGameState().nightState?.slice.current;
+  if (current == null) throw new Error('[FAIL-FAST] Expected an active night step');
+  game.submitStepOrThrow(
+    seat,
+    { ...current, actionKey, ...(seats === undefined ? {} : { seats }) },
+    actionKey,
+  );
 }
 
 let harness: RoomScreenTestHarness;
@@ -97,9 +108,9 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const game = createEngineGame(TEMPLATE_NAME, createRoleAssignment());
     completeWolfKill(game);
     game.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
-    game.submitActionOrThrow(9, { kind: 'skip' }, 'witchAction');
+    submitCurrentStep(game, 9, STEP_SKIP_ACTION_KEY);
     game.acknowledgePendingAudioOrThrow('complete witchAction to hunterConfirm audio');
-    game.submitActionOrThrow(10, { kind: 'confirm' }, 'hunterConfirm');
+    submitCurrentStep(game, 10, 'hunterConfirm');
     game.assertStep('seerCheck');
     game.acknowledgePendingAudioOrThrow('complete hunterConfirm to seerCheck audio');
 

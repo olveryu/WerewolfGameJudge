@@ -6,14 +6,14 @@
  */
 
 import {
-  getRoleSpec,
+  getRoleCard,
   getRoleStructuredDescription,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 
 /** Builds an AI prompt for role-strategy consultation. */
 export function buildRolePlayGuidePrompt(roleId: RoleId): string {
-  const spec = getRoleSpec(roleId);
+  const spec = getRoleCard(roleId);
   const desc = getRoleStructuredDescription(roleId);
   const skillText = desc?.skill ?? spec.description;
 

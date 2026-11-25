@@ -1,157 +1,101 @@
-/**
- * Nightmare Blocked UI Test (server-authoritative version)
- *
- * Behavior:
- * - UI does NOT intercept blocked players for chooseSeat/swap schemas
- * - UI shows skip button for confirm schemas when blocked
- * - Server returns ACTION_REJECTED with blocked reason
- * - UI shows error from gameState.actionRejected
- */
-
-import { BLOCKED_UI_DEFAULTS } from '@game-judge/game-engine/games/werewolf/public';
-import { fireEvent, waitFor } from '@testing-library/react';
+import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { REASON_STEP_STALE, STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
+import { waitFor } from '@testing-library/react';
 
 import {
-  actorStep,
-  confirmStep,
-  mountRoomFor,
-  openNightActionGroup,
-  pressText,
   recordAlerts,
   RoomScreenTestHarness,
   tapSeat,
-  type WerewolfRoomMockOptions,
 } from '@/games/werewolf/room/__tests__/harness';
+import {
+  createBoardNightState,
+  mountBoardNightState,
+  pressStepAction,
+} from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
+import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
-const BLOCKED_AT_SEAT_0 = { nightmareBlockedSeat: 0, currentNightResults: { blockedSeat: 0 } };
+const roles: readonly RoleId[] = [
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'wolf',
+  'wolf',
+  'nightmare',
+  'darkWolfKing',
+  'hunter',
+  'wolfRobot',
+  'seer',
+  'witch',
+];
+const roleAssignment = new Map(roles.map((role, seat) => [seat, role]));
 
-/** A nightmare-blocked actor at seat 0 (the engine hint follows from the blocked seat). */
-const BLOCKED_SEER: WerewolfRoomMockOptions = {
-  ...actorStep('seerCheck', 'seer', 0),
-  gameStateOverrides: BLOCKED_AT_SEAT_0,
-};
+describe('Werewolf fear and stale-step feedback', () => {
+  let harness: RoomScreenTestHarness;
+  let detach: () => void;
 
-const BLOCKED_WITCH: WerewolfRoomMockOptions = {
-  ...actorStep('witchAction', 'witch', 0),
-  gameStateOverrides: {
-    ...BLOCKED_AT_SEAT_0,
-    witchContext: { killedSeat: 2, canSave: true, canPoison: true },
-  },
-};
-
-function confirmMockOptions(
-  role: 'hunter' | 'darkWolfKing',
-  isBlocked: boolean,
-): WerewolfRoomMockOptions {
-  const step = confirmStep(role === 'hunter' ? 'hunterConfirm' : 'darkWolfKingConfirm', role, 0, {
-    role,
-    canShoot: true,
-  });
-  return {
-    ...step,
-    gameStateOverrides: { ...step.gameStateOverrides, ...(isBlocked ? BLOCKED_AT_SEAT_0 : {}) },
-  };
-}
-
-let harness: RoomScreenTestHarness;
-let detachAlerts: () => void;
-
-describe('Nightmare Blocked UI (server-authoritative)', () => {
   beforeEach(() => {
     harness = new RoomScreenTestHarness();
-    detachAlerts = recordAlerts(harness);
+    detach = recordAlerts(harness);
   });
-  afterEach(() => detachAlerts());
+  afterEach(() => detach());
 
-  it('retains the locked action and requires confirmation to skip', async () => {
-    const view = await mountRoomFor(BLOCKED_SEER);
-
-    expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(BLOCKED_UI_DEFAULTS.message);
-    expect(harness.events()).toEqual([]);
-    await openNightActionGroup(view);
-    expect(view.getByTestId(TESTIDS.werewolfNightButton('startSeatSelection'))).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
-
-    harness.clear();
-    await tapSeat(view, 1);
-
-    // No confirm, no client-side "blocked" alert: the client never re-judges the block.
-    expect(harness.events()).toEqual([]);
-    await pressText(view, '确认跳过');
-    expect(harness.getLastEvent()?.buttons).toEqual(['取消', '确定']);
-  });
-
-  it('does not expose the witch target or potions while Nightmare blocks the action', async () => {
-    const view = await mountRoomFor(BLOCKED_WITCH);
-
-    expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(BLOCKED_UI_DEFAULTS.message);
-    await openNightActionGroup(view);
-
-    expect(view.queryByTestId(TESTIDS.werewolfNightButton('save'))).toBeNull();
-    expect(view.queryByText(/对3号用解药|用毒药/)).toBeNull();
-  });
-
-  it('actionRejected with blocked reason shows rejection alert on initial render', async () => {
-    // The rejection reaches the UI through the projection (night.rejection),
-    // so it must enter the mock as state.
-    await mountRoomFor({
-      ...actorStep('seerCheck', 'seer', 0),
-      gameStateOverrides: {
-        nightmareBlockedSeat: 0,
-        actionRejected: {
-          action: 'seerCheck',
-          reason: BLOCKED_UI_DEFAULTS.message,
-          targetSeat: 0,
-          rejectionId: 'test-rejection-1',
+  it.each([
+    { stepId: 'hunterConfirm', seat: 8, actionKey: 'hunterConfirm' },
+    { stepId: 'darkWolfKingConfirm', seat: 7, actionKey: 'darkWolfKingConfirm' },
+    { stepId: 'wolfRobotLearn', seat: 9, actionKey: 'wolfRobotLearn' },
+  ])(
+    'blocks $stepId when its actor is feared and allows skipping',
+    async ({ stepId, seat, actionKey }) => {
+      const state = createBoardNightState(
+        roles,
+        (candidate) => candidate.nightState?.slice.current?.stepId === stepId,
+        {
+          nightmareBlock: { actionKey: 'nightmareBlock', seats: [seat] },
+          wolfKill: { actionKey: 'wolfKillAbstain' },
         },
-      },
-    });
-
-    await waitFor(() =>
-      expect(harness.events()).toContainEqual(
-        expect.objectContaining({ title: '操作失败', message: BLOCKED_UI_DEFAULTS.message }),
-      ),
-    );
-  });
-
-  it.each(['hunter', 'darkWolfKing'] as const)(
-    'confirm schema (%s) shows the skip button when blocked',
-    async (role) => {
-      const view = await mountRoomFor(confirmMockOptions(role, true));
-      await openNightActionGroup(view);
-      const moreActionsButton = view.queryByTestId(TESTIDS.roomMoreActionsButton);
-      if (moreActionsButton !== null) fireEvent.click(moreActionsButton);
-
-      // When blocked, the actor sees the skip button instead of the status confirm.
-      await waitFor(() => {
-        expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(
-          BLOCKED_UI_DEFAULTS.message,
-        );
-        expect(view.getByTestId(TESTIDS.werewolfNightButton('confirm'))).toHaveAttribute(
-          'aria-disabled',
-          'true',
-        );
-      });
-      await pressText(view, '确认跳过');
-      expect(harness.getLastEvent()?.buttons).toEqual(['取消', '确定']);
-    },
-  );
-
-  it.each(['hunter', 'darkWolfKing'] as const)(
-    'confirm schema (%s) does NOT show the skip button when not blocked',
-    async (role) => {
-      const view = await mountRoomFor(confirmMockOptions(role, false));
-
-      await waitFor(() =>
-        expect(view.getByTestId(TESTIDS.actionMessage)).not.toHaveTextContent(
-          BLOCKED_UI_DEFAULTS.message,
-        ),
+        roleAssignment,
       );
+      const { mock, view } = await mountBoardNightState(state, seat);
+      await pressStepAction(view, actionKey);
+      expect(view.getByTestId(TESTIDS.stepInteractionButton(actionKey))).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+      expect(view.getByTestId(TESTIDS.roomHandUnavailableReason)).toHaveTextContent(
+        '被噩梦之影恐惧，本夜无法使用技能',
+      );
+      expect(mock.dispatch).not.toHaveBeenCalled();
+      await pressStepAction(view, STEP_SKIP_ACTION_KEY);
+      await harness.pressLastPrimary();
+      expect(mock.dispatch.mock.calls[0]?.[0]).toMatchObject({
+        type: 'werewolf.step.submit',
+        submission: { stepId, actionKey: STEP_SKIP_ACTION_KEY },
+      });
     },
   );
+
+  it('shows the common stale-step message when an action is rejected', async () => {
+    const state = createBoardNightState(
+      roles,
+      (candidate) => candidate.nightState?.slice.current?.stepId === 'seerCheck',
+      {
+        nightmareBlock: { actionKey: STEP_SKIP_ACTION_KEY },
+        wolfKill: { actionKey: 'wolfKillAbstain' },
+      },
+      roleAssignment,
+    );
+    const { mock, view } = await mountBoardNightState(state, 10);
+    mock.dispatch.mockResolvedValueOnce(rejectedRoomCommand<GameState>(REASON_STEP_STALE));
+    await pressStepAction(view, 'seerCheck');
+    await tapSeat(view, 0);
+    await harness.pressLastPrimary();
+    await waitFor(() => {
+      expect(harness.getLastEvent()?.title).toBe('操作失败');
+      expect(harness.getLastEvent()?.message).toBe('当前行动步骤已变化，请重新选择');
+    });
+  });
 });

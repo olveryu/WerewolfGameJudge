@@ -1,7 +1,7 @@
-# Night-step order — `NIGHT_STEP_ORDER`
+# Werewolf engine execution order — `NIGHT_STEP_ORDER`
 
-Source: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/nightStepIds.ts`
-(`NIGHT_STEP_IDS`, exported as `NIGHT_STEP_ORDER`; re-exported by `plan.ts`).
+Source: `packages/game-engine/src/games/werewolf/roles/nightStepOrder.ts`
+(`NIGHT_STEP_IDS`, exported as `NIGHT_STEP_ORDER`).
 There is no symbol named `NIGHT_STEP_ORDER_INTERNAL` anywhere in the engine package.
 Count: 39 step ids. Order below is the file order, which is the execution order.
 
@@ -47,5 +47,7 @@ Count: 39 step ids. Order below is the file order, which is the execution order.
 | 38  | `seedWolfInfectReveal`          | `seedWolf`         |
 | 39  | `wolfGirlConfessReveal`         | `wolfGirl`         |
 
-Every step id has exactly one resolver entry in `domain/resolvers/index.ts`
-(39 ids, 39 resolver keys, verified by diff against that file).
+Every step id must be declared by a role or shared-step definition.
+`roles/nightPlan.ts` builds the runtime step registry from those
+definitions and `NIGHT_STEP_ORDER`; `roles/__tests__/roleSteps.contract.test.ts`
+checks the registered roles and generated step behavior.

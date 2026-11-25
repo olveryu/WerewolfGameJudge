@@ -155,7 +155,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
         await pressAlertButton(hostPage, {
           title: '查看本局复盘？',
           buttonIndex: 1,
-          buttonLabel: '确定查看',
+          buttonLabel: '查看',
         });
         const review = hostPage.getByTestId(TESTIDS.roomReviewDialog);
         await expect(review).toContainText('🌙 第一夜 · 夜报');
@@ -225,11 +225,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
 
       const expectedRevealSeat = formatSeat(targetWolfSeat);
       // Wait for the reveal, not the preceding confirmation dialog.
-      const revealText = await readAlertText(
-        seerPage,
-        10_000,
-        `查验结果：${expectedRevealSeat}是狼人`,
-      );
+      const revealText = await readAlertText(seerPage, 10_000, '查验结果');
 
       // The reveal should mention the checked seat number and "狼人"
       expect(revealText, 'Reveal should contain seat number').toContain(expectedRevealSeat);

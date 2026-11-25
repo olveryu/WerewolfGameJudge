@@ -12,6 +12,7 @@ import {
   type GameState,
   GameStatus,
   getPlayerCount,
+  getWerewolfDaytimeAnnouncements,
   getWerewolfUserSeat,
   getWerewolfViewModel,
   readArmedDeadline,
@@ -50,6 +51,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
+import type { StepInteraction } from '@/features/room/steps/useStepInteraction';
 import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import { getBoardRolePortraits } from '@/games/werewolf/assets/roleAvatars';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
@@ -61,19 +63,19 @@ import type {
 import { type SheriffElectionPanelModel, useSheriffElection } from '../day/useSheriffElection';
 import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import {
-  createWerewolfPlayerActionList,
   createWerewolfPlayerActions,
   createWerewolfRoomCapabilities,
   createWerewolfRoomShellModel,
+  createWerewolfStepActionList,
   isWerewolfSetup,
   WEREWOLF_DISPLAY_NAME,
 } from '../werewolfRoomAdapter';
 import { getWerewolfRoomCommandFailureMessage } from '../werewolfRoomCommandFailureMessage';
-import { type NightInteraction, useNightInteraction } from './useNightInteraction';
 import { useRoomModals } from './useRoomModals';
 import { useWerewolfAudioOrchestration } from './useWerewolfAudioOrchestration';
 import { useWerewolfBgmControl, type WerewolfBgmControlState } from './useWerewolfBgmControl';
 import { type MvpSelection, useWerewolfHostFlow } from './useWerewolfHostFlow';
+import { useWerewolfNightInteraction } from './useWerewolfNightInteraction';
 
 /** Passive toasts for non-hosts, keyed by the host command that produced the revision. */
 const LAST_ACTION_TOASTS = {
@@ -125,7 +127,7 @@ export interface WerewolfRoomScreenState {
   readonly bgm: WerewolfBgmControlState;
   readonly roleCard: WerewolfRoleCard;
   readonly audioResume: RoomAudioResume;
-  readonly night: NightInteraction;
+  readonly night: StepInteraction;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
   readonly isSheriffDetailsVisible: boolean;
   readonly openSheriffDetails: () => void;
@@ -142,24 +144,10 @@ const resolveWerewolfSeatTapIntent = createRoomSeatTapIntentResolver<GameState>(
 );
 
 function buildLastNightInfo(state: GameState): string {
-  const parts: string[] = [];
   const deaths = state.lastNightDeaths ?? [];
-  parts.push(
-    deaths.length === 0
-      ? '昨夜平安夜'
-      : `昨夜死亡: ${deaths.map((seat) => formatSeat(seat)).join(', ')}`,
-  );
-  const results = state.currentNightResults ?? {};
-  if (results.silencedSeat != null) parts.push(`${formatSeat(results.silencedSeat)}被禁言`);
-  if (results.votebannedSeat != null) parts.push(`${formatSeat(results.votebannedSeat)}被禁票`);
-  return parts.join('\n');
-}
-
-function buildCurseInfo(state: GameState): string | null {
-  if (!state.templateRoles.includes('crow')) return null;
-  const cursedSeat = state.currentNightResults?.cursedSeat;
-  if (cursedSeat == null) return '乌鸦未诅咒任何人';
-  return `${formatSeat(cursedSeat)}被诅咒（放逐+1票）`;
+  return deaths.length === 0
+    ? '昨夜平安夜'
+    : `昨夜死亡: ${deaths.map((seat) => formatSeat(seat)).join(', ')}`;
 }
 
 export function useWerewolfRoomState(
@@ -244,19 +232,19 @@ export function useWerewolfRoomState(
   });
 
   // ── Night ──
-  const night = useNightInteraction({
+  const nightState = useWerewolfNightInteraction({
     state,
     viewModel,
     userId: user.id,
     roomId: room.roomId,
-    controlledSeat,
     effectiveSeat,
-    isAudioResumeDue: audioResume.isDue,
-    isReadingRoomInformation,
-    hasPendingCommand: entryController.connection.pendingDurableCount > 0,
-    nowMs,
+    controlledSeat,
     submit,
+    isSuspended: state.isAudioPlaying || audioResume.isDue || isReadingRoomInformation,
+    hasPendingCommand: ready.isSubmitting || entryController.connection.pendingDurableCount > 0,
+    nowMs,
   });
+  const night = nightState.interaction;
 
   // ── Identity viewing ──
   const myRole = viewModel.myRole;
@@ -322,7 +310,6 @@ export function useWerewolfRoomState(
   const modals = useRoomModals({
     gameSequence: state.gameSequence,
     getLastNightInfo: () => buildLastNightInfo(state),
-    getCurseInfo: () => buildCurseInfo(state),
     grantReviewAccess: (allowedSeats) =>
       submit('授权查看复盘', { type: 'werewolf.review.share', allowedSeats }, { actionKey: null }),
     isGameEnded: status === GameStatus.Ended,
@@ -383,17 +370,15 @@ export function useWerewolfRoomState(
   // ── Bottom actions, guide, shell ──
   const isActionSubmitting = ready.isSubmitting;
   const openSheriffDetails = () => setIsSheriffDetailsVisible(true);
-  const playerActionList = createWerewolfPlayerActionList({
+  const playerActionList = createWerewolfStepActionList({
     viewModel,
-    night: night.model,
-    actionGroupKey: night.actionGroupKey,
-    seatSelection: night.seatSelection,
+    step: night,
     isHost,
     effectiveSeat,
     isAudioPlaying: state.isAudioPlaying,
     review: review.entry,
-    onNightButton: night.onNightButton,
     onViewRole: roleViewing.open,
+    onPersonalView: modals.showPersonalView,
   });
   const playerActions = createWerewolfPlayerActions({
     state,
@@ -401,8 +386,9 @@ export function useWerewolfRoomState(
     isHost,
     isAudioPlaying: state.isAudioPlaying,
     actions: playerActionList,
-    actionMessage: night.actionMessage,
-    nightStatusLine: night.nightStatusLine,
+    actionMessage: nightState.actionMessage,
+    nightStatusLine: nightState.nightStatusLine,
+    isStepActor: nightState.isStepActor,
     guideMessage: buildWerewolfGuideMessage({ isHost, roomStatus: status, mySeat, viewModel }),
     sheriffElectionPanel,
     openSheriffDetails,
@@ -452,7 +438,13 @@ export function useWerewolfRoomState(
     },
     review: review.entry,
     onGrantReviewAccess: modals.openGrant,
-    onLastNightInfo: modals.showLastNightInfo,
+    onLastNightInfo: () => modals.showLastNightInfo(),
+    onLastNightDeaths: () => modals.showLastNightInfo('查看昨夜死讯'),
+    announcements:
+      isHost && (status === GameStatus.Day || status === GameStatus.Ended)
+        ? getWerewolfDaytimeAnnouncements(state)
+        : [],
+    onAnnouncement: modals.showAnnouncement,
     onSelectMvp: hostFlow.openMvpSelection,
   });
 

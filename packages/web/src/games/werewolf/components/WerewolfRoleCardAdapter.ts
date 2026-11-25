@@ -9,10 +9,10 @@
  */
 import {
   Faction,
+  getRoleCard,
   getRoleDisplayAs,
   getRoleDisplayName,
   getRoleStructuredDescription,
-  ROLE_SPECS,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 
@@ -26,7 +26,7 @@ import { getFactionName } from '@/games/werewolf/components/roleDisplayUtils';
 
 /** 阵营映射：按 faction 直接映射（隐狼 faction=Wolf，显示狼红色）。 */
 function getAlignment(roleId: RoleId): RevealAlignment {
-  switch (ROLE_SPECS[roleId].faction) {
+  switch (getRoleCard(roleId).faction) {
     case Faction.Wolf:
       return 'wolf';
     case Faction.God:

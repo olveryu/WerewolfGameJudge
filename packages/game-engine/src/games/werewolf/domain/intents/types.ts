@@ -6,106 +6,39 @@
  */
 
 import type { RoleId } from '../models';
-import type { ActionInput } from '../resolvers/types';
-
-// =============================================================================
-// Game lifecycle Intents
-// =============================================================================
 
 // (Seat / profile / fill intents have no intent form: the room
 // commands are decided by the shared platform skeleton directly in
 // the engine — see domain/seating.)
 
-/**
- * Assign roles Intent (Host-only)
- * Precondition: status === Seated
- * Result: status -> Assigned
- */
 export interface AssignRolesIntent {
   type: 'ASSIGN_ROLES';
 }
 
-/**
- * Start night Intent (Host-only)
- * Precondition: status === Ready
- * Result: status -> Ongoing, initialize Night-1 fields
- */
 export interface StartNightIntent {
   type: 'START_NIGHT';
 }
 
-/**
- * Abort game Intent (Host-only)
- * Precondition: status !== Ended (a game is in progress)
- * Result: restart (keep seats/template, clear the game in progress);
- * status -> Seated
- */
 export interface AbortGameIntent {
   type: 'ABORT_GAME';
 }
 
-/**
- * Return to lobby Intent (Host-only)
- * Precondition: status === Ended
- * Result: restart (keep seats/template, clear the finished game);
- * status -> Seated
- */
 export interface ReturnToLobbyIntent {
   type: 'RETURN_TO_LOBBY';
 }
 
-/**
- * Share details Intent (Host-only)
- * Host selects seats allowed to view "detailed info" in ended phase
- */
 export interface ShareNightReviewIntent {
   type: 'SHARE_NIGHT_REVIEW';
   allowedSeats: number[];
 }
 
-// =============================================================================
-// Night action Intents
-// =============================================================================
-
-export interface SubmitActionIntent {
-  type: 'SUBMIT_ACTION';
-  payload: {
-    seat: number;
-    role: RoleId;
-    actionInput: ActionInput;
-  };
-}
-
-// =============================================================================
-// Player state Intents
-// =============================================================================
-
-// (VIEWED_ROLE has no intent: the role.view command is decided by the
-// shared platform confirm skeleton directly in the engine.)
-
-// =============================================================================
-// Night flow Intents (Host-only)
-// =============================================================================
-
-/**
- * Advance night to next step
- * Host-only: called after audio ends, advances the night step
- */
 export interface AdvanceNightIntent {
   type: 'ADVANCE_NIGHT';
 }
 
-/**
- * End night
- * Host-only: after night end audio finishes, perform death settlement and set ended
- */
 export interface EndNightIntent {
   type: 'END_NIGHT';
 }
-
-// =============================================================================
-// First-day sheriff election intents
-// =============================================================================
 
 export interface RegisterSheriffCandidateIntent {
   type: 'REGISTER_SHERIFF_CANDIDATE';
@@ -135,27 +68,6 @@ export interface EndSheriffElectionBySelfDestructIntent {
   type: 'END_SHERIFF_ELECTION_BY_SELF_DESTRUCT';
 }
 
-// =============================================================================
-// Debug Bots Intents (Host-only)
-// =============================================================================
-
-// (FILL_WITH_BOTS has no intent: the room.seat.fillBots command is
-// decided by the shared platform room-command skeleton directly in
-// the engine — see domain/seating.)
-//
-// (MARK_ALL_BOTS_VIEWED has no intent: the bots.markAllBotsViewed
-// command is decided by the shared platform scaffold skeleton
-// directly in the engine.)
-
-// =============================================================================
-// Board Nomination Intents (any connected player)
-// =============================================================================
-
-/**
- * Submit board nomination Intent
- * Any connected player can submit, max one per person (later overrides).
- * Precondition: status === Unseated | Seated (before role assignment)
- */
 export interface BoardNominateIntent {
   type: 'BOARD_NOMINATE';
   payload: {
@@ -165,24 +77,14 @@ export interface BoardNominateIntent {
   };
 }
 
-/**
- * Upvote board nomination Intent
- * Precondition: target nomination exists, cannot upvote own
- */
 export interface BoardUpvoteIntent {
   type: 'BOARD_UPVOTE';
   payload: {
-    /** Upvoted nomination submitter userId */
     targetUserId: string;
-    /** Upvoter userId */
     voterUid: string;
   };
 }
 
-/**
- * Withdraw board nomination Intent
- * Only the submitter can withdraw
- */
 export interface BoardWithdrawIntent {
   type: 'BOARD_WITHDRAW';
   payload: {

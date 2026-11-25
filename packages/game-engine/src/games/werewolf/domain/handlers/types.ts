@@ -79,10 +79,6 @@ export function handlerSuccess(
   return { kind: 'success', actions, effects: options.effects ?? [], reason: options.reason };
 }
 
-export function handlerRejection(reason: string, actions: StateAction[]): HandlerRejection {
-  return { kind: 'rejection', reason, actions };
-}
-
 export function handlerError(reason: string): HandlerError {
   return { kind: 'error', reason };
 }

@@ -21,6 +21,7 @@ import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/ro
 import { act, fireEvent, render } from '@testing-library/react';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
 import { createFakeRoomLink, readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { TESTIDS } from '@/testids';
@@ -140,8 +141,8 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
   };
   ackAudio();
   while (state.phase.kind === 'night') {
-    for (const seat of getAvalonNightParticipants(state.roles, state.phase.step)) {
-      actAs(seat, { type: 'avalon.night.confirm' });
+    for (const seat of getAvalonNightParticipants(state.roles, state.phase.steps.current!.stepId)) {
+      actAs(seat, avalonViewNightCommand(state));
     }
     ackAudio();
   }

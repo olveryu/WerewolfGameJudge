@@ -75,7 +75,7 @@ function reviewSheriffSteps(
   sheriff: NonNullable<ReturnType<typeof deriveSheriffSection>>,
 ): readonly ReviewTimelineStep[] {
   const document = toWerewolfReviewDocument({
-    review: { actions: [{ kind: 'peacefulNight' }], identities: [], sheriff },
+    review: { bottomCards: [], lines: [], deaths: [], identities: [], sheriff },
     roomCode: '1234',
     gameSequence: 0,
   });

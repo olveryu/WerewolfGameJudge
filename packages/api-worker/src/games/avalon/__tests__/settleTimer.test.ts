@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import type { GameRoomRuntime as GameRoom } from '../../../platform/room/GameRoomRuntime';
 import type { DispatchRoomResult, InitializeRoomResult } from '../../../platform/room/types';
+import { viewNightCommand } from './avalonNightCommand';
 
 const ROOM_CODE = '1234';
 const HOST = 'avalon-host';
@@ -138,8 +139,8 @@ async function armedVoteRoom(stub: DurableObjectStub<GameRoom>): Promise<AvalonS
   await ackAudio(stub);
   let state = await readState(stub);
   while (state.phase.kind === 'night') {
-    for (const seat of getAvalonNightParticipants(state.roles, state.phase.step)) {
-      await send(stub, seatUser(seat), { type: 'avalon.night.confirm' });
+    for (const seat of getAvalonNightParticipants(state.roles, state.phase.steps.current!.stepId)) {
+      await send(stub, seatUser(seat), viewNightCommand(state));
     }
     await ackAudio(stub);
     state = await readState(stub);

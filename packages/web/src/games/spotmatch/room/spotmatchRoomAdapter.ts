@@ -8,6 +8,7 @@ import {
   type SpotmatchState,
 } from '@game-judge/game-engine/games/spotmatch/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
@@ -45,7 +46,6 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** Public lobby rules that are not already represented by the card title's player count. */
 export function createSpotmatchRoomSummarySettings(
@@ -160,7 +160,12 @@ export function createSpotmatchHostManagement(
         { actionKey: HOST_ACTION_KEYS.startGame },
       );
     const startAction = buildStartGameAction({
-      onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局对局', submitStart),
+      onPress: () =>
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.startTitle,
+          body: '将开始本局对局',
+          onConfirm: submitStart,
+        }),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -175,13 +180,15 @@ export function createSpotmatchHostManagement(
   const expectedPhase = state.phase.kind;
   const restart = buildResetToLobbyAction({
     onPress: () =>
-      showDestructiveAlert(
-        '重新开始？',
-        expectedPhase === 'ended'
-          ? '保留座位和配置，清除本局结果并回到准备。已结算的战绩和奖励保留；之后可能无法查看复盘。'
-          : '保留座位和配置，清除本局牌面与进度并回到准备。本局中止，不结算战绩与奖励。',
-        '重新开始',
-        async () => {
+      confirmAction({
+        label: '重新开始？',
+        body:
+          expectedPhase === 'ended'
+            ? '保留座位和配置，清除本局结果并回到准备。已结算的战绩和奖励保留；之后可能无法查看复盘。'
+            : '保留座位和配置，清除本局牌面与进度并回到准备。本局中止，不结算战绩与奖励。',
+        tone: 'danger',
+        confirmText: '重新开始',
+        onConfirm: async () => {
           await input.submit(
             '重新开始',
             {
@@ -192,7 +199,7 @@ export function createSpotmatchHostManagement(
             { actionKey: HOST_ACTION_KEYS.restart },
           );
         },
-      ),
+      }),
     isEnabled: !input.isSubmitting && !input.isScorePause,
     isLoading: input.isSubmitting,
   });

@@ -4,6 +4,7 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { confirmAction } from '@/features/room/confirm';
 import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { getLinkCloseMessage } from '@/features/room/model/linkCloseMessages';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
@@ -11,7 +12,6 @@ import type { RoomConnectionViewModel } from '@/features/room/model/RoomShellMod
 import { addRecentRoom } from '@/features/room/services/recentRooms';
 import type { RoomIdentity, RoomLink } from '@/platform/realtime/types';
 import { RoomLinkClosedError } from '@/platform/realtime/types';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -157,7 +157,11 @@ export function useRoomEntryController<
   const requestExit = useCallback(
     (shouldConfirm: boolean) => {
       if (shouldConfirm) {
-        showConfirmAlert('离开房间？', '离开后将退出当前对局，座位可能被他人占用。', performExit);
+        confirmAction({
+          label: '离开房间？',
+          body: '离开后将退出当前对局，座位可能被他人占用。',
+          onConfirm: performExit,
+        });
         return;
       }
       performExit();

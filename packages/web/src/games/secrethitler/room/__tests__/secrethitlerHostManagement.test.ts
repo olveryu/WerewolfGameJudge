@@ -3,6 +3,7 @@ import {
   type SecrethitlerState,
 } from '@game-judge/game-engine/games/secrethitler/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 import {
   buildSecrethitlerPhaseStates,
@@ -10,14 +11,16 @@ import {
   sendSecrethitlerSeatCommand,
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(),
-  showDestructiveAlert: vi.fn(),
-}));
+vi.mock('@/features/room/confirm', () => ({ confirmAction: vi.fn() }));
+
+function lastConfirmation() {
+  const confirmation = vi.mocked(confirmAction).mock.calls.at(-1)?.[0];
+  if (confirmation === undefined) throw new Error('Missing confirmation');
+  return confirmation;
+}
 
 const submit = vi.fn(async () => true);
 const music = vi.fn();
@@ -61,10 +64,14 @@ it('dispatches restart only after confirmation', async () => {
   if (restart?.state.kind !== 'ready') throw new Error('Missing restart');
   restart.state.onPress();
   expect(submit).not.toHaveBeenCalled();
-  const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
-  if (confirmation === undefined) throw new Error('Missing confirmation');
-  expect(confirmation[1]).toContain('不结算完成奖励');
-  await confirmation[3]();
+  const confirmation = lastConfirmation();
+  expect(confirmation).toMatchObject({
+    label: '重新开始？',
+    tone: 'danger',
+    confirmText: '重新开始',
+  });
+  expect(confirmation.body).toContain('不结算完成奖励');
+  await confirmation.onConfirm();
   expect(submit).toHaveBeenCalledWith(
     '重新开始',
     {
@@ -83,11 +90,11 @@ it('warns about the settled round and review before restarting an ended game', a
   if (restart?.state.kind !== 'ready') throw new Error('Missing restart');
   restart.state.onPress();
   expect(submit).not.toHaveBeenCalled();
-  const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
-  if (confirmation === undefined) throw new Error('Missing confirmation');
-  expect(confirmation[1]).toContain('本局已结算');
-  expect(confirmation[1]).toContain('复盘');
-  await confirmation[3]();
+  const confirmation = lastConfirmation();
+  expect(confirmation).toMatchObject({ label: '重新开始？', tone: 'danger' });
+  expect(confirmation.body).toContain('本局已结算');
+  expect(confirmation.body).toContain('复盘');
+  await confirmation.onConfirm();
   expect(submit).toHaveBeenCalledWith(
     '重新开始',
     {
@@ -107,10 +114,9 @@ it('keeps the blocked start task separate from bulk viewing and removes viewing 
   if (action?.state.kind !== 'ready') throw new Error('Missing bulk viewing');
   action.state.onPress();
   expect(submit).not.toHaveBeenCalled();
-  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
-  if (confirmation === undefined) throw new Error('Missing confirmation');
-  expect(confirmation[0]).toBe('标记机器人已查看？');
-  void confirmation[2]();
+  const confirmation = lastConfirmation();
+  expect(confirmation.label).toBe('标记机器人已查看？');
+  void confirmation.onConfirm();
   expect(submit).toHaveBeenCalledWith(
     '标记机器人已查看',
     {
@@ -163,10 +169,9 @@ it('dispatches night bot confirmation and disables mutating tools while submitti
   if (action?.state.kind !== 'ready') throw new Error('Missing bot confirmation');
   action.state.onPress();
   expect(submit).not.toHaveBeenCalled();
-  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
-  if (confirmation === undefined) throw new Error('Missing confirmation');
-  expect(confirmation[0]).toBe('标记机器人已确认？');
-  void confirmation[2]();
+  const confirmation = lastConfirmation();
+  expect(confirmation.label).toBe('标记机器人已确认？');
+  void confirmation.onConfirm();
   expect(submit).toHaveBeenCalledWith(
     '标记机器人已确认',
     {

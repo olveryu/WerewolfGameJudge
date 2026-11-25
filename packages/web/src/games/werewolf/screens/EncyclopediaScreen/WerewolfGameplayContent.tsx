@@ -1,5 +1,5 @@
 /** Werewolf gameplay introduction; describes face-to-face play without computing game outcomes. */
-import { type GameState, ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { type GameState, getRoleCard } from '@game-judge/game-engine/games/werewolf/public';
 
 import { GameGuideSection, GameNotice, RuleItem } from '@/components/GameGuide';
 
@@ -30,7 +30,7 @@ export function WerewolfGameplayContent({
                   icon="people-outline"
                   title={`本局板子 · ${gameState.templateRoles.length} 人`}
                   description={gameState.templateRoles
-                    .map((roleId) => ROLE_SPECS[roleId].displayName)
+                    .map((roleId) => getRoleCard(roleId).displayName)
                     .join('、')}
                 />
                 <RuleItem

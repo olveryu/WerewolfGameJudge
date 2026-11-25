@@ -56,7 +56,7 @@ export class SheriffElectionPage {
   /** Assert the Host's personal registration action and distinct phase-advance command. */
   async expectHostRegistrationActions(personalAction: 'register' | 'cancel'): Promise<void> {
     await this.closeDetails();
-    const personalLabel = personalAction === 'register' ? '报名上警' : '取消报名';
+    const personalLabel = personalAction === 'register' ? '报名上警' : '撤回报名';
     const personalButton = this.page.getByTestId(
       personalAction === 'register'
         ? TESTIDS.sheriffRegisterButton
@@ -103,7 +103,7 @@ export class SheriffElectionPage {
     await expect(advanceButton).toBeEnabled();
     await expect(grantButton).toHaveAccessibleName('授权玩家查看');
     await expect(grantButton).toBeEnabled();
-    await expect(infoButton).toHaveAccessibleName('昨夜信息');
+    await expect(infoButton).toHaveAccessibleName('查看昨夜信息');
     for (const button of [advanceButton, grantButton, infoButton]) {
       const bounds = await button.boundingBox();
       if (bounds === null) throw new Error('Host action must have layout bounds');
@@ -177,7 +177,7 @@ export class SheriffElectionPage {
     await this.closeDetails();
     const button = this.page.getByTestId(TESTIDS.sheriffWithdrawButton);
     await button.click();
-    await confirmAlert(this.page, '确认退水？');
+    await confirmAlert(this.page, '退水？');
     await expect(button).not.toBeVisible({ timeout: 15_000 });
   }
 

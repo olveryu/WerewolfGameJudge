@@ -11,6 +11,7 @@ import {
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import {
@@ -70,7 +71,6 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 export const FIB_DISPLAY_NAME = '瞎掰王';
 
@@ -214,16 +214,18 @@ interface FibHostManagementInput {
 function buildFibRestartAction(input: FibHostManagementInput): RoomHostAction {
   return buildResetToLobbyAction({
     onPress: () =>
-      showDestructiveAlert(
-        '重新开始？',
-        input.state.phase === 'ended'
-          ? input.review?.isPending
-            ? '你尚未查看本局复盘。重新开始将保留座位、配置和已用词记录，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
-            : '保留座位、配置和已用词记录，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-          : '保留座位、配置和已用词记录，清除本局并回到准备。本局中止，不结算完成奖励。',
-        '重新开始',
-        input.restartGame,
-      ),
+      confirmAction({
+        label: '重新开始？',
+        body:
+          input.state.phase === 'ended'
+            ? input.review?.isPending
+              ? '你尚未查看本局复盘。重新开始将保留座位、配置和已用词记录，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
+              : '保留座位、配置和已用词记录，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+            : '保留座位、配置和已用词记录，清除本局并回到准备。本局中止，不结算完成奖励。',
+        tone: 'danger',
+        confirmText: '重新开始',
+        onConfirm: input.restartGame,
+      }),
     isEnabled: !input.isCommandSubmitting,
     isLoading: input.isCommandSubmitting || undefined,
   });
@@ -248,11 +250,11 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostAct
       const actions: RoomHostAction[] = [
         buildStartGameAction({
           onPress: () =>
-            showConfirmAlert(
-              HOST_FLOW_CONFIRM.startTitle,
-              allViewedConfirmBody('身份', '将开始本轮描述'),
-              input.beginRound,
-            ),
+            confirmAction({
+              label: HOST_FLOW_CONFIRM.startTitle,
+              body: allViewedConfirmBody('身份', '将开始本轮描述'),
+              onConfirm: input.beginRound,
+            }),
           isEnabled: beginGate.isEnabled,
           isLoading: input.isCommandSubmitting || undefined,
           disabledReason: beginGate.disabledReason,
@@ -265,11 +267,11 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostAct
         actions.push(
           buildMarkBotsViewedAction({
             onPress: () =>
-              showConfirmAlert(
-                '标记机器人已查看？',
-                '将标记所有未查看身份的机器人。',
-                input.markAllBotsViewed,
-              ),
+              confirmAction({
+                label: '标记机器人已查看？',
+                body: '将标记所有未查看身份的机器人。',
+                onConfirm: input.markAllBotsViewed,
+              }),
             isEnabled: !input.isCommandSubmitting,
             isLoading: input.isCommandSubmitting,
           }),
@@ -281,11 +283,11 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostAct
       return [
         buildAssignRolesAction({
           onPress: () =>
-            showConfirmAlert(
-              HOST_FLOW_CONFIRM.assignTitle,
-              '将为每位玩家分配身份并准备本轮词语',
-              input.startRound,
-            ),
+            confirmAction({
+              label: HOST_FLOW_CONFIRM.assignTitle,
+              body: '将为每位玩家分配身份并准备本轮词语',
+              onConfirm: input.startRound,
+            }),
           isEnabled: !input.isCommandSubmitting && isFibRoomFull(input.state),
           isLoading: input.isCommandSubmitting || undefined,
           disabledReason: input.isCommandSubmitting
@@ -402,7 +404,7 @@ function createFibHostTask(input: FibHostManagementInput): RoomHostTask | null {
     case 'ongoing':
       // 大聪明选人中：点座位盘选人，退出走同一个切换动作。
       return input.isGuessing
-        ? hostMessageTask('点座位盘选择大聪明猜中的玩家', { escapeActionKey: 'guess-seat' })
+        ? hostMessageTask('请选择大聪明指认的玩家', { escapeActionKey: 'guess-seat' })
         : hostActionTask('guess-seat');
     case 'ended':
       return { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] };
@@ -561,7 +563,7 @@ function getPlayerMessage(state: FibState, viewerSeat: number | null): string | 
       return buildPreparationFailureMessage({ reason: '词语准备失败', hostAction: '重新准备' });
     case 'viewing':
       if (viewerSeat === null) return '等待玩家查看身份';
-      return state.round.viewedSeats.includes(viewerSeat) ? null : '请先查看你的身份';
+      return state.round.viewedSeats.includes(viewerSeat) ? null : '请点击「查看身份」';
     case 'ongoing':
     case 'ended':
       return null;

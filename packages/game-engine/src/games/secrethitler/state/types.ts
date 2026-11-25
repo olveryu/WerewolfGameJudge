@@ -15,6 +15,7 @@ import {
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
+import type { StepSlice } from '../../../platform/steps';
 
 export const SECRETHITLER_GAME_TYPE = 'secrethitler' as const;
 
@@ -24,6 +25,8 @@ export const SECRETHITLER_DEFAULT_PLAYERS = 8;
 export const SECRETHITLER_VOTE_MODES = ['public', 'secret'] as const;
 export type SecrethitlerVoteMode = (typeof SECRETHITLER_VOTE_MODES)[number];
 export const SECRETHITLER_DEFAULT_VOTE_MODE: SecrethitlerVoteMode = 'public';
+export const SECRETHITLER_NIGHT_STEP_IDS = ['fascistRecognition'] as const;
+export type SecrethitlerNightStep = (typeof SECRETHITLER_NIGHT_STEP_IDS)[number];
 
 export interface SecrethitlerConfig {
   readonly numberOfPlayers: number;
@@ -102,7 +105,10 @@ export interface SecrethitlerVetoPhase {
 export type SecrethitlerPhase =
   | { readonly kind: 'lobby' }
   | { readonly kind: 'viewing' }
-  | { readonly kind: 'night'; readonly step: number; readonly confirmedSeats: readonly number[] }
+  | {
+      readonly kind: 'night';
+      readonly steps: StepSlice<SecrethitlerNightStep, never>;
+    }
   | {
       readonly kind: 'election';
       readonly presidentSeat: number;

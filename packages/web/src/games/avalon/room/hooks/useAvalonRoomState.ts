@@ -59,6 +59,7 @@ import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureM
 import type { AvalonTeamPickKind } from '../components/AvalonTeamPickModal';
 import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
 import { useAvalonBgmControl } from './useAvalonBgmControl';
+import { useAvalonNightInteraction } from './useAvalonNightInteraction';
 import { type AvalonSeatPicking, useAvalonSeatPicking } from './useAvalonSeatPicking';
 
 /**
@@ -99,8 +100,6 @@ export interface AvalonRoomScreenState {
   readonly phaseRemainingSeconds: number | null;
   /** 投票/任务结算逾期：截止已过且宽限期已过，房主可见自救重试（D3 follow-up）。 */
   readonly isOverdue: boolean;
-  readonly nightModalVisible: boolean;
-  readonly setNightModalVisible: Dispatch<SetStateAction<boolean>>;
   /** 投票弹窗开关：自动弹一次由 Screen 驱动，底部按钮重开也走这里。 */
   readonly voteModalOpen: boolean;
   readonly setVoteModalOpen: Dispatch<SetStateAction<boolean>>;
@@ -168,20 +167,11 @@ export function useAvalonRoomState(
   });
   const isLobby = state.phase.kind === 'lobby';
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
-  // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
-  const [nightModalVisible, setNightModalVisible] = useState(false);
-  // 阶段弹窗开关（投票 / 出牌 / 湖仙确认）与提前刺杀选人模式：与夜晚确认
-  // 同形态，开关住在 hook，底部动作区的入口与 Screen 共用同一状态。
+  // 阶段弹窗开关（投票 / 出牌 / 湖仙确认）与提前刺杀选人模式：开关住在
+  // hook，底部动作区的入口与 Screen 共用同一状态。
   const [voteModalOpen, setVoteModalOpen] = useState(false);
   const [questModalOpen, setQuestModalOpen] = useState(false);
   const [strikePickMode, setStrikePickMode] = useState(false);
-  // step 推进时重置弹窗状态，防止 stale（比如别人确认完推进了 step，自己开着的弹窗指令已失效）。
-  const nightStep = state.phase.kind === 'night' ? state.phase.step : null;
-  const [modalNightStep, setModalNightStep] = useState(nightStep);
-  if (nightStep !== modalNightStep) {
-    setModalNightStep(nightStep);
-    setNightModalVisible(false);
-  }
   // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
   const bots = useBotTakeover({
     viewer,
@@ -250,6 +240,17 @@ export function useAvalonRoomState(
     [effectiveSeat, isLobby, state],
   );
   const seatPicking = useAvalonSeatPicking({ viewModel, strikePickMode, setStrikePickMode });
+  // 夜间查看：共享步骤机制（手牌 → 先问 → 内容 → 知道了）。
+  const nightInteraction = useAvalonNightInteraction({
+    state,
+    viewModel,
+    userId: user.id,
+    roomId: room.roomId,
+    effectiveSeat,
+    controlledSeat,
+    submit,
+    hasPendingCommand: isSubmitting || entryController.connection.pendingDurableCount > 0,
+  });
   // 对局中的座位点选（湖仙 / 刺杀选人）先于默认座位语义消费点按。
   const onSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
@@ -318,7 +319,8 @@ export function useAvalonRoomState(
     isLobby,
     effectiveSeat,
     onViewRolePress: roleViewing.open,
-    onNightInfoPress: () => setNightModalVisible(true),
+    nightActions: nightInteraction.actions,
+    nightMessage: nightInteraction.message,
     isSubmitting,
     settleCountdownSeconds: phaseRemainingSeconds,
     onOpenVotePress: () => setVoteModalOpen(true),
@@ -361,9 +363,6 @@ export function useAvalonRoomState(
     roleCardAllRoles: Object.entries(state.roles)
       .sort(([seatA], [seatB]) => Number(seatA) - Number(seatB))
       .map(([, roleId]) => toRevealRoleData(roleId)),
-    // 晚上确认弹窗：两步流程（底部按钮 → 弹窗）。
-    nightModalVisible,
-    setNightModalVisible,
     voteModalOpen,
     setVoteModalOpen,
     questModalOpen,
