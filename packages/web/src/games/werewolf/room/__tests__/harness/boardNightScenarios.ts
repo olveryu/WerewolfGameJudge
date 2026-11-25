@@ -173,7 +173,7 @@ export function collectBoardNightScenarios(
     if (advanceAudioOrDeadline(game)) continue;
     const actor = nextActor(state, scenarios);
     if (actor === null) {
-      throw new Error(`[TEST] ${boardName}: no actor can advance ${state.nightStep?.kind}`);
+      throw new Error(`[TEST] ${boardName}: no actor can advance`);
     }
     game.submitStepOrThrow(
       actor.seat,
@@ -244,24 +244,38 @@ function passiveSubmission(state: GameState, seat: number): StepSubmission | nul
     : { stepId: view.stepId, serial: view.serial, actionKey: action.key };
 }
 
+export interface BoardNightOptions {
+  /** What a step submits; a step without an entry takes its default action. */
+  readonly choices?: Readonly<Partial<Record<string, BoardStepChoice>>>;
+  readonly rules?: GameRuleOverrides;
+  /** Skip or abstain wherever a step allows it instead of taking the default action. */
+  readonly isQuiet?: boolean;
+  /** Return as soon as this step is current instead of finishing the night. */
+  readonly stopAtStepId?: string;
+}
+
 /**
- * Play the whole night through real commands and return the settled state.
- * A step without an entry in `choices` takes its default action, or is
- * skipped wherever the step allows it when `isQuiet` is set.
+ * Play a night through real commands, with `roles` dealt in seat order.
+ * Returns the settled state, or the state parked on `stopAtStepId`.
  */
 export function playBoardNight(
-  boardName: string | readonly RoleId[],
-  choices: Readonly<Partial<Record<string, BoardStepChoice>>> = {},
-  roleAssignment?: ReadonlyMap<number, RoleId>,
-  rules?: GameRuleOverrides,
-  isQuiet = false,
+  roles: readonly RoleId[],
+  options: BoardNightOptions = {},
 ): GameState {
-  const game = createEngineGame(boardName, roleAssignment, rules);
+  const { choices = {}, rules, isQuiet = false, stopAtStepId } = options;
+  const boardName = roles.join(',');
+  const game = createEngineGame(roles, new Map(roles.map((role, seat) => [seat, role])), rules);
   const scenarios = new Map<string, BoardNightScenario>();
   for (let transition = 0; transition < MAX_TRANSITIONS; transition += 1) {
     const state = game.getGameState();
-    if (state.status !== GameStatus.Ongoing) return state;
+    if (state.status !== GameStatus.Ongoing) {
+      if (stopAtStepId !== undefined) {
+        throw new Error(`[TEST] ${boardName}: the night ended before ${stopAtStepId}`);
+      }
+      return state;
+    }
     if (advanceAudioOrDeadline(game)) continue;
+    if (state.nightState?.slice.current?.stepId === stopAtStepId) return state;
     const actor = nextActor(state, scenarios);
     if (actor === null) throw new Error(`[TEST] ${boardName}: no actor can advance`);
     const choice = choices[actor.submission.stepId];

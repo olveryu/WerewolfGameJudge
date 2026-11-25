@@ -86,7 +86,6 @@ function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): H
   let bottomCards: RoleId[] | undefined;
   let treasureMasterSeat: number | undefined;
   let thiefSeat: number | undefined;
-  let cupidSeat: number | undefined;
 
   const shouldDealBottomCards =
     bottomCardRoleId !== null && (bottomCardRoleId === 'thief' || !isPlagueMode);
@@ -121,13 +120,6 @@ function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): H
       }
     }
   }
-  // Record cupid seat (regardless of deck role presence)
-  for (const [seatStr, roleId] of Object.entries(assignments)) {
-    if (roleId === 'cupid') {
-      cupidSeat = Number.parseInt(seatStr, 10);
-      break;
-    }
-  }
 
   // When multiple seerFamily-tagged roles coexist, randomly assign numbered labels
   // Note: must use all roles (including deck) to determine seer family
@@ -156,7 +148,6 @@ function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): H
       assignments,
       ...(seerLabelMap ? { seerLabelMap } : {}),
       ...(bottomCards ? { bottomCards, treasureMasterSeat, thiefSeat } : {}),
-      ...(cupidSeat !== undefined ? { cupidSeat } : {}),
     },
   };
 

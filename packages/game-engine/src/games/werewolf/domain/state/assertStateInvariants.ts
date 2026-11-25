@@ -19,7 +19,6 @@ import {
   type RoleId,
   validateTemplateRoles,
 } from '../models';
-import { buildNightPlan } from '../models/roles/spec/plan';
 import type {
   GameState,
   SheriffElectionRoundResult,
@@ -36,12 +35,6 @@ function assertNoBottomCardRuntimeState(state: GameState): void {
     fail('treasureMasterSeat exists without an active treasure-master deal');
   }
   if (state.thiefSeat !== undefined) fail('thiefSeat exists without an active thief deal');
-  if (state.currentNightResults?.treasureMasterChosenCard !== undefined) {
-    fail('treasureMasterChosenCard exists without an active treasure-master deal');
-  }
-  if (state.currentNightResults?.thiefChosenCard !== undefined) {
-    fail('thiefChosenCard exists without an active thief deal');
-  }
 }
 
 function assertBottomCardActor(
@@ -58,16 +51,6 @@ function assertBottomCardActor(
     fail(`${actorRoleId} actor seat ${actorSeat} contains ${actor.role ?? 'no role'}`);
   }
   return actorSeat;
-}
-
-function assertChosenCardBelongsToDeck(
-  chosenRoleId: RoleId,
-  bottomCards: readonly RoleId[],
-  actorRoleId: 'treasureMaster' | 'thief',
-): void {
-  if (!bottomCards.includes(chosenRoleId)) {
-    fail(`${actorRoleId} chose ${chosenRoleId}, which is not in bottomCards`);
-  }
 }
 
 function countRoles(roles: readonly RoleId[]): Map<RoleId, number> {
@@ -97,7 +80,7 @@ function assertAssignedRolesMatchDeal(
   expectedRoles: readonly RoleId[],
   description: string,
 ): void {
-  const infectionResult = state.seedWolfInfectionResult;
+  const infectionResult = state.nightState?.infection;
   if (infectionResult?.outcome !== 'converted') {
     assertSameRoleMultiset(actualRoles, expectedRoles, description);
     return;
@@ -459,11 +442,8 @@ function assertRosterAlignment(state: GameState): void {
 }
 
 /**
- * The night-step window: `nightStep` is non-null exactly while a night is
- * running (`Ongoing`). Inside `Ongoing` the state is either parked on a
- * plan step — the stored stepId must be a member of the plan derived from
- * `templateRoles` + `seerLabelMap` — or exhausted (only `END_NIGHT` may
- * proceed). A deadline only ever exists inside the live step variant.
+ * The night window: `nightState` exists exactly from the moment the night
+ * starts (`Ongoing`, `Day`, `Ended`), and must agree with the deal.
  */
 function assertWerewolfStepWindow(state: GameState): void {
   const night = state.nightState;
@@ -475,18 +455,6 @@ function assertWerewolfStepWindow(state: GameState): void {
     fail(hasNight ? `${state.status} state has no nightState` : 'nightState exists before night');
   }
   if (night !== null) assertSpecNightState(state, night);
-  if (state.status === GameStatus.Ongoing) {
-    const nightStep = state.nightStep;
-    if (nightStep === null) fail('Ongoing state has no nightStep');
-    if (nightStep.kind === 'inStep') {
-      const plan = buildNightPlan(state.templateRoles, state.seerLabelMap);
-      if (!plan.steps.some((s) => s.stepId === nightStep.stepId)) {
-        fail(`night step ${nightStep.stepId} is not in the night plan`);
-      }
-    }
-    return;
-  }
-  if (state.nightStep !== null) fail(`nightStep exists during ${state.status}`);
 }
 
 function assertSpecNightState(state: GameState, night: NonNullable<GameState['nightState']>): void {
@@ -534,17 +502,8 @@ function assertSpecNightState(state: GameState, night: NonNullable<GameState['ni
       fail('completed night is still active');
     return;
   }
-  const mirror = state.nightStep;
-  if (current === null) {
-    if (mirror?.kind !== 'exhausted' || night.slice.deadlineMs !== null) {
-      fail('exhausted night does not match its step');
-    }
-  } else if (
-    mirror?.kind !== 'inStep' ||
-    mirror.stepId !== current.stepId ||
-    (mirror.stepDeadline ?? null) !== night.slice.deadlineMs
-  ) {
-    fail('night step and deadline do not match the shared step');
+  if (current === null && night.slice.deadlineMs !== null) {
+    fail('finished night still has a deadline');
   }
 }
 
@@ -555,19 +514,6 @@ export function assertWerewolfStateInvariants(state: GameState): void {
 
   assertRosterAlignment(state);
   assertSheriffElection(state);
-
-  const hasNightResults = state.currentNightResults !== undefined;
-  const isNightState =
-    state.status === GameStatus.Ongoing ||
-    state.status === GameStatus.Day ||
-    state.status === GameStatus.Ended;
-  if (isNightState !== hasNightResults) {
-    fail(
-      isNightState
-        ? `${state.status} state has no currentNightResults`
-        : `${state.status} state contains currentNightResults`,
-    );
-  }
 
   assertWerewolfStepWindow(state);
 
@@ -614,30 +560,9 @@ export function assertWerewolfStateInvariants(state: GameState): void {
   if (bottomCardRoleId === 'treasureMaster') {
     assertBottomCardActor(state, state.treasureMasterSeat, bottomCardRoleId);
     if (state.thiefSeat !== undefined) fail('treasure-master deal also contains thiefSeat');
-    if (state.currentNightResults?.thiefChosenCard !== undefined) {
-      fail('treasure-master deal also contains thiefChosenCard');
-    }
-
-    const chosenRoleId = state.currentNightResults?.treasureMasterChosenCard;
-    if (chosenRoleId === undefined) return;
-    assertChosenCardBelongsToDeck(chosenRoleId, bottomCards, bottomCardRoleId);
-    if (getRoleSpec(chosenRoleId).faction === Faction.Wolf) {
-      fail('treasureMasterChosenCard is a wolf-faction card');
-    }
     return;
   }
 
   assertBottomCardActor(state, state.thiefSeat, bottomCardRoleId);
   if (state.treasureMasterSeat !== undefined) fail('thief deal also contains treasureMasterSeat');
-  if (state.currentNightResults?.treasureMasterChosenCard !== undefined) {
-    fail('thief deal also contains treasureMasterChosenCard');
-  }
-
-  const chosenRoleId = state.currentNightResults?.thiefChosenCard;
-  if (chosenRoleId === undefined) return;
-  assertChosenCardBelongsToDeck(chosenRoleId, bottomCards, bottomCardRoleId);
-  const hasWolfCard = bottomCards.some((roleId) => getRoleSpec(roleId).faction === Faction.Wolf);
-  if (hasWolfCard && getRoleSpec(chosenRoleId).faction !== Faction.Wolf) {
-    fail('thiefChosenCard must be the wolf-faction card present in bottomCards');
-  }
 }

@@ -82,4 +82,4 @@ export { buildNightPlan, type NightStepId } from './plan';
 export { getSchema, type SchemaId, SCHEMAS } from './schemas';
 
 // Night steps registry + helpers
-export { getStepSpec, NIGHT_STEPS } from './nightSteps';
+export { NIGHT_STEPS } from './nightSteps';

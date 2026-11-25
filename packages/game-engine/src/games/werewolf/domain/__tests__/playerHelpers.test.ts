@@ -8,16 +8,7 @@
 import { vi } from 'vitest';
 
 import type { RoleId } from '../models';
-import { GameStatus } from '../models';
-import {
-  buildSeatRoleMap,
-  findSeatByRole,
-  forEachSeatedPlayer,
-  getBottomCardEffectiveRole,
-  isBottomCardWolfVoteExcluded,
-  isVacantBottomCardStep,
-  resolveNightStepActor,
-} from '../playerHelpers';
+import { buildSeatRoleMap, findSeatByRole, forEachSeatedPlayer } from '../playerHelpers';
 import type { GameState } from '../protocol/types';
 
 type Players = GameState['players'];
@@ -32,35 +23,6 @@ function mkPlayers(entries: Array<[number, RoleId | null]>): Players {
     players[seat] = role ? { seat: seat, role } : null;
   }
   return players;
-}
-
-function mkOngoingState(overrides: Partial<GameState> = {}): GameState {
-  return {
-    gameType: 'werewolf',
-    roomCode: 'ROOM',
-    hostUserId: 'host',
-    status: GameStatus.Ongoing,
-    templateRoles: ['thief', 'seer', 'villager'],
-    players: mkPlayers([[0, 'thief']]),
-    roleViewedSeats: [],
-    roster: { 0: { seat: 0, userId: 'p0', profile: { displayName: 'p0' } } },
-    nightState: null,
-    nightStep: { kind: 'inStep', stepId: 'thiefChoose' },
-    isAudioPlaying: false,
-    audioBatchId: 0,
-    gameSequence: 0,
-    pendingAudioEffects: [],
-    actions: [],
-    currentNightResults: {},
-    pendingRevealAcks: [],
-    hypnotizedSeats: [],
-    piperRevealAcks: [],
-    conversionRevealAcks: [],
-    wolfGirlConfessionRevealAcks: [],
-    cupidLoversRevealAcks: [],
-    seedWolfInfectionRevealAcks: [],
-    ...overrides,
-  };
 }
 
 // =============================================================================
@@ -122,66 +84,6 @@ describe('findSeatByRole', () => {
   });
 });
 
-describe('resolveNightStepActor', () => {
-  it('resolves a directly seated role', () => {
-    const state = mkOngoingState({ players: mkPlayers([[3, 'seer']]) });
-
-    expect(resolveNightStepActor(state, 'seer')).toEqual({ seat: 3, role: 'seer' });
-  });
-
-  it.each([
-    ['treasureMaster', 'treasureMasterChosenCard', 'treasureMasterSeat'],
-    ['thief', 'thiefChosenCard', 'thiefSeat'],
-  ] as const)('routes a selected card step to its %s actor', (role, chosenField, seatField) => {
-    const state = mkOngoingState({
-      players: mkPlayers([[2, role]]),
-      currentNightResults: { [chosenField]: 'seer' },
-      [seatField]: 2,
-    });
-
-    expect(resolveNightStepActor(state, 'seer')).toEqual({ seat: 2, role });
-  });
-
-  it('fails fast when both bottom-card actors claim the same step', () => {
-    const state = mkOngoingState({
-      players: mkPlayers([
-        [0, 'treasureMaster'],
-        [1, 'thief'],
-      ]),
-      currentNightResults: {
-        treasureMasterChosenCard: 'seer',
-        thiefChosenCard: 'seer',
-      },
-    });
-
-    expect(() => resolveNightStepActor(state, 'seer')).toThrow('two bottom-card actors');
-  });
-
-  it('fails fast when a selected-card actor seat is missing', () => {
-    const state = mkOngoingState({ currentNightResults: { thiefChosenCard: 'seer' } });
-
-    expect(() => resolveNightStepActor(state, 'seer')).toThrow('without an actor seat');
-  });
-});
-
-describe('isVacantBottomCardStep', () => {
-  it('distinguishes selected and unselected physical bottom-card steps', () => {
-    const state = mkOngoingState({
-      currentNightResults: { thiefChosenCard: 'villager' },
-      bottomCards: ['seer', 'villager'],
-      thiefSeat: 0,
-    });
-
-    expect(isVacantBottomCardStep(state, 'seerCheck')).toBe(true);
-    expect(
-      isVacantBottomCardStep(
-        { ...state, currentNightResults: { thiefChosenCard: 'seer' } },
-        'seerCheck',
-      ),
-    ).toBe(false);
-  });
-});
-
 // =============================================================================
 // forEachSeatedPlayer
 // =============================================================================
@@ -214,52 +116,6 @@ describe('forEachSeatedPlayer', () => {
 // getBottomCardEffectiveRole
 // =============================================================================
 
-describe('getBottomCardEffectiveRole', () => {
-  it('should return thief chosen card when role is thief and card chosen', () => {
-    expect(getBottomCardEffectiveRole('thief', { thiefChosenCard: 'seer' })).toBe('seer');
-  });
-
-  it('should return treasureMaster chosen card when role is treasureMaster and card chosen', () => {
-    expect(getBottomCardEffectiveRole('treasureMaster', { treasureMasterChosenCard: 'wolf' })).toBe(
-      'wolf',
-    );
-  });
-
-  it('should return original role when thief has not chosen', () => {
-    expect(getBottomCardEffectiveRole('thief', undefined)).toBe('thief');
-    expect(getBottomCardEffectiveRole('thief', {})).toBe('thief');
-  });
-
-  it('should return original role when treasureMaster has not chosen', () => {
-    expect(getBottomCardEffectiveRole('treasureMaster', {})).toBe('treasureMaster');
-  });
-
-  it('should return original role for non-bottom-card roles', () => {
-    expect(getBottomCardEffectiveRole('seer')).toBe('seer');
-    expect(
-      getBottomCardEffectiveRole('wolf', {
-        thiefChosenCard: 'seer',
-        treasureMasterChosenCard: 'witch',
-      }),
-    ).toBe('wolf');
-  });
-});
-
 // =============================================================================
 // isBottomCardWolfVoteExcluded
 // =============================================================================
-
-describe('isBottomCardWolfVoteExcluded', () => {
-  it('should return true for treasureMaster', () => {
-    expect(isBottomCardWolfVoteExcluded('treasureMaster')).toBe(true);
-  });
-
-  it('should return false for thief', () => {
-    expect(isBottomCardWolfVoteExcluded('thief')).toBe(false);
-  });
-
-  it('should return false for normal roles', () => {
-    expect(isBottomCardWolfVoteExcluded('wolf')).toBe(false);
-    expect(isBottomCardWolfVoteExcluded('seer')).toBe(false);
-  });
-});

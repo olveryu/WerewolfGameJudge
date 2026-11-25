@@ -14,7 +14,6 @@ import { queueAudioBatch } from '../../../../platform/audio';
 import { buildRoomSeatProfile } from '../../../../platform/room/roster';
 import { findRosterSeatByUserId, isBotOccupant } from '../../../../platform/room/seating';
 import { evolveWerewolfNight } from '../../roles/nightEvolution';
-import { isValidSchemaId } from '../models/roles/spec/schemas';
 import type { GameState } from '../protocol/types';
 import {
   handleAssignRoles,
@@ -31,21 +30,7 @@ import {
   handleUpvoteBoardNomination,
   handleWithdrawBoardNomination,
 } from './lifecycleReducers';
-import {
-  handleActionRejected,
-  handleAddRevealAck,
-  handleAdvanceToNextAction,
-  handleApplyResolverResult,
-  handleEndNight,
-  handleFinalizeSeedWolfInfection,
-  handleRecordAction,
-  handleSetConfirmStatus,
-  handleSetResolvedWolfKillTarget,
-  handleSetWitchContext,
-  handleSetWolfKillOverride,
-  handleSetWolfRobotHunterStatusViewed,
-  handleStartNight,
-} from './nightActionReducers';
+import { handleEndNight, handleStartNight } from './nightActionReducers';
 import {
   handleAdvanceSheriffElection,
   handleCancelSheriffRegistration,
@@ -72,7 +57,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return { ...state, mvpUserId: action.mvpUserId };
     case 'WEREWOLF_NIGHT_EVENT': {
       const nightState = evolveWerewolfNight(state, action.event);
-      const { current, deadlineMs } = nightState.slice;
       const outcome = action.event.type === 'infectionSettled' ? action.event.outcome : undefined;
       const infectedPlayer =
         outcome?.outcome === 'converted' ? state.players[outcome.targetSeat] : undefined;
@@ -86,26 +70,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
               [outcome.targetSeat]: { ...infectedPlayer, role: 'wolf' as const },
             }
           : state.players;
-      const common = {
-        ...state,
-        nightState,
-        players,
-        ...(outcome === undefined ? {} : { seedWolfInfectionResult: outcome }),
-      };
-      if (current === null) {
-        return { ...common, nightStep: { kind: 'exhausted' } };
-      }
-      if (!isValidSchemaId(current.stepId)) {
-        throw new Error(`[FAIL-FAST] Invalid night step ${current.stepId}`);
-      }
-      return {
-        ...common,
-        nightStep: {
-          kind: 'inStep',
-          stepId: current.stepId,
-          ...(deadlineMs === null ? {} : { stepDeadline: deadlineMs }),
-        },
-      };
+      return { ...state, nightState, players };
     }
     case 'UPDATE_TEMPLATE':
       return handleUpdateTemplate(state, action);
@@ -127,8 +92,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     // ── Night action flow ────────────────────────────────
     case 'START_NIGHT':
       return handleStartNight(state, action);
-    case 'ADVANCE_TO_NEXT_ACTION':
-      return handleAdvanceToNextAction(state, action);
     case 'END_NIGHT':
       return handleEndNight(state, action);
     case 'CONFIRM_LAST_NIGHT_INFO':
@@ -156,76 +119,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleClearSheriffElectionDeadline(state, action);
     case 'COMPLETE_SHERIFF_ELECTION':
       return handleCompleteSheriffElection(state, action);
-    case 'RECORD_ACTION':
-      return handleRecordAction(state, action);
-    case 'APPLY_RESOLVER_RESULT':
-      return handleApplyResolverResult(state, action);
-    case 'FINALIZE_SEED_WOLF_INFECTION':
-      return handleFinalizeSeedWolfInfection(state, action);
-    case 'SET_WITCH_CONTEXT':
-      return handleSetWitchContext(state, action);
-    case 'SET_RESOLVED_WOLF_KILL_TARGET':
-      return handleSetResolvedWolfKillTarget(state, action);
-    case 'SET_CONFIRM_STATUS':
-      return handleSetConfirmStatus(state, action);
-    case 'SET_WOLF_KILL_OVERRIDE':
-      return handleSetWolfKillOverride(state, action);
-    case 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED':
-      return handleSetWolfRobotHunterStatusViewed(state, action);
-    case 'ACTION_REJECTED':
-      return handleActionRejected(state, action);
-    case 'ADD_REVEAL_ACK':
-      return handleAddRevealAck(state, action);
-
     // ── Inline trivial cases ─────────────────────────────
-    case 'CLEAR_REVEAL_STATE':
-      return {
-        ...state,
-        seerReveal: undefined,
-        mirrorSeerReveal: undefined,
-        drunkSeerReveal: undefined,
-        psychicReveal: undefined,
-        gargoyleReveal: undefined,
-        pureWhiteReveal: undefined,
-        wolfWitchReveal: undefined,
-        wolfRobotReveal: undefined,
-        wolfRobotHunterStatusViewed: undefined,
-        confirmStatus: undefined,
-        witchContext: undefined,
-      };
-
-    case 'SET_UI_HINT':
-      return {
-        ...state,
-        ui: { ...state.ui, currentActorHint: action.payload.currentActorHint },
-      };
-
-    case 'CLEAR_ACTION_REJECTED':
-      return { ...state, actionRejected: undefined };
-
-    case 'CLEAR_REVEAL_ACKS':
-      return { ...state, pendingRevealAcks: [] };
-
-    case 'SET_STEP_DEADLINE': {
-      // The deadline lives inside the live step; arming it outside one is
-      // an upstream bug (both producers only fire within a step).
-      if (state.nightStep?.kind !== 'inStep') {
-        throw new Error('[FAIL-FAST] SET_STEP_DEADLINE outside a live night step');
-      }
-      return {
-        ...state,
-        nightStep: { ...state.nightStep, stepDeadline: action.payload.deadline },
-      };
-    }
-
-    case 'CLEAR_STEP_DEADLINE': {
-      if (state.nightStep?.kind !== 'inStep') {
-        throw new Error('[FAIL-FAST] CLEAR_STEP_DEADLINE outside a live night step');
-      }
-      const { stepDeadline: _cleared, ...stepWithoutDeadline } = state.nightStep;
-      return { ...state, nightStep: stepWithoutDeadline };
-    }
-
     case 'SET_PENDING_AUDIO_EFFECTS': {
       const queued = queueAudioBatch(state, action.payload.effects);
       return {
@@ -241,45 +135,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
 
     case 'SET_NIGHT_REVIEW_ALLOWED_SEATS':
       return { ...state, nightReviewAllowedSeats: action.allowedSeats };
-
-    case 'ADD_PIPER_REVEAL_ACK': {
-      const acks = state.piperRevealAcks;
-      const seat = action.payload.seat;
-      // Idempotent: ignore duplicate ack
-      if (acks.includes(seat)) return state;
-      return { ...state, piperRevealAcks: [...acks, seat] };
-    }
-
-    case 'ADD_CONVERSION_REVEAL_ACK': {
-      const acks = state.conversionRevealAcks;
-      const seat = action.payload.seat;
-      // Idempotent: ignore duplicate ack
-      if (acks.includes(seat)) return state;
-      return { ...state, conversionRevealAcks: [...acks, seat] };
-    }
-
-    case 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK': {
-      const acks = state.seedWolfInfectionRevealAcks;
-      const seat = action.payload.seat;
-      if (acks.includes(seat)) return state;
-      return { ...state, seedWolfInfectionRevealAcks: [...acks, seat] };
-    }
-
-    case 'ADD_CUPID_LOVERS_REVEAL_ACK': {
-      const acks = state.cupidLoversRevealAcks;
-      const seat = action.payload.seat;
-      // Idempotent: ignore duplicate ack
-      if (acks.includes(seat)) return state;
-      return { ...state, cupidLoversRevealAcks: [...acks, seat] };
-    }
-
-    case 'ADD_WOLF_GIRL_CONFESSION_REVEAL_ACK': {
-      const acks = state.wolfGirlConfessionRevealAcks;
-      const seat = action.payload.seat;
-      // Idempotent: ignore duplicate ack
-      if (acks.includes(seat)) return state;
-      return { ...state, wolfGirlConfessionRevealAcks: [...acks, seat] };
-    }
 
     // ── Board Nomination ─────────────────────────────────
     case 'SET_BOARD_NOMINATION':

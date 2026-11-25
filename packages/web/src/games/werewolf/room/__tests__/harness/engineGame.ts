@@ -190,7 +190,7 @@ export function createEngineGame(
       dispatchOrThrow({ type: 'werewolf.audio.ack', audioBatchId: state.audioBatchId }, context);
     },
     assertStep: (expectedStepId) => {
-      const stepId = state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined;
+      const stepId = state.nightState?.slice.current?.stepId;
       if (stepId !== expectedStepId) {
         throw new Error(`Step mismatch: expected ${expectedStepId}, got ${String(stepId)}`);
       }

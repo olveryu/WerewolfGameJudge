@@ -58,9 +58,6 @@ function armedWolfVoteState(): GameState {
       3: { seat: 3, userId: 'user-3', profile: { displayName: 'User 3' } },
     },
     roleViewedSeats: [0, 1, 2, 3],
-    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
-    currentNightResults: {},
-    actions: [],
   });
   const decision = werewolfEngine.decide(
     state,
@@ -116,12 +113,11 @@ function makeSession(): PhaseDeadlineSession {
       throw new Error('Werewolf expire commands carry no revision');
     },
     deadlineAt: () => {
-      if (state.nightStep?.kind !== 'inStep' || state.nightStep.stepDeadline === undefined) {
-        throw new Error('Expected an armed wolf-vote countdown');
-      }
-      return state.nightStep.stepDeadline;
+      const deadline = state.nightState?.slice.deadlineMs;
+      if (deadline == null) throw new Error('Expected an armed wolf-vote countdown');
+      return deadline;
     },
-    hasAdvanced: () => state.nightStep?.kind !== 'inStep' || state.nightStep.stepId !== armedStepId,
+    hasAdvanced: () => state.nightState?.slice.current?.stepId !== armedStepId,
   };
 }
 
@@ -168,8 +164,7 @@ describe('werewolf.phase.retrySettle (host self-rescue)', () => {
   };
   const retry = (userId: string, controlledSeat: number | null, nowMs: number) =>
     attempt({ type: 'werewolf.phase.retrySettle' }, userContext(userId, controlledSeat, nowMs));
-  const hasAdvanced = () =>
-    state.nightStep?.kind !== 'inStep' || state.nightStep.stepId !== 'wolfKill';
+  const hasAdvanced = () => state.nightState?.slice.current?.stepId !== 'wolfKill';
 
   beforeEach(() => {
     state = armedWolfVoteState();

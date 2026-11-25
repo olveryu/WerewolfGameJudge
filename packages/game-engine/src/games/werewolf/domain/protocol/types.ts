@@ -15,105 +15,13 @@ import type { RoomSeatProfile } from '../../../../platform/room/roster';
 import type { RosterMap, SeatOccupant } from '../../../../platform/room/seating';
 import type { DeathReason } from '../../roles/deathEffects';
 import type { WerewolfNightState } from '../../roles/nightState';
-import type { GameRuleOverrides, GameStatus, RoleId, SchemaId } from '../models';
-import type { WolfKillOverride } from '../models/roles/spec/schema.types';
-import type { Team } from '../models/roles/spec/types';
-import type { CurrentNightResults, ResolverReveal } from '../resolvers/types';
-
-// =============================================================================
-// Confirm Status (discriminated union, role tag)
-// =============================================================================
-
-/** Hunter/Dark Wolf King: can only activate when killed by wolf attack or exile vote */
-export interface ShootConfirmStatus {
-  readonly role: 'hunter' | 'darkWolfKing';
-  /** true = can shoot (died by wolfKill or exile); false = cannot (poison/lover-suicide/dream/charm) */
-  readonly canShoot: boolean;
-}
-
-/** Avenger: faction depends on shadow mimic target */
-export interface FactionConfirmStatus {
-  readonly role: 'avenger';
-  /** Team.Good / Team.Evil / Team.Third */
-  readonly faction: Team;
-}
-
-/** Hidden Wolf: learns wolf teammate seats */
-export interface WolfTeammatesConfirmStatus {
-  readonly role: 'hiddenWolf';
-  /** Array of other wolves' seat numbers (excluding self) */
-  readonly wolfTeammates: readonly number[];
-}
-
-/** Seed Wolf: authoritative wolf-kill target available for infection. */
-export type SeedWolfConfirmStatus =
-  | {
-      readonly role: 'seedWolf';
-      readonly availability: 'available';
-      readonly targetSeat: number;
-    }
-  | {
-      readonly role: 'seedWolf';
-      readonly availability: 'unavailable';
-      readonly reason: 'noTarget' | 'wolfTarget';
-    };
-
-/** Discriminated union (discriminant: role). */
-export type ConfirmStatus =
-  ShootConfirmStatus | FactionConfirmStatus | WolfTeammatesConfirmStatus | SeedWolfConfirmStatus;
+import type { GameRuleOverrides, GameStatus, RoleId } from '../models';
 
 /** Seed Wolf's final infection outcome, decided before the final group-confirm step. */
 export type SeedWolfInfectionResult =
   | { readonly outcome: 'notUsed' }
   | { readonly outcome: 'failed'; readonly targetSeat: number }
   | { readonly outcome: 'converted'; readonly targetSeat: number };
-
-/** A private role reveal held until Seed Wolf's infection outcome is known. */
-export interface SeedWolfDeferredReveal {
-  readonly actorSeat: number;
-  readonly schemaId: SchemaId;
-  readonly targetSeat: number;
-  readonly reveal: ResolverReveal;
-}
-
-/** Resolver payload retained with its source so one actor's effects can be replayed away. */
-export interface ResolvedNightEffect {
-  readonly sourceSeat: number;
-  readonly updates?: Partial<CurrentNightResults>;
-  readonly seerReveal?: { readonly targetSeat: number; readonly result: '好人' | '狼人' };
-  readonly mirrorSeerReveal?: {
-    readonly targetSeat: number;
-    readonly result: '好人' | '狼人';
-  };
-  readonly drunkSeerReveal?: { readonly targetSeat: number; readonly result: '好人' | '狼人' };
-  readonly psychicReveal?: { readonly targetSeat: number; readonly result: string };
-  readonly gargoyleReveal?: { readonly targetSeat: number; readonly result: string };
-  readonly pureWhiteReveal?: { readonly targetSeat: number; readonly result: string };
-  readonly wolfWitchReveal?: { readonly targetSeat: number; readonly result: string };
-  readonly wolfRobotReveal?: {
-    readonly targetSeat: number;
-    readonly result: string;
-    readonly learnedRoleId: RoleId;
-    readonly canShootAsHunter?: boolean;
-  };
-  readonly wolfRobotContext?: { readonly learnedSeat: number; readonly disguisedRole: RoleId };
-  readonly wolfRobotHunterStatusViewed?: boolean;
-  readonly seedWolfDeferredReveal?: SeedWolfDeferredReveal;
-}
-
-// =============================================================================
-// Protocol Action Record (ProtocolAction) — wire-safe, stable
-// =============================================================================
-
-/** Action record for wire transmission */
-export interface ProtocolAction {
-  readonly schemaId: SchemaId;
-  readonly actorSeat: number;
-  /** Target seat number; undefined = no-target action (e.g. witch "no potion") */
-  readonly targetSeat?: number;
-  /** Submission timestamp (epoch ms) */
-  readonly timestamp: number;
-}
 
 // =============================================================================
 // Player — wire protocol
@@ -238,29 +146,6 @@ export type SheriffElectionResult =
 // =============================================================================
 
 /**
- * Night step position — the only place step-scoped facts live.
- *
- * - `inStep`: the night plan step currently in force; `stepId` is the
- *   step's identity (=== its action SchemaId). The step's index in the
- *   plan is never stored; derive it with resolveCurrentNightStep.
- * - `exhausted`: every plan step has been advanced past; the only legal
- *   exit is END_NIGHT.
- *
- * Non-null exactly while status === Ongoing (asserted at the state
- * boundary; see assertStateInvariants). stepDeadline lives and dies
- * with the step that armed it — leaving the step discards it by
- * construction.
- */
-export type WerewolfNightStep =
-  | {
-      readonly kind: 'inStep';
-      readonly stepId: SchemaId;
-      /** Progression deadline (epoch ms) armed inside this step; cleared by leaving the step. */
-      readonly stepDeadline?: number;
-    }
-  | { readonly kind: 'exhausted' };
-
-/**
  * How the wolf team's votes resolved for one night. The targetSeat
  * variants always name the settled kill target; splitTied and
  * allAbstain carry no target because they settle to no kill.
@@ -304,8 +189,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   startingParticipants?: readonly { readonly userId: string; readonly seat: number }[];
   mvpUserId?: string;
 
-  /** Night step position; null outside the night (status !== Ongoing). */
-  nightStep: WerewolfNightStep | null;
   /** Spec-driven night state, retained after settlement for the report. */
   nightState: WerewolfNightState | null;
   isAudioPlaying: boolean;
@@ -326,52 +209,7 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    */
   roleRevealRandomNonce?: string;
 
-  // --- Seat-map fields ---
-  // NOTE: single source of truth for wolf vote is:
-  // currentNightResults.wolfVotesBySeat
-
-  // --- Execution state ---
-  /** Night-1 action records (normalizeState guarantees non-undefined). Cleared on endNight. */
-  actions: ProtocolAction[];
-
-  /** Current night accumulated results (type-only from resolver types, single source of truth) */
-  currentNightResults?: CurrentNightResults;
-
-  /**
-   * How the wolf team's votes resolved, settled together with
-   * resolvedWolfKillTarget in the same SET (see wolfKillResolution).
-   * sharedTarget = one target voted by all non-abstaining wolves;
-   * splitKilled = several targets, the plurality target killed;
-   * tiePicked = tied at the top, the random pick killed;
-   * splitTied = settled to no kill because cupid unanimity was
-   * required and the votes disagreed; allAbstain = no non-abstaining
-   * vote. The verdict's targetSeat, when present, is always the same
-   * seat as resolvedWolfKillTarget; the two are never computed apart.
-   */
-  resolvedWolfKillVerdict?: ResolvedWolfKillVerdict | null;
-
-  /**
-   * The wolf-kill target settled exactly once for this night.
-   * undefined = not yet settled; null = settled to no kill (all abstain,
-   * cupid unanimity disagreement, or a wolf-kill override); a seat number
-   * = the settled kill target. Once set, witch context, witch validation,
-   * Seed Wolf confirmation and END_NIGHT must all reuse this value and
-   * never re-resolve the wolf votes, so a tied vote cannot pick one
-   * target for the witch and another for settlement. Cleared on
-   * START_NIGHT and RESTART_GAME; a top-level field (not inside
-   * currentNightResults) so Seed Wolf finalization replay cannot clear it.
-   * Its verdict twin, resolvedWolfKillVerdict, is null exactly when
-   * the no-kill comes from a wolf-kill override: an override has no
-   * vote verdict to report (the night report's wolfGiveUp card carries
-   * the cause), and it must never be reported as splitTied.
-   */
-  resolvedWolfKillTarget?: number | null;
-
-  /** Resolver outputs with their actor seat, used to invalidate one converted actor atomically. */
-  resolvedNightEffects?: readonly ResolvedNightEffect[];
-
-  /** Pending reveal ack userId[] (normalizeState guarantees non-undefined). Cleared and progresses after all ack. */
-  pendingRevealAcks: string[];
+  // --- Night outcome ---
 
   /** Previous night death seats[]; undefined before night-1. Computed by deathResolution on endNight. */
   lastNightDeaths?: number[];
@@ -391,135 +229,10 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   sheriffElectionResult?: SheriffElectionResult;
 
   // --- Nightmare blocking ---
-  /** Seat blocked by nightmare; cannot act this night (resolver returns skip). Valid for current night only. */
-  nightmareBlockedSeat?: number;
-
-  /**
-   * Self-contained wolf kill override (nightmare / poisoner).
-   * Presence means wolf kill is disabled; ui field provides all display text.
-   */
-  wolfKillOverride?: WolfKillOverride;
 
   // --- Wolf Robot disguise context ---
-  /**
-   * Wolf Robot disguise context for identity-check results.
-   *
-   * When a seat's effective identity is wolfRobot, interprets it as `disguisedRole`,
-   * affecting seer/psychic/gargoyle check results.
-   *
-   * Notes:
-   * - Part of GameStatePayload (publicly broadcast), but UI generally doesn't depend on it;
-   *   UI only renders from schema + GameStatePayload, filtered by myRole.
-   * - Maintaining parallel "disguised identity" state outside engine is forbidden to avoid server/client drift.
-   */
-  wolfRobotContext?: {
-    /** The seat wolfRobot learned from */
-    learnedSeat: number;
-    /** The role wolfRobot is disguised as (learned target's role) */
-    disguisedRole: RoleId;
-  };
 
   // --- Role-specific context (all public, UI filters by myRole) ---
-  /** Witch turn context - only display to witch via UI filter */
-  witchContext?: {
-    killedSeat: number;
-    canSave: boolean;
-    canPoison: boolean;
-  };
-
-  /** Seer reveal result - only display to seer via UI filter */
-  seerReveal?: {
-    targetSeat: number;
-    result: '好人' | '狼人';
-  };
-
-  /** MirrorSeer reveal result - only display to mirrorSeer via UI filter (inverted) */
-  mirrorSeerReveal?: {
-    targetSeat: number;
-    result: '好人' | '狼人';
-  };
-
-  /** DrunkSeer reveal result - only display to drunkSeer via UI filter (random) */
-  drunkSeerReveal?: {
-    targetSeat: number;
-    result: '好人' | '狼人';
-  };
-
-  /** Psychic reveal result - only display to psychic via UI filter */
-  psychicReveal?: {
-    targetSeat: number;
-    result: string;
-  };
-
-  /** Gargoyle reveal result - only display to gargoyle via UI filter */
-  gargoyleReveal?: {
-    targetSeat: number;
-    result: string;
-  };
-
-  /** PureWhite reveal result - only display to pureWhite via UI filter */
-  pureWhiteReveal?: {
-    targetSeat: number;
-    result: string;
-  };
-
-  /** WolfWitch reveal result - only display to wolfWitch via UI filter */
-  wolfWitchReveal?: {
-    targetSeat: number;
-    result: string;
-  };
-
-  /**
-   * Wolf Robot learn result (publicly broadcast "factual result")
-   *
-   * Purpose: describes wolfRobot's computation result in the wolfRobotLearn step (who/what was learned).
-   * This is the single source of truth: server writes and broadcasts after executing resolver.
-   *
-   * UI: all clients receive it but must filter by myRole, showing only to wolfRobot (or Host UI).
-   */
-  wolfRobotReveal?: {
-    targetSeat: number;
-    result: string;
-    /**
-     * The learned role ID (strict RoleId) - REQUIRED for hunter gate check and disguise.
-     * This is never optional when wolfRobotReveal exists.
-     */
-    learnedRoleId: RoleId;
-    /** When learned hunter, whether wolfRobot can shoot as hunter */
-    canShootAsHunter?: boolean;
-  };
-
-  /**
-   * Gate (flow precondition): after wolfRobot learns hunter, must "view status" before night can progress
-   *
-   * Purpose: this is a server-authoritative flow gate.
-   * - Server writes: set to false when `wolfRobotReveal.learnedRoleId === 'hunter'` (requires viewing).
-   * - Server clears: set to true after receiving player confirmation `WOLF_ROBOT_HUNTER_STATUS_VIEWED`.
-   * - NightFlow: if gate not cleared, server must refuse to progress (prevents authority split).
-   * - UI: renders bottom buttons solely from schema + GameStatePayload, no local state machine derivation allowed.
-   */
-  wolfRobotHunterStatusViewed?: boolean;
-
-  /**
-   * Confirm status (discriminated by role).
-   *
-   * - hunter / darkWolfKing -> ShootConfirmStatus (canShoot: can only activate when killed by wolf attack or exile)
-   * - avenger -> FactionConfirmStatus (faction: good/wolf/bound)
-   * - hiddenWolf -> WolfTeammatesConfirmStatus (wolfTeammates: other wolves' seats)
-   *
-   * Only display to that role via UI filter.
-   */
-  confirmStatus?: ConfirmStatus;
-
-  /** Action rejected feedback; the view-model projection shows it only to `targetSeat`. */
-  actionRejected?: {
-    action: string;
-    reason: string;
-    /** The acting seat whose action was rejected (bots have no user id; the seat is the identity). */
-    targetSeat: number;
-    /** Unique id for this rejection event (UI uses it for dedupe). */
-    rejectionId: string;
-  };
 
   // --- Pending audio queue (produced by server-side inline progression) ---
   /**
@@ -542,37 +255,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   pendingAudioEffects: AudioEffect[];
 
   // --- UI Hints (server broadcast driven, UI read-only display) ---
-  /**
-   * UI hint for current step - Server writes, UI reads only (no derivation).
-   *
-   * Purpose: allows Host to broadcast "early hints" to specific roles (e.g. blocked/attack disabled).
-   * Host writes after resolver/handler determination, cleared on next step entry or block release.
-   *
-   * UI rules:
-   * - targetRoleIds determines "who can see" this hint (UI filters by myRole)
-   * - bottomAction === 'skipOnly' -> bottom only shows skip
-   * - bottomAction === 'wolfEmptyOnly' -> bottom only shows abandon attack
-   * - promptOverride present -> replaces actionPrompt text
-   * - message used for banner/prompt/button text
-   */
-  ui?: {
-    currentActorHint?: {
-      kind:
-        | 'blocked_by_nightmare'
-        | 'wolf_kill_disabled'
-        | 'wolf_unanimity_required'
-        | 'wolf_tie_random';
-      /**
-       * Which roles can see this hint (UI filters by myRole)
-       * - blocked_by_nightmare: [roleId of blocked role]
-       * - wolf_kill_disabled: all wolf roles (wolf, darkWolfKing, wolfRobot, wolfQueen, etc.)
-       */
-      targetRoleIds: RoleId[];
-      message: string;
-      bottomAction?: 'skipOnly' | 'wolfEmptyOnly';
-      promptOverride?: { title?: string; text?: string };
-    } | null;
-  };
 
   /**
    * Dual seer label mapping (generated when seer + mirrorSeer coexist in template)
@@ -590,65 +272,12 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   nightReviewAllowedSeats?: readonly number[];
 
   // --- Piper ---
-  /**
-   * List of hypnotized seats (Night-1 only).
-   * Written by server after piperHypnotize resolver executes.
-   * UI in piperHypnotizedReveal step filters by mySeat, showing hypnotized/not-hypnotized info.
-   * Initialized as `[]`, server guarantees non-undefined.
-   */
-  hypnotizedSeats: readonly number[];
-
-  /**
-   * List of seats that have acknowledged (ack) in piperHypnotizedReveal step.
-   * Server progresses to next step after all alive players ack.
-   * Reset to empty on next night entry.
-   * Initialized as `[]`, server guarantees non-undefined.
-   */
-  piperRevealAcks: readonly number[];
 
   // --- Awakened Gargoyle ---
-  /**
-   * Converted seat (Night-1 only).
-   * Written by server after awakenedGargoyleConvert resolver executes.
-   * UI in awakenedGargoyleConvertReveal step filters by mySeat, showing converted/not-converted info.
-   */
-  convertedSeat?: number;
-
-  /**
-   * List of seats that have acknowledged (ack) in awakenedGargoyleConvertReveal step.
-   * Server progresses to next step after all alive players ack.
-   * Reset to empty on next night entry.
-   * Initialized as `[]`, server guarantees non-undefined.
-   */
-  conversionRevealAcks: readonly number[];
 
   // --- Wolf Girl ---
-  /**
-   * Confessed seat (Night-1 only).
-   * Written by server after wolfGirlConfess resolver executes; the confessed
-   * player's role and team are never rewritten. UI in wolfGirlConfessReveal
-   * step filters by mySeat, showing the Wolf Girl's seat only to a confessed
-   * civilian and bare confession knowledge to a confessed god or third-party player.
-   */
-  wolfGirlConfessedSeat?: number;
-
-  /**
-   * List of seats that have acknowledged (ack) in wolfGirlConfessReveal step.
-   * Server progresses to next step after all alive players ack.
-   * Reset to empty on next night entry.
-   * Initialized as `[]`, server guarantees non-undefined.
-   */
-  wolfGirlConfessionRevealAcks: readonly number[];
 
   // --- Seed Wolf ---
-  /** Final infection outcome, available only when entering seedWolfInfectReveal. */
-  seedWolfInfectionResult?: SeedWolfInfectionResult;
-
-  /** Check result withheld from the potential infection target until finalization. */
-  seedWolfDeferredReveal?: SeedWolfDeferredReveal;
-
-  /** Seats that acknowledged seedWolfInfectReveal. */
-  seedWolfInfectionRevealAcks: readonly number[];
 
   // --- Bottom-card actors ---
   /**
@@ -670,24 +299,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   thiefSeat?: number;
 
   // --- Cupid ---
-  /**
-   * Lover seat pair (sorted ascending).
-   * Written by cupidChooseLovers resolver.
-   */
-  loverSeats?: readonly [number, number];
-
-  /**
-   * Cupid seat number.
-   * Written during dealing.
-   */
-  cupidSeat?: number;
-
-  /**
-   * List of seats that have acknowledged (ack) in cupidLoversReveal step.
-   * Server progresses to next step after all alive players ack.
-   * Initialized as `[]`, server guarantees non-undefined.
-   */
-  cupidLoversRevealAcks: readonly number[];
 
   // --- Board Nomination ---
   /**

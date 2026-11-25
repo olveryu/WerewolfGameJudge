@@ -110,7 +110,7 @@ describe('spec-driven night through production commands', () => {
     context.dispatchSystemOrThrow({ type: 'werewolf.phase.settleExpired' }, 'settle wolf vote', {
       nowMs: deadline,
     });
-    expect(context.getGameState().resolvedWolfKillTarget).toBe(target);
+    expect(context.getGameState().nightState?.wolfKill?.target).toBe(target);
   });
 
   it('settles disagreeing cupid-board votes as no attack after the countdown', () => {
@@ -143,8 +143,10 @@ describe('spec-driven night through production commands', () => {
       'settle disagreeing wolf votes',
       { nowMs: deadline },
     );
-    expect(context.getGameState().resolvedWolfKillTarget).toBeNull();
-    expect(context.getGameState().resolvedWolfKillVerdict).toEqual({ type: 'splitTied' });
+    expect(context.getGameState().nightState?.wolfKill).toMatchObject({
+      target: null,
+      verdict: { type: 'splitTied' },
+    });
   });
 
   it('keeps the countdown and withdrawal available when the pack cannot attack', () => {
@@ -429,7 +431,6 @@ describe('spec-driven night through production commands', () => {
       seedWolfInfect: { actionKey: 'seedWolfInfect' },
     });
     const state = context.getGameState();
-    expect(state.seedWolfInfectionResult).toEqual({ outcome: 'converted', targetSeat: target });
     expect(state.nightState?.roles.identities[target]).toMatchObject({
       dealtRole: 'treasureMaster',
       currentRole: 'wolf',

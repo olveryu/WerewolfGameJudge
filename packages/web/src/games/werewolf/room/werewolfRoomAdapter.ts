@@ -25,6 +25,7 @@ import {
   getRoleDisplayAs,
   getRoleDisplayName,
   getRoleSpec,
+  isValidSchemaId,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { isBotOccupant } from '@game-judge/game-engine/platform/room/seating/roster';
@@ -226,7 +227,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
         disabledReason:
           selection != null && !isEligible
             ? (selection.unavailableReasons[seat] ?? '此座位当前不可选择')
-            : (seatView?.disabledReason ?? undefined),
+            : undefined,
         showReadyBadge: hasReadyBadge,
         statusBadge:
           getSheriffSeatStatusBadge(input.sheriffElectionView, seat) ??
@@ -267,14 +268,18 @@ function resolveStepRoleName(
 
 /** The night progress bar: only while a step is live. */
 export function deriveWerewolfBottomProgress(state: GameState): NightStepProgress | null {
-  if (state.status !== GameStatus.Ongoing || state.nightStep?.kind !== 'inStep') return null;
+  const currentStepId = state.nightState?.slice.current?.stepId;
+  if (state.status !== GameStatus.Ongoing || currentStepId === undefined) return null;
+  if (!isValidSchemaId(currentStepId)) {
+    throw new Error(`[FAIL-FAST] Unknown night step ${currentStepId}`);
+  }
   const plan = buildNightPlan(state.templateRoles, state.seerLabelMap);
   const labels: Partial<Record<SchemaId, string>> = {};
   for (const step of plan.steps)
     labels[step.stepId] = resolveStepRoleName(step, state.seerLabelMap);
   const progress = resolveStepProgress(
     plan.steps.map((step) => step.stepId),
-    state.nightStep.stepId,
+    currentStepId,
     labels,
   );
   return progress === null
@@ -631,7 +636,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     share: input.share,
     onSeatPress: input.onSeatPress,
     phase: viewModel.status,
-    step: state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : null,
+    step: state.nightState?.slice.current?.stepId ?? null,
     isAudioPlaying: state.isAudioPlaying,
     isSubmitting: input.isSubmitting,
     pendingActionKey: input.pendingActionKey,

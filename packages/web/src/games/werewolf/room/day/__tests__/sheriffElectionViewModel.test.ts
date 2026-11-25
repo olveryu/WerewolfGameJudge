@@ -28,7 +28,6 @@ function createLocalState(overrides: Partial<GameState>): GameState {
     roleViewedSeats: [0, 1, 2, 3],
     roster: ROSTER,
     rules: { isSheriffElectionEnabled: true },
-    currentNightResults: {},
     lastNightDeaths: [],
     ...overrides,
   });

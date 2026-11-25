@@ -29,7 +29,6 @@ function dayState(sheriffElection: GameState['sheriffElection']): GameState {
       0: { seat: 0, userId: 'host-1', profile: { displayName: 'Host' } },
       1: { seat: 1, userId: 'user-1', profile: { displayName: 'Player' } },
     },
-    currentNightResults: {},
     lastNightDeaths: [],
     sheriffElection,
   });

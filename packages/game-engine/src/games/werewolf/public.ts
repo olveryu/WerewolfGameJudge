@@ -85,7 +85,6 @@ export {
   WEREWOLF_RULES_SCHEMA,
   type WerewolfRules,
 } from './domain/models/Template';
-export { type CurrentNightStep, resolveCurrentNightStep } from './domain/nightStep';
 export {
   readArmedDeadline,
   REASON_DEADLINE_NOT_REACHED,
@@ -95,24 +94,17 @@ export {
   buildSeatRoleMap,
   findSeatByRole,
   forEachSeatedPlayer,
-  getBottomCardEffectiveRole,
   getWerewolfUserSeat,
-  isBottomCardWolfVoteExcluded,
 } from './domain/playerHelpers';
 export type {
   BoardNomination,
-  ConfirmStatus,
-  FactionConfirmStatus,
   GameState,
   Player,
-  ProtocolAction,
   ResolvedWolfKillVerdict,
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
   SheriffSpeakingDirection,
-  ShootConfirmStatus,
-  WerewolfNightStep,
 } from './domain/protocol/types';
 export {
   getWerewolfNightReview,
@@ -138,15 +130,9 @@ export {
 export { describeWerewolfStepConfirmation } from './domain/stepProjection';
 export {
   getWerewolfViewModel,
-  type WerewolfNightView,
-  type WerewolfPendingReveal,
-  type WerewolfRejectionView,
-  type WerewolfRevealView,
   type WerewolfSeatView,
   type WerewolfViewer,
   type WerewolfViewModel,
-  type WerewolfWolfRobotView,
-  type WerewolfWolfVoteView,
 } from './domain/visibility';
 export { createWerewolfGameEndedEffect } from './effects/gameEnded';
 export type {

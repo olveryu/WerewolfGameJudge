@@ -17,10 +17,8 @@ import type {
   WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
-  buildNightPlan,
   GameStatus,
-  getSchema,
-  Team,
+  isValidSchemaId,
   werewolfEngine,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
@@ -148,18 +146,6 @@ function resolveBoardRoles(options: WerewolfRoomMockOptions): RoleId[] {
   return roles;
 }
 
-/**
- * The engine sets `confirmStatus` whenever a confirm step is entered with
- * its role on the board; fixtures default it the same way.
- */
-function defaultConfirmStatus(role: RoleId): NonNullable<GameState['confirmStatus']> {
-  if (role === 'avenger') return { role: 'avenger', faction: Team.Good };
-  if (role === 'hiddenWolf') return { role: 'hiddenWolf', wolfTeammates: [1, 2, 3] };
-  if (role === 'seedWolf') return { role: 'seedWolf', availability: 'available', targetSeat: 5 };
-  if (role === 'hunter' || role === 'darkWolfKing') return { role, canShoot: true };
-  throw new Error(`[TEST] ${role} has no confirm status`);
-}
-
 /** The authoritative state for one night-step situation. */
 function buildWerewolfRoomMockState(options: WerewolfRoomMockOptions): GameState {
   const {
@@ -182,52 +168,37 @@ function buildWerewolfRoomMockState(options: WerewolfRoomMockOptions): GameState
       profile: { displayName: `P${seat + 1}` },
     };
   });
-  const schema = getSchema(schemaId);
-  const confirmStatus =
-    schema.kind === 'confirm' && gameStateOverrides.confirmStatus === undefined
-      ? { confirmStatus: defaultConfirmStatus(options.currentActionRole) }
-      : {};
   const status = gameStateOverrides.status ?? hookOverrides.roomStatus ?? GameStatus.Ongoing;
-  if (status === GameStatus.Day || status === GameStatus.Ended) {
-    // After the night the room reads the settled night, so play a real, uneventful one.
-    const settled = playBoardNight(
-      roles,
-      {},
-      new Map(roles.map((role, seat) => [seat, role])),
-      undefined,
-      true,
-    );
-    return {
-      ...settled,
-      roomCode: mockRoom.roomCode,
-      hostUserId: isHost ? TEST_USER_ID : OTHER_HOST_USER_ID,
-      status,
-      roster,
-      isAudioPlaying,
-      ...gameStateOverrides,
-    };
-  }
-  const base = buildWerewolfTestState({
+  const identity = {
     roomCode: mockRoom.roomCode,
     hostUserId: isHost ? TEST_USER_ID : OTHER_HOST_USER_ID,
     status,
+    roster,
+    isAudioPlaying,
+  };
+  if (status === GameStatus.Ongoing) {
+    // A room inside the night is a real night parked on the requested step.
+    return {
+      ...playBoardNight(roles, { isQuiet: true, stopAtStepId: schemaId }),
+      ...identity,
+      ...gameStateOverrides,
+    };
+  }
+  if (status === GameStatus.Day || status === GameStatus.Ended) {
+    // After the night the room reads the settled night, so play a real, uneventful one.
+    return {
+      ...playBoardNight(roles, { isQuiet: true }),
+      ...identity,
+      ...gameStateOverrides,
+    };
+  }
+  return buildWerewolfTestState({
+    ...identity,
     templateRoles: roles,
     players,
-    roster,
     roleViewedSeats: roles.map((_, seat) => seat),
-    // The engine clears the step when the night ends; only Ongoing carries one.
-    nightStep: status === GameStatus.Ongoing ? { kind: 'inStep', stepId: schemaId } : null,
-    isAudioPlaying,
-    ...confirmStatus,
     ...gameStateOverrides,
   });
-  if (base.status !== GameStatus.Ongoing) return base;
-  const plan = buildNightPlan(base.templateRoles, base.seerLabelMap);
-  const step = plan.steps.find((candidate) => candidate.stepId === schemaId);
-  if (step === undefined) {
-    throw new Error(`[TEST] Step ${schemaId} is not in the night plan for ${roles.join(',')}`);
-  }
-  return base;
 }
 
 function createRoomMockForState(
@@ -277,8 +248,10 @@ export function createWerewolfRoomMockFromState(
     hostUserId: state.hostUserId === occupant.userId ? TEST_USER_ID : state.hostUserId,
     roster: { ...state.roster, [viewerSeat]: { ...occupant, userId: TEST_USER_ID } },
   };
-  const stepId = state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : null;
-  if (stepId === null) throw new Error('[TEST] Vertical slice state must be inside a night step');
+  const stepId = state.nightState?.slice.current?.stepId;
+  if (stepId === undefined || !isValidSchemaId(stepId)) {
+    throw new Error('[TEST] Vertical slice state must be inside a night step');
+  }
   const role = state.players[viewerSeat]?.role;
   if (role === undefined || role === null) {
     throw new Error(`[TEST] Viewer seat ${viewerSeat} has no role`);

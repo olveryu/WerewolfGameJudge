@@ -19,21 +19,12 @@ function createTreasureMasterState(overrides: Partial<GameState> = {}): GameStat
     roleViewedSeats: [],
     roster: { 0: { seat: 0, userId: 'host', profile: { displayName: 'host' } } },
     nightState: null,
-    nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,
     gameSequence: 0,
     pendingAudioEffects: [],
-    actions: [],
-    pendingRevealAcks: [],
-    hypnotizedSeats: [],
-    piperRevealAcks: [],
-    conversionRevealAcks: [],
-    wolfGirlConfessionRevealAcks: [],
     bottomCards: ['wolf', 'seer', 'villager'],
     treasureMasterSeat: 0,
-    cupidLoversRevealAcks: [],
-    seedWolfInfectionRevealAcks: [],
     ...overrides,
   };
   return state.status === GameStatus.Ongoing ? withTestNightState(state) : state;
@@ -76,20 +67,10 @@ function createSheriffElectionState(overrides: Partial<GameState> = {}): GameSta
       3: { seat: 3, userId: 'p3', profile: { displayName: 'p3' } },
     },
     nightState: null,
-    nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,
     gameSequence: 0,
     pendingAudioEffects: [],
-    actions: [],
-    currentNightResults: {},
-    pendingRevealAcks: [],
-    hypnotizedSeats: [],
-    piperRevealAcks: [],
-    conversionRevealAcks: [],
-    wolfGirlConfessionRevealAcks: [],
-    cupidLoversRevealAcks: [],
-    seedWolfInfectionRevealAcks: [],
     sheriffElection: {
       phase: 'firstVote',
       registeredSeats: [0, 1],
@@ -116,7 +97,6 @@ function createOngoingState(overrides: Partial<GameState> = {}): GameState {
     status: GameStatus.Ongoing,
     sheriffElection: undefined,
     sheriffElectionResult: undefined,
-    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     ...overrides,
   };
   if (state.status === GameStatus.Ongoing) return withTestNightState(state);
@@ -132,54 +112,41 @@ describe('assertWerewolfStateInvariants', () => {
       assertWerewolfStateInvariants(
         createThiefState({
           status: GameStatus.Ongoing,
-          nightStep: { kind: 'inStep', stepId: 'thiefChoose' },
-          currentNightResults: { thiefChosenCard: 'wolf' },
         }),
       ),
     ).not.toThrow();
   });
 
-  it('requires currentNightResults exactly during ongoing and ended states', () => {
-    expect(() =>
-      assertWerewolfStateInvariants(createTreasureMasterState({ status: GameStatus.Ongoing })),
-    ).toThrow('Ongoing state has no currentNightResults');
-    expect(() =>
-      assertWerewolfStateInvariants(createTreasureMasterState({ currentNightResults: {} })),
-    ).toThrow('Assigned state contains currentNightResults');
-  });
+  /** The day after a night in which the Seed Wolf converted the seer at seat 2. */
+  const convertedSeerState = (): GameState => {
+    const settled = createSheriffElectionState({
+      templateRoles: ['seedWolf', 'wolf', 'seer', 'villager'],
+      players: {
+        0: { seat: 0, role: 'seedWolf' },
+        1: { seat: 1, role: 'wolf' },
+        2: { seat: 2, role: 'seer' },
+        3: { seat: 3, role: 'villager' },
+      },
+    });
+    return {
+      ...settled,
+      players: { ...settled.players, 2: { seat: 2, role: 'wolf' } },
+      nightState: { ...settled.nightState!, infection: { outcome: 'converted', targetSeat: 2 } },
+    };
+  };
 
   it('accepts one non-wolf role converted into a wolf by Seed Wolf', () => {
-    expect(() =>
-      assertWerewolfStateInvariants(
-        createSheriffElectionState({
-          templateRoles: ['seedWolf', 'wolf', 'seer', 'villager'],
-          players: {
-            0: { seat: 0, role: 'seedWolf' },
-            1: { seat: 1, role: 'wolf' },
-            2: { seat: 2, role: 'wolf' },
-            3: { seat: 3, role: 'villager' },
-          },
-          seedWolfInfectionResult: { outcome: 'converted', targetSeat: 2 },
-        }),
-      ),
-    ).not.toThrow();
+    expect(() => assertWerewolfStateInvariants(convertedSeerState())).not.toThrow();
   });
 
   it('rejects a converted Seed Wolf target that is not a wolf', () => {
+    const converted = convertedSeerState();
     expect(() =>
-      assertWerewolfStateInvariants(
-        createSheriffElectionState({
-          templateRoles: ['seedWolf', 'wolf', 'seer', 'villager'],
-          players: {
-            0: { seat: 0, role: 'seedWolf' },
-            1: { seat: 1, role: 'wolf' },
-            2: { seat: 2, role: 'seer' },
-            3: { seat: 3, role: 'villager' },
-          },
-          seedWolfInfectionResult: { outcome: 'converted', targetSeat: 2 },
-        }),
-      ),
-    ).toThrow('converted Seed Wolf target seat 2 is not a wolf');
+      assertWerewolfStateInvariants({
+        ...converted,
+        players: { ...converted.players, 2: { seat: 2, role: 'seer' } },
+      }),
+    ).toThrow('night seat 2 disagrees with its dealt identity');
   });
 
   it('requires a legal deck and the matching seated actor after assignment', () => {
@@ -215,51 +182,6 @@ describe('assertWerewolfStateInvariants', () => {
         }),
       ),
     ).toThrow('assigned roles and bottomCards do not match the role deal pool at seer');
-  });
-
-  it('rejects a chosen card outside the deck or from the forbidden faction', () => {
-    expect(() =>
-      assertWerewolfStateInvariants(
-        createTreasureMasterState({
-          status: GameStatus.Ongoing,
-          nightStep: { kind: 'inStep', stepId: 'treasureMasterChoose' },
-          currentNightResults: { treasureMasterChosenCard: 'witch' },
-        }),
-      ),
-    ).toThrow('which is not in bottomCards');
-    expect(() =>
-      assertWerewolfStateInvariants(
-        createTreasureMasterState({
-          status: GameStatus.Ongoing,
-          nightStep: { kind: 'inStep', stepId: 'treasureMasterChoose' },
-          currentNightResults: { treasureMasterChosenCard: 'wolf' },
-        }),
-      ),
-    ).toThrow('is a wolf-faction card');
-  });
-
-  it('requires thief to choose the wolf-faction card when one is present', () => {
-    expect(() =>
-      assertWerewolfStateInvariants(
-        createThiefState({
-          status: GameStatus.Ongoing,
-          nightStep: { kind: 'inStep', stepId: 'thiefChoose' },
-          currentNightResults: { thiefChosenCard: 'seer' },
-        }),
-      ),
-    ).toThrow('must be the wolf-faction card');
-  });
-
-  it('rejects state owned by the other bottom-card actor', () => {
-    expect(() =>
-      assertWerewolfStateInvariants(
-        createTreasureMasterState({
-          status: GameStatus.Ongoing,
-          nightStep: { kind: 'inStep', stepId: 'treasureMasterChoose' },
-          currentNightResults: { thiefChosenCard: 'wolf' },
-        }),
-      ),
-    ).toThrow('also contains thiefChosenCard');
   });
 
   it('removes treasure-master runtime state in plague mode but keeps thief deals valid', () => {
@@ -558,78 +480,64 @@ describe('assertWerewolfStateInvariants', () => {
     ).toThrow('roster seat 0 holds an empty occupant');
   });
 
-  describe('night step window', () => {
-    it('accepts an in-step Ongoing state with an armed deadline', () => {
-      expect(() =>
-        assertWerewolfStateInvariants(
-          createOngoingState({
-            nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: 1_000 },
-          }),
-        ),
-      ).not.toThrow();
-    });
-
-    it('accepts the exhausted Ongoing position awaiting END_NIGHT', () => {
-      expect(() =>
-        assertWerewolfStateInvariants(createOngoingState({ nightStep: { kind: 'exhausted' } })),
-      ).not.toThrow();
-    });
-
-    it('rejects a nightStep that survived into Ended (the pre-v8 residual shape)', () => {
-      expect(() =>
-        assertWerewolfStateInvariants(
-          createOngoingState({
-            status: GameStatus.Ended,
-            rules: {},
-            nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: 1_000 },
-          }),
-        ),
-      ).toThrow('nightStep exists during Ended');
-    });
-
-    it('rejects a nightStep outside the night', () => {
-      expect(() =>
-        assertWerewolfStateInvariants(
-          createSheriffElectionState({ nightStep: { kind: 'inStep', stepId: 'wolfKill' } }),
-        ),
-      ).toThrow('nightStep exists during Day');
-      expect(() =>
-        assertWerewolfStateInvariants(
-          createOngoingState({ status: GameStatus.Ready, currentNightResults: undefined }),
-        ),
-      ).toThrow('nightStep exists during Ready');
-      expect(() =>
-        assertWerewolfStateInvariants(
-          createTreasureMasterState({ nightStep: { kind: 'exhausted' } }),
-        ),
-      ).toThrow('nightStep exists during Assigned');
-    });
-
-    it('rejects an Ongoing step id that is not in the night plan', () => {
-      expect(() =>
-        assertWerewolfStateInvariants(
-          createOngoingState({ nightStep: { kind: 'inStep', stepId: 'witchAction' } }),
-        ),
-      ).toThrow('night step witchAction is not in the night plan');
-      expect(() =>
-        assertWerewolfStateInvariants(
-          createOngoingState({ nightStep: { kind: 'inStep', stepId: 'magicianSwap' } }),
-        ),
-      ).toThrow('night step magicianSwap is not in the night plan');
-    });
-
-    it('rejects an Ongoing state without a nightStep', () => {
-      expect(() => assertWerewolfStateInvariants(createOngoingState({ nightStep: null }))).toThrow(
-        'exhausted night does not match its step',
+  describe('night window', () => {
+    /** The sheriff fixture's night, parked where the test asks. */
+    const parkedOn = (stepId: string, deadlineMs?: number): GameState =>
+      withTestNightState(
+        { ...createOngoingState(), nightState: null },
+        deadlineMs === undefined ? { stepId } : { stepId, deadlineMs },
       );
+
+    it('accepts a running night parked on any of its steps, with or without a deadline', () => {
+      expect(() => assertWerewolfStateInvariants(parkedOn('wolfKill', 1_000))).not.toThrow();
+      expect(() => assertWerewolfStateInvariants(parkedOn('seerCheck'))).not.toThrow();
     });
 
-    it('accepts an Ongoing step id at any plan position (position is derived, not stored)', () => {
+    it('accepts a running night that is past its last step', () => {
+      const state = createOngoingState();
+      const night = state.nightState!;
       expect(() =>
-        assertWerewolfStateInvariants(
-          createOngoingState({ nightStep: { kind: 'inStep', stepId: 'seerCheck' } }),
-        ),
+        assertWerewolfStateInvariants({
+          ...state,
+          nightState: { ...night, slice: { ...night.slice, current: null, deadlineMs: null } },
+        }),
       ).not.toThrow();
+    });
+
+    it('requires the night exactly from the moment it starts', () => {
+      expect(() =>
+        assertWerewolfStateInvariants({ ...createOngoingState(), nightState: null }),
+      ).toThrow('Ongoing state has no nightState');
+      expect(() =>
+        assertWerewolfStateInvariants({
+          ...createOngoingState(),
+          status: GameStatus.Ready,
+        }),
+      ).toThrow('nightState exists before night');
+    });
+
+    it('rejects a step whose serial is not its position in the night', () => {
+      const state = parkedOn('seerCheck');
+      const night = state.nightState!;
+      expect(() =>
+        assertWerewolfStateInvariants({
+          ...state,
+          nightState: {
+            ...night,
+            slice: { ...night.slice, current: { stepId: 'seerCheck', serial: 1 } },
+          },
+        }),
+      ).toThrow('night step serial does not match its position');
+    });
+
+    it('rejects a finished night that is still parked on a step', () => {
+      const running = parkedOn('wolfKill');
+      expect(() =>
+        assertWerewolfStateInvariants({
+          ...createSheriffElectionState(),
+          nightState: running.nightState,
+        }),
+      ).toThrow('completed night is still active');
     });
   });
 });

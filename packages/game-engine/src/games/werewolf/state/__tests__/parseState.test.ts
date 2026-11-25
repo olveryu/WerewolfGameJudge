@@ -1,6 +1,5 @@
 import { withTestNightState } from '../../__tests__/nightStateFixture';
 import { GameStatus } from '../../domain/models/GameStatus';
-import { Team } from '../../domain/models/roles/spec/types';
 import type { GameState } from '../../domain/protocol/types';
 import { normalizeState } from '../../domain/state/normalize';
 import { parseWerewolfState } from '../parseState';
@@ -44,43 +43,10 @@ function createFullState(): GameState {
       3: { seat: 3, userId: 'villager', profile: { displayName: 'Villager' } },
     },
     nightState: null,
-    nightStep: null,
     isAudioPlaying: true,
     audioBatchId: 1,
     gameSequence: 0,
     roleRevealRandomNonce: 'nonce',
-    actions: [{ schemaId: 'wolfKill', actorSeat: 0, targetSeat: 1, timestamp: 1 }],
-    currentNightResults: {
-      wolfVotesBySeat: { '0': 1 },
-      blockedSeat: 1,
-      wolfKillOverride: {
-        source: 'nightmare',
-        ui: {
-          promptTitle: 'title',
-          promptMessage: 'message',
-          emptyVoteText: 'empty',
-          rejectMessage: 'reject',
-        },
-      },
-      guardedSeat: 2,
-      savedSeat: 2,
-      poisonedSeat: 3,
-      dreamingSeat: 1,
-      charmedSeat: 2,
-      swappedSeats: [0, 1],
-      silencedSeat: 1,
-      votebannedSeat: 2,
-      cursedSeat: 3,
-      shelteredSeat: 1,
-      hypnotizedSeats: [1, 2],
-      convertedSeat: 3,
-      wolfGirlConfessedSeat: 2,
-      shadowMimicTarget: 2,
-      avengerFaction: Team.Good,
-      treasureMasterChosenCard: 'witch',
-      loverSeats: [0, 1],
-    },
-    pendingRevealAcks: ['host'],
     lastNightDeaths: [2],
     deathReasons: { 2: 'wolfKill' },
     sheriffElection: {
@@ -107,63 +73,11 @@ function createFullState(): GameState {
       ],
     },
     sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
-    nightmareBlockedSeat: 1,
-    wolfKillOverride: {
-      source: 'poisoner',
-      ui: {
-        promptTitle: 'title',
-        promptMessage: 'message',
-        emptyVoteText: 'empty',
-        rejectMessage: 'reject',
-      },
-    },
-    wolfRobotContext: { learnedSeat: 1, disguisedRole: 'seer' },
-    witchContext: { killedSeat: 2, canSave: true, canPoison: false },
-    seerReveal: { targetSeat: 1, result: '狼人' },
-    mirrorSeerReveal: { targetSeat: 1, result: '好人' },
-    drunkSeerReveal: { targetSeat: 2, result: '好人' },
-    psychicReveal: { targetSeat: 1, result: 'wolf' },
-    gargoyleReveal: { targetSeat: 1, result: 'wolf' },
-    pureWhiteReveal: { targetSeat: 1, result: 'wolf' },
-    wolfWitchReveal: { targetSeat: 1, result: 'wolf' },
-    wolfRobotReveal: {
-      targetSeat: 1,
-      result: 'seer',
-      learnedRoleId: 'seer',
-      canShootAsHunter: false,
-    },
-    wolfRobotHunterStatusViewed: true,
-    confirmStatus: { role: 'hiddenWolf', wolfTeammates: [0] },
-    actionRejected: {
-      action: 'wolfKill',
-      reason: 'rejected',
-      targetSeat: 0,
-      rejectionId: 'rejection',
-    },
     pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: false }],
-    ui: {
-      currentActorHint: {
-        kind: 'wolf_kill_disabled',
-        targetRoleIds: ['wolf'],
-        message: 'disabled',
-        bottomAction: 'wolfEmptyOnly',
-        promptOverride: { title: 'title', text: 'text' },
-      },
-    },
     seerLabelMap: { seer: 1 },
     nightReviewAllowedSeats: [0, 1],
-    hypnotizedSeats: [1],
-    piperRevealAcks: [0],
-    convertedSeat: 2,
-    conversionRevealAcks: [0, 1],
-    wolfGirlConfessedSeat: 2,
-    wolfGirlConfessionRevealAcks: [0, 1],
     bottomCards: ['wolf', 'witch', 'villager'],
     treasureMasterSeat: 0,
-    loverSeats: [0, 1],
-    cupidSeat: 2,
-    cupidLoversRevealAcks: [0, 1],
-    seedWolfInfectionRevealAcks: [0, 1],
     boardNominations: {
       host: {
         userId: 'host',
@@ -301,31 +215,6 @@ describe('parseWerewolfState', () => {
     );
   });
 
-  it('rejects a nightStep with an unknown kind', () => {
-    const encoded = { ...createFullState(), nightStep: { kind: 'sideways' } };
-
-    expect(() => parseWerewolfState(encoded)).toThrow(
-      'GameState.nightStep.kind: unsupported night step kind',
-    );
-  });
-
-  it('rejects an inStep nightStep without a stepId', () => {
-    const encoded = { ...createFullState(), nightStep: { kind: 'inStep' } };
-
-    expect(() => parseWerewolfState(encoded)).toThrow('GameState.nightStep.stepId');
-  });
-
-  it('rejects an exhausted nightStep carrying a stepDeadline key', () => {
-    const encoded = {
-      ...createFullState(),
-      nightStep: { kind: 'exhausted', stepDeadline: 2 },
-    };
-
-    expect(() => parseWerewolfState(encoded)).toThrow(
-      'GameState.nightStep contains unknown field: stepDeadline',
-    );
-  });
-
   it('rejects an unknown top-level field', () => {
     const encoded = { ...createFullState(), parallelStatus: 'ongoing' };
 
@@ -372,9 +261,11 @@ describe('parseWerewolfState', () => {
   });
 
   it('rejects missing required fields without defaults', () => {
-    const { actions: _actions, ...encoded } = createFullState();
+    const { pendingAudioEffects: _effects, ...encoded } = createFullState();
 
-    expect(() => parseWerewolfState(encoded)).toThrow('GameState.actions must be an array');
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState.pendingAudioEffects must be an array',
+    );
   });
 
   it('rejects a current-version payload missing audioBatchId', () => {

@@ -11,7 +11,6 @@ import {
 } from '../../roles/nightRuntime';
 import { createAudioQueueAction } from '../audioQueue';
 import { GameStatus } from '../models';
-import { isValidSchemaId } from '../models/roles/spec/schemas';
 import { resolveNightStepAudioKey } from '../nightProgression';
 import type { GameState } from '../protocol/types';
 import { gameReducer } from '../reducer/gameReducer';
@@ -23,18 +22,8 @@ export function handleBeginSpecNight(state: GameState): HandlerResult {
   if (state.status !== GameStatus.Ready) return handlerError('invalid_status');
   const night = createWerewolfNightState(state);
   const firstStep = night.slice.current;
-  const firstStepId = firstStep?.stepId ?? null;
-  if (firstStepId !== null && !isValidSchemaId(firstStepId)) {
-    throw new Error(`[FAIL-FAST] Invalid first night step ${firstStepId}`);
-  }
   const actions: StateAction[] = [
-    {
-      type: 'START_NIGHT',
-      payload: {
-        nightStep:
-          firstStepId === null ? { kind: 'exhausted' } : { kind: 'inStep', stepId: firstStepId },
-      },
-    },
+    { type: 'START_NIGHT' },
     { type: 'WEREWOLF_NIGHT_EVENT', event: { type: 'initialized', night } },
   ];
   if (firstStep === null) return handlerSuccess(actions);

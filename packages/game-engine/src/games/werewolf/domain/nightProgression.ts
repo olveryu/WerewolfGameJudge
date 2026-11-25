@@ -73,12 +73,8 @@ export function runWerewolfNightProgression(
     if (currentStepId === 'wolfKill') {
       const settlement = settleWolfKill(currentState, execution.randomSeed);
       applyNightEvent({ type: 'wolfKillSettled', settlement });
-      const resolved: StateAction = {
-        type: 'SET_RESOLVED_WOLF_KILL_TARGET',
-        payload: { target: settlement.target, verdict: settlement.verdict },
-      };
-      applyAction(resolved);
     }
+
     if (isInfectionSettlementStep(currentState, currentStepId)) {
       applyNightEvent({ type: 'infectionSettled', outcome: decideWerewolfInfection(currentState) });
     }
@@ -200,10 +196,6 @@ function finishNight(state: GameState): readonly StateAction[] {
   if (night.wolfKill === null) {
     const settlement = { target: null, verdict: { type: 'allAbstain' as const }, attack: null };
     applyAction({ type: 'WEREWOLF_NIGHT_EVENT', event: { type: 'wolfKillSettled', settlement } });
-    applyAction({
-      type: 'SET_RESOLVED_WOLF_KILL_TARGET',
-      payload: { target: settlement.target, verdict: settlement.verdict },
-    });
     night = requireWerewolfNightState(settledState);
   }
   if (state.templateRoles.includes('seedWolf') && night.infection === null) {

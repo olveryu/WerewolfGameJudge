@@ -71,13 +71,7 @@ function makeLocalState(
   }
   // The review reads the settled night, so the ten seats play a real, uneventful one.
   return {
-    ...playBoardNight(
-      TEN_SEAT_ROLES,
-      {},
-      new Map(TEN_SEAT_ROLES.map((roleId, seat) => [seat, roleId])),
-      undefined,
-      true,
-    ),
+    ...playBoardNight(TEN_SEAT_ROLES, { isQuiet: true }),
     status: GameStatus.Day,
     roster,
     rules: { isSheriffElectionEnabled: true },

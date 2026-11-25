@@ -25,16 +25,14 @@ const SKIP = { actionKey: STEP_SKIP_ACTION_KEY } as const;
  */
 export function makeSettledNightState(overrides: Partial<GameState> = {}): GameState {
   return {
-    ...playBoardNight(
-      FIVE_SEAT_ROLES,
-      {
+    ...playBoardNight(FIVE_SEAT_ROLES, {
+      choices: {
         guardProtect: SKIP,
         wolfKill: { actionKey: 'wolfKill', seats: [4] },
         witchAction: SKIP,
         seerCheck: SKIP,
       },
-      new Map(FIVE_SEAT_ROLES.map((roleId, seat) => [seat, roleId])),
-    ),
+    }),
     status: GameStatus.Day,
     ...overrides,
   };

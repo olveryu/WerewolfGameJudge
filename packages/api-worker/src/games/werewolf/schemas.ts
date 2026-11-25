@@ -118,10 +118,6 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     audioBatchId: z.number().int().nonnegative(),
   }),
   z.strictObject({ type: z.literal('werewolf.phase.retrySettle') }),
-  z.strictObject({ type: z.literal('werewolf.reveal.ack') }),
-  z.strictObject({ type: z.literal('werewolf.wolfRobot.ackHunterStatus') }),
-  z.strictObject({ type: z.literal('werewolf.groupConfirm.ack') }),
-  z.strictObject({ type: z.literal('werewolf.groupConfirm.ackBots') }),
 ]);
 
 export const werewolfPublicCommandSchema: z.ZodType<WerewolfPublicCommand> = z.discriminatedUnion(

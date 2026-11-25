@@ -58,9 +58,8 @@ function completeWolfKill(game: EngineGame): void {
     }
   }
   const wolfVoteState = game.getGameState();
-  const wolfVoteDeadline =
-    wolfVoteState.nightStep?.kind === 'inStep' ? wolfVoteState.nightStep.stepDeadline : undefined;
-  if (wolfVoteDeadline === undefined) {
+  const wolfVoteDeadline = wolfVoteState.nightState?.slice.deadlineMs ?? null;
+  if (wolfVoteDeadline === null) {
     throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
   }
   game.dispatchSystemOrThrow({ type: 'werewolf.phase.settleExpired' }, 'past wolfKill deadline', {

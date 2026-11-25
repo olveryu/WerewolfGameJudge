@@ -183,8 +183,8 @@ function settleEffectFor(
   overrides: Partial<WerewolfSettleDueEffect['payload']> = {},
 ): WerewolfEffect {
   const phase =
-    state.nightStep?.kind === 'inStep'
-      ? state.nightStep.stepId
+    state.nightState?.slice.current != null
+      ? state.nightState.slice.current.stepId
       : state.sheriffElection?.phase === 'firstVote' ||
           state.sheriffElection?.phase === 'runoffVote'
         ? state.sheriffElection.phase
@@ -274,7 +274,7 @@ describe('Werewolf settle effect', () => {
     const { context, box } = settleContext(state);
     await handleWerewolfEffect(settleEffectFor(state), context);
     expect(box.commands).toEqual([{ type: 'werewolf.phase.settleExpired' }]);
-    expect(box.current.nightStep).not.toEqual(state.nightStep);
+    expect(box.current.nightState?.slice.current).not.toEqual(state.nightState?.slice.current);
   });
 
   it('settles the armed sheriff vote through the internal system command', async () => {
