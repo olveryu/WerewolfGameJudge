@@ -5,12 +5,14 @@ import { getWerewolfRoleDefinition } from './nightPlan';
 import type { WerewolfAnnouncementTiming } from './role';
 
 const COPY = defineCopy({
+  beforeSheriff: '上警前公布',
   daySpeech: '警下发言时公布',
   exileVote: '放逐投票时公布',
 });
 
 const TIMING_LABELS: Readonly<Record<WerewolfAnnouncementTiming, string>> = COPY;
 const TIMING_ORDER: Readonly<Record<WerewolfAnnouncementTiming, number>> = {
+  beforeSheriff: 0,
   daySpeech: 1,
   exileVote: 2,
 };
@@ -37,6 +39,11 @@ export function getWerewolfDaytimeAnnouncements(
   }
   const selections = state.nightState.facts.selections;
   return declaredRoles
+    .filter(
+      ({ roleId, declaration }) =>
+        declaration.omitWhenEmpty !== true ||
+        selections.some((selection) => selection.roleId === roleId),
+    )
     .map(({ roleId, declaration }) => {
       const targets = selections.filter((selection) => selection.roleId === roleId);
       return {

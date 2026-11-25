@@ -1,7 +1,7 @@
 # Role index — read from the role modules
 
 Source: the role modules in `packages/game-engine/src/games/werewolf/roles/`, served by `roles/catalog.ts`.
-Count: 48 roles. Faction values are the `Faction` enum (`Wolf` / `God` / `Villager` / `Special`);
+Count: 50 roles. Faction values are the `Faction` enum (`Wolf` / `God` / `Villager` / `Special`);
 team values are the `Team` enum (`Wolf` / `Good` / `Third`).
 Check a role's module before relying on a row.
 
@@ -15,6 +15,7 @@ Check a role's module before relying on a row.
 | `poisoner`         | 毒师         | 毒         | God      | Good  | `poisonerPoison`                                           |
 | `hunter`           | 猎人         | 猎         | God      | Good  | `hunterConfirm`                                            |
 | `guard`            | 守卫         | 守         | God      | Good  | `guardProtect`                                             |
+| `beeHunter`        | 蜂之狂猎     | 蜂         | God      | Good  | —                                                          |
 | `idiot`            | 愚者         | 愚         | God      | Good  | —                                                          |
 | `knight`           | 骑士         | 骑         | God      | Good  | —                                                          |
 | `magician`         | 魔术师       | 术         | God      | Good  | `magicianSwap`                                             |
@@ -33,6 +34,7 @@ Check a role's module before relying on a row.
 | `seedWolf`         | 种狼         | 种         | Wolf     | Wolf  | `seedWolfInfect`, `seedWolfInfectReveal`                   |
 | `wolfQueen`        | 狼美人       | 美         | Wolf     | Wolf  | `wolfQueenCharm`                                           |
 | `wolfKing`         | 白狼王       | 白         | Wolf     | Wolf  | —                                                          |
+| `scarletWolfKing`  | 猩红狼王     | 猩         | Wolf     | Wolf  | `scarletWolfKingMark`                                      |
 | `darkWolfKing`     | 狼王         | 王         | Wolf     | Wolf  | `darkWolfKingConfirm`                                      |
 | `nightmare`        | 噩梦之影     | 魇         | Wolf     | Wolf  | `nightmareBlock`                                           |
 | `gargoyle`         | 石像鬼       | 石         | Wolf     | Wolf  | `gargoyleCheck`                                            |
@@ -62,6 +64,7 @@ These roles declare no step in their module and therefore contribute
 no step to the night. Derive this list from the role modules:
 
 - `villager` (平民)
+- `beeHunter` (蜂之狂猎)
 - `idiot` (愚者)
 - `knight` (骑士)
 - `witcher` (猎魔人)

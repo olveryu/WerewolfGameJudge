@@ -199,13 +199,14 @@ export type WerewolfRoleStepDefinition = Omit<
   readonly canRescueWolfKillTarget?: (context: WerewolfRoleStepContext) => boolean;
 };
 
-export type WerewolfAnnouncementTiming = 'daySpeech' | 'exileVote';
+export type WerewolfAnnouncementTiming = 'beforeSheriff' | 'daySpeech' | 'exileVote';
 
 export interface WerewolfAnnouncementDeclaration {
   readonly timing: WerewolfAnnouncementTiming;
   readonly title: string;
   readonly targetMessage: string;
   readonly emptyMessage: string;
+  readonly omitWhenEmpty?: true;
 }
 
 export interface WerewolfRoleDefinition<TId extends string = string> {

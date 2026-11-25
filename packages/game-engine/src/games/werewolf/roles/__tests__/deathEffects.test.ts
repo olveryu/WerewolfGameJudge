@@ -152,6 +152,35 @@ describe('werewolf death effects', () => {
     });
   });
 
+  it('lets an unavoidable link bypass shelter and wounds while continuing death chains', () => {
+    const result = resolveDeathEffects([
+      { kind: 'attack', cause: 'wolfKill', source: 0, target: 3 },
+      { kind: 'shelter', source: 2, target: 2, bypassable: false },
+      { kind: 'wound', seat: 2, against: ['scarletLink'] },
+      {
+        kind: 'link',
+        source: 3,
+        from: 3,
+        to: 2,
+        cause: 'scarletLink',
+        isMutual: false,
+        bypassSurvival: true,
+      },
+      {
+        kind: 'link',
+        source: 1,
+        from: 2,
+        to: 1,
+        cause: 'coupleLink',
+        isMutual: true,
+      },
+    ]);
+
+    expect(result.deaths).toEqual([1, 2, 3]);
+    expect(result.causes[2]).toContain('scarletLink');
+    expect(result.causes[1]).toContain('coupleLink');
+  });
+
   it('does not add mutual-link causes to a seat already dead', () => {
     const result = resolveDeathEffects([
       { kind: 'attack', cause: 'poison', source: 0, target: 2 },

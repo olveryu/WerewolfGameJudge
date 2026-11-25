@@ -145,9 +145,14 @@ const resolveWerewolfSeatTapIntent = createRoomSeatTapIntentResolver<GameState>(
 
 function buildLastNightInfo(state: GameState): string {
   const deaths = state.lastNightDeaths ?? [];
-  return deaths.length === 0
-    ? '昨夜平安夜'
-    : `昨夜死亡: ${deaths.map((seat) => formatSeat(seat)).join(', ')}`;
+  const deathText =
+    deaths.length === 0
+      ? '昨夜平安夜'
+      : `昨夜死亡: ${deaths.map((seat) => formatSeat(seat)).join(', ')}`;
+  const announcements = getWerewolfDaytimeAnnouncements(state)
+    .filter((announcement) => announcement.timing === 'beforeSheriff')
+    .map((announcement) => announcement.message);
+  return [deathText, ...announcements].join('\n');
 }
 
 export function useWerewolfRoomState(
@@ -442,7 +447,9 @@ export function useWerewolfRoomState(
     onLastNightDeaths: () => modals.showLastNightInfo('查看昨夜死讯'),
     announcements:
       isHost && (status === GameStatus.Day || status === GameStatus.Ended)
-        ? getWerewolfDaytimeAnnouncements(state)
+        ? getWerewolfDaytimeAnnouncements(state).filter(
+            (announcement) => announcement.timing !== 'beforeSheriff',
+          )
         : [],
     onAnnouncement: modals.showAnnouncement,
     onSelectMvp: hostFlow.openMvpSelection,

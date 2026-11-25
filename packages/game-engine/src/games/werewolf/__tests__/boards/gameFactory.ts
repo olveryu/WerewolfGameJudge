@@ -43,6 +43,8 @@ interface CreateGameOptions {
   readonly randomSeed?: string;
   /** Room rule: the witch may use the antidote on herself. */
   readonly witchCanSelfHeal?: boolean;
+  /** Seats filled by the host using the production bot command. */
+  readonly botSeats?: readonly number[];
 }
 
 function assertSameRoleMultiset(actual: readonly RoleId[], expected: readonly RoleId[]): void {
@@ -328,6 +330,7 @@ export function createGame(
   };
 
   for (let seat = 0; seat < template.numberOfPlayers; seat += 1) {
+    if (options?.botSeats?.includes(seat)) continue;
     const userId = seat === 0 ? HOST_USER_ID : `player_${seat}`;
     context.dispatchOrThrow(
       {
@@ -338,6 +341,10 @@ export function createGame(
       `seat player ${seat}`,
       { userId, controlledSeat: null },
     );
+  }
+
+  if (options?.botSeats?.length) {
+    context.dispatchOrThrow({ type: 'room.seat.fillBots' }, 'fill bot seats');
   }
 
   context.dispatchOrThrow({ type: 'werewolf.roles.assign' }, 'assign roles', undefined, {

@@ -346,6 +346,24 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
+    name: '猩红蜂舞',
+    category: TemplateCategory.Advanced,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'scarletWolfKing',
+      'seer',
+      'witch',
+      'guard',
+      'beeHunter',
+    ],
+  },
+  {
     name: '石像鬼守墓人',
     category: TemplateCategory.Advanced,
     roles: [
