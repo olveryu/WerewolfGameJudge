@@ -21,17 +21,8 @@
 }
 
 .login-strip-portrait {
-  position: relative;
   width: var(--size-avatar-lg);
   height: var(--size-avatar-lg);
-  overflow: hidden;
-  border-radius: var(--radius-small);
-}
-
-.login-strip-portrait img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .login-strip-text {

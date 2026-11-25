@@ -104,11 +104,6 @@
 .settings-teaser-lock {
   width: var(--size-avatar-sm);
   height: var(--size-avatar-sm);
-  border-radius: var(--radius-small);
-}
-
-.settings-teaser-item {
-  object-fit: cover;
 }
 
 .settings-teaser-lock {
@@ -116,6 +111,7 @@
   align-items: center;
   justify-content: center;
   border: var(--border-width) dashed var(--color-border-light);
+  border-radius: var(--radius-small);
   color: var(--color-text-secondary);
   font-size: var(--size-icon-sm);
 }
