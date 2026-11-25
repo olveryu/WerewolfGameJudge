@@ -208,6 +208,7 @@ describe('spec-driven night through production commands', () => {
       expect.arrayContaining([
         {
           kind: 'explanation',
+          stepId: 'wolfKill',
           text: '狼队（2、3号）袭击7号（实际为8号）',
         },
         expect.objectContaining({

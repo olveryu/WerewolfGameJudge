@@ -43,13 +43,19 @@ export interface NightReviewIdentityEntry {
 export type NightReviewLine =
   | {
       readonly kind: 'action';
+      readonly stepId: string;
       readonly seat: number;
       readonly roleId: RoleId;
       readonly subject: string;
       readonly phrase: string;
       readonly result: string | null;
     }
-  | { readonly kind: 'explanation'; readonly text: string };
+  | {
+      readonly kind: 'explanation';
+      /** The step whose outcome the sentence sums up; null when it explains the night as a whole. */
+      readonly stepId: string | null;
+      readonly text: string;
+    };
 
 /** A factual annotation on one death, for the report's death cards. */
 export type NightReviewDeathNote =
@@ -144,7 +150,11 @@ export function getWerewolfNightReview(state: GameState): WerewolfNightReview {
     bottomCards: state.bottomCards ?? [],
     lines: [
       ...actionLines,
-      ...[...explanationLines].map((text) => ({ kind: 'explanation' as const, text })),
+      ...[...explanationLines].map((text) => ({
+        kind: 'explanation' as const,
+        stepId: null,
+        text,
+      })),
     ],
     deaths: (state.lastNightDeaths ?? []).map((seat) => {
       const reason = state.deathReasons?.[seat] ?? null;
@@ -258,6 +268,7 @@ function buildActionLines(state: GameState): readonly NightReviewLine[] {
           WEREWOLF_STEP_DEFINITIONS[stepId]?.survivesConversion !== true;
         lines.push({
           kind: 'action',
+          stepId,
           seat: line.seat,
           roleId: findStepRole(state.templateRoles, stepId),
           subject,
@@ -267,7 +278,7 @@ function buildActionLines(state: GameState): readonly NightReviewLine[] {
       }
     }
     for (const text of definition.reviewSummary?.(context) ?? []) {
-      lines.push({ kind: 'explanation', text });
+      lines.push({ kind: 'explanation', stepId, text });
     }
     for (const emission of night.emissions.filter((entry) => entry.stepId === stepId)) {
       roles = applyWerewolfRoleFacts(roles, emission.facts);

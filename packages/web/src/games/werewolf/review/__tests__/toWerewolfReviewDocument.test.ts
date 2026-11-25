@@ -395,6 +395,7 @@ describe('toWerewolfReviewDocument', () => {
         lines: [
           {
             kind: 'action',
+            stepId: 'wolfKill',
             seat: 0,
             roleId: 'wolf',
             subject: '狼人',
@@ -403,6 +404,7 @@ describe('toWerewolfReviewDocument', () => {
           },
           {
             kind: 'action',
+            stepId: 'seerCheck',
             seat: 1,
             roleId: 'seer',
             subject: '预言家',
@@ -411,13 +413,14 @@ describe('toWerewolfReviewDocument', () => {
           },
           {
             kind: 'action',
+            stepId: 'slackerChooseIdol',
             seat: 2,
             roleId: 'slacker',
             subject: '混血儿',
             phrase: '选1号为榜样',
             result: null,
           },
-          { kind: 'explanation', text: '3号感染失败' },
+          { kind: 'explanation', stepId: null, text: '3号感染失败' },
         ],
       });
 
@@ -444,6 +447,7 @@ describe('toWerewolfReviewDocument', () => {
         lines: [
           {
             kind: 'action',
+            stepId: 'thiefChoose',
             seat: 0,
             roleId: 'thief',
             subject: '盗贼',
