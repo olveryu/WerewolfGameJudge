@@ -3,25 +3,38 @@
  * `registry.mjs`, judged by the type checker rather than by spelling:
  *
  * - `ui/dom-allowlist` (E5): the managed DOM surface is every member the default TypeScript
- *   library declares on the document-tree, attribute and style interfaces (computed from the
- *   checker: everything `Node`, `Element`, `Document`, `ShadowRoot` and the HTML/SVG/MathML element
- *   types inherit, plus the style and parsing interfaces in `STYLE_INTERFACES`), and the static
- *   members of their constructors. On that surface, every reference to a method and every write to
- *   a property is in `DOM_ALLOW`, in the file's `DOM_WRITERS` entry, or is an element factory whose
- *   product is in `SAFE_PRODUCTS`. A computed member that cannot be read statically on a managed
- *   object is rejected, and so is reflection (`Object.assign`, `Reflect.set`, …) with a managed
- *   argument. A DOM API that does not exist yet is unregistered, so it is rejected by default.
+ *   library declares on the document-tree, attribute, style and font interfaces (computed from
+ *   the checker: everything `Node`, `Element`, `Document`, `ShadowRoot` and the HTML/SVG/MathML
+ *   element types inherit, plus `STYLE_INTERFACES`), and the static members of their
+ *   constructors. A member is judged on its receiver, so a method a managed interface inherits
+ *   from the ES library (`FontFaceSet.add` from `Set`) is managed too. On that surface, every
+ *   reference to a method and every write to a property is in `DOM_ALLOW`, in the file's
+ *   `DOM_WRITERS` entry, or is an element factory whose product is in `SAFE_PRODUCTS`. A computed
+ *   member that cannot be read statically on a managed object is rejected, and so is reflection
+ *   (`Object.assign`, `Reflect.set`, …) with a managed argument. A DOM API that does not exist
+ *   yet is unregistered, so it is rejected by default.
  * - `ui/element-allowlist` (E11): native JSX elements (and React `createElement` string tags) are
- *   registered elements; a tag held in a variable is judged by its type.
- * - `ui/inline-style-keys` (E4, keys): a value reaching a native `style` or typed `CSSProperties`
- *   has enumerable keys: no index signature other than `` `--${string}` ``, no computed key that
- *   is not a string-literal union.
+ *   registered elements; a tag held in a variable is judged by its type. Props reaching a native
+ *   element by spread or `createElement` are not opaque and carry no `style`; React's raw HTML
+ *   names (`dangerouslySetInnerHTML`, `__html`) appear nowhere.
+ * - `ui/inline-style-keys` (E4): a value reaching a native `style` or typed `CSSProperties` has
+ *   enumerable keys, and every literal value (and every SVG presentation attribute) passes the
+ *   same value checker as stylesheets (`values.mjs`). Values only known at runtime are left to
+ *   the screenshot layer.
  */
 import path from 'node:path';
 
 import ts from 'typescript';
 
-import { DOM_ALLOW, DOM_WRITERS, ELEMENTS, SAFE_PRODUCTS } from './registry.mjs';
+import {
+  DOM_ALLOW,
+  DOM_WRITERS,
+  ELEMENTS,
+  REACT_UNITLESS,
+  SAFE_PRODUCTS,
+  SVG_ATTRIBUTES,
+} from './registry.mjs';
+import { domainOf, valueMessages, valueProblems } from './values.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
 
@@ -45,6 +58,7 @@ const STYLE_INTERFACES = [
   'Selection',
   'DOMParser',
   'XMLSerializer',
+  'FontFace',
   'FontFaceSet',
   'CustomElementRegistry',
   'ElementInternals',
@@ -177,6 +191,29 @@ function isManagedType(type, managed, program) {
   });
 }
 
+const isDomLibrary = (file) => /[\\/]lib\.dom(\.[a-z]+)?\.d\.ts$/.test(file.fileName);
+
+/** The name of the managed DOM interface a value of this type is, or undefined. */
+function managedNameOf(type, managed, program) {
+  const parts = type.isUnionOrIntersection() ? type.types : [type];
+  for (const part of parts) {
+    const symbol = part.getSymbol() ?? part.aliasSymbol;
+    const declaration = symbol?.declarations?.[0];
+    if (
+      declaration &&
+      program.isSourceFileDefaultLibrary(declaration.getSourceFile()) &&
+      managed.has(symbol.getName())
+    ) {
+      return symbol.getName();
+    }
+    for (const base of part.getBaseTypes?.() ?? []) {
+      const name = managedNameOf(base, managed, program);
+      if (name) return name;
+    }
+  }
+  return undefined;
+}
+
 function fileKey(filename) {
   return path.relative(REPO_ROOT, filename).split(path.sep).join('/');
 }
@@ -190,6 +227,18 @@ function possibleStrings(node, services) {
   const parts = type.isUnion() ? type.types : [type];
   if (!parts.every((part) => part.isStringLiteral())) return null;
   return parts.map((part) => part.value);
+}
+
+/**
+ * The name prefixes a string node's type fixes (`` `--color-${string}` `` gives `--color-`), or
+ * null when some part of it is neither a literal nor a template literal type.
+ */
+function possiblePrefixes(node, services) {
+  const type = services.getTypeAtLocation(node);
+  const parts = type.isUnion() ? type.types : [type];
+  if (!parts.every((part) => part.isStringLiteral() || part.flags & ts.TypeFlags.TemplateLiteral))
+    return null;
+  return parts.map((part) => (part.isStringLiteral() ? part.value : part.texts[0]));
 }
 
 function isWriteTarget(node) {
@@ -258,22 +307,39 @@ const domAllowlist = {
       if (!call || call.arguments.length === 0)
         return context.report({ node, messageId: 'member', data: { member } });
       const nameArgument = member === 'setAttributeNS' ? call.arguments[1] : call.arguments[0];
+      // An entry `member:name` registers one name, `member:prefix*` every name with the prefix.
+      const families = [...own]
+        .filter((entry) => entry.startsWith(`${member}:`) && entry.endsWith('*'))
+        .map((entry) => entry.slice(member.length + 1, -1));
       const names = nameArgument && possibleStrings(nameArgument, services);
-      if (names === null || names === undefined) {
-        if (!own.has(`${member}:*`)) context.report({ node, messageId: 'name', data: { member } });
+      if (names) {
+        for (const name of names) {
+          if (!own.has(`${member}:${name}`) && !families.some((family) => name.startsWith(family)))
+            context.report({ node, messageId: 'member', data: { member: `${member}:${name}` } });
+        }
         return;
       }
-      for (const name of names) {
-        if (!own.has(`${member}:${name}`) && !own.has(`${member}:*`)) {
-          context.report({ node, messageId: 'member', data: { member: `${member}:${name}` } });
-        }
-      }
+      const prefixes = nameArgument && possiblePrefixes(nameArgument, services);
+      if (
+        !prefixes ||
+        !prefixes.every((head) => families.some((family) => head.startsWith(family)))
+      )
+        context.report({ node, messageId: 'name', data: { member } });
     };
 
     /** A reference to a library member `symbol` at `node` (member expression or pattern key). */
-    const checkMember = (node, symbol, isCall) => {
-      const info = describe(symbol?.declarations?.[0], program);
-      if (!info || !managed.has(info.owner)) return;
+    const checkMember = (node, symbol, isCall, receiver) => {
+      const declared = describe(symbol?.declarations?.[0], program);
+      if (!declared) return;
+      // A member a managed interface inherits from the ES library is judged on its receiver:
+      // `FontFaceSet.add` is managed though `Set` declares it. DOM-declared owners stay as they
+      // are (`Window.setTimeout` is not a document-tree write).
+      const fromEs = !isDomLibrary(symbol.declarations[0].getSourceFile());
+      const owner = managed.has(declared.owner)
+        ? declared.owner
+        : fromEs && receiver && managedNameOf(receiver, managed, program);
+      if (!owner) return;
+      const info = { ...declared, owner };
       const member = symbol.getName();
       const write = node.type === 'MemberExpression' && isWriteTarget(node);
       if (!info.isMethod && !info.isStatic && !write) return;
@@ -305,8 +371,9 @@ const domAllowlist = {
           ? tsNode.name
           : tsNode.argumentExpression;
         const symbol = checker.getSymbolAtLocation(nameNode);
+        const receiver = services.getTypeAtLocation(node.object);
         if (symbol && describe(symbol.declarations?.[0], program))
-          return checkMember(node, symbol, isCall);
+          return checkMember(node, symbol, isCall, receiver);
         if (!node.computed) return;
         if (!isManagedType(services.getTypeAtLocation(node.object), managed, program)) return;
         const names = possibleStrings(node.property, services);
@@ -317,7 +384,7 @@ const domAllowlist = {
         const objectType = services.getTypeAtLocation(node.object);
         for (const name of names) {
           const property = checker.getPropertyOfType(checker.getApparentType(objectType), name);
-          if (property) checkMember(node, property, isCall);
+          if (property) checkMember(node, property, isCall, objectType);
         }
       },
       // const { insertAdjacentHTML } = el
@@ -326,9 +393,10 @@ const domAllowlist = {
         const tsNode = services.esTreeNodeToTSNodeMap.get(node);
         const nameNode = tsNode.propertyName ?? tsNode.name;
         if (!nameNode || !ts.isIdentifier(nameNode)) return;
-        const source = checker.getApparentType(checker.getTypeAtLocation(tsNode.parent));
+        const sourceType = checker.getTypeAtLocation(tsNode.parent);
+        const source = checker.getApparentType(sourceType);
         const symbol = checker.getPropertyOfType(source, nameNode.text);
-        if (symbol) checkMember(node, symbol, false);
+        if (symbol) checkMember(node, symbol, false, sourceType);
       },
       NewExpression(node) {
         const symbol = checker.getSymbolAtLocation(services.esTreeNodeToTSNodeMap.get(node.callee));
@@ -386,15 +454,57 @@ function tagNames(node, services) {
   return strings.map((part) => part.value);
 }
 
+/** Template index keys a props or style type may carry: custom properties, data and ARIA. */
+const OPEN_KEY_HEADS = new Set(['--', 'data-', 'aria-']);
+
+function isOpenKey(keyType) {
+  return (
+    Boolean(keyType.flags & ts.TypeFlags.TemplateLiteral) &&
+    keyType.texts.length === 2 &&
+    OPEN_KEY_HEADS.has(keyType.texts[0]) &&
+    keyType.texts[1] === '' &&
+    Boolean(keyType.types[0].flags & ts.TypeFlags.String)
+  );
+}
+
+/** Does a value of this type hide which keys it carries (any, unknown, an open index)? */
+function isOpaque(type, checker) {
+  const parts = type.isUnionOrIntersection() ? type.types : [type];
+  return parts.some(
+    (part) =>
+      Boolean(part.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) ||
+      (Boolean(part.flags & ts.TypeFlags.Object) &&
+        checker.getIndexInfosOfType(part).some((info) => !isOpenKey(info.keyType))),
+  );
+}
+
+/** The key names of an object property, or null when its computed key cannot be enumerated. */
+function keyNames(property, services) {
+  if (!property.computed) {
+    if (property.key.type === 'Identifier') return [property.key.name];
+    if (property.key.type === 'Literal') return [String(property.key.value)];
+    return null;
+  }
+  return possibleStrings(property.key, services);
+}
+
+/** React's two names for raw HTML: the prop and the key of its value. */
+const HTML_KEYS = new Set(['dangerouslySetInnerHTML', '__html']);
+
 const elementAllowlist = {
   meta: {
     type: 'problem',
-    docs: { description: 'Allow only registered native elements (UI gate E11).' },
+    docs: { description: 'Allow only registered native elements and their props (UI gate E11).' },
     schema: [],
     messages: {
       element:
         '`<{{tag}}>` is not a registered native element (UI gate E11, scripts/ui-lint/registry.mjs).',
       dynamic: 'This element tag cannot be enumerated (UI gate E11).',
+      html: '`{{name}}` writes raw HTML past the gate (UI gate E11).',
+      opaque:
+        'These props hide which keys they carry (any, unknown or an index signature) (UI gate E11).',
+      style:
+        'A `style` in spread or createElement props bypasses the inline style check; pass `style={…}` (UI gate E4).',
     },
   },
   create(context) {
@@ -405,15 +515,45 @@ const elementAllowlist = {
       for (const tag of tags)
         if (!ELEMENTS.has(tag)) context.report({ node, messageId: 'element', data: { tag } });
     };
+    /** Props reaching a native element without being written as attributes. */
+    const checkProps = (node) => {
+      const type = services.getTypeAtLocation(node);
+      if (isOpaque(type, checker)) return context.report({ node, messageId: 'opaque' });
+      const style = checker.getPropertyOfType(checker.getApparentType(type), 'style');
+      if (style && !(style.flags & ts.SymbolFlags.Optional))
+        context.report({ node, messageId: 'style' });
+    };
+    const isNative = (name) => name.type === 'JSXIdentifier' && /^[a-z]/.test(name.name);
     return {
       JSXOpeningElement(node) {
         const { name } = node;
+        for (const attribute of node.attributes) {
+          if (attribute.type === 'JSXSpreadAttribute') {
+            if (isNative(name)) checkProps(attribute.argument);
+          } else if (
+            attribute.name.type === 'JSXIdentifier' &&
+            HTML_KEYS.has(attribute.name.name)
+          ) {
+            context.report({
+              node: attribute,
+              messageId: 'html',
+              data: { name: attribute.name.name },
+            });
+          }
+        }
         // A lower-case JSX name is an intrinsic element by JSX semantics; others are judged by type.
-        if (name.type === 'JSXIdentifier' && /^[a-z]/.test(name.name))
-          return check(node, [name.name]);
+        if (isNative(name)) return check(node, [name.name]);
         if (name.type === 'JSXNamespacedName')
           return check(node, [`${name.namespace.name}:${name.name.name}`]);
         return check(node, tagNames(name, services));
+      },
+      // { dangerouslySetInnerHTML: … }, { __html: … }, however the object reaches React.
+      Property(node) {
+        if (node.parent.type !== 'ObjectExpression') return;
+        for (const name of keyNames(node, services) ?? []) {
+          if (HTML_KEYS.has(name))
+            context.report({ node: node.key, messageId: 'html', data: { name } });
+        }
       },
       CallExpression(node) {
         const tsNode = services.esTreeNodeToTSNodeMap.get(node);
@@ -428,8 +568,13 @@ const elementAllowlist = {
           (name !== 'createElement' && name !== 'cloneElement')
         )
           return;
-        const [tag] = node.arguments;
-        if (tag && name === 'createElement') check(node, tagNames(tag, services));
+        const [tag, props] = node.arguments;
+        if (name === 'createElement' && tag) {
+          const tags = tagNames(tag, services);
+          check(node, tags);
+          if (tags !== undefined && props) checkProps(props);
+        }
+        if (name === 'cloneElement' && props) checkProps(props);
       },
     };
   },
@@ -442,46 +587,101 @@ function isCssProperties(type) {
   );
 }
 
-function isCustomPropertyKey(keyType) {
-  return (
-    Boolean(keyType.flags & ts.TypeFlags.TemplateLiteral) &&
-    keyType.texts.length === 2 &&
-    keyType.texts[0] === '--' &&
-    keyType.texts[1] === '' &&
-    Boolean(keyType.types[0].flags & ts.TypeFlags.String)
-  );
+/** `borderRadius` → `border-radius`, `WebkitLineClamp` → `-webkit-line-clamp`, `--x` → `--x`. */
+function cssName(key) {
+  if (key.startsWith('--')) return key;
+  const kebab = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+  return /^ms-/.test(kebab) ? `-${kebab}` : kebab;
 }
 
-function hasIndexSignature(type, checker) {
-  const parts = type.isUnionOrIntersection() ? type.types : [type];
-  return parts.some(
-    (part) =>
-      part.flags & ts.TypeFlags.Object &&
-      checker.getIndexInfosOfType(part).some((info) => !isCustomPropertyKey(info.keyType)),
-  );
+/**
+ * The literal values an expression can take, as CSS text (`unit` turns a number into text), or
+ * null when the checker cannot enumerate them: a runtime value, judged by the screenshots.
+ */
+function literalValues(node, services, unit) {
+  switch (node.type) {
+    case 'Literal':
+      if (typeof node.value === 'string') return [node.value];
+      if (typeof node.value === 'number') return [unit(node.value)];
+      return [];
+    case 'TemplateLiteral':
+      return node.expressions.length === 0 ? [node.quasis[0].value.cooked] : null;
+    case 'UnaryExpression':
+      if (node.operator === '-' && node.argument.type === 'Literal')
+        return typeof node.argument.value === 'number' ? [unit(-node.argument.value)] : null;
+      return null;
+    case 'ConditionalExpression':
+    case 'LogicalExpression': {
+      const [left, right] =
+        node.type === 'ConditionalExpression'
+          ? [node.consequent, node.alternate]
+          : [node.left, node.right];
+      const a = literalValues(left, services, unit);
+      const b = literalValues(right, services, unit);
+      return a && b ? [...a, ...b] : (a ?? b);
+    }
+    case 'TSSatisfiesExpression':
+    case 'TSAsExpression':
+    case 'TSNonNullExpression':
+      return literalValues(node.expression, services, unit);
+    default: {
+      const type = services.getTypeAtLocation(node);
+      const parts = type.isUnion() ? type.types : [type];
+      if (!parts.every((part) => part.isStringLiteral() || part.isNumberLiteral())) return null;
+      return parts.map((part) => (part.isStringLiteral() ? part.value : unit(part.value)));
+    }
+  }
 }
 
 const inlineStyleKeys = {
   meta: {
     type: 'problem',
-    docs: { description: 'Require enumerable keys in inline style objects (UI gate E4).' },
+    docs: {
+      description:
+        'Inline styles and SVG presentation attributes: enumerable keys, values in the token domains (UI gate E4).',
+    },
     schema: [],
     messages: {
       computed: 'This style key hides which property is written (UI gate E4).',
       indexed:
         'This style value has an index signature, so the properties it writes are not enumerable (UI gate E4).',
+      value: '{{message}}',
     },
   },
   create(context) {
     const { services, checker } = typedServices(context);
     const checked = new Set();
+    const judge = (node, prop, values) => {
+      const domain = domainOf(prop);
+      if (domain === undefined)
+        return context.report({
+          node,
+          messageId: 'value',
+          data: { message: valueMessages.property(prop) },
+        });
+      for (const value of values ?? [])
+        for (const { message } of valueProblems(value, prop, domain))
+          context.report({ node, messageId: 'value', data: { message } });
+    };
     const checkObject = (object) => {
       if (checked.has(object)) return;
       checked.add(object);
       for (const property of object.properties) {
-        if (property.type === 'SpreadElement') checkValue(property.argument);
-        else if (property.computed && possibleStrings(property.key, services) === null) {
+        if (property.type === 'SpreadElement') {
+          checkValue(property.argument);
+          continue;
+        }
+        const names = keyNames(property, services);
+        if (names === null) {
           context.report({ node: property.key, messageId: 'computed' });
+          continue;
+        }
+        for (const key of names) {
+          const unit = (number) =>
+            number === 0 || key.startsWith('--') || REACT_UNITLESS.has(key)
+              ? String(number)
+              : `${number}px`;
+          judge(property.value, cssName(key), literalValues(property.value, services, unit));
         }
       }
     };
@@ -500,7 +700,7 @@ const inlineStyleKeys = {
         case 'TSNonNullExpression':
           return checkValue(node.expression);
         default:
-          if (hasIndexSignature(services.getTypeAtLocation(node), checker))
+          if (isOpaque(services.getTypeAtLocation(node), checker))
             context.report({ node, messageId: 'indexed' });
       }
     };
@@ -510,15 +710,27 @@ const inlineStyleKeys = {
         if (contextual !== undefined && isCssProperties(contextual)) checkObject(node);
       },
       JSXAttribute(node) {
-        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'style') return;
+        if (node.name.type !== 'JSXIdentifier') return;
         if (!(node.parent.name.type === 'JSXIdentifier' && /^[a-z]/.test(node.parent.name.name)))
           return;
+        const value = node.value;
+        if (node.name.name === 'style') {
+          if (
+            value?.type !== 'JSXExpressionContainer' ||
+            value.expression.type === 'JSXEmptyExpression'
+          )
+            return;
+          return checkValue(value.expression);
+        }
+        // SVG presentation attributes: a number is in user units, so it stays a bare number.
+        const prop = SVG_ATTRIBUTES.get(node.name.name);
+        if (prop === undefined || value === null) return;
+        if (value.type === 'Literal') return judge(value, prop, [String(value.value)]);
         if (
-          node.value?.type !== 'JSXExpressionContainer' ||
-          node.value.expression.type === 'JSXEmptyExpression'
+          value.type === 'JSXExpressionContainer' &&
+          value.expression.type !== 'JSXEmptyExpression'
         )
-          return;
-        checkValue(node.value.expression);
+          judge(value, prop, literalValues(value.expression, services, String));
       },
     };
   },

@@ -2,48 +2,27 @@
  * Local Stylelint rules of the UI gate (UI drift lock plan v3, §2). Both are allow lists over
  * `registry.mjs`:
  *
- * - `ui/value-allowlist` (S1, S2, S4, S7): every property is registered (by its lower-case name
- *   without a vendor prefix; an escaped name is never registered). A property in a token domain
- *   takes only that domain's atoms: `var()` (fallback read in the same domain), a global keyword,
- *   zero, a domain keyword, or `calc`/`min`/`max`/`clamp` over atoms where the only number is the
- *   sign flip `-1`. Every function anywhere is a registered function. System colors are atoms only
- *   inside exactly `@media (forced-colors: active)`. A custom property definition is the `custom`
- *   domain. Each problem is reported at the offending word, so the baseline fingerprint is the
- *   line holding it.
+ * - `ui/value-allowlist` (S1, S2, S4, S7): every property is registered and its value passes the
+ *   shared checker (`values.mjs`, which ESLint runs on inline styles too). A custom property
+ *   defined outside the token sheet only aliases tokens and never redefines a tokens.css name.
+ *   Each problem is reported at the offending word, so the baseline fingerprint is its line.
  * - `ui/sheet-scope` (S10): the token sheet holds only custom property definitions under its
- *   registered selectors; an art sheet's selectors use only classes with the sheet's prefix.
+ *   registered selectors; in an art sheet every class carries the sheet's prefix and every
+ *   selector's subject (its last compound) carries one, so the sheet styles only art elements.
  */
 import stylelint from 'stylelint';
-import valueParser from 'postcss-value-parser';
+import selectorParser from 'postcss-selector-parser';
 
-import {
-  DOMAIN_COMMON,
-  DOMAINS,
-  FORCED_COLORS_MEDIA,
-  FUNCTIONS,
-  PROPERTIES,
-  SYSTEM_COLORS,
-} from './registry.mjs';
+import { FORCED_COLORS_MEDIA } from './registry.mjs';
+import { domainOf, valueMessages, valueProblems } from './values.mjs';
 
 const {
   createPlugin,
   utils: { report, ruleMessages },
 } = stylelint;
 
-const VENDOR_PREFIX = /^-(?:webkit|moz|ms|o)-/;
-const MATH = new Set(['calc', 'min', 'max', 'clamp']);
-const OPERATORS = new Set(['+', '-', '*', '/']);
-const IDENT = /^-?[a-z_][\w-]*$/i;
-/** Color atoms besides `var()`: every domain that holds a color accepts them. */
-const COLOR_KEYWORDS = new Set(['transparent', 'currentcolor']);
-
 const VALUE = 'ui/value-allowlist';
-const valueMessages = ruleMessages(VALUE, {
-  property: (prop) => `\`${prop}\` is not a registered property (UI gate S1).`,
-  func: (name) => `\`${name}()\` is not a registered CSS function (UI gate S2).`,
-  atom: (word, prop, domain) =>
-    `\`${word}\` is not allowed in \`${prop}\`: the ${domain} domain takes var(--token) and registered keywords (UI gate S1).`,
-});
+const messages = ruleMessages(VALUE, valueMessages);
 
 function inForcedColors(node) {
   for (let parent = node.parent; parent; parent = parent.parent) {
@@ -54,144 +33,38 @@ function inForcedColors(node) {
   return false;
 }
 
-function isZero(word) {
-  const number = valueParser.unit(word);
-  return Boolean(number) && Number(number.number) === 0;
-}
-
-/** The top-level comma-separated arguments of a function node. */
-function argumentsOf(node) {
-  const groups = [[]];
-  for (const child of node.nodes) {
-    if (child.type === 'div' && child.value === ',') groups.push([]);
-    else groups.at(-1).push(child);
-  }
-  return groups;
-}
-
-function checkValue(decl, prop, domainName, result) {
-  const forced = inForcedColors(decl);
-  const valueStart = decl.toString().indexOf(decl.value, decl.prop.length);
-  const problem = (node, message) =>
-    report({
-      result,
-      ruleName: VALUE,
-      node: decl,
-      message,
-      index: valueStart + node.sourceIndex,
-      endIndex: valueStart + node.sourceEndIndex,
-    });
-
-  /** Is one word an atom of `domain`? */
-  const atom = (node, domain, name, inMath) => {
-    const text = node.value;
-    const lower = text.toLowerCase();
-    if (isZero(text)) return true;
-    if (inMath && (OPERATORS.has(text) || text === '-1')) return true;
-    if (DOMAIN_COMMON.keywords.includes(lower) || domain.keywords?.includes(lower)) return true;
-    if (domain.colors && COLOR_KEYWORDS.has(lower)) return true;
-    if (forced && domain.colors && SYSTEM_COLORS.has(lower)) return true;
-    const number = valueParser.unit(text);
-    if (number) {
-      if (number.unit === '')
-        return Boolean(domain.unitless) && (!inMath || Boolean(domain.mathNumbers));
-      return !inMath && Boolean(domain.units?.includes(number.unit.toLowerCase()));
-    }
-    return Boolean(domain.idents) && !text.startsWith('#') && IDENT.test(text);
-  };
-
-  /** Every function in `nodes` (at any depth) is registered; nothing else is checked. */
-  const registeredOnly = (nodes) => {
-    for (const node of nodes) {
-      if (node.type !== 'function') continue;
-      if (node.value !== '' && !FUNCTIONS.has(node.value))
-        problem(node, valueMessages.func(node.value));
-      else registeredOnly(node.nodes);
-    }
-  };
-
-  /** clip-path: shapes are free, except the corner radius after `round` (radius domain). */
-  const shape = (nodes) => {
-    let afterRound = false;
-    for (const node of nodes) {
-      if (afterRound && node.type !== 'space') {
-        walk([node], DOMAINS.radius, 'radius');
-      } else if (node.type === 'word' && node.value.toLowerCase() === 'round') {
-        afterRound = true;
-      } else if (node.type === 'function') {
-        if (node.value !== '' && !FUNCTIONS.has(node.value))
-          problem(node, valueMessages.func(node.value));
-        else shape(node.nodes);
-      }
-    }
-  };
-
-  /** Walk value nodes in a token domain: every word is an atom of it. */
-  const walk = (nodes, domain, name, inMath = false) => {
-    for (const node of nodes) {
-      if (node.type === 'space' || node.type === 'comment' || node.type === 'div') continue;
-      if (node.type === 'string') {
-        problem(node, valueMessages.atom(`"${node.value}"`, prop, name));
-        continue;
-      }
-      if (node.type === 'word') {
-        if (!atom(node, domain, name, inMath))
-          problem(node, valueMessages.atom(node.value, prop, name));
-        continue;
-      }
-      const lower = node.value.toLowerCase();
-      if (lower === '') {
-        walk(node.nodes, domain, name, inMath);
-        continue;
-      }
-      if (!FUNCTIONS.has(node.value)) {
-        problem(node, valueMessages.func(node.value));
-        continue;
-      }
-      if (!DOMAIN_COMMON.functions.includes(lower) && !domain.functions?.includes(lower)) {
-        problem(node, valueMessages.atom(`${node.value}()`, prop, name));
-        continue;
-      }
-      if (lower === 'var') {
-        const [reference, ...fallback] = argumentsOf(node);
-        const first = reference.find((child) => child.type !== 'space');
-        if (first?.type !== 'word' || !first.value.startsWith('--')) {
-          problem(node, valueMessages.atom('var()', prop, name));
-        }
-        walk(fallback.flat(), domain, name, inMath);
-        continue;
-      }
-      if (lower === 'env') continue;
-      // Math reads its operands as atoms; a domain function (gradient, filter, easing) its arguments.
-      walk(node.nodes, domain, name, inMath || MATH.has(lower));
-    }
-  };
-
-  const nodes = valueParser(decl.value).nodes;
-  if (domainName === 'free') registeredOnly(nodes);
-  else if (DOMAINS[domainName].shape) shape(nodes);
-  else walk(nodes, DOMAINS[domainName], domainName);
-}
-
-const valueAllowlist = createPlugin(VALUE, (enabled) => (root, result) => {
-  if (!enabled) return;
+/**
+ * Options: `{ tokens, families }`, the custom properties tokens.css defines and the prefixes of
+ * the token families published at runtime.
+ */
+const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
+  if (!options) return;
+  const tokens = new Set(options.tokens ?? []);
+  const families = options.families ?? [];
   root.walkDecls((decl) => {
     const raw = decl.prop;
-    const custom = raw.startsWith('--');
-    let domain;
-    if (!raw.includes('\\'))
-      domain = custom ? 'custom' : PROPERTIES.get(raw.toLowerCase().replace(VENDOR_PREFIX, ''));
+    const domain = domainOf(raw);
     if (domain === undefined) {
+      report({ result, ruleName: VALUE, node: decl, message: messages.property(raw), word: raw });
+      return;
+    }
+    if (tokens.has(raw) || families.some((family) => raw.startsWith(family))) {
+      report({ result, ruleName: VALUE, node: decl, message: messages.token(raw), word: raw });
+    }
+    const valueStart = decl.toString().indexOf(decl.value, decl.prop.length);
+    const prop = domain === 'custom' ? 'custom property' : raw.toLowerCase();
+    for (const problem of valueProblems(decl.value, prop, domain, {
+      forced: inForcedColors(decl),
+    })) {
       report({
         result,
         ruleName: VALUE,
         node: decl,
-        message: valueMessages.property(raw),
-        word: raw,
+        message: problem.message,
+        index: valueStart + problem.index,
+        endIndex: valueStart + problem.endIndex,
       });
-      return;
     }
-    checkValue(decl, custom ? 'custom property' : raw.toLowerCase(), domain, result);
   });
 });
 
@@ -204,7 +77,9 @@ const scopeMessages = ruleMessages(SCOPE, {
   escaped: 'Selectors in the token and art sheets are not escaped (UI gate S10).',
   artClass: (name, prefix) =>
     `\`.${name}\` is not an art class of this sheet (prefix \`${prefix}\`; UI gate S10).`,
-  artBare: (selector, prefix) => `\`${selector}\` selects no \`${prefix}\` class (UI gate S10).`,
+  artSubject: (selector, prefix) =>
+    `The subject of \`${selector}\` is not a \`${prefix}\` element: its last compound needs a \`${prefix}\` class (UI gate S10).`,
+  unparsable: (selector) => `\`${selector}\` does not parse as a selector (UI gate S10).`,
   artAttribute: 'Art sheets select by class, not by `class`/`id` attributes (UI gate S10).',
 });
 
@@ -236,12 +111,32 @@ const sheetScope = createPlugin(SCOPE, (options) => (root, result) => {
   root.walkRules((rule) => {
     if (inKeyframes(rule)) return;
     if (rule.selector.includes('\\')) return flag(rule, scopeMessages.escaped);
-    if (/\[\s*(?:class|id)\b/i.test(rule.selector)) flag(rule, scopeMessages.artAttribute);
-    for (const part of rule.selectors) {
-      const classes = [...part.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map((match) => match[1]);
-      if (classes.length === 0) flag(rule, scopeMessages.artBare(part.trim(), prefix));
-      for (const name of classes) if (!own(name)) flag(rule, scopeMessages.artClass(name, prefix));
+    let selectors;
+    try {
+      selectors = selectorParser().astSync(rule.selector);
+    } catch {
+      return flag(rule, scopeMessages.unparsable(rule.selector));
     }
+    selectors.each((selector) => {
+      const text = selector.toString().trim();
+      // The subject is the compound after the last top-level combinator; it must itself carry a
+      // class of this sheet (not one inside `:not()`, `:has()`, `:is()`), so a rule here styles
+      // only art elements whatever its context says.
+      const nodes = selector.nodes;
+      let start = 0;
+      nodes.forEach((node, index) => {
+        if (node.type === 'combinator') start = index + 1;
+      });
+      const subject = nodes.slice(start);
+      if (!subject.some((node) => node.type === 'class' && own(node.value)))
+        flag(rule, scopeMessages.artSubject(text, prefix));
+      selector.walkClasses((node) => {
+        if (!own(node.value)) flag(rule, scopeMessages.artClass(node.value, prefix));
+      });
+      selector.walkAttributes((node) => {
+        if (/^(?:class|id)$/i.test(node.attribute)) flag(rule, scopeMessages.artAttribute);
+      });
+    });
   });
 });
 

@@ -1,6 +1,6 @@
 /**
- * The registry's exemptions are pinned exactly (plan v3 §3): widening the token sheet, an art
- * sheet or a DOM writer shows up as a change to this file, not only as a registry line. The
+ * Every allow list of the registry is pinned exactly by snapshot (plan v3 §3): widening one shows
+ * up as a change to `__snapshots__/registry.test.mjs.snap`, not only as a registry line. The
  * build facts the bundle graph relies on are checked against their sources.
  */
 import fs from 'node:fs';
@@ -9,182 +9,37 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { REPO_ROOT } from './bundle.mjs';
-import {
-  ART_SHEETS,
-  BUILD_ENTRIES,
-  DOM_WRITERS,
-  ELEMENTS,
-  SAFE_PRODUCTS,
-  TOKEN_SHEET,
-  WEB_ROOT,
-} from './registry.mjs';
+import * as registry from './registry.mjs';
+import { BUILD_ENTRIES, ELEMENTS, PACKAGES, WEB_ROOT } from './registry.mjs';
+
+/** Sets and maps as sorted plain data, so the snapshot shows every entry. */
+const plain = (value) => {
+  if (value instanceof Set) return [...value].map(plain).sort();
+  if (value instanceof Map)
+    return Object.fromEntries([...value].sort().map(([k, v]) => [k, plain(v)]));
+  if (Array.isArray(value)) return value.map(plain);
+  if (value && typeof value === 'object')
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, plain(v)]));
+  return value;
+};
 
 const read = (file) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
 
 describe('UI gate registry', () => {
-  it('pins the token sheet and the art sheets (D7)', () => {
-    expect(TOKEN_SHEET).toEqual({
-      file: 'packages/web/src/theme/tokens.css',
-      selectors: ['.admin-console', ':root'],
-    });
-    expect(ART_SHEETS).toEqual({
-      'packages/web/src/boot/bootSplash.css': 'boot',
-      'packages/web/src/components/nameStyles/nameStyles.css': 'name-style',
-      'packages/web/src/features/gacha/machine/CapsuleMachine.css': 'capsule-machine',
-      'packages/web/src/routes/bench/SceneBench.css': 'bench',
-      'packages/web/src/scene/scene.css': 'scene-canvas',
-      'packages/web/src/theme/nightArt.css': 'night-art',
-    });
+  // Every allow list is pinned entry by entry: widening one (a property moved to `free`, a
+  // keyword, a function, an element, a DOM member, a package) changes this snapshot, which the
+  // reviewer sees and CI does not rewrite (P1 QA5 K9).
+  it.each(Object.keys(registry).sort())('pins %s exactly', (name) => {
+    expect(plain(registry[name])).toMatchSnapshot();
   });
 
-  it('pins the DOM writers and safe products (E5)', () => {
-    expect(DOM_WRITERS).toMatchInlineSnapshot(`
-      {
-        "packages/web/src/boot/bootSplash.ts": [
-          "CSSStyleProperties.transform",
-          "DOMStringMap.__index",
-          "Element.textContent",
-          "HTMLElement.hidden",
-          "setAttribute:aria-valuenow",
-        ],
-        "packages/web/src/boot/dismissBootSplash.ts": [
-          "ChildNode.remove",
-          "DOMTokenList.add",
-        ],
-        "packages/web/src/boot/runtimeEnvironment.ts": [
-          "HTMLScriptElement.src",
-          "ParentNode.append",
-          "createElement:script",
-        ],
-        "packages/web/src/config/avatarShape.ts": [
-          "setProperty:--avatar-corner-ratio",
-        ],
-        "packages/web/src/features/gacha/machine/CapsuleMachine.tsx": [
-          "CSSStyleProperties.transform",
-        ],
-        "packages/web/src/features/room/components/GalleryAlbumStage.tsx": [
-          "CSSStyleProperties.height",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/common/AtmosphericBackground.tsx": [
-          "CSSStyleProperties.opacity",
-          "CSSStyleProperties.transform",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/common/RevealCardFace.tsx": [
-          "CSSStyleProperties.opacity",
-          "CSSStyleProperties.transform",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/effects/ChainShatter.tsx": [
-          "setAttribute:cx",
-          "setAttribute:cy",
-          "setAttribute:opacity",
-          "setAttribute:r",
-          "setAttribute:transform",
-          "setAttribute:x1",
-          "setAttribute:x2",
-          "setAttribute:y1",
-          "setAttribute:y2",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/effects/FateDecree.tsx": [
-          "CSSStyleProperties.opacity",
-          "CSSStyleProperties.transform",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/effects/MythicCollectionReveal.tsx": [
-          "CSSStyleProperties.opacity",
-          "setAttribute:opacity",
-          "setAttribute:transform",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx": [
-          "setAttribute:cx",
-          "setAttribute:cy",
-          "setAttribute:opacity",
-          "setAttribute:r",
-          "setAttribute:transform",
-          "setAttribute:x2",
-          "setAttribute:y2",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/effects/ScratchReveal.tsx": [
-          "CSSStyleProperties.width",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/effects/SealBreak.tsx": [
-          "CSSStyleProperties.opacity",
-          "CSSStyleProperties.transform",
-          "Element.textContent",
-          "setAttribute:cx",
-          "setAttribute:cy",
-          "setAttribute:opacity",
-          "setAttribute:stroke-dasharray",
-          "setAttribute:transform",
-          "setAttribute:visibility",
-          "setAttribute:x",
-          "setAttribute:y",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx": [
-          "setAttribute:cy",
-          "setAttribute:opacity",
-          "setAttribute:r",
-          "setAttribute:transform",
-        ],
-        "packages/web/src/features/room/components/RoleRevealEffects/runtime.ts": [
-          "CSSStyleProperties.opacity",
-          "CSSStyleProperties.transform",
-        ],
-        "packages/web/src/features/room/services/shareImage.ts": [
-          "ChildNode.remove",
-          "HTMLAnchorElement.download",
-          "HTMLHyperlinkElementUtils.href",
-          "Node.appendChild",
-        ],
-        "packages/web/src/games/decrypto/room/DecryptoTeamSetup.tsx": [
-          "setAttribute:closedby",
-        ],
-        "packages/web/src/games/spotmatch/room/hooks/useSpotmatchCardFlight.ts": [
-          "Animatable.animate",
-          "CSSStyleProperties.width",
-        ],
-        "packages/web/src/main.tsx": [
-          "Element.textContent",
-        ],
-        "packages/web/src/routes/admin/AdminShell.tsx": [
-          "setProperty:--admin-workspace-header-height",
-        ],
-        "packages/web/src/routes/bench/SceneBench.tsx": [
-          "DOMStringMap.__index",
-        ],
-        "packages/web/src/scene/SeatEntrance.tsx": [
-          "CSSStyleProperties.clipPath",
-          "CSSStyleProperties.opacity",
-          "CSSStyleProperties.transform",
-          "Node.cloneNode",
-          "ParentNode.replaceChildren",
-          "removeProperty:clip-path",
-          "removeProperty:opacity",
-          "removeProperty:transform",
-        ],
-        "packages/web/src/scene/stage.ts": [
-          "ChildNode.remove",
-          "DOMTokenList.add",
-          "ParentNode.append",
-          "setAttribute:aria-hidden",
-        ],
-        "packages/web/src/services/infra/audio/BgmPlayer.ts": [
-          "removeAttribute:src",
-        ],
-        "packages/web/src/services/infra/audio/WebAudioStrategy.ts": [
-          "removeAttribute:src",
-        ],
-        "packages/web/src/theme/colors.ts": [
-          "setProperty:*",
-        ],
-      }
-    `);
-    expect([...SAFE_PRODUCTS].sort()).toEqual([
-      'HTMLAnchorElement',
-      'HTMLAudioElement',
-      'HTMLCanvasElement',
-      'HTMLImageElement',
-    ]);
-    for (const file of Object.keys(DOM_WRITERS))
-      expect(fs.existsSync(path.join(REPO_ROOT, file)), file).toBe(true);
+  it('registers exactly the web manifest dependencies', () => {
+    const manifest = JSON.parse(read(`${WEB_ROOT}/package.json`));
+    expect(
+      Object.keys(PACKAGES)
+        .filter((name) => PACKAGES[name].field === 'dependencies')
+        .sort(),
+    ).toEqual(Object.keys(manifest.dependencies).sort());
   });
 
   it('never registers an element that loads or holds a stylesheet or script (E11)', () => {

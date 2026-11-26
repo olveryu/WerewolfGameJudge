@@ -291,11 +291,14 @@ over every avatar site its census finds; the frame geometry tests
 - Keyboard focus is visible through the global focus treatment; input focus retains its
   component-specific treatment.
 - Component styles live in bundled CSS. In TSX the UI gate allows only registered native elements
-  (`ui/element-allowlist`; no `<style>`, `<link>` or `<script>`), inline `style` keys the checker
-  can enumerate (`ui/inline-style-keys`), and DOM members that write markup, styles, attributes or
+  (`ui/element-allowlist`; no `<style>`, `<link>` or `<script>`, and no spread or props object
+  that can carry `style` or `dangerouslySetInnerHTML`), inline `style` keys the checker can
+  enumerate whose literal values pass the same value domains as CSS (`ui/inline-style-keys`;
+  runtime values are left to the screenshot check), and DOM members that write markup, styles, attributes or
   nodes only where `DOM_WRITERS` in `scripts/ui-lint/registry.mjs` registers them for that file
   (`ui/dom-allowlist`). What the gate covers is the web build's bundle graph
-  (`scripts/ui-lint/bundle.mjs`).
+  (`scripts/ui-lint/bundle.mjs`): a package import passes only if `PACKAGES` in the registry
+  lists it for the manifest field it is in.
 
 ## Do's and Don'ts
 
@@ -303,8 +306,9 @@ over every avatar site its census finds; the frame geometry tests
   gate (`pnpm run lint:ui`) allows only what `scripts/ui-lint/registry.mjs` registers: each
   property's value domain (tokens of that domain plus a few keywords), the registered functions
   and at-rules, and system colors only under `forced-colors`. `tokens.css` holds only custom
-  property definitions; each registered art stylesheet is exempt from the value rules only for
-  its own class prefix. Existing exceptions are recorded in `ui-gate-baseline.json` and may only
+  property definitions, and no other stylesheet defines a token name or a local variable that is
+  not an alias of a token; each registered art stylesheet is exempt from the value rules only for
+  rules whose subject is an element of its own class prefix. Existing exceptions are recorded in `ui-gate-baseline.json` and may only
   shrink.
 - Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
 - Do not replace meaningful game art or faction semantics with decorative styling.

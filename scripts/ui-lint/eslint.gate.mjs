@@ -5,9 +5,6 @@
  * not apply to the gate. Rules the main configuration also runs are enabled here again for the
  * same reason (E9, E11).
  */
-import path from 'node:path';
-
-import reactPlugin from 'eslint-plugin-react';
 import tseslint from 'typescript-eslint';
 
 import uiPlugin from './eslint-plugin.mjs';
@@ -30,12 +27,11 @@ export function gateConfig(repoRoot) {
           ecmaFeatures: { jsx: true },
         },
       },
-      plugins: { ui: uiPlugin, react: reactPlugin, '@typescript-eslint': tseslint.plugin },
+      plugins: { ui: uiPlugin, '@typescript-eslint': tseslint.plugin },
       rules: {
         'ui/dom-allowlist': 'error',
         'ui/element-allowlist': 'error',
         'ui/inline-style-keys': 'error',
-        'react/no-danger': 'error',
         'no-eval': 'error',
         'no-new-func': 'error',
         '@typescript-eslint/no-implied-eval': 'error',
@@ -69,6 +65,3 @@ export function gateConfig(repoRoot) {
     },
   ];
 }
-
-/** For `eslint --config scripts/ui-lint/eslint.gate.mjs` (the generator test). */
-export default gateConfig(path.resolve(import.meta.dirname, '../..'));

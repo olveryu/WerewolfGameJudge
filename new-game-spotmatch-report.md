@@ -169,7 +169,7 @@ corepack pnpm --filter @game-judge/game-engine run build
 corepack pnpm --filter @game-judge/game-engine run test src/games/spotmatch src/platform/__tests__/engineSkeleton.contract.test.ts src/platform/__tests__/gameRegistry.contract.test.ts src/platform/__tests__/phaseDeadlineVariants.contract.test.ts src/platform/engine/__tests__/capabilities.contract.test.ts src/platform/config/__tests__/configSchema.test.ts src/platform/__tests__/architecture.contract.test.ts
 corepack pnpm --filter @game-judge/game-engine run test src/platform/engine/__tests__/contracts.test.ts
 corepack pnpm --filter @game-judge/api-worker run test src/games/spotmatch src/games/__tests__/catalog.test.ts src/platform/room/__tests__/GameRoom.test.ts
-corepack pnpm --filter @game-judge/web run test src/games/spotmatch src/__tests__/roomReview.contract.test.ts src/__tests__/roomGuidanceMatrix.contract.test.ts src/games/__tests__/homeProductionFilter.contract.test.ts src/__tests__/noHardcodedStyleValues.contract.test.ts
+corepack pnpm --filter @game-judge/web run test src/games/spotmatch src/__tests__/roomReview.contract.test.ts src/__tests__/roomGuidanceMatrix.contract.test.ts src/games/__tests__/homeProductionFilter.contract.test.ts
 corepack pnpm --filter @game-judge/web run test src/__tests__/botDispatchDiscipline.contract.test.ts
 corepack pnpm run test contracts/architecture.contract.test.ts contracts/ciE2eCoverage.contract.test.ts
 corepack pnpm exec playwright test e2e/specs/spotmatch.spec.ts --project=chromium --workers=1 --reporter=line --max-failures=1

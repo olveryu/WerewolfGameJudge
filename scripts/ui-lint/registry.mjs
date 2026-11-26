@@ -75,6 +75,27 @@ export const ASSET_QUERIES = Object.freeze(new Set(['', '?url']));
 /** Virtual modules a Vite plugin serves. */
 export const VIRTUAL_MODULE_PREFIXES = Object.freeze(['~icons/']);
 
+/**
+ * Third-party packages the bundle may import (by script entry; package stylesheets never), each
+ * with the manifest field it must be declared in and what it brings to the page. A package the
+ * web manifest declares in `dependencies` and does not register here, or a registered package
+ * the manifest does not declare in that field, is a graph problem.
+ */
+export const PACKAGES = Object.freeze({
+  '@ark-ui/react': { field: 'dependencies', why: 'headless components; styles come from us' },
+  '@sentry/react': { field: 'dependencies', why: 'error reporting; renders no UI' },
+  '@tanstack/react-query': { field: 'dependencies', why: 'data fetching; renders no UI' },
+  '@zumer/snapdom': { field: 'dependencies', why: 'screenshot capture of our own DOM' },
+  'pinyin-pro': { field: 'dependencies', why: 'text conversion; renders no UI' },
+  'pixi.js': { field: 'dependencies', why: 'canvas renderer (D13: its own style writes)' },
+  react: { field: 'dependencies', why: 'UI runtime' },
+  'react-dom': { field: 'dependencies', why: 'createRoot only (E11)' },
+  'react-router': { field: 'dependencies', why: 'routing; renders no UI' },
+  sonner: { field: 'dependencies', why: 'toasts (D13: injects its own <style>)' },
+  zod: { field: 'dependencies', why: 'validation; renders no UI' },
+  msw: { field: 'devDependencies', why: 'admin mock worker, started only in the admin-mock mode' },
+});
+
 // ---------------------------------------------------------------------------------------------
 // CSS (§2 S1, S2, S4, S7, S10)
 // ---------------------------------------------------------------------------------------------
@@ -84,6 +105,9 @@ export const TOKEN_SHEET = Object.freeze({
   file: 'packages/web/src/theme/tokens.css',
   selectors: Object.freeze(['.admin-console', ':root']),
 });
+
+/** Token families `colors.ts` publishes at runtime; no stylesheet defines a name in them. */
+export const RUNTIME_TOKEN_FAMILIES = Object.freeze(['--color-', '--report-']);
 
 /**
  * Art stylesheets (plan D7): their values are the artwork, so the value rules are off, and every
@@ -160,12 +184,19 @@ const GLOBAL_KEYWORDS = ['inherit', 'initial', 'unset', 'revert', 'revert-layer'
 /** Functions every token domain accepts: references and arithmetic over atoms. */
 const MATH_FUNCTIONS = ['calc', 'min', 'max', 'clamp'];
 
+/** Layout ratios a size, offset or track may use as literals: they are not design sizes. */
+const RATIO_UNITS = ['%', 'vw', 'vh', 'dvw', 'dvh', 'svw', 'svh', 'lvw', 'lvh'];
+const SIZE_KEYWORDS = ['auto', 'none', 'fit-content', 'min-content', 'max-content', 'stretch'];
+const POSITION_KEYWORDS = ['center', 'top', 'bottom', 'left', 'right'];
+
 /**
  * Token domains. A value in a domain is a sequence of atoms: `var()` (its fallback read in the
- * same domain), a global keyword, zero, a domain keyword, or a math function over atoms where the
- * only number is the sign flip `-1`. `units` lists the extra literal units a domain accepts
- * (percentages and angles in paint), `unitless` accepts plain numbers (iteration counts, filter
- * amounts, scale factors), `idents` accepts custom identifiers (animation and property names).
+ * same domain), a global keyword, zero, a domain keyword, a domain literal, or a math function
+ * over atoms where the only bare number is the sign flip `-1`. `units` lists the literal units a
+ * domain accepts (layout ratios, angles), also inside math; `unitless` accepts plain numbers
+ * outside math (counts, factors, flex weights); `idents` accepts custom identifiers (animation
+ * and property names); `literals` lists exact words (opacity `1`). The arguments of `url()` and
+ * `env()` are references, not values.
  */
 export const DOMAINS = Object.freeze({
   radius: { keywords: [] },
@@ -173,6 +204,38 @@ export const DOMAINS = Object.freeze({
   font: { keywords: ['normal'] },
   layer: { keywords: ['auto'] },
   'line-width': { keywords: [] },
+  size: { keywords: SIZE_KEYWORDS, units: RATIO_UNITS, functions: ['env', 'fit-content'] },
+  track: {
+    keywords: [...SIZE_KEYWORDS, 'subgrid', 'auto-fill', 'auto-fit'],
+    unitless: true,
+    units: [...RATIO_UNITS, 'fr'],
+    functions: ['env', 'repeat', 'minmax', 'fit-content'],
+  },
+  flex: { keywords: [...SIZE_KEYWORDS, 'content'], unitless: true, units: RATIO_UNITS },
+  offset: { keywords: ['auto'], units: RATIO_UNITS, functions: ['env'] },
+  transform: {
+    keywords: ['none'],
+    unitless: true,
+    units: ['%', 'deg', 'turn', 'rad'],
+    functions: [
+      'translate',
+      'translateX',
+      'translateY',
+      'translate3d',
+      'scale',
+      'scaleX',
+      'scaleY',
+      'rotate',
+      'rotateX',
+      'rotateY',
+      'skewX',
+    ],
+  },
+  origin: { keywords: POSITION_KEYWORDS, units: ['%'] },
+  opacity: { keywords: [], literals: ['1'] },
+  align: {
+    keywords: ['baseline', 'sub', 'super', 'text-top', 'text-bottom', 'middle', 'top', 'bottom'],
+  },
   shadow: { keywords: ['none', 'inset'], colors: true },
   border: {
     keywords: ['none', 'hidden', 'solid', 'dashed', 'dotted', 'double'],
@@ -185,6 +248,12 @@ export const DOMAINS = Object.freeze({
     functions: ['cubic-bezier', 'steps'],
   },
   color: { keywords: ['none'], colors: true },
+  /** SVG `fill`/`stroke`: a color, or a paint server `url(#id)`. */
+  'svg-paint': {
+    keywords: ['none', 'context-fill', 'context-stroke'],
+    colors: true,
+    functions: ['url'],
+  },
   paint: {
     keywords: [
       'none',
@@ -193,11 +262,7 @@ export const DOMAINS = Object.freeze({
       'repeat',
       'repeat-x',
       'repeat-y',
-      'center',
-      'top',
-      'bottom',
-      'left',
-      'right',
+      ...POSITION_KEYWORDS,
       'cover',
       'contain',
       'to',
@@ -239,8 +304,11 @@ export const DOMAINS = Object.freeze({
   },
   /** `clip-path`: shapes are free, except the corner radius after `round` (radius domain). */
   shape: { shape: true },
-  /** A custom property definition outside the token sheet (S4): references and scale factors. */
-  custom: { keywords: [], colors: true, unitless: true, mathNumbers: true, functions: ['env'] },
+  /**
+   * A custom property defined outside the token sheet (S4): it only aliases tokens (references,
+   * zero, global keywords, colors keywords), so no literal hides behind a local variable.
+   */
+  custom: { keywords: [], colors: true, functions: ['env'] },
 });
 export const DOMAIN_COMMON = Object.freeze({
   keywords: GLOBAL_KEYWORDS,
@@ -291,8 +359,8 @@ const sides = (prefix, suffix = '') =>
 
 /**
  * Every property a stylesheet may set, by lower-case name without a vendor prefix: a token
- * domain, or `free` for properties whose value syntax holds no color and no design size
- * (layout, positioning, transforms, behaviour). An unregistered property is reported.
+ * domain, or `free` for properties whose value syntax holds only keywords and counts (display,
+ * alignment, flex and grid placement, overflow, behaviour). An unregistered property is reported.
  */
 export const PROPERTIES = Object.freeze(
   new Map([
@@ -337,6 +405,9 @@ export const PROPERTIES = Object.freeze(
       'column-rule-width',
       'text-decoration-thickness',
       'text-underline-offset',
+      'stroke-width',
+      'stroke-dasharray',
+      'stroke-dashoffset',
     ]),
     ...domainOf('shadow', ['box-shadow', 'text-shadow']),
     ...domainOf('border', [...sides('border'), 'outline', 'column-rule']),
@@ -366,8 +437,6 @@ export const PROPERTIES = Object.freeze(
       'column-rule-color',
       'accent-color',
       'caret-color',
-      'fill',
-      'stroke',
       'stop-color',
       'flood-color',
       'tap-highlight-color',
@@ -394,47 +463,7 @@ export const PROPERTIES = Object.freeze(
       'text-decoration-style',
     ]),
     ...domainOf('shape', ['clip-path']),
-    ...domainOf('free', [
-      'display',
-      'align-content',
-      'align-items',
-      'align-self',
-      'justify-content',
-      'justify-items',
-      'justify-self',
-      'place-content',
-      'place-items',
-      'place-self',
-      'flex',
-      'flex-basis',
-      'flex-direction',
-      'flex-flow',
-      'flex-grow',
-      'flex-shrink',
-      'flex-wrap',
-      'order',
-      'grid-area',
-      'grid-column',
-      'grid-row',
-      'grid-template',
-      'grid-template-areas',
-      'grid-template-columns',
-      'grid-template-rows',
-      'grid-auto-flow',
-      'grid-auto-columns',
-      'grid-auto-rows',
-      'position',
-      'top',
-      'right',
-      'bottom',
-      'left',
-      'inset',
-      'inset-block',
-      'inset-inline',
-      'inset-block-start',
-      'inset-block-end',
-      'inset-inline-start',
-      'inset-inline-end',
+    ...domainOf('size', [
       'width',
       'height',
       'min-width',
@@ -447,6 +476,65 @@ export const PROPERTIES = Object.freeze(
       'min-inline-size',
       'max-block-size',
       'max-inline-size',
+      'flex-basis',
+      'perspective',
+    ]),
+    ...domainOf('track', [
+      'grid-template',
+      'grid-template-columns',
+      'grid-template-rows',
+      'grid-auto-columns',
+      'grid-auto-rows',
+    ]),
+    ...domainOf('flex', ['flex']),
+    ...domainOf('offset', [
+      'top',
+      'right',
+      'bottom',
+      'left',
+      'inset',
+      'inset-block',
+      'inset-inline',
+      'inset-block-start',
+      'inset-block-end',
+      'inset-inline-start',
+      'inset-inline-end',
+      'translate',
+    ]),
+    ...domainOf('transform', ['transform', 'rotate', 'scale']),
+    ...domainOf('origin', ['transform-origin', 'perspective-origin', 'object-position']),
+    ...domainOf('opacity', [
+      'opacity',
+      'fill-opacity',
+      'stroke-opacity',
+      'stop-opacity',
+      'flood-opacity',
+    ]),
+    ...domainOf('align', ['vertical-align']),
+    ...domainOf('svg-paint', ['fill', 'stroke']),
+    ...domainOf('free', [
+      'display',
+      'align-content',
+      'align-items',
+      'align-self',
+      'justify-content',
+      'justify-items',
+      'justify-self',
+      'place-content',
+      'place-items',
+      'place-self',
+      'flex-direction',
+      'flex-flow',
+      'flex-grow',
+      'flex-shrink',
+      'flex-wrap',
+      'order',
+      'grid-area',
+      'grid-column',
+      'grid-row',
+      'grid-template-areas',
+      'grid-auto-flow',
+      'position',
       'aspect-ratio',
       'box-sizing',
       'overflow',
@@ -457,21 +545,12 @@ export const PROPERTIES = Object.freeze(
       'overscroll-behavior-x',
       'overscroll-behavior-y',
       'object-fit',
-      'object-position',
-      'opacity',
       'visibility',
       'pointer-events',
       'cursor',
       'user-select',
       'touch-action',
-      'transform',
-      'transform-origin',
       'transform-style',
-      'translate',
-      'rotate',
-      'scale',
-      'perspective',
-      'perspective-origin',
       'backface-visibility',
       'isolation',
       'content',
@@ -482,7 +561,6 @@ export const PROPERTIES = Object.freeze(
       'text-wrap',
       'text-transform',
       'word-break',
-      'vertical-align',
       'float',
       'clip',
       'table-layout',
@@ -506,11 +584,8 @@ export const PROPERTIES = Object.freeze(
       'box-orient',
       'text-size-adjust',
       'touch-callout',
-      'stroke-dasharray',
-      'stroke-dashoffset',
       'stroke-linecap',
       'stroke-linejoin',
-      'stroke-width',
     ]),
   ]),
 );
@@ -588,6 +663,67 @@ export const ELEMENTS = Object.freeze(
     'time',
     'tr',
     'ul',
+  ]),
+);
+
+// ---------------------------------------------------------------------------------------------
+// Inline styles and SVG presentation attributes (§2 E4)
+// ---------------------------------------------------------------------------------------------
+
+/** Style keys React writes as plain numbers; any other number gets `px` (React's own list). */
+export const REACT_UNITLESS = Object.freeze(
+  new Set([
+    'animationIterationCount',
+    'aspectRatio',
+    'columnCount',
+    'flex',
+    'flexGrow',
+    'flexShrink',
+    'gridArea',
+    'gridColumn',
+    'gridColumnEnd',
+    'gridColumnStart',
+    'gridRow',
+    'gridRowEnd',
+    'gridRowStart',
+    'fontWeight',
+    'lineClamp',
+    'lineHeight',
+    'opacity',
+    'order',
+    'scale',
+    'zIndex',
+    'zoom',
+    'fillOpacity',
+    'floodOpacity',
+    'stopOpacity',
+    'strokeDasharray',
+    'strokeDashoffset',
+    'strokeMiterlimit',
+    'strokeOpacity',
+    'strokeWidth',
+  ]),
+);
+
+/** SVG presentation attributes (JSX name) and the CSS property whose domain judges them. */
+export const SVG_ATTRIBUTES = Object.freeze(
+  new Map([
+    ['fill', 'fill'],
+    ['stroke', 'stroke'],
+    ['color', 'color'],
+    ['stopColor', 'stop-color'],
+    ['floodColor', 'flood-color'],
+    ['strokeWidth', 'stroke-width'],
+    ['opacity', 'opacity'],
+    ['fillOpacity', 'fill-opacity'],
+    ['strokeOpacity', 'stroke-opacity'],
+    ['stopOpacity', 'stop-opacity'],
+    ['rx', 'border-radius'],
+    ['ry', 'border-radius'],
+    ['fontSize', 'font-size'],
+    ['fontWeight', 'font-weight'],
+    ['fontFamily', 'font-family'],
+    ['letterSpacing', 'letter-spacing'],
   ]),
 );
 
@@ -674,8 +810,8 @@ export const SAFE_PRODUCTS = Object.freeze(
 /**
  * Files allowed to use other managed members, member by member. For the attribute and property
  * writers (`setAttribute`, `removeAttribute`, `setProperty`, `removeProperty`) an entry names
- * the attribute or property too (`setAttribute:opacity`); `setProperty:*` registers a publisher
- * of a whole token family. Factories with another product register `createElement:<tag>` or
+ * the attribute or property too (`setAttribute:opacity`); a trailing `*` (`setProperty:--color-*`)
+ * registers a publisher of a token family, matched against the name's template literal type. Factories with another product register `createElement:<tag>` or
  * `new <Constructor>`.
  */
 export const DOM_WRITERS = Object.freeze({
@@ -787,5 +923,7 @@ export const DOM_WRITERS = Object.freeze({
   ],
   'packages/web/src/services/infra/audio/BgmPlayer.ts': ['removeAttribute:src'],
   'packages/web/src/services/infra/audio/WebAudioStrategy.ts': ['removeAttribute:src'],
-  'packages/web/src/theme/colors.ts': ['setProperty:*'],
+  'packages/web/src/theme/colors.ts': RUNTIME_TOKEN_FAMILIES.map(
+    (family) => `setProperty:${family}*`,
+  ),
 });

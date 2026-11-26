@@ -3,10 +3,11 @@
  *
  * The entries are every page under the Vite root plus the entries a build plugin adds. From
  * them the graph follows every runtime import (`import`, `export … from`, literal `import()`,
- * `import.meta.glob`, CSS `@import`). Each specifier must land on something the gate checks or
- * a registered kind of leaf: a repository `.ts`/`.tsx` or `.css` file (checked), an asset with a
- * registered extension, a virtual icon module, or the script entry of a package the web client
- * declares. Anything else is a problem, so nothing reaches the page past the gate, and what is
+ * `import.meta.glob`, `new URL('./x', import.meta.url)`, CSS `@import`; a worker takes only the
+ * latter). Each specifier must land on something the gate checks or a registered kind of leaf:
+ * a repository `.ts`/`.tsx` or `.css` file (checked), an asset with a registered extension, a
+ * virtual icon module, or the resolved script entry of a package registered in `PACKAGES`
+ * (which must match the web manifest). Anything else is a problem, so nothing reaches the page past the gate, and what is
  * bundled is checked whatever its path or name says (no test-file exception).
  */
 import { execFileSync } from 'node:child_process';
@@ -21,6 +22,7 @@ import {
   ASSET_EXTENSIONS,
   ASSET_QUERIES,
   BUILD_ENTRIES,
+  PACKAGES,
   PAGE_ATTRIBUTES,
   PAGE_ELEMENTS,
   PAGE_HTTP_EQUIV,
@@ -59,12 +61,24 @@ function compilerOptions(root) {
   return parsed.options;
 }
 
-function webDependencies(root) {
+/**
+ * The packages the bundle may import: registered in `PACKAGES` and declared in that field of
+ * the web manifest. Every manifest dependency must be registered, so adding one is a registry
+ * change a reviewer sees.
+ */
+function webPackages(root, packages, problems) {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, WEB_ROOT, 'package.json'), 'utf8'));
-  return new Set([
-    ...Object.keys(manifest.dependencies ?? {}),
-    ...Object.keys(manifest.devDependencies ?? {}),
-  ]);
+  const allowed = new Set();
+  for (const name of Object.keys(manifest.dependencies ?? {})) {
+    if (packages[name]?.field !== 'dependencies')
+      problems.push(`${WEB_ROOT}/package.json: dependency \`${name}\` is not registered`);
+  }
+  for (const [name, { field }] of Object.entries(packages)) {
+    if (manifest[field]?.[name] === undefined)
+      problems.push(`registry: package \`${name}\` is not in the web ${field}`);
+    else allowed.add(name);
+  }
+  return allowed;
 }
 
 function packageName(specifier) {
@@ -110,6 +124,31 @@ function scriptReferences(file, text) {
       ts.isExternalModuleReference(node.moduleReference)
     ) {
       problems.push(`${at(node)}: \`import … = require()\` is not a bundled import`);
+    } else if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
+      const [first, second] = node.arguments ?? [];
+      const name = node.expression.text;
+      const isModuleUrl = (expression) =>
+        expression !== undefined &&
+        ts.isPropertyAccessExpression(expression) &&
+        expression.name.text === 'url' &&
+        ts.isMetaProperty(expression.expression);
+      if (name === 'URL' && isModuleUrl(second)) {
+        // Vite bundles `new URL('./x', import.meta.url)` as an asset or module of this graph.
+        const specifier = literal(first);
+        if (specifier === undefined || !specifier.startsWith('.'))
+          problems.push(
+            `${at(node)}: \`new URL(…, import.meta.url)\` takes a literal relative path`,
+          );
+        else references.push({ specifier, url: true, at: at(node) });
+      } else if (name === 'Worker' || name === 'SharedWorker') {
+        const ok =
+          first !== undefined &&
+          ts.isNewExpression(first) &&
+          ts.isIdentifier(first.expression) &&
+          first.expression.text === 'URL' &&
+          isModuleUrl(first.arguments?.[1]);
+        if (!ok) problems.push(`${at(node)}: a worker takes \`new URL('./x', import.meta.url)\``);
+      }
     } else if (ts.isCallExpression(node)) {
       if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
         const specifier = literal(node.arguments[0]);
@@ -231,10 +270,10 @@ function pageEntries(root, file, problems) {
  * The bundle graph: `{ scripts, styles, problems }` with repository-relative paths.
  * `root` defaults to the repository (tests pass a fixture root with the same layout).
  */
-export function bundleGraph(root = REPO_ROOT) {
+export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
   const options = compilerOptions(root);
-  const dependencies = webDependencies(root);
   const problems = [];
+  const dependencies = webPackages(root, packages, problems);
   const relative = (file) => path.relative(root, file).split(path.sep).join('/');
 
   const pages = trackedFiles(path.join(root, WEB_ROOT), '*.html').map((page) =>
@@ -272,9 +311,13 @@ export function bundleGraph(root = REPO_ROOT) {
   const followScript = (file) => {
     const { references, problems: own } = scriptReferences(file, fs.readFileSync(file, 'utf8'));
     problems.push(...own);
-    for (const { specifier, glob, at } of references) {
+    for (const { specifier, glob, url, at } of references) {
       if (specifier === undefined) {
         problems.push(`${at}: non-literal module specifier`);
+        continue;
+      }
+      if (url) {
+        leaf(path.resolve(path.dirname(file), specifier), specifier, at);
         continue;
       }
       if (glob) {
@@ -304,11 +347,11 @@ export function bundleGraph(root = REPO_ROOT) {
       const resolved = ts.resolveModuleName(specifier, file, options, ts.sys).resolvedModule;
       if (bare && !aliased) {
         if (!dependencies.has(packageName(specifier)))
-          problems.push(`${at}: \`${specifier}\` is not a dependency of the web client`);
+          problems.push(`${at}: \`${specifier}\` is not a registered package of the web client`);
         else if (/\.css(\?|$)/.test(specifier))
           problems.push(`${at}: package stylesheets bypass the gate`);
-        else if (resolved && !resolved.isExternalLibraryImport)
-          leaf(resolved.resolvedFileName, specifier, at);
+        else if (!resolved) problems.push(`${at}: \`${specifier}\` does not resolve`);
+        else if (!resolved.isExternalLibraryImport) leaf(resolved.resolvedFileName, specifier, at);
         continue;
       }
       if (!resolved) problems.push(`${at}: \`${specifier}\` does not resolve`);

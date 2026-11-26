@@ -34,9 +34,12 @@ const GREEN = [
   'a { color: currentColor; background: transparent; border: var(--border-width) solid var(--color-border); }',
   'a { transition: opacity var(--duration-fast) cubic-bezier(0.2, 0, 0, 1); animation: spin var(--duration-slow) linear infinite; }',
   'a { z-index: var(--layer-hand); font: inherit; font-weight: normal; }',
-  'a { width: 320px; transform: translateY(4px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }',
+  'a { width: 100%; max-width: var(--size-max-content-width); min-height: 100dvh; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }',
+  'a { transform: translateY(-50%) rotate(45deg) scale(1.05); transform-origin: center top; }',
+  'a { top: calc(100% - var(--space-small)); inset: 0; opacity: 1; flex: 1 1 auto; vertical-align: middle; }',
+  'a { fill: url(#g); stroke: currentColor; background: url(./x.png) no-repeat; }',
   'a { -webkit-line-clamp: 2; -webkit-tap-highlight-color: transparent; }',
-  'a { --local-scale: 1.4; --local-ref: var(--space-small); }',
+  'a { --local-ref: var(--space-small); --local-zero: 0; }',
   'a { background: linear-gradient(180deg, var(--a) 0%, var(--b) 100%); }',
   'a { clip-path: inset(0 0 50% 0 round var(--radius-card)); }',
   '@media (forced-colors: active) { a { color: ButtonText; --hand-border: ButtonBorder; } }',
@@ -61,6 +64,28 @@ const RED = [
   'a { font-family: Menlo, monospace; }',
   'a { --probe-r: 13px; }',
   'a { --probe-c: #fff; }',
+  // Sizes, offsets, opacity and transforms are token domains too (QA5 K1).
+  'a { width: 44px; }',
+  'a { height: 44px; }',
+  'a { min-height: 44px; }',
+  'a { grid-template-columns: 120px 1fr; }',
+  'a { top: 12px; }',
+  'a { opacity: 0.6; }',
+  'a { stroke-width: 2px; }',
+  'a { transform: translateY(-4px); }',
+  'a { flex-basis: 37px; }',
+  'a { inset: 13px; }',
+  'a { vertical-align: -2px; }',
+  'a { perspective: 400px; }',
+  'a { translate: 0 2px; }',
+  'a { flex: 0 0 120px; }',
+  // A local variable only aliases tokens and never redefines one (QA5 K2, K9).
+  'a { --fw: 700; font-weight: var(--fw); }',
+  'a { --lh: 1.4; line-height: var(--lh); }',
+  'a { --z: 999; z-index: var(--z); }',
+  'a { --f: 1.625; border-radius: calc(var(--radius-small) * var(--f)); }',
+  'a { --local-scale: 1.4; }',
+  'a { --color-primary: var(--color-danger); }',
   // Outside the allow lists, however spelled (QA1 F1–F7, QA2 G7/G8, QA3 H9).
   'a { color: RGB(1, 2, 3); }',
   'a { color: rgb(1 2 3); }',
@@ -125,7 +150,7 @@ describe('ui/sheet-scope', () => {
   it('lets an art sheet write values on its own classes', async () => {
     expect(
       await warnings(
-        '.night-art .night-art-title { font-size: 31px; color: #fff; }\n@keyframes x { from { opacity: 0; } }',
+        '.night-art .night-art-title { font-size: 31px; color: #fff; }\n.night-art:hover > .night-art__x::before { opacity: 0.4; }\n@keyframes x { from { opacity: 0; } }',
         ART,
       ),
     ).toEqual([]);
@@ -138,6 +163,12 @@ describe('ui/sheet-scope', () => {
     'img { border-radius: 13px; }',
     '[class*="avatar"] { border-radius: 13px; }',
     '.night-art\\2d x { color: red; }',
+    // The subject must be an art element (QA5 K3).
+    ':not(.night-art) { border-radius: 3px; }',
+    '.night-art ~ * { border-radius: 3px; }',
+    ':root:has(.night-art) button { border-radius: 3px; }',
+    '.night-art + div, .night-art > button { padding: 3px; }',
+    '.night-art > :not(.night-art-x) { padding: 3px; }',
   ])('rejects %s in an art sheet', async (code) => {
     expect((await warnings(code, ART)).length).toBeGreaterThan(0);
   });

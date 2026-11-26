@@ -73,8 +73,16 @@ tester.run('ui/dom-allowlist', uiLint.rules['dom-allowlist'], {
     ),
     ...green(
       ["document.documentElement.style.setProperty(`--color-${'a'}`, 'x');"],
-      writer(['setProperty:*']),
+      writer(['setProperty:--color-*']),
     ),
+    ...green(
+      [
+        "declare const t: string; document.documentElement.style.setProperty(`--color-${t}` as `--color-${string}`, 'x');",
+        "document.documentElement.style.setProperty('--color-a', 'x');",
+      ],
+      writer(['setProperty:--color-*']),
+    ),
+    ...green(['void document.fonts.ready;']),
     ...green(["document.createElement('script');"], writer(['createElement:script'])),
   ],
   invalid: [
@@ -144,6 +152,31 @@ tester.run('ui/dom-allowlist', uiLint.rules['dom-allowlist'], {
       'name',
       writer(['setAttribute:opacity']),
     ),
+    // A token-family publisher writes only its family (QA5 K9).
+    ...red(
+      ["document.documentElement.style.setProperty('border-radius', 'x');"],
+      'member',
+      writer(['setProperty:--color-*']),
+    ),
+    ...red(
+      [
+        "declare const t: string; document.documentElement.style.setProperty(t, 'x');",
+        "declare const t: string; document.documentElement.style.setProperty(`--report-${t}` as `--report-${string}`, 'x');",
+      ],
+      'name',
+      writer(['setProperty:--color-*']),
+    ),
+    // Members a managed interface inherits from the ES library are judged on it (QA5 K5).
+    ...red(
+      [
+        'declare const f: FontFace; document.fonts.add(f);',
+        'declare const f: FontFace; document.fonts.delete(f);',
+        'document.fonts.clear();',
+        'const { add } = document.fonts; void add;',
+      ],
+      'member',
+    ),
+    ...red(["new FontFace('X', 'url(/x.woff2)');"], 'product'),
     ...red(
       ['declare const el: HTMLElement; el.style.clipPath = "x";'],
       'member',
@@ -159,6 +192,9 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
     'const ui = { Card: () => null }; export const a = <ui.Card />;',
     `${REACT}const C = () => null; createElement(C);`,
     'declare const Tag: "div" | "span"; export const a = <Tag />;',
+    `${REACT}declare const p: React.ButtonHTMLAttributes<HTMLButtonElement>; export const a = <button {...p} />;`,
+    `${REACT}declare const p: { title: string; 'data-x'?: string }; export const a = <div {...p} />;`,
+    `${REACT}createElement('div', { title: 'x' });`,
   ]),
   invalid: [
     ...red(
@@ -178,14 +214,50 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
       ],
       'dynamic',
     ),
+    // Raw HTML and styles reaching a native element past its attributes (QA5 K4).
+    ...red(
+      [
+        'export const a = <div dangerouslySetInnerHTML={undefined} />;',
+        `${REACT}const html = { __html: '<style>a{}</style>' }; void html;`,
+      ],
+      'html',
+    ),
+    {
+      filename,
+      code: "export const a = <div {...{ dangerouslySetInnerHTML: { __html: '<style>.x{}</style>' } }} />;",
+      errors: [{ messageId: 'html' }, { messageId: 'html' }],
+    },
+    {
+      filename,
+      code: `${REACT}createElement('div', { dangerouslySetInnerHTML: { __html: '<style>.x{}</style>' } });`,
+      errors: [{ messageId: 'html' }, { messageId: 'html' }],
+    },
+    ...red(
+      [
+        'const props = { style: { borderRadius: 3 } }; export const a = <div {...props} />;',
+        `${REACT}createElement('div', { style: { borderRadius: 3 } });`,
+      ],
+      'style',
+    ),
+    ...red(
+      [
+        'declare const keys: string[]; export const a = <div {...Object.fromEntries(keys.map((k) => [k, 1]))} />;',
+        'declare const p: any; export const a = <div {...p} />;',
+        `${REACT}declare const p: Record<string, unknown>; createElement('div', p);`,
+      ],
+      'opaque',
+    ),
   ],
 });
 
 tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
   valid: green([
     'export const a = <div style={{ opacity: 1 }} />;',
-    "export const a = <div style={{ ['--seat-progress']: 1 }} />;",
-    `${REACT}declare const k: 'opacity' | 'color'; const s: CSSProperties = { [k]: 1 }; void s;`,
+    "declare const progress: number; export const a = <div style={{ ['--seat-progress']: progress }} />;",
+    `${REACT}declare const k: 'opacity' | 'color'; const s: CSSProperties = { [k]: 'var(--a)' }; void s;`,
+    "export const a = <div style={{ borderRadius: 'var(--radius-card)', padding: 0, width: '100%' }} />;",
+    'declare const w: number; export const a = <div style={{ width: w }} />;',
+    'export const a = <svg><rect rx={0} fill="currentColor" stroke="url(#g)" opacity={1} /></svg>;',
     `${REACT}declare const vars: { [key: \`--\${string}\`]: string }; export const a = <div style={vars} />;`,
     'const Box = (_: { style: Record<string, string> }) => null; declare const r: Record<string, string>; export const a = <Box style={r} />;',
   ]),
@@ -204,6 +276,22 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         'declare const r: Record<`border${string}`, string>; export const a = <div style={{ ...r }} />;',
       ],
       'indexed',
+    ),
+    // Literal values pass the stylesheet value checker (QA5 K6).
+    ...red(
+      [
+        'export const a = <div style={{ borderRadius: 7 }} />;',
+        "export const a = <div style={{ color: '#f00' }} />;",
+        'export const a = <div style={{ padding: 12 }} />;',
+        'declare const on: boolean; export const a = <div style={{ width: on ? 44 : 0 }} />;',
+        `${REACT}const s: CSSProperties = { zIndex: 999 }; void s;`,
+        "export const a = <div style={{ ['--local-weight']: 700 }} />;",
+        'export const a = <svg><rect rx={7} /></svg>;',
+        'export const a = <svg><rect fill="#f00" /></svg>;',
+        'export const a = <svg><rect strokeWidth={3} /></svg>;',
+        "export const a = <div style={{ mysteryProperty: 'x' }} />;",
+      ],
+      'value',
     ),
   ],
 });

@@ -44,29 +44,29 @@ The application release version is authoritative in the root `package.json`; `pa
 
 ## Commands
 
-| Task              | Exact command                                                            | Scope                                                                  |
-| ----------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| Root tests        | `pnpm run test` (Vitest contracts and generator tests)                   | Local, scoped by path filter                                           |
-| Web tests         | `pnpm --filter @game-judge/web run test`                                 | Local, scoped by path filter                                           |
-| All tests         | `pnpm run test:all`                                                      | Full run; CI only                                                      |
-| Engine build      | `pnpm --filter @game-judge/game-engine run build`                        | As needed; CI builds it first                                          |
-| Web build         | `pnpm --filter @game-judge/web run build`                                | Vite build plus per-route gzip budgets                                 |
-| Root typecheck    | `pnpm run typecheck`                                                     | Pages types, `contracts/`, `functions/`, `e2e/`                        |
-| Web typecheck     | `pnpm --filter @game-judge/web run typecheck`                            | Local, scoped where possible                                           |
-| Worker typecheck  | `pnpm --filter @game-judge/api-worker run typecheck`                     | Local, scoped where possible                                           |
-| Lint              | `pnpm exec eslint <changed files>`                                       | Local, changed files only; full run in CI                              |
-| Format check      | `pnpm exec prettier --check <changed files>`                             | Local, changed files only; full run in CI                              |
-| Unused code       | `pnpm run knip`                                                          | Local                                                                  |
-| UI gate           | `pnpm run lint:ui`                                                       | Local and CI; `pnpm run lint:ui:baseline` shrinks the baseline         |
-| Agent files check | `pnpm run validate:agents`                                               | Local and CI                                                           |
-| Full gate         | `pnpm run quality`                                                       | Full run; CI only                                                      |
-| E2E               | `pnpm run e2e`                                                           | Full run; CI only                                                      |
-| Single E2E spec   | `gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>` | One spec at a time; verify the run with `gh api` (see `e2e/AGENTS.md`) |
-| Local dev         | `pnpm run dev`                                                           | Worker plus Vite; Worker uses 127.0.0.1:8787 or an available port      |
-| Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                        |
-| Local D1 seed     | `pnpm --filter @game-judge/api-worker run db:seed:local`                 | After local migrations; seeds the local development account            |
-| New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                      |
-| Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Release script                                                         |
+| Task              | Exact command                                                            | Scope                                                                              |
+| ----------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Root tests        | `pnpm run test` (Vitest contracts and generator tests)                   | Local, scoped by path filter                                                       |
+| Web tests         | `pnpm --filter @game-judge/web run test`                                 | Local, scoped by path filter                                                       |
+| All tests         | `pnpm run test:all`                                                      | Full run; CI only                                                                  |
+| Engine build      | `pnpm --filter @game-judge/game-engine run build`                        | As needed; CI builds it first                                                      |
+| Web build         | `pnpm --filter @game-judge/web run build`                                | Vite build plus per-route gzip budgets                                             |
+| Root typecheck    | `pnpm run typecheck`                                                     | Pages types, `contracts/`, `functions/`, `e2e/`                                    |
+| Web typecheck     | `pnpm --filter @game-judge/web run typecheck`                            | Local, scoped where possible                                                       |
+| Worker typecheck  | `pnpm --filter @game-judge/api-worker run typecheck`                     | Local, scoped where possible                                                       |
+| Lint              | `pnpm exec eslint <changed files>`                                       | Local, changed files only; full run in CI                                          |
+| Format check      | `pnpm exec prettier --check <changed files>`                             | Local, changed files only; full run in CI                                          |
+| Unused code       | `pnpm run knip`                                                          | Local                                                                              |
+| UI gate           | `pnpm run lint:ui`                                                       | Local and CI; `pnpm run lint:ui:baseline` rewrites the baseline, CI rejects growth |
+| Agent files check | `pnpm run validate:agents`                                               | Local and CI                                                                       |
+| Full gate         | `pnpm run quality`                                                       | Full run; CI only                                                                  |
+| E2E               | `pnpm run e2e`                                                           | Full run; CI only                                                                  |
+| Single E2E spec   | `gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>` | One spec at a time; verify the run with `gh api` (see `e2e/AGENTS.md`)             |
+| Local dev         | `pnpm run dev`                                                           | Worker plus Vite; Worker uses 127.0.0.1:8787 or an available port                  |
+| Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                                    |
+| Local D1 seed     | `pnpm --filter @game-judge/api-worker run db:seed:local`                 | After local migrations; seeds the local development account                        |
+| New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                                  |
+| Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Release script                                                                     |
 
 `pnpm run dev` applies local migrations and seeds missing data before starting either server; initialization failures terminate startup. The local D1 seed creates `dev@test.local` with password `dev123` (level 99, all reward items unlocked), preserving existing accounts, progress and word edits on reruns, including recovery after interruption. It explicitly uses Wrangler `--local` in this worktree's Worker directory; run it only against the local database, never production.
 

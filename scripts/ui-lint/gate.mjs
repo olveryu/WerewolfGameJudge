@@ -45,9 +45,13 @@ function sortFiles(files) {
   );
 }
 
-/** Lint the graph; returns `{ problems, rules, files }`. */
-export async function runGate({ root = REPO_ROOT, styles = true, scripts = true } = {}) {
+/**
+ * Lint the graph; returns `{ problems, rules, files, graph }`. `only` (repository-relative
+ * paths) narrows the linted files to those of the graph it names; the scope stays the graph.
+ */
+export async function runGate({ root = REPO_ROOT, styles = true, scripts = true, only } = {}) {
   const graph = bundleGraph(root);
+  const pick = (list) => (only ? list.filter((file) => only.has(file)) : list);
   const files = {};
   const rules = new Set();
   if (styles) {
@@ -55,7 +59,7 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true 
     for (const override of stylelintConfig.overrides)
       for (const rule of Object.keys(override.rules)) rules.add(rule);
     const { results } = await stylelint.lint({
-      files: graph.styles.map((file) => path.join(root, file)),
+      files: pick(graph.styles).map((file) => path.join(root, file)),
       config: stylelintConfig,
       configBasedir: root,
     });
@@ -65,8 +69,12 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true 
       for (const warning of result.invalidOptionWarnings ?? [])
         graph.problems.push(`${file}: ${warning.text}`);
       const lines = readLines(root, file);
-      for (const warning of result.warnings)
-        add(files, file, fingerprint(warning.rule, warning.text, lines, warning.line));
+      for (const warning of result.warnings) {
+        // A stylesheet that does not parse is not linted past the error: never a baseline entry.
+        if (warning.rule === 'CssSyntaxError')
+          graph.problems.push(`${file}:${warning.line}: ${warning.text}`);
+        else add(files, file, fingerprint(warning.rule, warning.text, lines, warning.line));
+      }
     }
   }
   if (scripts) {
@@ -78,7 +86,9 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true 
       overrideConfig: config,
       allowInlineConfig: false,
     });
-    const results = await eslint.lintFiles(graph.scripts.map((file) => path.join(root, file)));
+    const results = await eslint.lintFiles(
+      pick(graph.scripts).map((file) => path.join(root, file)),
+    );
     for (const result of results) {
       const file = path.relative(root, result.filePath).split(path.sep).join('/');
       const lines = readLines(root, file);
@@ -89,7 +99,7 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true 
       }
     }
   }
-  return { problems: graph.problems, rules: [...rules].sort(), files: sortFiles(files) };
+  return { problems: graph.problems, rules: [...rules].sort(), files: sortFiles(files), graph };
 }
 
 function git(root, args) {
@@ -100,22 +110,30 @@ function git(root, args) {
   });
 }
 
-/** The commit the baseline may only shrink against (§3). */
+/**
+ * The commit the baseline may only shrink against (§3): `UI_GATE_BASE` in CI (the PR's base
+ * parent `HEAD^1`, a push's `github.event.before`), the merge base with `origin/main` locally.
+ * A base that cannot be found is an error, never an empty baseline.
+ */
 export function comparisonBase(root, env = process.env) {
-  if (env.GITHUB_EVENT_NAME === 'pull_request' || env.GITHUB_EVENT_NAME === 'push')
-    return git(root, ['rev-parse', 'HEAD^1']).trim();
+  const configured = env.UI_GATE_BASE;
+  if (configured) {
+    if (/^0+$/.test(configured)) throw new Error('UI gate: UI_GATE_BASE is the zero SHA');
+    return git(root, ['rev-parse', '--verify', `${configured}^{commit}`]).trim();
+  }
+  if (env.GITHUB_ACTIONS) throw new Error('UI gate: CI must set UI_GATE_BASE');
   return git(root, ['merge-base', 'HEAD', 'origin/main']).trim();
 }
 
-function baselineAt(root, commit) {
-  try {
-    return JSON.parse(git(root, ['show', `${commit}:${BASELINE_FILE}`]));
-  } catch {
+/** The baseline at `commit`: empty only when the commit exists and has no baseline file. */
+export function baselineAt(root, commit) {
+  git(root, ['cat-file', '-e', `${commit}^{commit}`]);
+  if (git(root, ['ls-tree', '--name-only', commit, '--', BASELINE_FILE]).trim() === '')
     return { rules: [], files: {} };
-  }
+  return JSON.parse(git(root, ['show', `${commit}:${BASELINE_FILE}`]));
 }
 
-function renamesSince(root, commit) {
+export function renamesSince(root, commit) {
   const renames = new Map();
   for (const line of git(root, ['diff', '-M', '--name-status', commit, '--']).split('\n')) {
     const [status, from, to] = line.split('\t');

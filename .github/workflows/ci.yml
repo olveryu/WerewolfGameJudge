@@ -40,7 +40,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      # Depth 2: the UI gate compares its baseline with HEAD^1 (main, for a PR's merge commit).
+      # Depth 2: a PR's UI gate compares its baseline with HEAD^1 (main, for the merge commit).
       - uses: actions/checkout@v6
         with:
           fetch-depth: 2
@@ -60,7 +60,14 @@ jobs:
       - name: Format check
         run: pnpm run format
 
+      # A push compares with the commit main was at before it (every pushed commit counts).
+      - name: Fetch the UI gate base
+        if: github.event_name == 'push'
+        run: git fetch --no-tags --depth=1 origin ${{ github.event.before }}
+
       - name: UI gate
+        env:
+          UI_GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
         run: pnpm run lint:ui
 
   # Root contracts + game-engine and web Vitest suites, sharded across 2

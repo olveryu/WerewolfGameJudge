@@ -143,7 +143,7 @@ Web 类型检查，并在独立本地测试房间走通分队、双方出题、�
 
 ### 本次 UI 最终检查
 
-- `corepack pnpm --filter @game-judge/web run test src/games/decrypto src/__tests__/noHardcodedStyleValues.contract.test.ts src/__tests__/botDispatchDiscipline.contract.test.ts src/__tests__/roomReview.contract.test.ts`：9 个测试文件、113 项通过。
+- `corepack pnpm --filter @game-judge/web run test src/games/decrypto src/__tests__/botDispatchDiscipline.contract.test.ts src/__tests__/roomReview.contract.test.ts`：9 个测试文件、113 项通过。
 - `corepack pnpm --filter @game-judge/web run typecheck`、`corepack pnpm exec tsc --noEmit`：通过。
 - `corepack pnpm --filter @game-judge/web run build`：通过，包含路由 gzip 预算。
 - `corepack pnpm exec eslint packages/web/src/games/decrypto/room`：通过。

@@ -34,7 +34,7 @@ npx knip
 npm run --silent lint:ui
 ```
 
-All three run; the hook stops at the first failure. `lint:ui` (`scripts/ui-lint/gate.mjs`) computes the web build's bundle graph (pages, Vite plugin entries, imports, `import.meta.glob`, CSS `@import`), fails on any graph problem (an unresolvable or unregistered specifier, a symlink, a non-TypeScript script, a stylesheet that is not plain `.css`), lints the graph's stylesheets and scripts with the gate's own Stylelint and ESLint configurations (inline disables ignored), and requires the result to equal `ui-gate-baseline.json` exactly and the baseline not to have grown since the base revision.
+All three run; the hook stops at the first failure. `lint:ui` (`scripts/ui-lint/gate.mjs`) computes the web build's bundle graph (pages, Vite plugin entries, imports, `import.meta.glob`, CSS `@import`), fails on any graph problem (an unresolvable specifier, a package not in the registry's `PACKAGES` for its manifest field, a non-literal `new URL` or worker, a symlink, a non-TypeScript script, a stylesheet that is not plain `.css` or does not parse), lints the graph's stylesheets and scripts with the gate's own Stylelint and ESLint configurations (inline disables ignored), and requires the result to equal `ui-gate-baseline.json` exactly and the baseline not to have grown since the base revision (`UI_GATE_BASE` in CI: the push's previous head or `HEAD^1` of the pull request merge; `git merge-base HEAD origin/main` locally; a missing base commit is an error).
 
 The check files are installed by the `prepare` script (`husky`) in `package.json`.
 

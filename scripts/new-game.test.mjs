@@ -13,7 +13,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { afterAll, it } from 'vitest';
 
 import {
@@ -1607,7 +1607,7 @@ it('missing documentation index anchors fail before registering or creating any 
 
 it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
   'generated output passes format, lint, typecheck, engine and client tests with tooling present',
-  () => {
+  async () => {
     // The fixture-repo cases above structurally cannot catch shaping
     // defects: without node_modules both shaping passes skip silently.
     // This case generates in a copy of the real tree (dependencies
@@ -1669,49 +1669,33 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
         },
       });
 
-      // Generated files meet the UI gate with no recorded debt: its own configurations, inline
-      // disables ignored, as `lint:ui` runs them (Stylelint would otherwise take the nearest
-      // config file).
-      execFileSync(
-        process.execPath,
-        [
-          eslintBin,
-          '--config',
-          path.join(root, 'scripts/ui-lint/eslint.gate.mjs'),
-          '--no-inline-config',
-          '--max-warnings',
-          '0',
-          ...lintTargets,
-        ],
-        {
-          cwd: root,
-          stdio: 'pipe',
-          env: {
-            ...process.env,
-            NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
-              .filter(Boolean)
-              .join(' '),
-          },
-        },
+      // Generated files meet the UI gate with no recorded debt, judged by the gate itself: its
+      // scope is the copy's bundle graph (which must reach every generated web source) and its
+      // own configurations, so this test holds no second definition of either.
+      execFileSync('git', ['init', '-q'], { cwd: root, stdio: 'pipe' });
+      execFileSync('git', ['add', '-A'], { cwd: root, stdio: 'pipe' });
+      const { runGate } = await import(
+        pathToFileURL(path.join(root, 'scripts/ui-lint/gate.mjs')).href
       );
-      const styleTargets = createdFiles.filter((file) => file.endsWith('.css'));
-      assert.ok(styleTargets.length > 0, 'the generator emits stylesheets');
-      execFileSync(
-        process.execPath,
-        [
-          path.join(
-            path.dirname(require.resolve('stylelint/package.json')),
-            'bin',
-            'stylelint.mjs',
-          ),
-          '--config',
-          path.join(root, 'scripts/ui-lint/stylelint.gate.mjs'),
-          '--ignore-disables',
-          '--disable-default-ignores',
-          ...styleTargets,
-        ],
-        { cwd: root, stdio: 'pipe' },
+      const webSources = createdFiles.filter(
+        (file) =>
+          file.startsWith('packages/web/src/') &&
+          /\.(?:ts|tsx|css)$/.test(file) &&
+          !/(?:^|\/)__tests__\/|\.test\.tsx?$/.test(file),
       );
+      assert.ok(
+        webSources.some((file) => file.endsWith('.css')),
+        'the generator emits stylesheets',
+      );
+      const gate = await runGate({ root, only: new Set(webSources) });
+      assert.deepEqual(gate.problems, []);
+      const scope = new Set([...gate.graph.scripts, ...gate.graph.styles]);
+      assert.deepEqual(
+        webSources.filter((file) => !scope.has(file)),
+        [],
+        'every generated web source is in the bundle graph',
+      );
+      assert.deepEqual(gate.files, {});
 
       const webTestPaths = [
         ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),

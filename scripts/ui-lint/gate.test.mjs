@@ -2,10 +2,22 @@
  * The gate's comparison (plan v3 §3): equality with the baseline and shrink-only against the base.
  * The bundle graph is checked on the real repository: no problems, and the entries it must reach.
  */
-import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { bundleGraph } from './bundle.mjs';
-import { differences, growth } from './gate.mjs';
+import {
+  BASELINE_FILE,
+  baselineAt,
+  comparisonBase,
+  differences,
+  growth,
+  renamesSince,
+} from './gate.mjs';
 
 const A = 'ui/value-allowlist\tm\tborder-radius: 13px;';
 const B = 'ui/value-allowlist\tm\tpadding: 4px;';
@@ -38,4 +50,42 @@ describe('bundle graph', () => {
     expect(graph.scripts.some((file) => file.startsWith('packages/game-engine/src/'))).toBe(true);
     expect(graph.scripts.some((file) => /\/__tests__\/|\.test\.tsx?$/.test(file))).toBe(false);
   }, 60_000);
+});
+
+describe('comparison base (P1 QA5 K10)', () => {
+  const root = fs.mkdtempSync(path.join(tmpdir(), 'ui-gate-base-'));
+  afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
+  const git = (...args) =>
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  git('init', '-q');
+  fs.writeFileSync(path.join(root, 'a.css'), 'a {}\n'.repeat(20));
+  git('add', '-A');
+  git('commit', '-q', '-m', 'first');
+  const first = git('rev-parse', 'HEAD');
+  fs.writeFileSync(path.join(root, BASELINE_FILE), JSON.stringify({ rules: ['r'], files: {} }));
+  git('mv', 'a.css', 'b.css');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'second');
+  const second = git('rev-parse', 'HEAD');
+
+  it('takes UI_GATE_BASE in CI and fails closed without it or on a missing commit', () => {
+    expect(comparisonBase(root, { UI_GATE_BASE: 'HEAD^1', GITHUB_ACTIONS: 'true' })).toBe(first);
+    expect(() => comparisonBase(root, { GITHUB_ACTIONS: 'true' })).toThrow(/UI_GATE_BASE/);
+    expect(() => comparisonBase(root, { UI_GATE_BASE: '0'.repeat(40) })).toThrow(/zero SHA/);
+    expect(() => comparisonBase(root, { UI_GATE_BASE: 'f'.repeat(40) })).toThrow();
+  });
+
+  it('reads the base baseline, empty only when the commit has none', () => {
+    expect(baselineAt(root, first)).toEqual({ rules: [], files: {} });
+    expect(baselineAt(root, second)).toEqual({ rules: ['r'], files: {} });
+    expect(() => baselineAt(root, 'f'.repeat(40))).toThrow();
+  });
+
+  it('follows renames since the base', () => {
+    expect(renamesSince(root, first)).toEqual(new Map([['a.css', 'b.css']]));
+  });
 });
