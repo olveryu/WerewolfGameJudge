@@ -9,6 +9,7 @@
 import { memo, type RefObject, Suspense, useId, useRef } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { getRoomOccupantAvatarSeed } from '@/features/room/model/RoomOccupant';
@@ -114,7 +115,7 @@ function RoomSeatTileComponent({
       <button
         ref={tileRef}
         type="button"
-        className="seat-tile-button"
+        className={`seat-tile-button ${AVATAR_CONCENTRIC_CLASS}`}
         data-testid={TESTIDS.seatTilePressable(seat)}
         data-empty={player === null}
         data-framed={residents !== null && residents.frameId !== null}
@@ -155,7 +156,7 @@ function RoomSeatTileComponent({
           </span>
         )}
         {model.isStatusEmphasized && player !== null && (
-          <span className="seat-status-emphasis" aria-hidden />
+          <span className={`seat-status-emphasis ${AVATAR_CONCENTRIC_CLASS}`} aria-hidden />
         )}
         {model.showReadyBadge && player !== null && (
           <span className="seat-ready-badge" aria-hidden>

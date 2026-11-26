@@ -58,7 +58,15 @@
   min-width: 0;
 }
 
+/*
+ * A seat is concentric with its avatar. `--seat-avatar-offset` is how far inside the button's
+ * padding edge the avatar starts: the avatar's own padding, or minus the border when framed.
+ */
 .seat-tile-button {
+  --seat-avatar-gap: var(--space-micro);
+  --seat-avatar-offset: var(--seat-avatar-gap);
+  --avatar-inset: calc(var(--border-width-thick) + var(--seat-avatar-offset));
+
   position: relative;
   display: flex;
   align-items: center;
@@ -67,7 +75,6 @@
   aspect-ratio: 1;
   padding: 0;
   border: var(--border-width-thick) solid var(--color-border);
-  border-radius: var(--radius-large);
   background: var(--color-surface);
   box-shadow: var(--shadow-md);
   cursor: pointer;
@@ -131,6 +138,8 @@
  * highlight ring becomes a glow only, so it does not clash with the frame.
  */
 .seat-tile-button[data-framed='true'] {
+  --seat-avatar-offset: calc(-1 * var(--border-width-thick));
+
   border-color: transparent;
   background: transparent;
   box-shadow: none;
@@ -219,17 +228,19 @@
   display: flex;
   width: 100%;
   height: 100%;
-  padding: var(--space-micro);
+  padding: var(--seat-avatar-gap);
   animation: seat-join 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
 }
 
+/* A ring just outside the seat, concentric with its avatar. */
 .seat-status-emphasis {
+  --avatar-inset: calc(var(--space-tight) + var(--seat-avatar-offset));
+
   position: absolute;
   inset: calc(-1 * var(--space-tight));
   z-index: 1;
   border: var(--border-width) solid var(--color-info);
-  border-radius: var(--radius-large);
   pointer-events: none;
 }
 

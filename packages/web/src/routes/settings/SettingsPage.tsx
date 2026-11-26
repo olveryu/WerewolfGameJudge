@@ -15,6 +15,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
@@ -51,7 +52,7 @@ import { displaySettings } from '@/features/settings/displaySettings';
 import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
 import { DEFAULT_GAME_ACCOUNT_STATS_GAME_TYPE, GAME_ACCOUNT_STATS_SECTIONS } from '@/games/catalog';
 import { useActiveRoomAccount } from '@/games/clientModules';
-import { resolveResidentDecorations } from '@/scene/residentDecorations';
+import { resolveResidentDecorations, wearsFrame } from '@/scene/residentDecorations';
 import type { SceneFrameRate } from '@/scene/stage';
 import { TESTIDS } from '@/testids';
 import { showPrompt } from '@/utils/alert';
@@ -186,7 +187,7 @@ function AvatarTeaser() {
             <Avatar userId={url} avatarUrl={url} size="fill" />
           </span>
         ))}
-        <span className="settings-teaser-lock">
+        <span className={`settings-teaser-lock ${AVATAR_CONCENTRIC_CLASS}`}>
           <IconLockClosed aria-hidden />
         </span>
       </div>
@@ -391,6 +392,10 @@ function AccountSection({ user }: { user: User }) {
   };
 
   const hasCollectionEntries = !user.isAnonymous || growthStats !== undefined;
+  const residents = resolveResidentDecorations({
+    avatarFrame: user.avatarFrame ?? undefined,
+    seatFlair: user.seatFlair ?? undefined,
+  });
   const showBindEmail = canSwitchAccount && !user.email && !inMiniProgram;
   const showMiniProgramBind = canSwitchAccount && !user.email && inMiniProgram && !user.isAnonymous;
   const showSwitchAccount = canSwitchAccount && !isChangingPassword && !inMiniProgram;
@@ -403,14 +408,16 @@ function AccountSection({ user }: { user: User }) {
       <section className="settings-card" aria-label="个人资料">
         <ResidentSceneLayer hostRef={sceneHostRef} />
         <div className="settings-profile">
-          <Link className="settings-avatar" to={appearancePath} aria-label="更换头像">
+          <Link
+            className={`settings-avatar ${AVATAR_CONCENTRIC_CLASS}`}
+            data-framed={wearsFrame(residents)}
+            to={appearancePath}
+            aria-label="更换头像"
+          >
             <ResidentAvatarTile
               userId={user.id}
               avatarUrl={user.avatarUrl}
-              residents={resolveResidentDecorations({
-                avatarFrame: user.avatarFrame ?? undefined,
-                seatFlair: user.seatFlair ?? undefined,
-              })}
+              residents={residents}
               sceneHostRef={sceneHostRef}
             />
             {!user.isAnonymous && (
