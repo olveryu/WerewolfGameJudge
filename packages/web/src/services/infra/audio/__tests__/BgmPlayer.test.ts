@@ -5,6 +5,7 @@
  */
 import type { Mock } from 'vitest';
 
+import { handleError } from '@/utils/errorPipeline';
 import { audioLog } from '@/utils/logger';
 
 import { ensureAudioContextRunning, getAudioContext } from '../AudioContextOwner';
@@ -12,6 +13,7 @@ import { BgmPlayer } from '../BgmPlayer';
 import { getUnlockedBgmElement } from '../webAudioUnlock';
 
 vi.mock('@/features/product/model/BgmCatalog', () => ({ BGM_VOLUME: 0.3 }));
+vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
 vi.mock('@/utils/logger', () => ({
   audioLog: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
@@ -151,6 +153,56 @@ describe('resume()', () => {
     expect(ensureAudioContextRunning).toHaveBeenCalledTimes(1);
     expect(element.play).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps music enabled when pausing interrupts a pending play request', async () => {
+    let rejectPlay: (error: Error) => void = () => undefined;
+    element.play.mockReturnValueOnce(
+      new Promise<void>((_resolve, reject) => {
+        rejectPlay = reject;
+      }),
+    );
+    const bgm = new BgmPlayer();
+    bgm.start(['track-a']);
+
+    bgm.pause();
+    rejectPlay(new DOMException('Playback was interrupted', 'AbortError'));
+    await Promise.resolve();
+    expect(bgm.isPlaying()).toBe(true);
+    expect(audioLog.info).toHaveBeenCalledWith(
+      'BGM play request interrupted by a newer operation',
+      expect.objectContaining({
+        attempt: 'track',
+        trackIndex: 0,
+        track: 'track-a',
+        errorName: 'AbortError',
+      }),
+    );
+
+    bgm.resume();
+    expect(element.play).toHaveBeenCalledTimes(2);
+    expect(bgm.isPlaying()).toBe(true);
+  });
+
+  it('ignores a previous play failure after a newer resume attempt', async () => {
+    let rejectPlay: (error: Error) => void = () => undefined;
+    element.play.mockReturnValueOnce(
+      new Promise<void>((_resolve, reject) => {
+        rejectPlay = reject;
+      }),
+    );
+    const bgm = new BgmPlayer();
+    bgm.start(['track-a']);
+    bgm.resume();
+
+    rejectPlay(new Error('AbortError'));
+    await Promise.resolve();
+
+    expect(bgm.isPlaying()).toBe(true);
+    expect(audioLog.warn).toHaveBeenCalledWith(
+      'Superseded BGM play request failed',
+      expect.objectContaining({ attempt: 'track', errorMessage: 'AbortError' }),
+    );
+  });
 });
 
 describe('stop()', () => {
@@ -179,7 +231,9 @@ describe('stop()', () => {
 
 describe('isPlaying() / subscribe()', () => {
   it('stops and notifies when the current track play() rejects', async () => {
-    element.play.mockReturnValueOnce(Promise.reject(new Error('NotAllowedError')));
+    element.play.mockReturnValueOnce(
+      Promise.reject(new DOMException('Playback was blocked', 'NotAllowedError')),
+    );
     const bgm = new BgmPlayer();
     const listener = vi.fn();
     bgm.subscribe(listener);
@@ -190,6 +244,18 @@ describe('isPlaying() / subscribe()', () => {
 
     expect(listener).toHaveBeenCalledTimes(2);
     expect(element.removeAttribute).toHaveBeenCalledWith('src');
+    expect(audioLog.warn).toHaveBeenCalledWith(
+      'BGM play request failed; stopping',
+      expect.objectContaining({
+        attempt: 'track',
+        errorName: 'NotAllowedError',
+        errorMessage: 'Playback was blocked',
+      }),
+    );
+    expect(handleError).toHaveBeenCalledWith(
+      expect.any(DOMException),
+      expect.objectContaining({ label: '背景音乐播放', feedback: 'toast' }),
+    );
   });
 
   it('ignores a rejection from a track that was already replaced', async () => {

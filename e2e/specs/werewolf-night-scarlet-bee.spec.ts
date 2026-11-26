@@ -82,7 +82,7 @@ test.describe('Werewolf Night — Scarlet Bee', () => {
           await waitForHostAudioAck(setup.hostCommands);
           await Promise.all(
             pages.map((page) =>
-              expect(page.getByTestId(TESTIDS.roomScreenRoot)).toContainText(publicMark),
+              expect(page.getByTestId(TESTIDS.roomBoardStatus)).toContainText(publicMark),
             ),
           );
           expect(await viewLastNightInfo(setup.hostPage)).toContain(publicMark);
@@ -96,14 +96,14 @@ test.describe('Werewolf Night — Scarlet Bee', () => {
           await elections[villagerPages[2]!]!.register();
           await Promise.all(
             pages.map((page) =>
-              expect(page.getByTestId(TESTIDS.roomScreenRoot)).toContainText(publicMark),
+              expect(page.getByTestId(TESTIDS.roomBoardStatus)).toContainText(publicMark),
             ),
           );
           await elections[0]!.endRegistration();
           await Promise.all(elections.map((election) => election.waitForPhase('竞选发言')));
           await Promise.all(
             pages.map((page) =>
-              expect(page.getByTestId(TESTIDS.roomScreenRoot)).toContainText(publicMark),
+              expect(page.getByTestId(TESTIDS.roomBoardStatus)).toContainText(publicMark),
             ),
           );
         });

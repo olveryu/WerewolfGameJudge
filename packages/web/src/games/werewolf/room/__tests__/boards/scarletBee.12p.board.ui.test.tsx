@@ -1,5 +1,5 @@
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { act, waitFor } from '@testing-library/react';
+import { act, waitFor, within } from '@testing-library/react';
 
 import { getRequiredUiDialogTypes } from '@/games/werewolf/room/__tests__/harness/boardDialogCoverage';
 import {
@@ -20,6 +20,7 @@ import {
   RoomScreenTestHarness,
 } from '@/games/werewolf/room/__tests__/harness/RoomScreenTestHarness';
 import { TEST_USER_ID } from '@/games/werewolf/room/__tests__/harness/testAuthContext';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
@@ -114,7 +115,12 @@ describe('WerewolfRoomScreen UI: 猩红蜂舞', () => {
       },
     });
     const view = await mountWerewolfRoom(mock);
-    expect(view.getByText('猩红之子：7号')).toBeVisible();
+    const announcement = within(view.getByTestId(TESTIDS.roomBoardStatus)).getByText(
+      '猩红之子：7号',
+    );
+    expect(announcement).toBeVisible();
+    expect(announcement.closest('.room-compact-status')).not.toBeNull();
+    expect(view.getAllByText('猩红之子：7号')).toHaveLength(1);
     if (game.getGameState().isAudioPlaying) {
       game.acknowledgePendingAudioOrThrow('finish dawn narration');
     }
@@ -142,7 +148,43 @@ describe('WerewolfRoomScreen UI: 猩红蜂舞', () => {
         ),
       ),
     );
-    expect(view.getByText('猩红之子：7号')).toBeVisible();
+    const electionAnnouncement = within(view.getByTestId(TESTIDS.roomBoardStatus)).getByText(
+      '猩红之子：7号',
+    );
+    expect(electionAnnouncement).toBeVisible();
+    expect(electionAnnouncement.closest('.room-compact-status')).toBe(
+      view.getByTestId(TESTIDS.sheriffElectionHud),
+    );
+    expect(view.getAllByText('猩红之子：7号')).toHaveLength(1);
+    view.unmount();
+  });
+
+  it('shows the mark in the status card when sheriff election is disabled', async () => {
+    const game = playBoardNightGame(['scarletWolfKing', 'villager'], {
+      isQuiet: true,
+      choices: { scarletWolfKingMark: { actionKey: 'scarletWolfKingMark', seats: [1] } },
+      rules: { isSheriffElectionEnabled: false },
+    });
+    const state = game.getGameState();
+    const occupant = state.roster[1];
+    if (occupant == null) throw new Error('[TEST] Missing viewer');
+    const mock = createWerewolfRoomMock({
+      schemaId: 'scarletWolfKingMark',
+      currentActionRole: 'scarletWolfKing',
+      myRole: 'villager',
+      mySeat: 1,
+      gameStateOverrides: {
+        ...state,
+        roster: { ...state.roster, 1: { ...occupant, userId: TEST_USER_ID } },
+      },
+    });
+    const view = await mountWerewolfRoom(mock);
+    const announcement = within(view.getByTestId(TESTIDS.roomBoardStatus)).getByText(
+      '猩红之子：2号',
+    );
+    expect(announcement).toBeVisible();
+    expect(announcement.closest('.room-compact-status')).not.toBeNull();
+    expect(view.getAllByText('猩红之子：2号')).toHaveLength(1);
     view.unmount();
   });
 });

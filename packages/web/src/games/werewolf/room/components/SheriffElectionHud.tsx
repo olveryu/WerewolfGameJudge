@@ -1,6 +1,7 @@
 /** Compact, privacy-safe sheriff-election status shown persistently above the seat board. */
 import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
+import type { ReactNode } from 'react';
 
 import { RoomCompactStatus } from '@/features/room/components/RoomCompactStatus';
 import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
@@ -41,10 +42,12 @@ export function SheriffElectionHud({
   model,
   isHost,
   isDay = true,
+  additionalContent,
 }: {
   readonly model: SheriffElectionPanelModel;
   readonly isHost: boolean;
   readonly isDay?: boolean;
+  readonly additionalContent?: ReactNode;
 }) {
   const { view } = model;
   const progress = view.voteProgress;
@@ -65,6 +68,8 @@ export function SheriffElectionHud({
       icon={isVoting ? <IconCheckboxOutline aria-hidden /> : <IconTimeOutline aria-hidden />}
       testId={TESTIDS.sheriffElectionHud}
       pendingTestId={TESTIDS.sheriffHudPendingSeats}
-    />
+    >
+      {additionalContent}
+    </RoomCompactStatus>
   );
 }
