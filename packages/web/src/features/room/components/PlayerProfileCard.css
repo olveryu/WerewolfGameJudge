@@ -75,12 +75,12 @@
  * the tile.
  */
 .profile-avatar {
+  --avatar-inset: calc(var(--space-tight) + var(--border-width-avatar-tile));
+
   position: relative;
   align-self: center;
   width: calc(var(--size-avatar-xl) + var(--space-tight) * 2);
   margin-top: calc(-1 * (var(--size-avatar-xl) / 2 + var(--space-tight)));
-  --avatar-inset: calc(var(--space-tight) + var(--border-width-avatar-tile));
-
   padding: var(--space-tight);
   background: var(--color-surface);
 }
