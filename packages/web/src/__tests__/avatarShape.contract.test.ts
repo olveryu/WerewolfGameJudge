@@ -16,18 +16,26 @@
  * census cannot read fails too; what it can and cannot follow is listed in `avatarCensus.ts`.
  * Where a held site finally lands is stated beside its entry.
  * Avatar artwork reaches the page only through `<Avatar>`: no bare `<img>` of a portrait or an
- * uploaded avatar URL. Files hosting an `<Avatar>` set no inline corner, clip or overflow either.
+ * uploaded avatar URL (an `<img>`'s `src` is followed through the names it uses that the file
+ * declares, not through props from another component). Files hosting an `<Avatar>` set no inline
+ * corner, clip or overflow either.
  *
  * A square box around an avatar (a seat, a tile, a mat, an avatar-sized placeholder) is
- * concentric with it: it carries `AVATAR_CONCENTRIC_CLASS`, whose one rule derives its corners
- * from the published ratio and the box's own `--avatar-inset`, and sets no radius of its own.
- * Every host names the box drawn around its avatar; a host that is not itself such a box, and the
- * entrance stages between a box and its avatar, set no corners at all. The ratio is declared
- * nowhere in CSS (it is published from `config/avatarShape.ts`), and a box reads whether its tile
- * wears a frame only via `wearsFrame`.
+ * concentric with it: it carries `AVATAR_CONCENTRIC_CLASS`, whose one rule (in its own
+ * stylesheet, the only one that may shape that class) derives its corners from the published
+ * ratio and the box's own `--avatar-inset`; the box sets no radius, clip-path or mask of its own
+ * (`inherit` on a pseudo element lining it is fine). Every host names the box drawn around its
+ * avatar; a host that is not itself such a box, and the entrance stages between a box and its
+ * avatar, set no corners or cut at all. The ratio is declared nowhere in CSS and its property is
+ * named in no source but `config/avatarShape.ts`, which publishes it, and a box reads whether its
+ * tile wears a frame only via `wearsFrame`. Not checked: an element of its own drawn over an
+ * avatar inside its host (an overlay or a badge is not told apart by its class), and selectors
+ * that reach a host or box by tag or attribute rather than by its class.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+
+import ts from 'typescript';
 
 import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import {
@@ -44,12 +52,22 @@ const CONCENTRIC_CSS = 'components/avatar/avatarConcentric.css';
 
 /** A selector whose subject (last compound) is the avatar element itself. */
 const TARGETS_AVATAR = /\.avatar(?![-\w])[^\s>+~]*$/;
-const SHAPE_PROPERTY = /^\s*(?:border(?:-[a-z]+)*-radius|clip-path|mask(?:-[a-z]+)*)\s*:/m;
+/** A declaration of one of `properties` in a rule body, on its own line or after a `;`. */
+const declares = (properties: string, value = '') =>
+  new RegExp(`(?:^|;)\\s*(?:${properties})\\s*:${value}`, 'm');
+const RADIUS_PROPERTY = 'border(?:-[a-z]+)*-radius';
+const CLIP_PROPERTY = 'clip-path|-webkit-clip-path|mask(?:-[a-z]+)*|-webkit-mask(?:-[a-z]+)*';
+const SHAPE_PROPERTY = declares(`${RADIUS_PROPERTY}|${CLIP_PROPERTY}`);
 /** Any compound in the selector names an avatar-ish class (`.seat-avatar`, `.room-user-avatar-clip`). */
 const NAMES_AVATAR = /\.[\w-]*avatar[\w-]*/;
-const CLIPS_CONTENT = /^\s*overflow(?:-[xy])?\s*:\s*(?:hidden|clip)\b/m;
-const RADIUS = /^\s*border(?:-[a-z]+)*-radius\s*:/m;
-const CLIP_SHAPE = /^\s*(?:clip-path|mask(?:-[a-z]+)*)\s*:/m;
+const CLIPS_CONTENT = declares('overflow(?:-[xy])?', '\\s*(?:hidden|clip)\\b');
+const RADIUS = declares(RADIUS_PROPERTY);
+const CLIP_SHAPE = declares(CLIP_PROPERTY);
+/**
+ * Corners or a cut of an element's own, other than taking its parent's (`inherit`, as a pseudo
+ * element lining a box does).
+ */
+const OWN_SHAPE = declares(`${RADIUS_PROPERTY}|${CLIP_PROPERTY}`, '(?!\\s*inherit\\s*(?:;|$))');
 
 /**
  * Class of every element that directly hosts an `<Avatar>` (sizes it, or is its frame / tile).
@@ -197,8 +215,68 @@ const ROLE_ART = /^games\/[\w-]+\/assets\/roleAvatars\.ts$/;
 const AVATAR_IMAGE_SOURCE =
   /assets\/avatars\/|\b(?:getHandDrawnPortraitUrl|resolveAvatarSource|HAND_DRAWN_PORTRAITS)\b/;
 
-/** The `src` expression of every `<img>` in a TSX source (attributes may span lines). */
-const IMG_SRC = /<img\b[^>]*?\bsrc=\{([^}]*)\}/g;
+/**
+ * The `src` of every `<img>` in a TSX source, as the text it is computed from: the expression,
+ * and, for each name in it declared in the file, that declaration (a `const`'s initializer, a
+ * destructured property with its source, a parameter), followed on through the names they use.
+ */
+function imgSources(path: string): string[] {
+  const source = ts.createSourceFile(
+    path,
+    readFileSync(path, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const declarations = new Map<string, ts.Node[]>();
+  const sources: ts.Node[] = [];
+  const collect = (node: ts.Node) => {
+    if (
+      (ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) &&
+      ts.isIdentifier(node.name)
+    ) {
+      declarations.set(node.name.text, [...(declarations.get(node.name.text) ?? []), node]);
+    }
+    if (
+      (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+      node.tagName.getText() === 'img'
+    ) {
+      for (const attribute of node.attributes.properties) {
+        if (ts.isJsxAttribute(attribute) && attribute.name.getText() === 'src') {
+          if (attribute.initializer !== undefined) sources.push(attribute.initializer);
+        }
+      }
+    }
+    ts.forEachChild(node, collect);
+  };
+  collect(source);
+  return sources.map((src) => {
+    const texts: string[] = [];
+    const seen = new Set<ts.Node>();
+    const expand = (node: ts.Node) => {
+      if (seen.has(node)) return;
+      seen.add(node);
+      texts.push(node.getText());
+      const visit = (child: ts.Node) => {
+        if (ts.isIdentifier(child)) {
+          for (const declaration of declarations.get(child.text) ?? []) {
+            // A destructured name carries the object it is taken from.
+            const owner = ts.isBindingElement(declaration)
+              ? declaration.parent.parent
+              : declaration;
+            expand(owner);
+            if (ts.isBindingElement(declaration)) texts.push(declaration.getText());
+          }
+        }
+        ts.forEachChild(child, visit);
+      };
+      ts.forEachChild(node, visit);
+      if (ts.isIdentifier(node)) visit(node);
+    };
+    expand(src);
+    return texts.join(' ');
+  });
+}
 /** An inline style key that could cut or re-shape a hosted avatar. */
 const INLINE_SHAPE =
   /\b(?:borderRadius|border\w*Radius|clipPath|WebkitClipPath|mask\w*|WebkitMask\w*|overflow[XY]?)\s*:/;
@@ -375,10 +453,9 @@ describe('Avatar shape', () => {
       .map((file) => relative(SRC_DIR, file))
       .filter((file) => !file.startsWith('components/avatar/'))
       .flatMap((file) =>
-        [...readFileSync(join(SRC_DIR, file), 'utf8').matchAll(IMG_SRC)]
-          .map(([, src]) => src ?? '')
+        imgSources(join(SRC_DIR, file))
           .filter((src) => /avatarurl/i.test(src))
-          .map((src) => `${file}: src={${src.trim()}}`),
+          .map((src) => `${file}: src=${src.split(' ')[0] ?? ''}`),
       );
     expect(bareImages).toEqual([]);
   });
@@ -419,30 +496,30 @@ describe('Avatar shape', () => {
     expect(wrong).toEqual([]);
   });
 
-  it('lets no concentric box set its own corners, and has each set its inset', () => {
-    const sheets = otherCssFiles().map((file) => ({
-      file: relative(SRC_DIR, file),
-      rules: rules(readFileSync(file, 'utf8')),
-    }));
-    const ownRadius: string[] = [];
+  it('lets no concentric box set its own corners or cut, and has each set its inset', () => {
+    // The shared class itself is shaped in its own stylesheet alone.
+    const sheets = otherCssFiles()
+      .filter((file) => relative(SRC_DIR, file) !== CONCENTRIC_CSS)
+      .map((file) => ({ file: relative(SRC_DIR, file), rules: rules(readFileSync(file, 'utf8')) }));
+    const ownShape: string[] = [];
     const withoutInset: string[] = [];
-    for (const box of Object.keys(CONCENTRIC_BOXES)) {
+    for (const box of [...Object.keys(CONCENTRIC_BOXES), AVATAR_CONCENTRIC_CLASS]) {
       let setsInset = false;
       for (const { file, rules: sheetRules } of sheets) {
         for (const { selector, body } of sheetRules) {
           const subjects = selector.split(',').map((part) => subjectOf(part));
           if (!subjects.some((subject) => styles(subject, box))) continue;
-          if (RADIUS.test(body)) ownRadius.push(`${file}: ${selector}`);
-          if (/^\s*--avatar-inset\s*:/m.test(body)) setsInset = true;
+          if (OWN_SHAPE.test(body)) ownShape.push(`${file}: ${selector}`);
+          if (declares('--avatar-inset').test(body)) setsInset = true;
         }
       }
-      if (!setsInset) withoutInset.push(box);
+      if (!setsInset && box !== AVATAR_CONCENTRIC_CLASS) withoutInset.push(box);
     }
-    expect(ownRadius).toEqual([]);
+    expect(ownShape).toEqual([]);
     expect(withoutInset).toEqual([]);
   });
 
-  it('gives hosts that are not boxes, and the stages inside a box, no corners', () => {
+  it('gives hosts that are not boxes, and the stages inside a box, no corners or cut', () => {
     const wrappers = [
       ...AVATAR_HOSTS.filter((host) => !(host in CONCENTRIC_BOXES)),
       ...AVATAR_STAGES,
@@ -451,7 +528,7 @@ describe('Avatar shape', () => {
       rules(readFileSync(file, 'utf8'))
         .filter(
           ({ selector, body }) =>
-            RADIUS.test(body) &&
+            OWN_SHAPE.test(body) &&
             selector
               .split(',')
               .some((part) => wrappers.some((name) => styles(subjectOf(part), name))),
@@ -468,6 +545,21 @@ describe('Avatar shape', () => {
       )
       .map((file) => relative(SRC_DIR, file));
     expect(declared).toEqual([]);
+  });
+
+  it('names the ratio property in no source but its publisher', () => {
+    // An inline `style={{ '--avatar-corner-ratio': … }}` would re-scale one subtree's boxes
+    // without their avatars.
+    const named = sourceFiles(SRC_DIR)
+      .map((file) => relative(SRC_DIR, file))
+      .filter((file) => file !== 'config/avatarShape.ts')
+      .filter((file) => {
+        const text = readFileSync(join(SRC_DIR, file), 'utf8');
+        return (
+          text.includes('--avatar-corner-ratio') || text.includes('AVATAR_CORNER_RATIO_PROPERTY')
+        );
+      });
+    expect(named).toEqual([]);
   });
 
   it('reads whether a tile wears a frame only through wearsFrame', () => {
