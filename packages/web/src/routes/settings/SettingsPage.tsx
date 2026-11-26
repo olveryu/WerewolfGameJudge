@@ -22,6 +22,7 @@ import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
 import { Switch } from '@/components/Switch';
+import { formatTicketBadgeCount } from '@/components/ticketBadgeCount';
 import { DEVELOPER_WECHAT_ID } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
@@ -36,6 +37,7 @@ import { useSignOut } from '@/features/auth/authMutations';
 import { COLLECTION_PREVIEW_NOTICE } from '@/features/auth/guestPolicy';
 import { LoginOptions } from '@/features/auth/LoginDialog';
 import { requestLogin } from '@/features/auth/loginRequests';
+import { countUnusedTickets } from '@/features/gacha/model/unusedTickets';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import {
   ResidentAvatarTile,
@@ -90,9 +92,6 @@ function useAppearancePath(): string {
   const { roomCode } = useParams();
   return roomCode === undefined ? '/appearance' : `/appearance/${roomCode}`;
 }
-
-/** Badge counts above this show as `99+`. */
-const MAX_TICKET_BADGE_COUNT = 99;
 
 interface EntryBodyProps {
   readonly icon: ReactNode;
@@ -154,7 +153,7 @@ function ActionEntry({ onClick, tone, busy = false, ...body }: ActionEntryProps)
 function GachaEntry() {
   const { roomCode } = useParams();
   const { data: gachaStatus } = useGachaStatusQuery();
-  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : 0;
+  const ticketCount = gachaStatus ? countUnusedTickets(gachaStatus) : 0;
   return (
     <LinkEntry
       to={roomCode === undefined ? '/gacha' : `/gacha/${roomCode}`}
@@ -162,9 +161,7 @@ function GachaEntry() {
       label="扭蛋抽奖"
       trailing={
         ticketCount > 0 && (
-          <span className="settings-entry-badge">
-            {ticketCount > MAX_TICKET_BADGE_COUNT ? `${MAX_TICKET_BADGE_COUNT}+` : ticketCount}
-          </span>
+          <span className="settings-entry-badge">{formatTicketBadgeCount(ticketCount)}</span>
         )
       }
     />
