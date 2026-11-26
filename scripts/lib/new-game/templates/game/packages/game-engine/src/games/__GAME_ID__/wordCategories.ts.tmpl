@@ -1,0 +1,7 @@
+/** __GAME_PASCAL__ inventory categories shared by editorial supply, administration, and the client. */
+import { defineWordCategoryCatalog } from '../../product/wordSupply/categoryCatalog';
+
+export const __GAME_UPPER___WORD_CATEGORY_CATALOG = defineWordCategoryCatalog('__GAME_ID__', [
+__GAME_WORD_CATEGORIES__
+]);
+export type __GAME_PASCAL__WordCategory = (typeof __GAME_UPPER___WORD_CATEGORY_CATALOG.ids)[number];

@@ -39,20 +39,24 @@ dependency: `SHARED_EDITS` performs none.
    `worker-configuration.d.ts`. The architecture contract welds all
    four registry facts to the deployment block and generated binding type.
    If the game has a word library (`wordSupply` other than `none`),
-   the same change defines its approved category catalog with
-   `defineWordCategoryCatalog` in the game's engine `wordCategories.ts`,
-   adds the id to `GAME_WORD_GAMES`
-   (`packages/game-engine/src/product/wordSupply/games.ts`) with every
-   word-library adapter table keyed by it, and adds the catalog to
-   `CATEGORY_CATALOGS` in `contracts/d1Catalog.contract.test.ts`. The
-   registration migration (item 11) already inserts the `word_games` row
-   and one `word_categories` row per `--word-category` (`game, id, name,
-sort_order`), so the catalog entries must equal that list in order.
-   Pinned by
+   the generator writes all of it from the one `--word-category` list:
+   the engine `wordCategories.ts` (`defineWordCategoryCatalog`), its
+   `public.ts` export, the id in `GAME_WORD_GAMES`
+   (`packages/game-engine/src/product/wordSupply/games.ts`), the catalog
+   in `CATEGORY_CATALOGS` of `contracts/d1Catalog.contract.test.ts`, and
+   the registration migration's `word_games` row plus one
+   `word_categories` row per category (item 11). Only the exhaustive
+   word-library adapter tables keyed by `WordGame` stay manual; typecheck
+   names each one. The generator writes no `word_draw_index` /
+   `word_draw_ordinals` rows: they belong only to pools on the shared
+   draw path and ship with the word-table migration that adds the
+   `draw_ordinal` column and its triggers. Pinned by
    `word_games rows equal GAME_WORD_GAMES` and
    `word_categories rows equal each engine category catalog` in
-   `contracts/d1Catalog.contract.test.ts`. A later category addition or
-   rename is a catalog edit plus one INSERT or UPDATE migration.
+   `contracts/d1Catalog.contract.test.ts`. A later category addition is
+   a catalog edit plus one INSERT migration; changing a display name is
+   one `UPDATE` of `name`, while changing an `id` is rejected by the
+   child tables' foreign keys and needs a hand-written migration.
 8. `[G]` Home entry in `CLIENT_GAMES`
    (`packages/web/src/games/catalog.ts`): `{ home: <game>Home,
 AccountStats: <Game>StatsPanel }` from the game's home and panel.

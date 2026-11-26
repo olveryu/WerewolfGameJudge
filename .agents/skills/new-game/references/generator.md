@@ -119,7 +119,12 @@ means the migration is hand-written under the D1 rules in
 write estimate, reset window, manifest). The generated migration is a
 starting point, not a template: review it against the current schema and
 this game's requirements before committing, and never copy it or an
-earlier migration mechanically. The word rows still need the game's
-`GAME_WORD_GAMES` entry, its `defineWordCategoryCatalog` catalog with the
-same entries, and the word-library adapters (report step 7,
-`references/registration-checklist.md` item 7).
+earlier migration mechanically. The same run generates the game's
+`defineWordCategoryCatalog` catalog (`packages/game-engine/src/games/<id>/wordCategories.ts`,
+exported from `public.ts`), its `GAME_WORD_GAMES` entry and its
+`CATEGORY_CATALOGS` row in `contracts/d1Catalog.contract.test.ts`, all from the
+same `--word-category` list as the migration's word rows; only the
+game-specific word-library adapters stay manual (report step 7,
+`references/registration-checklist.md` item 7). Draw rows are not generated:
+only a pool using the shared draw needs `word_draw_index` / `word_draw_ordinals`
+rows (see report step 7).

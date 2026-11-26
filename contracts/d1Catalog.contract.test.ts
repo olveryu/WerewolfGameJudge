@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 
 import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
@@ -148,6 +149,34 @@ describe('D1 catalog projection', () => {
         /FOREIGN KEY constraint failed/,
       );
     }
+  });
+
+  it('E2E D1 fixtures load on the full migration chain without foreign-key violations', () => {
+    // Fixtures must carry catalog ids, not display labels: before 0095/0096 the word tables had no
+    // category CHECK, so fib 'literary' and the drawguess Chinese labels loaded fine and only the
+    // new (game, category) foreign key exposed them. Same order as scripts/setup-e2e-api.mjs
+    // (fib → undercover → drawguess); alphabetical order would be drawguess → fib → undercover.
+    const fixtures = [
+      'e2e/fixtures/fib-word-pool.sql',
+      'e2e/fixtures/undercover-word-pool.sql',
+      'e2e/fixtures/drawguess-word-pool.sql',
+    ] as const;
+    expect(
+      readdirSync('e2e/fixtures')
+        .filter((name) => name.endsWith('.sql'))
+        .map((name) => `e2e/fixtures/${name}`)
+        .sort(),
+    ).toEqual([...fixtures].sort());
+    for (const fixture of fixtures) {
+      try {
+        database.exec(readFileSync(fixture, 'utf8'));
+      } catch (error) {
+        throw new Error(`E2E fixture ${fixture} failed on ${latestMigrationName()}`, {
+          cause: error,
+        });
+      }
+    }
+    expect(database.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
   });
 
   it('keeps categories that words still reference', () => {

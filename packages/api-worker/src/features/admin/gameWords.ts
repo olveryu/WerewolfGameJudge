@@ -21,6 +21,7 @@ import {
   type GameWordGame,
   type GameWordsStats,
   type TriggerSupplyResult,
+  type WordCategoryEntry,
   type WordLibraryItems,
   type WordSubmissionStatus,
   wordSubmissionStatusSchema,
@@ -56,6 +57,46 @@ export const triggerSupplySchema = z.discriminatedUnion('game', [
 export type TriggerSupplyInput = z.output<typeof triggerSupplySchema>;
 
 type DashboardDetails = Pick<GameWordsStats, 'categories' | 'modelBudget'>;
+
+interface CategoryCatalogView {
+  readonly entries: readonly WordCategoryEntry<string>[];
+  readonly ids: readonly [string, ...string[]];
+}
+
+const WORD_CATEGORY_CATALOGS: Readonly<Record<GameWordGame, CategoryCatalogView>> = {
+  fibking: FIBKING_WORD_CATEGORY_CATALOG,
+  undercover: UNDERCOVER_WORD_CATEGORY_CATALOG,
+  drawguess: DRAWGUESS_WORD_CATEGORY_CATALOG,
+  decrypto: DECRYPTO_WORD_CATEGORY_CATALOG,
+};
+
+/**
+ * Category columns are NOT NULL with a foreign key into `word_categories`, so a stored value
+ * outside the code catalog means the catalog and D1 have drifted: fail with the game and value.
+ */
+function catalogCategorySchema<const Id extends string>(
+  game: GameWordGame,
+  ids: readonly [Id, ...Id[]],
+) {
+  return z.enum(ids, {
+    error: (issue) => `${game} category ${JSON.stringify(issue.input)} is not in its catalog`,
+  });
+}
+
+function parseCategoryRows<T>(
+  game: GameWordGame,
+  source: string,
+  schema: z.ZodType<T>,
+  rows: unknown,
+): T {
+  const parsed = schema.safeParse(rows);
+  if (!parsed.success) {
+    throw new Error(`Admin word stats: ${game} ${source} rows do not match the category catalog`, {
+      cause: parsed.error,
+    });
+  }
+  return parsed.data;
+}
 type DashboardBase = Omit<GameWordsStats, keyof DashboardDetails>;
 
 async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<DashboardDetails> {
@@ -74,41 +115,34 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
       : game === 'drawguess'
         ? 'drawguess_word_packs'
         : 'decrypto_word_packs';
-  const categoryColumn = 'category';
-  const labels: readonly { readonly id: string; readonly name: string }[] = isFib
-    ? FIBKING_WORD_CATEGORY_CATALOG.entries
-    : game === 'undercover'
-      ? UNDERCOVER_WORD_CATEGORY_CATALOG.entries
-      : game === 'drawguess'
-        ? DRAWGUESS_WORD_CATEGORY_CATALOG.entries
-        : DECRYPTO_WORD_CATEGORY_CATALOG.entries;
-  const bucket = `COALESCE(${categoryColumn}, 'other')`;
-  // Pending counts now read the submission queue: the candidate tables are
-  // dropped (0085). All games group by the shared inventory category.
-  const pendingBucket = 'category';
+  const catalog = WORD_CATEGORY_CATALOGS[game];
+  const category = catalogCategorySchema(game, catalog.ids);
+  // Pending counts read the submission queue (the candidate tables were dropped in 0085).
+  // Every category column is NOT NULL and references word_categories, so all queries group
+  // by the stored category directly.
   const packTime = isFib ? 'search_selected_at' : 'created_at';
   const packFilter = isFib ? 'WHERE search_selected_at IS NOT NULL' : '';
   // Yield (published words that came through supply) is only computable for
   // fibking, from the sequence table; the undercover/drawguess yield JOIN
   // read the dropped candidate tables, so those games report no yield.
   const yieldSql = isFib
-    ? `SELECT COALESCE(w.category, 'other') AS category, COUNT(*) AS count
+    ? `SELECT w.category AS category, COUNT(*) AS count
        FROM fib_word_sequence s JOIN fib_words w ON w.word = s.word
-       WHERE s.pack_id IS NOT NULL GROUP BY COALESCE(w.category, 'other')`
+       WHERE s.pack_id IS NOT NULL GROUP BY w.category`
     : null;
   const now = Date.now();
   const statements = [
     db.prepare(
-      `SELECT ${bucket} AS category, SUM(status = 'active') AS active, COUNT(*) AS total FROM ${wordsTable} GROUP BY ${bucket}`,
+      `SELECT category, SUM(status = 'active') AS active, COUNT(*) AS total FROM ${wordsTable} GROUP BY category`,
     ),
     db
       .prepare(
-        `SELECT ${pendingBucket} AS category, COUNT(*) AS count FROM word_submission_items
-         WHERE game = ? AND status IN ('pending', 'approved') GROUP BY ${pendingBucket}`,
+        `SELECT category, COUNT(*) AS count FROM word_submission_items
+         WHERE game = ? AND status IN ('pending', 'approved') GROUP BY category`,
       )
       .bind(game),
     db.prepare(
-      `SELECT ${categoryColumn} AS category, COUNT(*) AS count, MAX(${packTime}) AS last FROM ${packsTable} ${packFilter} GROUP BY ${categoryColumn}`,
+      `SELECT category, COUNT(*) AS count, MAX(${packTime}) AS last FROM ${packsTable} ${packFilter} GROUP BY category`,
     ),
   ];
   if (yieldSql !== null) statements.push(db.prepare(yieldSql));
@@ -126,36 +160,35 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
   const [inventory, pending, packs] = batchResults;
   const yielded = yieldSql === null ? undefined : batchResults[3];
   const budget = batchResults[yieldSql === null ? 3 : 4];
-  const rows = z.array(
-    z.strictObject({ category: z.string().nullable(), count: z.int().nonnegative() }),
+  const rows = z.array(z.strictObject({ category, count: z.int().nonnegative() }));
+  const inventoryRows = parseCategoryRows(
+    game,
+    wordsTable,
+    z.array(
+      z.strictObject({ category, active: z.int().nonnegative(), total: z.int().nonnegative() }),
+    ),
+    inventory.results,
   );
-  const inventoryRows = z
-    .array(
-      z.strictObject({
-        category: z.string(),
-        active: z.int().nonnegative(),
-        total: z.int().nonnegative(),
-      }),
-    )
-    .parse(inventory.results);
-  const pendingRows = rows.parse(pending.results);
-  const packRows = z
-    .array(
-      z.strictObject({
-        category: z.string().nullable(),
-        count: z.int().nonnegative(),
-        last: z.string().nullable(),
-      }),
-    )
-    .parse(packs.results);
-  const yieldRows = yielded === undefined ? [] : rows.parse(yielded.results);
+  const pendingRows = parseCategoryRows(game, 'word_submission_items', rows, pending.results);
+  const packRows = parseCategoryRows(
+    game,
+    packsTable,
+    z.array(
+      z.strictObject({ category, count: z.int().nonnegative(), last: z.string().nullable() }),
+    ),
+    packs.results,
+  );
+  const yieldRows =
+    yielded === undefined
+      ? []
+      : parseCategoryRows(game, 'fib_word_sequence', rows, yielded.results);
   const budgetRow = z
     .strictObject({ daily: z.int().nullable(), monthly: z.int().nullable() })
     .parse(budget?.results[0]);
   const byOperation = await readModelBudgetByOperation(db);
   const cutoff = wordCategoryCooldownCutoff(now);
   return {
-    categories: labels.map(({ id, name }) => {
+    categories: catalog.entries.map(({ id, name }) => {
       const stock = inventoryRows.find((row) => row.category === id);
       const batch = packRows.find((row) => row.category === id);
       const lastAttempt = batch?.last ?? null;
@@ -238,32 +271,37 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
          GROUP BY p.search_index, p.category, c.prompt_version
          ORDER BY publishedWords DESC`,
     )
-    .all<{
-      searchIndex: number;
-      category: string | null;
-      promptVersion: string | null;
-      packs: number;
-      publishedWords: number;
-    }>();
-  const queryLeaderboard = (boardRows.results ?? []).map((r) => {
+    .all();
+  const leaderboardRows = parseCategoryRows(
+    'fibking',
+    'fib_word_packs leaderboard',
+    z.array(
+      z.strictObject({
+        searchIndex: z.int().nonnegative(),
+        category: catalogCategorySchema('fibking', FIBKING_WORD_CATEGORY_CATALOG.ids),
+        promptVersion: z.string().nullable(),
+        packs: z.int().nonnegative(),
+        publishedWords: z.int().nonnegative(),
+      }),
+    ),
+    boardRows.results,
+  );
+  const queryLeaderboard = leaderboardRows.map((r) => {
     let label = `查询 #${r.searchIndex}`;
     try {
       label = createFibWordSearchQuery(r.searchIndex);
     } catch {
       // Search plan shrank since this pack was reserved; keep the fallback label.
     }
-    const category = FIBKING_WORD_CATEGORY_CATALOG.ids.find((id) => id === r.category);
     const details = [
-      category === undefined
-        ? FIBKING_WORD_CATEGORY_CATALOG.names.other
-        : FIBKING_WORD_CATEGORY_CATALOG.names[category],
+      FIBKING_WORD_CATEGORY_CATALOG.names[r.category],
       r.promptVersion === null ? null : `prompt v${r.promptVersion}`,
     ].filter((value) => value !== null);
     return {
       label,
       detail: details.join(' · '),
-      publishedWords: Number(r.publishedWords),
-      packs: Number(r.packs),
+      publishedWords: r.publishedWords,
+      packs: r.packs,
     };
   });
   return {

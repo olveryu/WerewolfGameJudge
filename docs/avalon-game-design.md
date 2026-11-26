@@ -511,6 +511,8 @@ Codec 必须用 `z.strictObject` 精确验证，不变量示例：`roles` 覆盖
 
 另：D1 migration——所有含 `game_type CHECK (...)` 的表加 `'avalon'`（仿 0049/0056/0059 模式）+ 新表；`pnpm-lock.yaml`——加新依赖才需同步，avalon 预计不加新依赖 → 不适用。
 
+（2026-11-26 起已被取代：游戏清单改为 `game_types` 查表（`0095_game_catalog_lookup.sql`），注册迁移只插一行、不扩展 CHECK、不重建表，见 `packages/api-worker/AGENTS.md`。）
+
 **不允许修改**（§10.1 禁止清单）：`GameRoom.ts`、`actionPipeline.ts`、`RoomShell.tsx`、Shared room controllers、`HomeScreen.tsx`、`AppNavigator.tsx`、`GameHostRoutes.tsx`、已有游戏 module。如需动其中之一，必须先证明缺失的是多游戏共用能力，且不得加按游戏名判断的条件分支。
 
 ### §10.2 Contract test 硬门槛（`pnpm run quality` 前置）
