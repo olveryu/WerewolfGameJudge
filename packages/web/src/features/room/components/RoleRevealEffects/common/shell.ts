@@ -5,6 +5,8 @@
  */
 import type { CSSProperties } from 'react';
 
+import { colors } from '@/theme/colors';
+
 import type { RevealEffectType } from '../types';
 import { REVEAL_DOM_LAYER } from './layers';
 
@@ -30,7 +32,7 @@ export const REVEAL_ROOT_STYLE: CSSProperties = {
   position: 'fixed',
   inset: 0,
   overflow: 'hidden',
-  backgroundColor: 'rgba(0, 0, 0, 0.85)',
+  backgroundColor: colors.revealBackdrop,
   outline: 'none',
   userSelect: 'none',
   WebkitUserSelect: 'none',

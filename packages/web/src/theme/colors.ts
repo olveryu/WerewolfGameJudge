@@ -52,6 +52,11 @@ export const colors = {
 
   overlay: 'rgba(26, 49, 73, 0.6)',
   overlayLight: 'rgba(26, 49, 73, 0.25)',
+  /**
+   * The full-screen role reveal's stage (room reveal and cosmetic previews): opaque, so the page
+   * never shows through behind an effect.
+   */
+  revealBackdrop: '#000000',
 } as const;
 
 /** Illustration palette for the animated DrawGuess gifts, not UI status colors. */
