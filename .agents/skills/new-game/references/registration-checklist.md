@@ -38,6 +38,21 @@ dependency: `SHARED_EDITS` performs none.
    `packages/api-worker/wrangler.toml`; then regenerate
    `worker-configuration.d.ts`. The architecture contract welds all
    four registry facts to the deployment block and generated binding type.
+   If the game has a word library (`wordSupply` other than `none`),
+   the same change defines its approved category catalog with
+   `defineWordCategoryCatalog` in the game's engine `wordCategories.ts`,
+   adds the id to `GAME_WORD_GAMES`
+   (`packages/game-engine/src/product/wordSupply/games.ts`) with every
+   word-library adapter table keyed by it, and adds the catalog to
+   `CATEGORY_CATALOGS` in `contracts/d1Catalog.contract.test.ts`. The
+   registration migration (item 11) already inserts the `word_games` row
+   and one `word_categories` row per `--word-category` (`game, id, name,
+sort_order`), so the catalog entries must equal that list in order.
+   Pinned by
+   `word_games rows equal GAME_WORD_GAMES` and
+   `word_categories rows equal each engine category catalog` in
+   `contracts/d1Catalog.contract.test.ts`. A later category addition or
+   rename is a catalog edit plus one INSERT or UPDATE migration.
 8. `[G]` Home entry in `CLIENT_GAMES`
    (`packages/web/src/games/catalog.ts`): `{ home: <game>Home,
 AccountStats: <Game>StatsPanel }` from the game's home and panel.
@@ -53,13 +68,31 @@ AccountStats: <Game>StatsPanel }` from the game's home and panel.
 10. `[G]` Flat reward amounts in `GAME_COMPLETION_REWARDS`
     (`packages/game-engine/src/product/rewards/earnings.ts`), or a
     `levelRoll` settlement entry point in the registry entry instead.
-11. `[G]` D1 registration migration in `packages/api-worker/migrations/`
-    (next `NNNN_<id>.sql`): derived from the latest registration
-    migration, rebuilding every `game_type`-constrained table with
-    the extended CHECK list. Number after the latest physical migration,
-    independently of registration-source discovery. The default owned
-    `<id>_user_stats` cumulative table is generated; gameplay fields and
-    current rebuild/schema/index/trigger/copy-cost review remain manual.
+11. `[G][C]` D1 registration migration in `packages/api-worker/migrations/`
+    (next `NNNN_<id>.sql`, numbered after the latest physical migration):
+    generated only after the generator replays the current migrations in
+    `node:sqlite` and checks the resulting schema; it refuses (pinned by
+    `refuses a game id that the current schema already registers in
+game_types`, `refuses to generate when the current schema hard-codes a
+game list that would need a rebuild` and `refuses when a lookup table
+is missing from the replayed schema` in `scripts/new-game.test.mjs`)
+    when an inserts-only registration would be wrong, and the migration is
+    then hand-written. Otherwise it is
+    one `INSERT INTO game_types` row appended in `sort_order` (plus
+    `word_games`/`word_categories` rows for a word library), so
+    `game_types` stays equal to `GAME_TYPES` row by row (pinned by
+    `game_types rows equal GAME_TYPES in order` in
+    `contracts/d1Catalog.contract.test.ts`). No table is rebuilt. The
+    default owned `<id>_user_stats` cumulative table is generated;
+    gameplay fields remain manual. The generator also records the new
+    file's sha256 in `contracts/d1MigrationManifest.json` (pinned by
+    `migration files match the recorded sha256 manifest` in
+    `contracts/d1MigrationRules.contract.test.ts`); any later hand edit
+    to the migration must update that entry before it is first applied.
+    The output is a starting point, not a template: review it against the
+    current schema and this game's requirements before committing, and
+    never copy it or an earlier migration mechanically. Migration rules
+    live in `packages/api-worker/AGENTS.md`.
 12. `[C]` `httpRoutes` declared in the registry entry and implemented
     in the worker module; an empty list is valid.
 13. The game itself: engine object with `gameType` /

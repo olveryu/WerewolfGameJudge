@@ -1,5 +1,5 @@
 /** Distinct category searches indexed by the monthly reservation ledger, not the calendar day. */
-import type { FibWordSupplyCategory } from './wordCategories';
+import type { FibWordSupplyCategory } from '@game-judge/game-engine/games/fibking/public';
 
 const SEARCH_QUERIES = [
   '中国古代婚礼习俗 仪式名称 撒帐 障车 青庐 含义',

@@ -15,6 +15,7 @@
  * pin would silently hold nothing.
  */
 import type { DrawGuessWordCategory } from '@game-judge/game-engine/games/drawguess/public';
+import type { FibWordSupplyCategory } from '@game-judge/game-engine/games/fibking/public';
 import type { UndercoverCategory } from '@game-judge/game-engine/games/undercover/public';
 import { describe, expect, it } from 'vitest';
 
@@ -23,7 +24,6 @@ import {
   failDrawGuessWordPack,
   reserveDrawGuessWordPack,
 } from '../../../games/drawguess/wordPublication';
-import type { FibWordSupplyCategory } from '../../../games/fibking/wordCategories';
 import {
   failFibWordPack,
   type FibWordPack,

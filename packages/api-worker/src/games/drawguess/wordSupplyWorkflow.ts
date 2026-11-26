@@ -1,5 +1,5 @@
 /** Scheduled DrawGuess word supply; no provider calls from player commands or room startup. */
-import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
+import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { z } from 'zod';
 
@@ -30,7 +30,7 @@ export class DrawGuessWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSup
       gameLabel: 'drawguess',
       isEnabled: (env) => env.DRAWGUESS_WORD_SUPPLY_ENABLED === 'true',
       model: DRAWGUESS_WORD_MODEL,
-      categorySchema: z.enum(DRAWGUESS_WORD_CATEGORIES),
+      categorySchema: z.enum(DRAWGUESS_WORD_CATEGORY_CATALOG.ids),
       packsTable: 'drawguess_word_packs',
       loadHistory: async (db, category) => {
         // History is the inventory words: the candidate table is dropped

@@ -8,12 +8,18 @@ import { createRowCountingDb } from '../../../../test/rowCountingDb';
 import { dealDrawGuessWords, recordDrawGuessWordSeen } from '../wordDeal';
 
 const WORDS = [
-  { id: 'w1', word: '大熊猫', pinyin_initials: 'd x m', category: '动物', difficulty: 'easy' },
-  { id: 'w2', word: '火锅', pinyin_initials: 'h g', category: '食物', difficulty: 'easy' },
-  { id: 'w3', word: '风筝', pinyin_initials: 'f z', category: '日用品', difficulty: 'easy' },
-  { id: 'w4', word: '自行车', pinyin_initials: 'z x c', category: '日用品', difficulty: 'medium' },
-  { id: 'w5', word: '西瓜', pinyin_initials: 'x g', category: '食物', difficulty: 'easy' },
-  { id: 'w6', word: '雨伞', pinyin_initials: 'y s', category: '日用品', difficulty: 'easy' },
+  { id: 'w1', word: '大熊猫', pinyin_initials: 'd x m', category: 'animals', difficulty: 'easy' },
+  { id: 'w2', word: '火锅', pinyin_initials: 'h g', category: 'food', difficulty: 'easy' },
+  { id: 'w3', word: '风筝', pinyin_initials: 'f z', category: 'dailyObjects', difficulty: 'easy' },
+  {
+    id: 'w4',
+    word: '自行车',
+    pinyin_initials: 'z x c',
+    category: 'dailyObjects',
+    difficulty: 'medium',
+  },
+  { id: 'w5', word: '西瓜', pinyin_initials: 'x g', category: 'food', difficulty: 'easy' },
+  { id: 'w6', word: '雨伞', pinyin_initials: 'y s', category: 'dailyObjects', difficulty: 'easy' },
 ] as const;
 
 async function seedWords() {
@@ -134,7 +140,7 @@ it('reads the same handful of rows for a small fresh pool and a large mostly pla
       `WITH RECURSIVE counter(position) AS (
          SELECT 1 UNION ALL SELECT position + 1 FROM counter WHERE position < ?)
        INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at)
-       SELECT 'budget-' || position, '题' || position, 't', '动物', 'easy', 'active', datetime('now')
+       SELECT 'budget-' || position, '题' || position, 't', 'animals', 'easy', 'active', datetime('now')
        FROM counter`,
     )
       .bind(size)

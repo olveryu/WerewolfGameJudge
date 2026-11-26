@@ -1,5 +1,5 @@
 /** Real D1 queue recovery and stable reservation. */
-import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
+import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/undercover/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -32,7 +32,7 @@ describe('Undercover editorial publication', () => {
        SELECT 'history-' || i, json_extract(?, '$[' || (i % 40) || ']'), 'token-' || i,
          'failed', 'test', '1', '1', '2020-01-01' FROM n`,
     )
-      .bind(JSON.stringify(UNDERCOVER_CATEGORIES))
+      .bind(JSON.stringify(UNDERCOVER_WORD_CATEGORY_CATALOG.ids))
       .run();
     const measured = createRowCountingDb(env.DB);
     expect(
@@ -42,7 +42,7 @@ describe('Undercover editorial publication', () => {
   });
 
   it('stores the explicitly selected category for concurrent reservations', async () => {
-    const categories = UNDERCOVER_CATEGORIES.slice(0, 10);
+    const categories = UNDERCOVER_WORD_CATEGORY_CATALOG.ids.slice(0, 10);
     const packs = await Promise.all(
       categories.map((category, index) =>
         reserveUndercoverWordPack(env.DB, '2026-09-01', `parallel-${index}`, category),
@@ -53,13 +53,15 @@ describe('Undercover editorial publication', () => {
 
   it('does not replace the selected category based on stock or recent-pack cooldown', async () => {
     await env.DB.batch(
-      UNDERCOVER_CATEGORIES.filter((category) => category !== 'food').map((category) =>
-        env.DB.prepare(
-          `INSERT INTO undercover_word_pairs
+      UNDERCOVER_WORD_CATEGORY_CATALOG.ids
+        .filter((category) => category !== 'food')
+        .map((category) =>
+          env.DB.prepare(
+            `INSERT INTO undercover_word_pairs
             (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
            VALUES (?, ?, ?, ?, 'active', '2026-01-01', '2026-01-01', '{}')`,
-        ).bind(`stock-${category}`, `${category}-a`, `${category}-b`, category),
-      ),
+          ).bind(`stock-${category}`, `${category}-a`, `${category}-b`, category),
+        ),
     );
     await env.DB.prepare(
       `INSERT INTO undercover_word_packs
@@ -75,7 +77,7 @@ describe('Undercover editorial publication', () => {
 
   it('keeps each run on its manually selected category even when another is queued', async () => {
     await env.DB.batch(
-      UNDERCOVER_CATEGORIES.map((category) =>
+      UNDERCOVER_WORD_CATEGORY_CATALOG.ids.map((category) =>
         env.DB.prepare(
           `INSERT INTO undercover_word_pairs
             (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
@@ -104,7 +106,9 @@ describe('Undercover editorial publication', () => {
     // One trigger runs one pack, and every run applies the same rule:
     // least stock first, then most queued submissions. There is no batch
     // index to alternate a "review" batch against a "replenish" batch.
-    const secondCategory = UNDERCOVER_CATEGORIES.find((category) => category !== 'food');
+    const secondCategory = UNDERCOVER_WORD_CATEGORY_CATALOG.ids.find(
+      (category) => category !== 'food',
+    );
     if (secondCategory === undefined) throw new Error('Expected another Undercover category');
     const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'first', 'food');
     const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'second', secondCategory);

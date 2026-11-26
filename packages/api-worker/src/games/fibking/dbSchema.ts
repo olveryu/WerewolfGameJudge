@@ -1,6 +1,9 @@
 /** FibKing-owned D1 table definitions imported directly by FibKing persistence. */
 
-import { FIB_WORD_SOURCES } from '@game-judge/game-engine/games/fibking/public';
+import {
+  FIB_WORD_SOURCES,
+  FIBKING_WORD_CATEGORY_CATALOG,
+} from '@game-judge/game-engine/games/fibking/public';
 import {
   index,
   integer,
@@ -12,7 +15,6 @@ import {
 
 import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
-import { FIB_WORD_ALL_CATEGORY_IDS } from './wordCategories';
 
 const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
 
@@ -45,7 +47,7 @@ export const fibWords = sqliteTable(
     word: text('word').notNull(),
     coreMeaning: text('core_meaning').notNull(),
     usageNote: text('usage_note').notNull(),
-    category: text('category', { enum: FIB_WORD_ALL_CATEGORY_IDS }),
+    category: text('category', { enum: FIBKING_WORD_CATEGORY_CATALOG.ids }).notNull(),
     source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
     status: text('status', { enum: FIB_WORD_STATUSES }).notNull(),
     selectionKey: integer('selection_key').notNull(),

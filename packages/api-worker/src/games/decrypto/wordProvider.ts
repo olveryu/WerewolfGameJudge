@@ -1,7 +1,6 @@
 /** Bounded Gemini editorial requests; generated words remain pending until manual review. */
 import {
-  DECRYPTO_WORD_CATEGORIES,
-  DECRYPTO_WORD_CATEGORY_NAMES,
+  DECRYPTO_WORD_CATEGORY_CATALOG,
   type DecryptoWordCategory,
 } from '@game-judge/game-engine/games/decrypto/public';
 
@@ -42,8 +41,8 @@ export function createDecryptoWordProvider(apiKey: string, fetchImpl: typeof fet
         systemPrompt: GENERATION_PROMPT,
         payload: {
           category,
-          categoryName: DECRYPTO_WORD_CATEGORY_NAMES[category],
-          categories: DECRYPTO_WORD_CATEGORIES,
+          categoryName: DECRYPTO_WORD_CATEGORY_CATALOG.names[category],
+          categories: DECRYPTO_WORD_CATEGORY_CATALOG.ids,
           history,
         },
         fetchImpl,

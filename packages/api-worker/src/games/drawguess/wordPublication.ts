@@ -4,7 +4,7 @@
  * live on the manual review/publish endpoints, never in the workflow.
  */
 import {
-  DRAWGUESS_WORD_CATEGORIES,
+  DRAWGUESS_WORD_CATEGORY_CATALOG,
   type DrawGuessWordCategory,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { z } from 'zod';
@@ -19,7 +19,7 @@ import { DRAWGUESS_WORD_MODEL } from './wordProvider';
 
 const packSchema = z.strictObject({
   id: z.string(),
-  category: z.enum(DRAWGUESS_WORD_CATEGORIES),
+  category: z.enum(DRAWGUESS_WORD_CATEGORY_CATALOG.ids),
   request_token: z.string(),
 });
 export type DrawGuessWordPack = z.output<typeof packSchema>;
@@ -33,7 +33,7 @@ export async function reserveDrawGuessWordPack(
 ): Promise<DrawGuessWordPack | null> {
   z.iso.date().parse(day);
   z.string().min(1).max(64).parse(runId);
-  const selectedCategory = z.enum(DRAWGUESS_WORD_CATEGORIES).parse(category);
+  const selectedCategory = z.enum(DRAWGUESS_WORD_CATEGORY_CATALOG.ids).parse(category);
   const row = await insertReservedWordPack(db, {
     packsTable: 'drawguess_word_packs',
     packId: createWordPackId(day, runId),

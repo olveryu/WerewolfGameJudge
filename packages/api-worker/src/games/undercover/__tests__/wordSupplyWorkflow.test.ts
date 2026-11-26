@@ -1,5 +1,5 @@
 /** Real Workflow, provider and D1 checkpoints with model HTTP mocked. */
-import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
+import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/undercover/public';
 import { env, introspectWorkflowInstance } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -100,7 +100,7 @@ describe('Undercover supply workflow', () => {
     expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 1 });
     const pack = z
       .object({
-        category: z.enum(UNDERCOVER_CATEGORIES),
+        category: z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids),
         status: z.string(),
         generation_json: z.string(),
       })

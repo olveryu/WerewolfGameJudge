@@ -1,5 +1,5 @@
 /** Real D1 queue recovery and stable reservation. */
-import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
+import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -28,7 +28,7 @@ describe('DrawGuess editorial publication', () => {
        SELECT 'history-' || i, json_extract(?, '$[' || (i % 40) || ']'), 'token-' || i,
          'failed', 'test', '1', '1', '2020-01-01' FROM n`,
     )
-      .bind(JSON.stringify(DRAWGUESS_WORD_CATEGORIES))
+      .bind(JSON.stringify(DRAWGUESS_WORD_CATEGORY_CATALOG.ids))
       .run();
     await env.DB.prepare(
       `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1000)
@@ -36,7 +36,7 @@ describe('DrawGuess editorial publication', () => {
        SELECT 'word-' || i, 'word-' || i, 'x', json_extract(?, '$[' || (i % 40) || ']'),
          'easy', 'active', '2020-01-01' FROM n`,
     )
-      .bind(JSON.stringify(DRAWGUESS_WORD_CATEGORIES))
+      .bind(JSON.stringify(DRAWGUESS_WORD_CATEGORY_CATALOG.ids))
       .run();
     measured.reset();
     expect(
@@ -46,7 +46,7 @@ describe('DrawGuess editorial publication', () => {
   });
 
   it('stores the explicitly selected category for concurrent reservations', async () => {
-    const categories = DRAWGUESS_WORD_CATEGORIES.slice(0, 10);
+    const categories = DRAWGUESS_WORD_CATEGORY_CATALOG.ids.slice(0, 10);
     const packs = await Promise.all(
       categories.map((category, index) =>
         reserveDrawGuessWordPack(env.DB, '2026-09-01', `parallel-${index}`, category),
@@ -66,7 +66,7 @@ describe('DrawGuess editorial publication', () => {
   it('does not replace the selected category when all categories are cooling down', async () => {
     const now = new Date().toISOString();
     await env.DB.batch(
-      DRAWGUESS_WORD_CATEGORIES.map((category) =>
+      DRAWGUESS_WORD_CATEGORY_CATALOG.ids.map((category) =>
         env.DB.prepare(
           `INSERT INTO drawguess_word_packs (id, category, request_token, status, model, prompt_version, review_version, created_at)
            VALUES (?, ?, ?, 'failed', 'test', '1', '1', ?)`,
@@ -84,7 +84,7 @@ describe('DrawGuess editorial publication', () => {
   });
 
   it('does not replace the selected category based on stock or recent-pack cooldown', async () => {
-    const stockedCategories = DRAWGUESS_WORD_CATEGORIES.filter(
+    const stockedCategories = DRAWGUESS_WORD_CATEGORY_CATALOG.ids.filter(
       (category) => category !== 'animals',
     );
     await env.DB.batch(

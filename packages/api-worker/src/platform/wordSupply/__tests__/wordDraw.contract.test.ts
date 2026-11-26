@@ -17,7 +17,7 @@ async function seedWords(count: number): Promise<number[]> {
     `WITH RECURSIVE counter(position) AS (
        SELECT 1 UNION ALL SELECT position + 1 FROM counter WHERE position < ?)
      INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at)
-     SELECT 'draw-' || position, '题' || position, 't', '动物', 'easy', 'active', datetime('now')
+     SELECT 'draw-' || position, '题' || position, 't', 'animals', 'easy', 'active', datetime('now')
      FROM counter`,
   )
     .bind(count)

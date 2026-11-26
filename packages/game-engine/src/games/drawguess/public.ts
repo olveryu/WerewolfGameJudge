@@ -41,8 +41,6 @@ export {
   DRAWGUESS_REACTIONS,
   DRAWGUESS_ROUND_END_SECONDS,
   DRAWGUESS_ROUNDS_PER_DRAWER,
-  DRAWGUESS_WORD_CATEGORIES,
-  DRAWGUESS_WORD_CATEGORY_NAMES,
   DRAWGUESS_WORD_CHOICE_COUNT,
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessConfig,
@@ -53,7 +51,6 @@ export {
   type DrawGuessState,
   type DrawGuessStroke,
   type DrawGuessTurnRecord,
-  type DrawGuessWordCategory,
   type DrawGuessWordChoice,
   getDrawGuessOccupiedSeatCount,
   getDrawGuessParticipantUserIds,
@@ -61,3 +58,4 @@ export {
   getDrawGuessTotalTurns,
   getDrawGuessUserSeat,
 } from './state/types';
+export { DRAWGUESS_WORD_CATEGORY_CATALOG, type DrawGuessWordCategory } from './wordCategories';

@@ -31,6 +31,8 @@ Options:
   --xp <n>                   Completion reward XP (default: ${DEFAULT_REWARDS.xpEarned}; rewards=flat only).
   --draws <n>                Completion reward normal draws (default: ${DEFAULT_REWARDS.normalDrawsEarned}; rewards=flat only).
   --daily-target <n>         Daily completion target (default: ${DEFAULT_REWARDS.dailyCompletionTarget}; rewards=flat only).
+  --word-category <id=name>  Approved word category, repeatable, in display order
+                             (required exactly when wordSupply is not none).
 `;
 
 /** Reward values must be plain non-negative integers — no partial parses. */
@@ -75,6 +77,17 @@ export function parseArgs(argv) {
       case '--daily-target':
         options.rewardOverrides.dailyCompletionTarget = parseRewardValue('--daily-target', next());
         break;
+      case '--word-category': {
+        const raw = next();
+        const separator = raw.indexOf('=');
+        if (separator <= 0) throw new Error(`--word-category expects <id>=<name>, got "${raw}".`);
+        options.wordCategories ??= [];
+        options.wordCategories.push({
+          id: raw.slice(0, separator),
+          name: raw.slice(separator + 1),
+        });
+        break;
+      }
       case '--production':
         options.production = true;
         break;
@@ -137,6 +150,13 @@ function main() {
 try {
   main();
 } catch (error) {
-  process.stderr.write(`new-game: ${error instanceof Error ? error.message : String(error)}\n`);
+  // Print the whole cause chain: preflight and replay errors wrap the
+  // original SQLite/IO error as `cause`.
+  const lines = [];
+  for (let current = error; current !== undefined; current = current.cause) {
+    lines.push(current instanceof Error ? current.message : String(current));
+    if (!(current instanceof Error)) break;
+  }
+  process.stderr.write(`new-game: ${lines.join('\n  caused by: ')}\n`);
   process.exitCode = 1;
 }

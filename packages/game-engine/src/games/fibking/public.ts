@@ -92,3 +92,9 @@ export {
   isValidFibWord,
   type PendingFibRound,
 } from './state/types';
+export {
+  FIB_WORD_CATEGORY_IDS,
+  FIBKING_WORD_CATEGORY_CATALOG,
+  type FibWordCategory,
+  type FibWordSupplyCategory,
+} from './wordCategories';

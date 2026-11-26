@@ -1,6 +1,6 @@
 /** Editorial-only Decrypto words; review evidence never enters room snapshots. */
 import {
-  DECRYPTO_WORD_CATEGORIES,
+  DECRYPTO_WORD_CATEGORY_CATALOG,
   type DecryptoWordCategory,
 } from '@game-judge/game-engine/games/decrypto/public';
 import { z } from 'zod';
@@ -23,7 +23,7 @@ const explanationSchema = z.string().trim().min(2).max(180);
 
 export const decryptoCandidateSchema = z.strictObject({
   word: wordSchema,
-  category: z.enum(DECRYPTO_WORD_CATEGORIES),
+  category: z.enum(DECRYPTO_WORD_CATEGORY_CATALOG.ids),
   potentialIssues: z.array(explanationSchema).max(4),
 });
 export type DecryptoWordCandidate = z.output<typeof decryptoCandidateSchema>;

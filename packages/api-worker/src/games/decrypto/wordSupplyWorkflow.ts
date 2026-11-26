@@ -1,5 +1,5 @@
 /** Scheduled Decrypto word supply; generation creates pending submissions only. */
-import { DECRYPTO_WORD_CATEGORIES } from '@game-judge/game-engine/games/decrypto/public';
+import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { z } from 'zod';
 
@@ -24,7 +24,7 @@ export class DecryptoWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSupp
       gameLabel: 'decrypto',
       isEnabled: (env) => env.DECRYPTO_WORD_SUPPLY_ENABLED === 'true',
       model: DECRYPTO_WORD_MODEL,
-      categorySchema: z.enum(DECRYPTO_WORD_CATEGORIES),
+      categorySchema: z.enum(DECRYPTO_WORD_CATEGORY_CATALOG.ids),
       packsTable: 'decrypto_word_packs',
       loadHistory: async (db, category) => {
         const rows = await db

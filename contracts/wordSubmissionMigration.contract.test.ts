@@ -1,21 +1,10 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 
-import { DECRYPTO_WORD_CATEGORIES } from '@game-judge/game-engine/games/decrypto/public';
+import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
 import { expect, it } from 'vitest';
 
-const migrationsDirectory = 'packages/api-worker/migrations';
-
-function applyMigrationsThrough(database: DatabaseSync, lastMigration: string): void {
-  const names = readdirSync(migrationsDirectory)
-    .filter((name) => name.endsWith('.sql'))
-    .sort();
-  if (!names.includes(lastMigration)) throw new Error(`Missing migration ${lastMigration}`);
-  for (const name of names) {
-    if (name > lastMigration) break;
-    database.exec(readFileSync(`${migrationsDirectory}/${name}`, 'utf8'));
-  }
-}
+import { applyMigrationsThrough, latestMigrationName, readMigration } from './support/d1Migrations';
 
 function readSubmissionIndexes(database: DatabaseSync) {
   return database
@@ -156,7 +145,7 @@ it.each([1, 1000])('preserves %i linked editorial records with one copy per tabl
     if (changesBefore === undefined || typeof changesBefore.count !== 'number')
       throw new Error('Missing SQLite write count before migration');
     database.exec('BEGIN');
-    database.exec(readFileSync(`${migrationsDirectory}/0092_decrypto_word_supply.sql`, 'utf8'));
+    database.exec(readMigration('0092_decrypto_word_supply.sql'));
     database.exec('COMMIT');
     const changesAfter = database.prepare('SELECT total_changes() AS count').get();
     if (changesAfter === undefined || typeof changesAfter.count !== 'number')
@@ -225,21 +214,25 @@ it('accepts all 40 canonical inventory categories and rejects unregistered categ
   const database = new DatabaseSync(':memory:');
   try {
     database.exec('PRAGMA foreign_keys = ON');
-    applyMigrationsThrough(database, '0092_decrypto_word_supply.sql');
+    applyMigrationsThrough(database, latestMigrationName());
     const word =
       database.prepare(`INSERT INTO decrypto_words (id, word, category, status, created_at)
       VALUES (?, ?, ?, 'active', 'now')`);
     const pack = database.prepare(`INSERT INTO decrypto_word_packs
       (id, category, request_token, status, model, prompt_version, review_version, created_at)
       VALUES (?, ?, 'request', 'reserved', 'model', 'prompt', 'review', 'now')`);
-    expect(DECRYPTO_WORD_CATEGORIES).toHaveLength(40);
-    for (const [index, category] of DECRYPTO_WORD_CATEGORIES.entries()) {
+    expect(DECRYPTO_WORD_CATEGORY_CATALOG.ids).toHaveLength(40);
+    for (const [index, category] of DECRYPTO_WORD_CATEGORY_CATALOG.ids.entries()) {
       word.run(`category-${category}`, `分类词${index}`, category);
       pack.run(`pack-${category}`, category);
     }
     for (const invalid of ['general', 'unknown']) {
-      expect(() => word.run(`invalid-${invalid}`, `无效词${invalid}`, invalid)).toThrow(/CHECK/);
-      expect(() => pack.run(`invalid-${invalid}`, invalid)).toThrow(/CHECK/);
+      expect(() => word.run(`invalid-${invalid}`, `无效词${invalid}`, invalid)).toThrow(
+        /FOREIGN KEY constraint failed/,
+      );
+      expect(() => pack.run(`invalid-${invalid}`, invalid)).toThrow(
+        /FOREIGN KEY constraint failed/,
+      );
     }
   } finally {
     database.close();

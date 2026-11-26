@@ -2,11 +2,11 @@
 
 import { isBotOccupant } from '../../../platform/room/seating';
 import { getUndercoverRoleCounts, getUndercoverWinner } from '../domain/rules';
+import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '../wordCategories';
 import {
   getUndercoverOccupiedSeatCount,
   isUndercoverSeat,
   isValidUndercoverConfig,
-  UNDERCOVER_CATEGORIES,
   type UndercoverState,
   type UndercoverWordPair,
 } from './types';
@@ -17,7 +17,7 @@ export function isValidUndercoverWordPair(pair: UndercoverWordPair): boolean {
     pair.id.trim().length > 0 &&
     [pair.wordA, pair.wordB].every((word) => word.length > 0 && word.trim() === word) &&
     pair.wordA !== pair.wordB &&
-    UNDERCOVER_CATEGORIES.some((category) => category === pair.category)
+    UNDERCOVER_WORD_CATEGORY_CATALOG.ids.some((category) => category === pair.category)
   );
 }
 

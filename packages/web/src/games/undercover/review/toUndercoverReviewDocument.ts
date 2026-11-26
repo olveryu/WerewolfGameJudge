@@ -4,9 +4,9 @@
  */
 
 import {
-  UNDERCOVER_CATEGORY_NAMES,
   UNDERCOVER_CONFIG_SCHEMA,
   UNDERCOVER_ROLE_NAMES,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
   type UndercoverConfig,
   type UndercoverRole,
   type UndercoverRound,
@@ -104,7 +104,10 @@ function factItems(input: UndercoverReviewInput): readonly ReviewLabeledValue[] 
   return [
     { label: CIVILIAN_WORD_LABEL, value: round.civilianWord },
     { label: UNDERCOVER_WORD_LABEL, value: round.undercoverWord },
-    { label: categoryLabel, value: UNDERCOVER_CATEGORY_NAMES[round.wordPair.category] },
+    {
+      label: categoryLabel,
+      value: UNDERCOVER_WORD_CATEGORY_CATALOG.names[round.wordPair.category],
+    },
     blankMode,
   ];
 }

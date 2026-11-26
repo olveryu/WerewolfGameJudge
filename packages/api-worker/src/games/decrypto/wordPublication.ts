@@ -1,6 +1,6 @@
 /** Reserve and fail one Decrypto word-supply batch. */
 import {
-  DECRYPTO_WORD_CATEGORIES,
+  DECRYPTO_WORD_CATEGORY_CATALOG,
   type DecryptoWordCategory,
 } from '@game-judge/game-engine/games/decrypto/public';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ import { DECRYPTO_WORD_MODEL } from './wordProvider';
 
 const packSchema = z.strictObject({
   id: z.string(),
-  category: z.enum(DECRYPTO_WORD_CATEGORIES),
+  category: z.enum(DECRYPTO_WORD_CATEGORY_CATALOG.ids),
   request_token: z.string(),
 });
 export type DecryptoWordPack = z.output<typeof packSchema>;
@@ -28,7 +28,7 @@ export async function reserveDecryptoWordPack(
 ): Promise<DecryptoWordPack | null> {
   z.iso.date().parse(day);
   z.string().min(1).max(64).parse(runId);
-  const selectedCategory = z.enum(DECRYPTO_WORD_CATEGORIES).parse(category);
+  const selectedCategory = z.enum(DECRYPTO_WORD_CATEGORY_CATALOG.ids).parse(category);
   const row = await insertReservedWordPack(db, {
     packsTable: 'decrypto_word_packs',
     packId: createWordPackId(day, runId),

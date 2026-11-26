@@ -3,6 +3,7 @@
 import type { GameWordGame } from './games';
 import type { WordSubmissionStatus } from './submissions';
 
+export * from './categoryCatalog';
 export * from './games';
 export * from './submissions';
 

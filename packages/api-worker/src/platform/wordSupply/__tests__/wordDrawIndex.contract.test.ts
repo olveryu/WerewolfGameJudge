@@ -4,11 +4,9 @@
  * re-review, seeds, fixtures) keeps it in step without calling shared code.
  */
 
-import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
+import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/undercover/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-
-import { getFibWatermarkConversion } from '../../../../test/fibWordWatermarkMigration';
 
 const NOW = '2026-11-01T00:00:00.000Z';
 
@@ -37,7 +35,7 @@ async function ordinals(query: string, ...values: string[]): Promise<number[]> {
 async function insertDrawGuessWord(id: string, status: 'active' | 'disabled'): Promise<void> {
   await env.DB.prepare(
     `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
-     VALUES (?, ?, 'x', '动物', 'easy', ?, ?, ?)`,
+     VALUES (?, ?, 'x', 'animals', 'easy', ?, ?, ?)`,
   )
     .bind(id, `词${id}`, status, NOW, status === 'disabled' ? NOW : null)
     .run();
@@ -106,7 +104,9 @@ describe('word draw index', () => {
     const expected = [
       'drawguess/all',
       'fibking/all',
-      ...['all', ...UNDERCOVER_CATEGORIES].sort().map((partition) => `undercover/${partition}`),
+      ...['all', ...UNDERCOVER_WORD_CATEGORY_CATALOG.ids]
+        .sort()
+        .map((partition) => `undercover/${partition}`),
     ];
     expect(rows.results.map((row) => `${row.pool}/${row.partition_key}`)).toEqual(expected);
     expect(rows.results.every((row) => row.members === ',')).toBe(true);
@@ -131,7 +131,7 @@ describe('word draw index', () => {
     for (const id of ['a', 'c']) {
       await env.DB.prepare(
         `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
-         VALUES (?, ?, 'x', '动物', 'easy', 'active', ?, NULL)
+         VALUES (?, ?, 'x', 'animals', 'easy', 'active', ?, NULL)
          ON CONFLICT (id) DO UPDATE SET status = 'active', disabled_at = NULL`,
       )
         .bind(id, `词${id}`, NOW)
@@ -227,36 +227,5 @@ describe('word draw index', () => {
     await env.DB.prepare("DELETE FROM fib_word_sequence WHERE word = '射覆'").run();
     expect(await indexMembers('fibking', 'all')).toEqual(await fibTruth());
     expect(await fibTruth()).toHaveLength(1);
-  });
-});
-
-describe('fibking watermark migration', () => {
-  it('rejects missing or duplicate watermark conversion statements', () => {
-    const conversion = getFibWatermarkConversion(env.TEST_MIGRATIONS);
-    const name = '0067_shared_word_draw.sql';
-    expect(() => getFibWatermarkConversion([{ name, queries: [] }])).toThrow(
-      'Expected one fibking watermark conversion statement, found 0',
-    );
-    expect(() => getFibWatermarkConversion([{ name, queries: [conversion, conversion] }])).toThrow(
-      'Expected one fibking watermark conversion statement, found 2',
-    );
-  });
-
-  it('turns each high-watermark into a seen range ending at the watermark', async () => {
-    const conversion = getFibWatermarkConversion(env.TEST_MIGRATIONS);
-    await env.DB.prepare("DELETE FROM users WHERE id IN ('watermark-a', 'watermark-b')").run();
-    await env.DB.prepare('DELETE FROM fib_word_progress').run();
-    await env.DB.prepare("INSERT INTO users (id) VALUES ('watermark-a'), ('watermark-b')").run();
-    await env.DB.prepare(
-      "INSERT INTO fib_word_progress (user_id, sequence_number) VALUES ('watermark-a', 12), ('watermark-b', 1)",
-    ).run();
-    await env.DB.prepare(conversion).run();
-    const rows = await env.DB.prepare(
-      "SELECT user_id, pool, seen FROM word_seen WHERE user_id LIKE 'watermark-%' ORDER BY user_id",
-    ).all();
-    expect(rows.results).toEqual([
-      { user_id: 'watermark-a', pool: 'fibking', seen: ',1-12,' },
-      { user_id: 'watermark-b', pool: 'fibking', seen: ',1-1,' },
-    ]);
   });
 });

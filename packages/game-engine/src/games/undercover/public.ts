@@ -44,11 +44,8 @@ export {
   getUndercoverViewingParticipants,
   isUndercoverSeat,
   isValidUndercoverConfig,
-  UNDERCOVER_CATEGORIES,
   UNDERCOVER_CATEGORY_MIN_ACTIVE_PAIRS,
-  UNDERCOVER_CATEGORY_NAMES,
   UNDERCOVER_CONFIG_SCHEMA,
-  type UndercoverCategory,
   type UndercoverConfig,
   type UndercoverHumanSeat,
   type UndercoverPreparationFailure,
@@ -56,3 +53,8 @@ export {
   type UndercoverState,
   type UndercoverWordPair,
 } from './state/types';
+export {
+  UNDERCOVER_ALL_CATEGORIES_LABEL,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
+  type UndercoverCategory,
+} from './wordCategories';

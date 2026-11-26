@@ -185,7 +185,7 @@ After `ci-gate` succeeds on `main`, `deploy-api-worker`:
 2. Applies remote D1 migrations with the API package's `db:migrate:remote` script.
 3. Deploys `werewolf-api` with the API package's `deploy` script.
 
-Migrations run before Worker deployment. A migration failure stops the job and leaves the previous Worker deployed.
+Migrations run before Worker deployment. One run applies every pending migration on main, so merging a migration PR is what schedules it; see `packages/api-worker/AGENTS.md` for the D1 write budget and merge window. A migration failure stops the job and leaves the previous Worker deployed.
 
 ### Frontend
 
@@ -364,7 +364,7 @@ Inspect `index.html` to identify its `0.0.0-g<sha8>` asset version, then verify 
 
 ### API deployment fails after a migration
 
-Inspect the `Apply D1 migrations` step first. Do not deploy the new Worker manually around a failed migration. Correct the migration or compatibility issue, verify it locally, and rerun the CI job.
+Inspect the `Apply D1 migrations` step first. Do not deploy the new Worker manually around a failed migration. A failed migration is rolled back and stays unapplied; fix it the way `packages/api-worker/AGENTS.md` prescribes for unapplied migrations, verify it locally, and rerun the CI job in a fresh D1 write window.
 
 ### Realtime updates fail
 
