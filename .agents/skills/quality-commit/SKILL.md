@@ -104,4 +104,4 @@ Acceptance is: scoped checks pass, only lint/format fixes were auto-applied, the
 ## Pitfalls
 
 1. A plain `as` cast fails `contracts/architecture.contract.test.ts` ('Production types: no ordinary assertions'; only `as const` is allowed).
-2. The push-time checks are exactly `npx tsc --noEmit` and `npx knip`, in that order (`.husky/pre-push`); a local scoped pass does not replace them. The root `tsc --noEmit` covers only `contracts/` and the root configs, so a web change also needs `pnpm --filter @game-judge/web run typecheck`.
+2. The push-time checks are exactly `npx tsc --noEmit`, `npx knip`, `npm run --silent lint:css` and `npm run --silent lint:ui-baseline`, in that order (`.husky/pre-push`); a local scoped pass does not replace them. The root `tsc --noEmit` covers only `contracts/` and the root configs, so a web change also needs `pnpm --filter @game-judge/web run typecheck`.

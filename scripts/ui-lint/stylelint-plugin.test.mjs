@@ -54,10 +54,59 @@ const rejected = [
   ['Q1 escaped property name', 'img { border-r\\61 dius: 50%; }', 'ui/no-css-escapes'],
   ['Q2 escaped clip-path', '.host { clip-p\\61 th: circle(); }', 'ui/no-css-escapes'],
   ['Q3 escaped custom property', 'a { --avatar-corner-r\\61 tio: 0.5; }', 'ui/no-css-escapes'],
-  ['escaped selector', '.a\\:b { display: block; }', 'ui/no-css-escapes'],
+  ['escaped selector', '.a\\:b { display: block; }', 'ui/no-css-escapes'], // P1 QA1: spellings that got past the first version.
+  ['F1 uppercase color function', 'a { color: RGB(1, 2, 3); }', 'function-disallowed-list'],
+  ['F1 mixed-case color function', 'a { --c: Hsla(0 0% 0% / 1); }', 'function-disallowed-list'],
+  ['F2 prefixed radius', 'a { -webkit-border-radius: 13px; }', 'ui/strict-value'],
+  ['F2 prefixed transition', 'a { -webkit-transition: opacity 100ms; }', 'ui/strict-value'],
+  ['F2 prefixed animation', 'a { -webkit-animation: k 300ms; }', 'ui/strict-value'],
+  ['F2 prefixed shadow length', 'a { -webkit-box-shadow: 0 0 4px var(--c); }', 'ui/strict-value'],
+  ['F3 font shorthand', 'a { font: 600 14px/1.2 sans-serif; }', 'ui/strict-value'],
+  [
+    'F3 font shorthand keyword',
+    'a { font: bold var(--f) / var(--l) sans-serif; }',
+    'ui/strict-value',
+  ],
+  ['F4 round()', 'a { border-radius: round(13px, 1px); }', 'ui/strict-value'],
+  ['F4 abs()', 'a { padding: abs(13px); }', 'ui/strict-value'],
+  ['F4 mod()', 'a { margin: mod(13px, 100px); }', 'ui/strict-value'],
+  ['F4 prefixed calc', 'a { padding: -webkit-calc(13px); }', 'ui/strict-value'],
+  ['F4 local round()', 'a { --r: round(13px, 1px); }', 'ui/no-local-literal-custom-property'],
+  ['F5 z-index in calc', 'a { z-index: calc(999); }', 'ui/strict-value'],
+  ['F5 z-index in max', 'a { z-index: max(999); }', 'ui/strict-value'],
+  ['F5 weight in calc', 'a { font-weight: calc(700); }', 'ui/strict-value'],
+  ['F5 line height in calc', 'a { line-height: calc(1.5); }', 'ui/strict-value'],
+  ['F6 escaped time unit', 'a { transition: opacity 100\\ms; }', 'ui/no-css-escapes'],
+  ['F6 hex-escaped time unit', 'a { transition: opacity 100\\6d s; }', 'ui/no-css-escapes'],
+  ['F6 escaped keyframes name', '@keyframes \\61 b { from { opacity: 0; } }', 'ui/no-css-escapes'],
+  ['F7 local named size', 'a { --fs: larger; }', 'ui/no-local-literal-custom-property'],
+  ['F7 local named weight', 'a { --w: bold; }', 'ui/no-local-literal-custom-property'],
+  ['outline width', 'a { outline: 2px solid var(--c); }', 'ui/strict-value'],
+  ['outline offset', 'a { outline-offset: 2px; }', 'ui/strict-value'],
+  ['text shadow length', 'a { text-shadow: 0 1px var(--c); }', 'ui/strict-value'],
+  ['F10 disable comment', '/* stylelint-disable */ a { border-radius: 13px; }', 'ui/strict-value'],
+  [
+    'F10 disable-line comment',
+    'a { z-index: 9999; } /* stylelint-disable-line */',
+    'ui/strict-value',
+  ],
 ];
 
 const accepted = [
+  ['token z-index', 'a { z-index: var(--z-overlay); }'],
+  ['font shorthand reset', 'a { font: inherit; }'],
+  [
+    'font shorthand token',
+    'a { font: var(--font-weight-bold) var(--font-size-md) / var(--line-height-body) system-ui; }',
+  ],
+  ['unitless factor in calc', 'a { padding: calc(var(--space-2) * 2); }'],
+  [
+    'easing function numbers',
+    'a { transition: opacity var(--motion-fast) cubic-bezier(0.2, 0, 0, 1); }',
+  ],
+  ['step easing', 'a { animation: k var(--motion-slow) steps(4, end); }'],
+  ['unitless local scale', 'a { --cell-peak: 1.08; }'],
+  ['round() keyword and tokens', 'a { margin: round(up, var(--a), var(--b)); }'],
   ['token padding pair', 'a { padding: var(--a) var(--b); }'],
   ['zero and auto', 'a { margin: 0 auto; }'],
   ['multi-value token shadow', 'a { box-shadow: var(--shadow-tabletop-panel), var(--shadow-md); }'],
@@ -91,6 +140,10 @@ describe('UI gate: Stylelint rules', () => {
     expect(await problems(valueOnly, 'packages/web/src/theme/tokens.css')).toEqual([]);
     expect(await problems(valueOnly, 'packages/web/src/scene/scene.css')).toEqual([]);
     expect(await problems(valueOnly, 'packages/web/src/theme/nightArt.css')).toEqual([]);
+    // Only the boot splash is art; the rest of boot/ is ordinary UI and stays checked.
+    expect(await problems(valueOnly, 'packages/web/src/boot/WechatBrowserGuide.css')).toEqual(
+      expect.arrayContaining(['color-no-hex', 'ui/strict-value']),
+    );
     const escaped = '.a\\:b { color: #000; }';
     expect(await problems(escaped, 'packages/web/src/theme/tokens.css')).toEqual([
       'ui/no-css-escapes',

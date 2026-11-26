@@ -17,7 +17,7 @@ export const ART_LAYER_PATHS = Object.freeze([
   'packages/web/src/components/avatar/GeneratedAvatar.tsx',
   'packages/web/src/components/nameStyles/**',
   'packages/web/src/features/gacha/machine/**',
-  'packages/web/src/boot/**',
+  'packages/web/src/boot/bootSplash.css',
   'packages/web/src/theme/nightArt.css',
   'packages/web/src/routes/bench/**',
 ]);

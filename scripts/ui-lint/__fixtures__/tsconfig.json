@@ -1,14 +1,21 @@
 {
   "compilerOptions": {
     "strict": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
     "target": "es2022",
-    "lib": ["es2022", "dom"],
+    "lib": [
+      "es2022",
+      "dom"
+    ],
     "noEmit": true,
     "skipLibCheck": true,
-    "types": []
+    "types": [
+      "react"
+    ]
   },
-  "include": ["probe.tsx"]
+  "include": [
+    "probe.tsx"
+  ]
 }

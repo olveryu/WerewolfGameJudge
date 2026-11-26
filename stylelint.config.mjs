@@ -10,18 +10,8 @@ import uiPlugins from './scripts/ui-lint/stylelint-plugin.mjs';
 const COLOR_LITERAL_RULES = {
   'color-no-hex': true,
   'color-named': 'never',
-  'function-disallowed-list': [
-    'rgb',
-    'rgba',
-    'hsl',
-    'hsla',
-    'hwb',
-    'lab',
-    'lch',
-    'oklab',
-    'oklch',
-    'color',
-  ],
+  // CSS function names are case-insensitive (`RGB()` renders), so the list is one /i pattern.
+  'function-disallowed-list': ['/^(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)$/i'],
 };
 
 /** Rules that police values. The token stylesheet and the art layer are where values live. */
@@ -35,6 +25,9 @@ const valueRulesOff = Object.fromEntries(Object.keys(VALUE_RULES).map((rule) => 
 
 export default {
   plugins: uiPlugins,
+  // A disable comment would switch the gate off for a line or a file and hide the debt from the
+  // ratchet, so disable comments have no effect: debt is recorded in the baseline or fixed.
+  ignoreDisables: true,
   rules: {
     ...VALUE_RULES,
     'ui/no-css-escapes': true,

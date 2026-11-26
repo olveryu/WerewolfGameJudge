@@ -5,5 +5,5 @@ fi
 
 npx tsc --noEmit
 npx knip
-pnpm run lint:css
-pnpm run lint:ui-baseline
+npm run --silent lint:css
+npm run --silent lint:ui-baseline

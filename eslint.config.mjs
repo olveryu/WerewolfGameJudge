@@ -290,6 +290,14 @@ export default tseslint.config(
       'no-new-func': 'error',
     },
   },
+  // Web tests mount jsdom fixtures through innerHTML; they never reach a user's page, so only the
+  // markup sinks are open there — creating <style>/<link> stays an error.
+  {
+    files: ['packages/web/**/__tests__/**', 'packages/web/**/*.test.{ts,tsx}'],
+    rules: {
+      'ui/no-style-elements': ['error', { htmlSinks: false }],
+    },
+  },
   // The web client's logger is the only place allowed to write to the console.
   {
     files: ['packages/web/src/utils/logger.ts'],

@@ -5,16 +5,25 @@
  * 1. Exact: Stylelint runs here without suppressions, and its per-file, per-rule counts must equal
  *    `stylelint-suppressions.json` entry for entry. Fixing a violation without shrinking the record
  *    fails, so the record never holds slack that a new violation could hide in. (ESLint checks its
- *    own record: an unused suppression makes `eslint .` fail.)
- * 2. Shrink only: compared with the base revision, no suppression file gains an entry and no entry
- *    gains count. A renamed file keeps its entries under the new path (`git diff -M`).
+ *    own record for files it lints — an unused suppression makes `eslint` exit 2 — so the ratchet
+ *    only rejects ESLint entries for files ESLint never visits.)
+ * 2. Shrink only: compared with the base revision, no entry gains count, and an entry is new only
+ *    where its rule did not apply to that file at the base — the PR that introduces a rule (or
+ *    brings a file under it) records the rule's existing debt; nothing else can. A renamed file
+ *    keeps its entries under the new path (`git diff -M`).
+ * 3. No gate disables: no `eslint-disable` comment in the web client names a gate rule or names no
+ *    rule (`scripts/ui-lint/disableDirectives.mjs`). Stylelint ignores disable comments outright.
  *
  * Base: `--base <rev>` when given; `HEAD^1` in CI (a pull request checks out its merge commit, whose
  * first parent is main; a push to main compares with the previous main); otherwise
  * `git merge-base HEAD origin/main`.
  *
- * Fix a failure by fixing the violation, then `pnpm run lint:css:baseline` (Stylelint) or
- * `pnpm exec eslint . --prune-suppressions` (ESLint) to shrink the record.
+ * Fix a failure by fixing the violation, then `pnpm run lint:css:baseline` (Stylelint: rewrites the
+ * record from Stylelint's counts, dropping renamed and deleted paths) or
+ * `pnpm exec eslint <files> --prune-suppressions` (ESLint) to shrink the record.
+ *
+ * Options: `--base <rev>`; `--write` rewrites `stylelint-suppressions.json` to the current counts
+ * and exits (the shrink-only check still runs in the gate).
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -22,12 +31,17 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { ESLint } from 'eslint';
+import { globSync } from 'glob';
 import stylelint from 'stylelint';
+
+import { gateDisableDirectives } from './ui-lint/disableDirectives.mjs';
 
 export const STYLELINT_SUPPRESSIONS = 'stylelint-suppressions.json';
 export const ESLINT_SUPPRESSIONS = 'eslint-suppressions.json';
 export const STYLELINT_FILES = 'packages/web/src/**/*.css';
-const RATCHET_SCRIPT = 'scripts/ui-baseline-ratchet.mjs';
+export const DIRECTIVE_FILES = 'packages/web/src/**/*.{ts,tsx,js,jsx,mjs,cjs}';
+/** What a base revision's lint configuration needs in order to load outside the work tree. */
+const CONFIG_PATHS = ['package.json', 'stylelint.config.mjs', 'eslint.config.mjs', 'scripts'];
 
 function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -36,7 +50,13 @@ function git(args, cwd) {
 function resolveBase(cwd, explicit) {
   if (explicit !== undefined) return explicit;
   if (process.env.CI) return 'HEAD^1';
-  return git(['merge-base', 'HEAD', 'origin/main'], cwd).trim();
+  try {
+    return git(['merge-base', 'HEAD', 'origin/main'], cwd).trim();
+  } catch (error) {
+    throw new Error(
+      `UI baseline ratchet: no merge base with origin/main (${String(error.stderr ?? error.message).trim()}). Fetch origin/main or pass --base <rev>.`,
+    );
+  }
 }
 
 /** Reads a suppressions record (`{ file: { rule: { count } } }`); a missing file is empty. */
@@ -90,15 +110,24 @@ function renamesSince(cwd, base) {
   return renames;
 }
 
-/** Entries of `current` that are new or larger than in `base`. */
-export function growth(current, base, renames = new Map()) {
+/**
+ * Entries of `current` that are larger than in `base`, or new although their rule already applied
+ * to the file at the base (`appliedAtBase(baseFile, rule)`; by default every rule did).
+ */
+export async function growth(current, base, renames = new Map(), appliedAtBase = async () => true) {
   const problems = [];
   for (const [file, rules] of Object.entries(current)) {
-    const baseRules = base[renames.get(file) ?? file] ?? {};
+    const baseFile = renames.get(file) ?? file;
+    const baseRules = base[baseFile] ?? {};
     for (const [rule, { count }] of Object.entries(rules)) {
       const before = baseRules[rule]?.count ?? 0;
-      if (before === 0) problems.push(`${file} → ${rule}: new entry (${count})`);
-      else if (count > before) problems.push(`${file} → ${rule}: ${before} → ${count}`);
+      if (before === 0) {
+        if (await appliedAtBase(baseFile, rule)) {
+          problems.push(`${file} → ${rule}: new entry (${count}) for a rule that already applied`);
+        }
+      } else if (count > before) {
+        problems.push(`${file} → ${rule}: ${before} → ${count}`);
+      }
     }
   }
   return problems;
@@ -163,13 +192,82 @@ export async function unvisitedEslintEntries(cwd, record) {
   return problems;
 }
 
+/** The record Stylelint's counts imply, sorted for a stable diff. */
+export function recordFrom(counts) {
+  const record = {};
+  for (const file of Object.keys(counts).sort()) {
+    record[file] = {};
+    for (const rule of Object.keys(counts[file]).sort()) record[file][rule] = counts[file][rule];
+  }
+  return record;
+}
+
+function isEnabled(setting) {
+  if (setting === undefined || setting === null || setting === false) return false;
+  const severity = Array.isArray(setting) ? setting[0] : setting;
+  return severity !== 0 && severity !== 'off' && severity !== null && severity !== false;
+}
+
+/**
+ * Loads the base revision's lint configuration in a scratch directory (its own config files and
+ * scripts, this checkout's node_modules) and answers whether a rule applied to a file there.
+ * With no Stylelint config at the base, no Stylelint rule applied.
+ */
+async function baseRuleLookup(cwd, base, scratch) {
+  const present = CONFIG_PATHS.filter((entry) => existsAtBase(cwd, base, entry));
+  if (present.length > 0) {
+    const archive = execFileSync('git', ['archive', base, '--', ...present], {
+      cwd,
+      maxBuffer: 256 * 1024 * 1024,
+    });
+    execFileSync('tar', ['-x', '-C', scratch], { input: archive });
+  }
+  fs.symlinkSync(path.join(cwd, 'node_modules'), path.join(scratch, 'node_modules'), 'dir');
+  const hasStylelint = present.includes('stylelint.config.mjs');
+  const hasEslint = present.includes('eslint.config.mjs');
+  const eslint = hasEslint ? new ESLint({ cwd: scratch }) : undefined;
+  return {
+    hasStylelint,
+    async stylelint(file, rule) {
+      if (!hasStylelint) return false;
+      const config = await stylelint.resolveConfig(path.join(scratch, file), { cwd: scratch });
+      return isEnabled(config?.rules?.[rule]);
+    },
+    async eslint(file, rule) {
+      if (eslint === undefined) return false;
+      const config = await eslint.calculateConfigForFile(path.join(scratch, file));
+      return isEnabled(config?.rules?.[rule]);
+    },
+  };
+}
+
+/** Gate disable directives in the web client's sources. */
+export function disableDirectiveProblems(cwd) {
+  const problems = [];
+  for (const file of globSync(DIRECTIVE_FILES, { cwd, nodir: true }).sort()) {
+    for (const { line, text } of gateDisableDirectives(
+      fs.readFileSync(path.join(cwd, file), 'utf8'),
+    )) {
+      problems.push(`${file}:${line}: ${text}`);
+    }
+  }
+  return problems;
+}
+
 async function main() {
   const cwd = process.cwd();
   const baseFlag = process.argv.indexOf('--base');
+  const counts = await stylelintCounts(cwd);
+  if (process.argv.includes('--write')) {
+    const record = `${JSON.stringify(recordFrom(counts), null, 2)}\n`;
+    fs.writeFileSync(path.join(cwd, STYLELINT_SUPPRESSIONS), record);
+    console.log(`Wrote ${STYLELINT_SUPPRESSIONS} from Stylelint's current counts.`);
+    return;
+  }
   const base = resolveBase(cwd, baseFlag === -1 ? undefined : process.argv[baseFlag + 1]);
   const failures = [];
 
-  const exact = mismatches(readRecord(cwd, STYLELINT_SUPPRESSIONS), await stylelintCounts(cwd));
+  const exact = mismatches(readRecord(cwd, STYLELINT_SUPPRESSIONS), counts);
   if (exact.length > 0) {
     failures.push(
       `${STYLELINT_SUPPRESSIONS} does not match Stylelint (fix new violations; after fixing old ones run \`pnpm run lint:css:baseline\`):`,
@@ -185,17 +283,35 @@ async function main() {
     );
   }
 
-  // A record missing at the base is an empty record: debt can be recorded only while the record
-  // is first introduced, i.e. against a base from before this ratchet existed.
-  const bootstrapping = !existsAtBase(cwd, base, RATCHET_SCRIPT);
+  const directives = disableDirectiveProblems(cwd);
+  if (directives.length > 0) {
+    failures.push(
+      'eslint-disable comments may not switch off UI gate rules (fix the code or record the debt):',
+      ...directives,
+    );
+  }
+
   const renames = renamesSince(cwd, base);
-  for (const file of [STYLELINT_SUPPRESSIONS, ESLINT_SUPPRESSIONS]) {
-    const baseRecord = readBaseRecord(cwd, base, file);
-    if (baseRecord === undefined && bootstrapping) continue;
-    const grown = growth(readRecord(cwd, file), baseRecord ?? {}, renames);
-    if (grown.length > 0) {
-      failures.push(`${file} grew since ${base} (the record only shrinks):`, ...grown);
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-baseline-base-'));
+  try {
+    const lookup = await baseRuleLookup(cwd, base, scratch);
+    if (!lookup.hasStylelint) {
+      console.warn(
+        `UI baseline ratchet: ${base} has no Stylelint config, so every recorded entry counts as new debt of a new rule. If origin/main is stale, fetch it first.`,
+      );
     }
+    for (const [file, applied] of [
+      [STYLELINT_SUPPRESSIONS, lookup.stylelint],
+      [ESLINT_SUPPRESSIONS, lookup.eslint],
+    ]) {
+      const baseRecord = readBaseRecord(cwd, base, file) ?? {};
+      const grown = await growth(readRecord(cwd, file), baseRecord, renames, applied);
+      if (grown.length > 0) {
+        failures.push(`${file} grew since ${base} (the record only shrinks):`, ...grown);
+      }
+    }
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true });
   }
 
   if (failures.length > 0) {
