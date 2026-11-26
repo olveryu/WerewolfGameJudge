@@ -19,6 +19,8 @@ import { GAME_COMPLETION_REWARDS } from '../product/rewards/earnings';
  * `levelRoll` games settle through
  * their own pipeline (XP rolled from the player's level), so the flat
  * amounts do not apply and the pipeline entry point is registered instead.
+ * `none` games never complete a player game (the party toolbox): they emit no
+ * completion effect, no player game count and no reward.
  */
 export type GameRegistrationRewards<TGameType extends GameType = GameType> =
   | {
@@ -32,7 +34,8 @@ export type GameRegistrationRewards<TGameType extends GameType = GameType> =
       /** Worker module (relative to `packages/api-worker/src`, no extension) exporting the settlement entry point. */
       readonly settlementModulePath: `games/${TGameType}/settlement/${string}`;
       readonly settlementExportName: string;
-    };
+    }
+  | { readonly policy: 'none' };
 
 /** A Cloudflare Workflow class the Worker entrypoint must re-export for a game. */
 export interface GameWorkerWorkflowRegistration<TGameType extends GameType = GameType> {
@@ -187,6 +190,15 @@ export const GAME_REGISTRY = {
       },
     ],
     httpRoutes: ['/api/games/decrypto/rooms'],
+  },
+  toolbox: {
+    gameType: 'toolbox',
+    enginePublicExport: './games/toolbox/public',
+    clientModulePath: 'packages/web/src/games/toolbox/module.ts',
+    isProduction: true,
+    rewards: { policy: 'none' },
+    workerWorkflows: [],
+    httpRoutes: ['/api/games/toolbox/presets'],
   },
 } as const satisfies { readonly [TGameType in GameType]: GameRegistration<TGameType> };
 

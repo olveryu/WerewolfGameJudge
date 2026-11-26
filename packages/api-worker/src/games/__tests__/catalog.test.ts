@@ -30,6 +30,7 @@ import {
 } from '../fibking/schemas';
 import { pictionaryMediaRoutes } from '../pictionary/mediaRoutes';
 import { secrethitlerPublicCommandSchema } from '../secrethitler/schemas';
+import { toolboxPresetRoutes } from '../toolbox/routes';
 import { undercoverInventoryRoutes } from '../undercover/routes';
 import { undercoverPublicCommandSchema } from '../undercover/schemas';
 import { werewolfAiChatRoutes } from '../werewolf/aiChat/routes';
@@ -177,6 +178,7 @@ describe('Worker game catalog', () => {
       '/api/games/undercover/inventory': undercoverInventoryRoutes,
       '/api/games/drawguess/rooms': drawGuessMediaRoutes,
       '/api/games/decrypto/rooms': decryptoWordRoutes,
+      '/api/games/toolbox/presets': toolboxPresetRoutes,
     };
     const expectedRoutes = GAME_TYPES.flatMap((gameType) =>
       GAME_REGISTRY[gameType].httpRoutes.map((routePath) => {

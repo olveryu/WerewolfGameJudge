@@ -19,6 +19,7 @@ import { PICTIONARY_GUIDANCE_MATRIX } from '@/games/pictionary/room/pictionaryGu
 import { SECRETHITLER_GUIDANCE_MATRIX } from '@/games/secrethitler/room/secrethitlerGuidanceMatrix';
 import { SPOTMATCH_GUIDANCE_MATRIX } from '@/games/spotmatch/room/spotmatchGuidanceMatrix';
 import { STORY_RELAY_GUIDANCE_MATRIX } from '@/games/storyrelay/room/storyRelayGuidanceMatrix';
+import { TOOLBOX_GUIDANCE_MATRIX } from '@/games/toolbox/room/toolboxGuidanceMatrix';
 import { UNDERCOVER_GUIDANCE_MATRIX } from '@/games/undercover/room/undercoverGuidanceMatrix';
 import { WEREWOLF_GUIDANCE_MATRIX } from '@/games/werewolf/room/werewolfGuidanceMatrix';
 
@@ -33,6 +34,7 @@ const GUIDANCE_MATRICES: Record<GameType, RoomGuidanceMatrix<string>> = {
   spotmatch: SPOTMATCH_GUIDANCE_MATRIX,
   secrethitler: SECRETHITLER_GUIDANCE_MATRIX,
   decrypto: DECRYPTO_GUIDANCE_MATRIX,
+  toolbox: TOOLBOX_GUIDANCE_MATRIX,
 };
 
 const VIEWERS = ['host', 'seated', 'spectator'];

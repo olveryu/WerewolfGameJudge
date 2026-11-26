@@ -11,6 +11,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { GAME_ENGINE_CATALOG } from '@game-judge/game-engine/games/catalog';
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 const GAMES_DIR = join(import.meta.dirname, '../games');
@@ -61,6 +62,8 @@ describe('controlled seat model contract', () => {
     // the model as an input), so a hardcoded path list would
     // silently leave the next game uncovered.
     for (const gameType of GAME_TYPES) {
+      // A game without bots has no seat to take over, hence no banner model.
+      if (!GAME_ENGINE_CATALOG[gameType].capabilities.botsAndTakeover) continue;
       const callSites: { file: string; call: string }[] = [];
       for (const file of getAllTsFiles(join(GAMES_DIR, gameType))) {
         if (file.includes('__tests__') || file.endsWith('.test.ts') || file.endsWith('.test.tsx')) {

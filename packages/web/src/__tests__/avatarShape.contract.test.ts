@@ -102,6 +102,7 @@ const AVATAR_HOSTS: readonly string[] = [
   'reward-preview',
   'seat-avatar',
   'settings-teaser-item',
+  'toolbox-room-avatar',
   'undercover-reveal-identity',
   'unlocks-thumb',
 ];
@@ -122,6 +123,7 @@ const HOST_BOXES: Readonly<Record<string, string | null>> = {
   'reward-preview': null,
   'seat-avatar': 'seat-tile-button',
   'settings-teaser-item': null,
+  'toolbox-room-avatar': null,
   'undercover-reveal-identity': null,
   'unlocks-thumb': 'unlocks-cell-frame',
 };
@@ -185,6 +187,7 @@ const AVATAR_SITES: Readonly<Record<string, readonly string[]>> = {
     'Avatar in seat-avatar < seat-avatar-stage < seat-tile-button avatar-concentric',
   ],
   'features/room/components/RoomShell.tsx': ['AccountAvatar in account-entry'],
+  'games/toolbox/room/ToolboxRoomScreen.tsx': ['ResidentAvatarTile in toolbox-room-avatar'],
   'games/undercover/room/components/UndercoverRevealModal.tsx': [
     'Avatar in undercover-reveal-identity',
   ],

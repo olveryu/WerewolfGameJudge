@@ -9,7 +9,12 @@ import {
 import { z } from 'zod';
 
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
+//#cap botsAndTakeover
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+//#end
+//#cap !botsAndTakeover
+import { ROOM_HUMAN_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+//#end
 import { configSchemaToZod } from '../../platform/room/configSchemaZod';
 
 const __GAME_CAMEL__ConfigSchema: z.ZodType<__GAME_PASCAL__Config> =
@@ -19,7 +24,12 @@ export const __GAME_CAMEL__CreateConfigSchema: z.ZodType<__GAME_PASCAL__Config> 
   __GAME_CAMEL__ConfigSchema;
 
 const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PASCAL__PublicCommand>()([
+//#cap botsAndTakeover
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
+//#end
+//#cap !botsAndTakeover
+  ...ROOM_HUMAN_PUBLIC_COMMAND_SCHEMAS,
+//#end
   z.strictObject({
     type: z.literal('__GAME_ID__.config.update'),
     config: __GAME_CAMEL__ConfigSchema,

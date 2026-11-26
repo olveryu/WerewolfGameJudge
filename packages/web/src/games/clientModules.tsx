@@ -27,6 +27,7 @@ import { createPictionaryClientModule } from '@/games/pictionary/module';
 import { createSecrethitlerClientModule } from '@/games/secrethitler/module';
 import { createSpotmatchClientModule } from '@/games/spotmatch/module';
 import { createStoryRelayClientModule } from '@/games/storyrelay/module';
+import { createToolboxClientModule } from '@/games/toolbox/module';
 import { createUndercoverClientModule } from '@/games/undercover/module';
 import { createWerewolfClientModule } from '@/games/werewolf/module';
 import { cacheLoad } from '@/utils/cacheLoad';
@@ -46,6 +47,7 @@ const CLIENT_GAME_FACTORIES: ClientGameFactories = {
   spotmatch: createSpotmatchClientModule,
   secrethitler: createSecrethitlerClientModule,
   decrypto: createDecryptoClientModule,
+  toolbox: createToolboxClientModule,
 };
 
 type ClientGameModuleLoads = {
@@ -94,6 +96,7 @@ function createClientGameModules(
     spotmatch: cacheLoad(() => loadModule('spotmatch')),
     secrethitler: cacheLoad(() => loadModule('secrethitler')),
     decrypto: cacheLoad(() => loadModule('decrypto')),
+    toolbox: cacheLoad(() => loadModule('toolbox')),
   };
   const subscribeLoaded = (listener: () => void) => {
     loadListeners.add(listener);

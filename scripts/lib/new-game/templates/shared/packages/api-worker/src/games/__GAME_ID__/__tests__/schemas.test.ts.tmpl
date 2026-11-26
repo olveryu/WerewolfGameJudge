@@ -55,7 +55,9 @@ describe('__GAME_PASCAL__ public command schema', () => {
         profile: { displayName: 'P0' },
       },
       { type: 'room.seat.leave' },
+//#cap botsAndTakeover
       { type: 'room.seat.fillBots' },
+//#end
       { type: '__GAME_ID__.config.update', config: { numberOfPlayers: 6 } },
 //#cap identityViewing
       { type: '__GAME_ID__.roles.assign' },
@@ -80,6 +82,14 @@ describe('__GAME_PASCAL__ public command schema', () => {
     }
   });
 
+//#cap !botsAndTakeover
+  it('rejects fill-bots because the game has no bots', () => {
+    expect(__GAME_CAMEL__PublicCommandSchema.safeParse({ type: 'room.seat.fillBots' }).success).toBe(
+      false,
+    );
+  });
+
+//#end
   it('rejects stale restart command forms and invalid restart payloads', () => {
     for (const command of [
       { type: '__GAME_ID__.game.abort' },

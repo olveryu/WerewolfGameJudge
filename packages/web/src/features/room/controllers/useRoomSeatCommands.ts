@@ -1,6 +1,9 @@
 /** Canonical seat-command controller shared by every room game. */
 
-import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/commands';
+import type {
+  RoomHumanSeatCommand,
+  RoomSeatCommand,
+} from '@game-judge/game-engine/platform/protocol/commands';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo } from 'react';
 
@@ -9,7 +12,7 @@ import {
   fillRoomSeatsWithBots,
   kickRoomSeat,
   leaveRoomSeat,
-  type RoomSeatCommandContext,
+  type RoomHumanSeatCommandContext,
   takeRoomSeat,
 } from '@/features/room/link/roomSeatCommandClient';
 import type {
@@ -19,6 +22,7 @@ import type {
   RoomIdentity,
 } from '@/platform/realtime/types';
 
+/** Ready session of a game with bots: accepts every seat command, including `room.seat.fillBots`. */
 export interface RoomSeatSession<TState extends BaseGameState<string>, TProfile> {
   getSnapshot(): LinkSnapshot<TState>;
   dispatch(
@@ -26,6 +30,20 @@ export interface RoomSeatSession<TState extends BaseGameState<string>, TProfile>
     options: DispatchOptions,
   ): Promise<DispatchOutcome<TState>>;
 }
+
+/** Ready session of a game without bots: its command vocabulary has no `room.seat.fillBots`. */
+export interface RoomHumanSeatSession<TState extends BaseGameState<string>, TProfile> {
+  getSnapshot(): LinkSnapshot<TState>;
+  dispatch(
+    command: RoomHumanSeatCommand<TProfile>,
+    options: DispatchOptions,
+  ): Promise<DispatchOutcome<TState>>;
+}
+
+/** Ties the bot-support declaration to the session that can (or cannot) dispatch bot filling. */
+export type RoomSeating<TState extends BaseGameState<string>, TProfile> =
+  | { readonly supportsBots: true; readonly session: RoomSeatSession<TState, TProfile> }
+  | { readonly supportsBots: false; readonly session: RoomHumanSeatSession<TState, TProfile> };
 
 export interface RoomSeatCommandOperations<TState extends BaseGameState<string>> {
   readonly takeSeat: (seat: number) => Promise<DispatchOutcome<TState>>;
@@ -35,17 +53,22 @@ export interface RoomSeatCommandOperations<TState extends BaseGameState<string>>
   readonly fillBots: () => Promise<DispatchOutcome<TState>>;
 }
 
-interface UseRoomSeatCommandsParams<TState extends BaseGameState<string>, TProfile> {
-  readonly session: RoomSeatSession<TState, TProfile>;
+type UseRoomSeatCommandsParams<TState extends BaseGameState<string>, TProfile> = RoomSeating<
+  TState,
+  TProfile
+> & {
   readonly userId: string;
   readonly createProfile: (identity: RoomIdentity<TState['gameType']>) => TProfile;
+};
+
+function failBotFillWithoutBots(): never {
+  throw new Error('[FAIL-FAST] room.seat.fillBots requested in a game without bots');
 }
 
-export function useRoomSeatCommands<TState extends BaseGameState<string>, TProfile>({
-  session,
-  userId,
-  createProfile,
-}: UseRoomSeatCommandsParams<TState, TProfile>): RoomSeatCommandOperations<TState> {
+export function useRoomSeatCommands<TState extends BaseGameState<string>, TProfile>(
+  params: UseRoomSeatCommandsParams<TState, TProfile>,
+): RoomSeatCommandOperations<TState> {
+  const { session, userId, createProfile } = params;
   const sessionSnapshot = session.getSnapshot();
   if (sessionSnapshot.phase !== 'ready') {
     throw new Error('[FAIL-FAST] Room seat commands require a ready room session');
@@ -54,10 +77,18 @@ export function useRoomSeatCommands<TState extends BaseGameState<string>, TProfi
     throw new Error('[FAIL-FAST] Auth profile does not match the active room identity');
   }
 
-  const context = useMemo<RoomSeatCommandContext<TState, TProfile>>(
+  const context = useMemo<RoomHumanSeatCommandContext<TState, TProfile>>(
     () => ({ dispatch: (command, options) => session.dispatch(command, options) }),
     [session],
   );
+  const fillBots = useMemo(() => {
+    if (!params.supportsBots) return failBotFillWithoutBots;
+    const botSession = params.session;
+    return () =>
+      fillRoomSeatsWithBots<TState, TProfile>({
+        dispatch: (command, options) => botSession.dispatch(command, options),
+      });
+  }, [params.supportsBots, params.session]);
   const identity = sessionSnapshot.identity;
 
   const takeSeat = useCallback(
@@ -71,8 +102,8 @@ export function useRoomSeatCommands<TState extends BaseGameState<string>, TProfi
       leaveSeat: () => leaveRoomSeat(context),
       kickSeat: (seat: number) => kickRoomSeat(context, seat),
       clearSeats: () => clearRoomSeats(context),
-      fillBots: () => fillRoomSeatsWithBots(context),
+      fillBots,
     }),
-    [context, takeSeat],
+    [context, takeSeat, fillBots],
   );
 }

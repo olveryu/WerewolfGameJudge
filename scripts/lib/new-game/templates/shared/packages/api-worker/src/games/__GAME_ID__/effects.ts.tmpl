@@ -1,8 +1,18 @@
+//#cap completion
 //#cap !stageDeadline
 /** Worker-side execution for __GAME_PASCAL__ effects: game-completed growth settlement. */
 //#end
 //#cap stageDeadline
 /** Worker-side execution for __GAME_PASCAL__ effects: game-completed growth settlement and scheduled stage-deadline settlement. */
+//#end
+//#end
+//#cap !completion
+//#cap !stageDeadline
+/** Worker-side boundary for __GAME_PASCAL__ effects: the game has no rewards and emits no effects. */
+//#end
+//#cap stageDeadline
+/** Worker-side execution for __GAME_PASCAL__ effects: scheduled stage-deadline settlement only (no rewards). */
+//#end
 //#end
 
 import {
@@ -13,23 +23,41 @@ import {
   __GAME_UPPER___REASONS,
 //#end
   type __GAME_PASCAL__Effect,
+//#cap completion
   type __GAME_PASCAL__InternalCommand,
   type __GAME_PASCAL__State,
+//#end
+//#cap !completion
+//#cap stageDeadline
+  type __GAME_PASCAL__InternalCommand,
+  type __GAME_PASCAL__State,
+//#end
+//#end
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import { z } from 'zod';
 
+//#cap completion
 import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
+//#end
 //#cap stageDeadline
 import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 //#end
+//#cap completion
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+//#end
+//#cap !completion
+//#cap stageDeadline
+import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+//#end
+//#end
 //#cap businessStats
 import { __GAME_CAMEL__StatsSettlement } from './publicUserStats';
 //#end
 
+//#cap completion
 const gameCompletedEffectSchema = z.strictObject({
   type: z.literal('__GAME_ID__.game.completed'),
 //#cap businessStats
@@ -40,6 +68,7 @@ const gameCompletedEffectSchema = z.strictObject({
 //#end
 });
 
+//#end
 //#cap stageDeadline
 const settleDueEffectSchema = z.strictObject({
   type: z.literal('__GAME_ID__.settle.due'),
@@ -50,12 +79,22 @@ const settleDueEffectSchema = z.strictObject({
 });
 
 //#end
+//#cap completion
 export const __GAME_CAMEL__EffectSchema: z.ZodType<__GAME_PASCAL__Effect> = z.union([
   gameCompletedEffectSchema,
 //#cap stageDeadline
   settleDueEffectSchema,
 //#end
 ]);
+//#end
+//#cap !completion
+//#cap stageDeadline
+export const __GAME_CAMEL__EffectSchema: z.ZodType<__GAME_PASCAL__Effect> = settleDueEffectSchema;
+//#end
+//#cap !stageDeadline
+export const __GAME_CAMEL__EffectSchema: z.ZodType<__GAME_PASCAL__Effect> = z.never();
+//#end
+//#end
 
 //#cap stageDeadline
 type __GAME_PASCAL__SettleDueEffect = Extract<
@@ -104,6 +143,7 @@ const handle__GAME_PASCAL__SettleDueEffect = createSettleDueHandler<
 });
 
 //#end
+//#cap completion
 /**
  * Deliver one validated __GAME_PASCAL__ effect. Exactly-once for the
  * completion effect is enforced in three layers: the engine emits it
@@ -139,3 +179,27 @@ export async function handle__GAME_PASCAL__Effect(
 //#end
   }
 }
+//#end
+//#cap !completion
+//#cap stageDeadline
+/**
+ * Deliver the scheduled stage-deadline settlement: the engine arms it
+ * once per game, the outbox dedupes on the arming identity, and
+ * delivery no-ops unless the pinned arming is still current.
+ */
+export async function handle__GAME_PASCAL__Effect(
+  effect: __GAME_PASCAL__Effect,
+  context: WorkerEffectContext<__GAME_PASCAL__State, __GAME_PASCAL__InternalCommand>,
+): Promise<void> {
+  await handle__GAME_PASCAL__SettleDueEffect(effect, context);
+}
+//#end
+//#cap !stageDeadline
+/** The engine emits no effects (rewards policy `none`); reaching this means an invariant broke. */
+export function handle__GAME_PASCAL__Effect(effect: __GAME_PASCAL__Effect): Promise<void> {
+  return Promise.reject(
+    new Error(`[FAIL-FAST] __GAME_PASCAL__ has no effects, received ${String(effect)}`),
+  );
+}
+//#end
+//#end

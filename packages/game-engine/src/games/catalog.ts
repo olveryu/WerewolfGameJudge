@@ -9,6 +9,7 @@ import { pictionaryEngine } from './pictionary/engine';
 import { secrethitlerEngine } from './secrethitler/engine';
 import { spotmatchEngine } from './spotmatch/engine';
 import { storyRelayEngine } from './storyrelay/engine';
+import { toolboxEngine } from './toolbox/engine';
 import { undercoverEngine } from './undercover/engine';
 import { werewolfEngine } from './werewolf/engine';
 
@@ -23,6 +24,7 @@ export const GAME_ENGINE_CATALOG = defineGameEngineCatalog({
   spotmatch: spotmatchEngine,
   secrethitler: secrethitlerEngine,
   decrypto: decryptoEngine,
+  toolbox: toolboxEngine,
 });
 
 export type GameEngineCatalog = typeof GAME_ENGINE_CATALOG;

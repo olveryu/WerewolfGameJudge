@@ -1,4 +1,7 @@
-import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/commands';
+import type {
+  RoomHumanSeatCommand,
+  RoomSeatCommand,
+} from '@game-judge/game-engine/platform/protocol/commands';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react';
 
@@ -41,7 +44,7 @@ describe('useRoomSeatCommands', () => {
     const createProfile = vi.fn(() => ({ displayName: 'Alice' }));
     const session = { getSnapshot: () => createReadySnapshot(), dispatch };
     const { result } = renderHook(() =>
-      useRoomSeatCommands({ session, userId: 'user-1', createProfile }),
+      useRoomSeatCommands({ supportsBots: true, session, userId: 'user-1', createProfile }),
     );
 
     await act(async () => {
@@ -71,6 +74,33 @@ describe('useRoomSeatCommands', () => {
     ]);
   });
 
+  it('dispatches human seat commands for a game without bots and fails fast on bot filling', async () => {
+    const dispatch = vi.fn(
+      async (_command: RoomHumanSeatCommand<TestProfile>, _options: DispatchOptions) =>
+        rejectedRoomCommand<TestState>('test-rejection', 'command-id'),
+    );
+    const session = { getSnapshot: () => createReadySnapshot(), dispatch };
+    const { result } = renderHook(() =>
+      useRoomSeatCommands({
+        supportsBots: false,
+        session,
+        userId: 'user-1',
+        createProfile: () => ({ displayName: 'Alice' }),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.clearSeats();
+    });
+
+    expect(dispatch.mock.calls).toEqual([
+      [{ type: 'room.seat.clear' }, { controlledSeat: null, label: '清空座位', durable: false }],
+    ]);
+    expect(() => result.current.fillBots()).toThrow(
+      'room.seat.fillBots requested in a game without bots',
+    );
+  });
+
   it('fails fast before creating commands for an identity mismatch', () => {
     const session = {
       getSnapshot: () => createReadySnapshot('another-user'),
@@ -80,6 +110,7 @@ describe('useRoomSeatCommands', () => {
     expect(() =>
       renderHook(() =>
         useRoomSeatCommands({
+          supportsBots: true,
           session,
           userId: 'user-1',
           createProfile: () => ({ displayName: 'Alice' }),
@@ -94,6 +125,7 @@ describe('useRoomSeatCommands', () => {
     expect(() =>
       renderHook(() =>
         useRoomSeatCommands({
+          supportsBots: true,
           session,
           userId: 'user-1',
           createProfile: () => ({ displayName: 'Alice' }),

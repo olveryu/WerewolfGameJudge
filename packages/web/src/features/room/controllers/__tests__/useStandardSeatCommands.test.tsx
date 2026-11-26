@@ -151,9 +151,12 @@ describe('useStandardSeatCommands', () => {
         rejectedRoomCommand<TestState>('test-rejection', 'command-id'),
     );
     const session = { getSnapshot: () => createReadySnapshot(), dispatch };
-    const { result } = renderHook(() => useStandardSeatCommands(session, user), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHook(
+      () => useStandardSeatCommands({ supportsBots: true, session }, user),
+      {
+        wrapper: createWrapper(queryClient),
+      },
+    );
 
     await act(async () => {
       await result.current.takeSeat(3);
@@ -197,9 +200,12 @@ describe('useStandardSeatCommands', () => {
         rejectedRoomCommand<TestState>('test-rejection', 'command-id'),
     );
     const session = { getSnapshot: () => createReadySnapshot(), dispatch };
-    const { result } = renderHook(() => useStandardSeatCommands(session, anonymousUser), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHook(
+      () => useStandardSeatCommands({ supportsBots: true, session }, anonymousUser),
+      {
+        wrapper: createWrapper(queryClient),
+      },
+    );
 
     await act(async () => {
       await result.current.takeSeat(1);
@@ -225,7 +231,7 @@ describe('useStandardSeatCommands', () => {
     };
 
     expect(() =>
-      renderHook(() => useStandardSeatCommands(session, user), {
+      renderHook(() => useStandardSeatCommands({ supportsBots: true, session }, user), {
         wrapper: createWrapper(queryClient),
       }),
     ).toThrow('Auth profile does not match the active room identity');

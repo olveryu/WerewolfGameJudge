@@ -39,6 +39,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './games/pictionary/public',
   './games/registry',
   './games/storyrelay/public',
+  './games/toolbox/public',
   './games/undercover/public',
   './games/werewolf/public',
   './games/spotmatch/public',

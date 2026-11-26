@@ -17,8 +17,8 @@ import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomProfileControllerParams<TState extends BaseGameState<string>> {
   readonly myUserId: string | null;
-  readonly kickSeat: (seat: number) => Promise<DispatchOutcome<TState>>;
-  readonly leaveSeat: () => Promise<DispatchOutcome<TState>>;
+  readonly kickSeat?: (seat: number) => Promise<DispatchOutcome<TState>>;
+  readonly leaveSeat?: () => Promise<DispatchOutcome<TState>>;
 }
 
 export interface RoomProfileSelection {
@@ -41,7 +41,7 @@ type RoomProfileCommand = {
 };
 
 function assertProfileTarget(target: RoomProfileTarget): void {
-  if (!Number.isSafeInteger(target.seat) || target.seat < 0) {
+  if (target.seat !== null && (!Number.isSafeInteger(target.seat) || target.seat < 0)) {
     throw new Error(`Profile target seat must be a non-negative safe integer: ${target.seat}`);
   }
   if (target.occupant.kind === 'human' && target.occupant.userId.length === 0) {
@@ -121,6 +121,7 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
       if (getRoomOccupantUserId(target.occupant) === myUserId) {
         throw new Error('Cannot kick the current user through the profile controller');
       }
+      if (kickSeat === undefined) throw new Error('Seat kick is not configured');
       submit({ kind: 'kick', seat, label: '移出' }, () => kickSeat(seat));
     },
     [kickSeat, myUserId, submit, target],
@@ -132,6 +133,9 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
     if (getRoomOccupantUserId(target.occupant) !== myUserId) {
       throw new Error(`Profile target at seat ${target.seat} is not the current user`);
     }
+    if (target.seat === null)
+      throw new Error('Cannot leave a numbered seat from a seatless profile');
+    if (leaveSeat === undefined) throw new Error('Seat leave is not configured');
     submit({ kind: 'leave', seat: target.seat, label: '离座' }, leaveSeat);
   }, [leaveSeat, myUserId, submit, target]);
 

@@ -7,6 +7,7 @@ import {
   type __GAME_PASCAL__State,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 
+import type { GameConfigDefiner } from '@/features/room/config/createGameConfigScreen';
 import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 
 //#cap audioOrchestration
@@ -21,6 +22,19 @@ import { __GAME_PASCAL__RoomScreen } from './room/__GAME_PASCAL__RoomScreen';
 import { get__GAME_PASCAL__RoomCommandFailureMessage } from './room/__GAME_CAMEL__RoomCommandFailureMessage';
 import { __GAME_PASCAL__RulesScreen } from './screens/__GAME_PASCAL__RulesScreen';
 
+/** Declares the shared configuration page for this game's room session. */
+export const define__GAME_PASCAL__Config = (
+  define: GameConfigDefiner<'__GAME_ID__', __GAME_PASCAL__State, __GAME_PASCAL__Command>,
+) =>
+  define({
+    schema: __GAME_UPPER___CONFIG_SCHEMA,
+    parseRouteParams: parse__GAME_PASCAL__ConfigRouteParams,
+    readConfig: (state) => (state.phase.kind === 'lobby' ? state.config : null),
+    buildUpdateCommand: (config) => ({ type: '__GAME_ID__.config.update', config }),
+    getFailureMessage: get__GAME_PASCAL__RoomCommandFailureMessage,
+    creationLabel: '创建__GAME_DISPLAY_NAME__房间',
+  });
+
 export const create__GAME_PASCAL__ClientModule = defineClientGameModule<
   '__GAME_ID__',
   __GAME_PASCAL__State,
@@ -34,15 +48,7 @@ export const create__GAME_PASCAL__ClientModule = defineClientGameModule<
   stateCodec: __GAME_UPPER___STATE_CODEC,
   navigation: __GAME_CAMEL__GameNavigation,
   RoomScreen: __GAME_PASCAL__RoomScreen,
-  config: (define) =>
-    define({
-      schema: __GAME_UPPER___CONFIG_SCHEMA,
-      parseRouteParams: parse__GAME_PASCAL__ConfigRouteParams,
-      readConfig: (state) => (state.phase.kind === 'lobby' ? state.config : null),
-      buildUpdateCommand: (config) => ({ type: '__GAME_ID__.config.update', config }),
-      getFailureMessage: get__GAME_PASCAL__RoomCommandFailureMessage,
-      creationLabel: '创建__GAME_DISPLAY_NAME__房间',
-    }),
+  config: define__GAME_PASCAL__Config,
   GuideScreen: __GAME_PASCAL__RulesScreen,
   review: __GAME_CAMEL__Review,
   isUserSeated: (state, userId) => get__GAME_PASCAL__UserSeat(state, userId) !== null,

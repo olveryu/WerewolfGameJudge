@@ -169,7 +169,26 @@ describe('createRoomShellModel ownership', () => {
             playerActions: playerActions(button('view', 'participant')),
           }),
         ),
-      ).toThrow('Player action "view" is a participant action but the viewer holds no seat');
+      ).toThrow('Player action "view" is a participant action but the viewer is not a participant');
+    });
+
+    it('accepts participant actions for a viewer explicitly participating without a seat', () => {
+      const viewer: RoomViewer = {
+        userId: 'player',
+        isHost: false,
+        seat: null,
+        participation: 'seatless',
+      };
+      expect(() =>
+        createRoomShellModel(
+          input(viewer, {
+            playerActions: {
+              ...playerActions(button('draw', 'participant')),
+              group: playerGroup('participant', [button('roll', 'participant')]),
+            },
+          }),
+        ),
+      ).not.toThrow();
     });
 
     it('validates group visibility and every grouped action against the viewer', () => {
@@ -179,7 +198,9 @@ describe('createRoomShellModel ownership', () => {
             playerActions: { ...EMPTY_STACK, group: playerGroup('participant') },
           }),
         ),
-      ).toThrow('Player action group "night" is a participant action but the viewer holds no seat');
+      ).toThrow(
+        'Player action group "night" is a participant action but the viewer is not a participant',
+      );
       expect(() =>
         createRoomShellModel(
           input(viewerFor('spectator'), {
@@ -190,7 +211,7 @@ describe('createRoomShellModel ownership', () => {
           }),
         ),
       ).toThrow(
-        'Player action "night-action" is a participant action but the viewer holds no seat',
+        'Player action "night-action" is a participant action but the viewer is not a participant',
       );
     });
 
@@ -208,7 +229,7 @@ describe('createRoomShellModel ownership', () => {
         createRoomShellModel(
           input(unseatedHost, { playerActions: playerActions(button('view', 'participant')) }),
         ),
-      ).toThrow('Player action "view" is a participant action but the viewer holds no seat');
+      ).toThrow('Player action "view" is a participant action but the viewer is not a participant');
     });
 
     it('validates the host task references at assembly for the host', () => {

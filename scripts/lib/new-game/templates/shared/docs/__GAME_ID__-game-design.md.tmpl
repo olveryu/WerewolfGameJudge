@@ -18,31 +18,47 @@
 | 3   | 每阶段的行动与胜负判定 | TODO(gameplay) |
 | 4   | 阶段时长与超时处理 | TODO(gameplay) |
 | 5   | 公开/私有信息边界（visibility 裁剪口径） | TODO(gameplay) |
+//#cap botsAndTakeover
 | 6   | 机器人行为（接管口径，沿用平台接管规则） | TODO(gameplay) |
+//#end
+//#cap !botsAndTakeover
+| 6   | 机器人行为 | 无：特征声明 `bots=none`，所有座位由真人入座；TODO(gameplay) 记录批准理由 |
+//#end
 | 7   | 配置项（Config 字段与默认值） | TODO(gameplay) |
 //#cap businessStats
 | 8   | 结算与奖励口径（flat / levelRoll 策略、经验/抽奖公式与资格） | TODO(gameplay) |
 //#end
 //#cap !businessStats
+//#cap completion
 | 8   | 结算与奖励口径（注册表 rewards 三数） | TODO(gameplay) |
+//#end
+//#cap !completion
+| 8   | 结算与奖励口径 | 无：特征声明 `rewards=none`，终局不产生 completion 结算、不发奖励；TODO(gameplay) 记录批准理由 |
+//#end
 //#end
 | 9   | 失败与边界（掉线、重连、空座位、中途退出） | TODO(gameplay) |
 | 10  | 文案清单（底部消息/进度行/按钮/说明页的自有声音） | TODO(gameplay) |
 //#cap businessStats
 | 11  | 战绩（指标来源/归属、结算单位、单位/分母、时间精度、历史/迁移/延迟政策） | TODO(gameplay) |
 //#end
+//#cap !businessStats
+| 11  | 战绩 | 无：特征声明 `stats=none`，不建统计表、不提供战绩面板；TODO(gameplay) 记录批准理由 |
+//#end
 
 ## 2. 机器校验的游戏特征
 
 | 特征 | 声明 | 生成器要求 |
 | ---- | ---- | ---------- |
-| 私有身份 | `identity=__GAME_FEATURE_IDENTITY__` | 有身份时自动启用身份查看与机器人身份处理，并生成隐私投影、查看门槛和房间操作测试。 |
+| 私有身份 | `identity=__GAME_FEATURE_IDENTITY__` | 有身份时自动启用身份查看（有机器人时含机器人身份处理），并生成隐私投影、查看门槛和房间操作测试。 |
 | 夜晚行动 | `night=__GAME_FEATURE_NIGHT__` | 有夜晚时必须有语音；自动接共享步骤、音频回执、私有动作、正式对局清单及覆盖检查，未完成的场景明确失败。 |
 | 其他引导播报 | `guidedNarration=__GAME_FEATURE_GUIDED_NARRATION__` | 有其他阶段播报时自动启用音频编排。 |
 | 阶段时限 | `stageDeadline=__GAME_FEATURE_STAGE_DEADLINE__` | 有阶段截止时生成超时协议与边界测试。 |
 | 词语供应 | `wordSupply=__GAME_FEATURE_WORD_SUPPLY__` | 非 `none` 时要求完成供应模式对应的 workflow/部署接线。 |
+| 机器人 | `bots=__GAME_FEATURE_BOTS__` | `enabled`：补机器人、主持人接管及身份游戏的机器人身份处理；`none` 时命令词表、Worker schema 与客户端都不含机器人。 |
+| 战绩 | `stats=__GAME_FEATURE_STATS__` | `enabled`：completion v2 载荷、统计表、迁移与战绩面板；`none` 时都不生成。开启战绩必须同时有奖励结算。 |
+| 奖励 | `rewards=__GAME_FEATURE_REWARDS__` | `flat`：终局 completion 结算与注册表奖励三数；`none` 时不产生 completion 结算。 |
 
-机器人座位与主持人接管是平台基线，不是可选游戏特征；身份游戏的机器人身份处理不能因漏选 capability 而消失。
+常规游戏都声明机器人、战绩与奖励开启；只有设计明确不需要时才声明 `none`，并在第 1 节记录批准理由。
 
 ## 3. 平台边界（骨架已接通，不许改口径）
 

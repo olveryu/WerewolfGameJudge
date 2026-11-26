@@ -63,7 +63,9 @@ export function normalize__GAME_PASCAL__State(
     'review completion',
   );
 //#end
+//#cap completion
   invariant(typeof state.xpSettled === 'boolean', 'xp settled flag');
+//#end
   const entries = Object.entries(state.roster);
   invariant(
     entries.every(
@@ -75,6 +77,12 @@ export function normalize__GAME_PASCAL__State(
     ),
     'roster seats',
   );
+//#cap !botsAndTakeover
+  invariant(
+    entries.every(([, occupant]) => occupant != null && !isBotOccupant(occupant)),
+    'game without bots seats only humans',
+  );
+//#end
   const users = entries.filter(
     (entry): entry is [string, __GAME_PASCAL__HumanSeat] =>
       entry[1] != null && !isBotOccupant(entry[1]),
@@ -111,6 +119,8 @@ export function normalize__GAME_PASCAL__State(
     );
   }
 //#end
+//#cap completion
   if (state.phase.kind === 'ended') invariant(state.xpSettled, 'ended settles exactly once');
+//#end
   return state;
 }

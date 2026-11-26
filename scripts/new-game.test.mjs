@@ -231,15 +231,8 @@ function expectedCreatedFiles(gameId, features) {
     `${worker}/effects.ts`,
     `${worker}/module.ts`,
     `${worker}/__tests__/schemas.test.ts`,
-    `${engine}/publicStats.ts`,
-    `${engine}/__tests__/publicStats.test.ts`,
-    `${worker}/dbSchema.ts`,
-    `${worker}/publicUserStats.ts`,
-    `${worker}/__tests__/publicUserStats.test.ts`,
-    `${client}/components/${pascal}StatsPanel.tsx`,
-    `${client}/components/__tests__/${pascal}StatsPanel.test.tsx`,
-    `${client}/services/${gameId}Stats.ts`,
     `${client}/assets/roleAvatars.ts`,
+    `packages/web/preview/${gameId}Preview.tsx`,
     `${client}/module.ts`,
     `${client}/home.ts`,
     `${client}/navigation/${gameId}GameNavigation.ts`,
@@ -265,6 +258,18 @@ function expectedCreatedFiles(gameId, features) {
     if (capabilities[addition.capability]) {
       files.push(...addition.files({ engine, client, pascal }));
     }
+  }
+  if (features.stats === 'enabled') {
+    files.push(
+      `${engine}/publicStats.ts`,
+      `${engine}/__tests__/publicStats.test.ts`,
+      `${worker}/dbSchema.ts`,
+      `${worker}/publicUserStats.ts`,
+      `${worker}/__tests__/publicUserStats.test.ts`,
+      `${client}/components/${pascal}StatsPanel.tsx`,
+      `${client}/components/__tests__/${pascal}StatsPanel.test.tsx`,
+      `${client}/services/${gameId}Stats.ts`,
+    );
   }
   return files.sort();
 }
@@ -341,6 +346,24 @@ const FEATURE_SCENARIOS = [
       wordSupply: 'both',
     }),
   },
+  {
+    name: 'rewards without statistics',
+    features: featureProfile({ stats: 'none' }),
+  },
+  {
+    name: 'no bots, statistics or rewards',
+    features: featureProfile({ bots: 'none', stats: 'none', rewards: 'none' }),
+  },
+  {
+    name: 'identities and deadlines without bots, statistics or rewards',
+    features: featureProfile({
+      identity: 'private',
+      stageDeadline: 'enabled',
+      bots: 'none',
+      stats: 'none',
+      rewards: 'none',
+    }),
+  },
 ];
 
 const FULL_TOOLCHAIN_SCENARIOS = [
@@ -349,7 +372,14 @@ const FULL_TOOLCHAIN_SCENARIOS = [
   { name: 'narrated night actions', features: featureProfile({ night: 'narrated' }) },
   { name: 'non-night guided narration', features: featureProfile({ guidedNarration: 'narrated' }) },
   { name: 'stage deadlines', features: featureProfile({ stageDeadline: 'enabled' }) },
-  { name: 'all declared features', features: FEATURE_SCENARIOS.at(-1).features },
+  {
+    name: 'all declared features',
+    features: FEATURE_SCENARIOS.find((scenario) => scenario.name === 'all declared features')
+      .features,
+  },
+  ...FEATURE_SCENARIOS.filter(
+    (scenario) => scenario.features.stats === 'none' || scenario.features.bots === 'none',
+  ),
 ];
 
 it('keeps one game template tree beside the shared template tree', () => {
@@ -364,6 +394,9 @@ it('requires a complete feature declaration and derives required capabilities fr
     'guidedNarration=none',
     'stageDeadline=enabled',
     'wordSupply=none',
+    'bots=enabled',
+    'stats=enabled',
+    'rewards=flat',
   ]);
   assert.deepEqual(identityAndNight, {
     identity: 'private',
@@ -371,6 +404,9 @@ it('requires a complete feature declaration and derives required capabilities fr
     guidedNarration: 'none',
     stageDeadline: 'enabled',
     wordSupply: 'none',
+    bots: 'enabled',
+    stats: 'enabled',
+    rewards: 'flat',
   });
   assert.deepEqual(deriveCapabilities(identityAndNight), {
     nightPhase: true,
@@ -386,7 +422,11 @@ it('requires a complete feature declaration and derives required capabilities fr
   });
 
   const baseline = deriveCapabilities(DEFAULT_FEATURE_PROFILE);
-  assert.equal(baseline.botsAndTakeover, true, 'host-controlled bot seats are a platform baseline');
+  assert.equal(baseline.botsAndTakeover, true, 'bots=enabled wires host-controlled bot seats');
+  const withoutBots = deriveCapabilities(featureProfile({ identity: 'private', bots: 'none' }));
+  assert.equal(withoutBots.botsAndTakeover, false);
+  assert.equal(withoutBots.identityViewing, true);
+  assert.equal(withoutBots.botBulkViewing, false, 'bulk bot viewing needs bots');
   assert.equal(baseline.botBulkViewing, false, 'games without identities need no identity helper');
   assert.equal(baseline.nightPhase, false, 'games without night actions have no night phase');
   assert.equal(
@@ -397,6 +437,7 @@ it('requires a complete feature declaration and derives required capabilities fr
   assert.equal(baseline.audioOrchestration, false);
   assert.equal(deriveCapabilities(featureProfile({ wordSupply: 'background' })).wordLibrary, true);
   assert.deepEqual(DERIVED_CAPABILITY_KEYS, [
+    'botsAndTakeover',
     'nightPhase',
     'identityViewing',
     'botBulkViewing',
@@ -405,6 +446,7 @@ it('requires a complete feature declaration and derives required capabilities fr
     'wordLibrary',
   ]);
   assert.deepEqual(Object.keys(FEATURE_TEST_REQUIREMENTS).sort(), [
+    'bots',
     'guidedNarration',
     'identity',
     'night',
@@ -425,6 +467,42 @@ it('requires a complete feature declaration and derives required capabilities fr
     () => normalizeFeatureProfile({ ...DEFAULT_FEATURE_PROFILE, robots: 'enabled' }),
     /unknown: robots/,
   );
+  assert.throws(
+    () => normalizeFeatureProfile(featureProfile({ rewards: 'none' })),
+    /"stats=enabled" requires "rewards=flat"/,
+  );
+});
+
+it('rejects reward amounts for a game without rewards', () => {
+  const root = makeFixtureRepo();
+  assert.throws(
+    () =>
+      generateNewGame({
+        rootDir: root,
+        gameId: 'norewards',
+        features: featureProfile({ stats: 'none', rewards: 'none' }),
+        rewards: { xpEarned: 1, normalDrawsEarned: 1, dailyCompletionTarget: 1 },
+      }),
+    /rewards=none/,
+  );
+  const cliPath = path.join(REPO_ROOT, 'scripts/new-game.mjs');
+  const features = featureProfile({ stats: 'none', rewards: 'none' });
+  assert.throws(
+    () =>
+      execFileSync(
+        process.execPath,
+        [
+          cliPath,
+          'norewards',
+          ...FEATURE_KEYS.flatMap((key) => ['--feature', `${key}=${features[key]}`]),
+          '--xp',
+          '3',
+        ],
+        { cwd: root, encoding: 'utf8' },
+      ),
+    /--xp, --draws and --daily-target need --feature rewards=flat/,
+  );
+  assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/norewards')), false);
 });
 
 it('CLI rejects missing feature declarations and generates from explicit feature values', () => {
@@ -554,15 +632,22 @@ for (const scenario of FEATURE_SCENARIOS) {
     }
     assert.ok(reportText.includes('上线（翻生产）'), 'default report carries the go-live step');
     assert.ok(reportText.includes('homeProductionFilter'), 'go-live step names the tripwire list');
-    assert.ok(
-      demoprotoEntry.includes("rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.demoproto }"),
-    );
     const earnings = readFixture(root, 'packages/game-engine/src/product/rewards/earnings.ts');
-    assert.ok(
-      earnings.includes(
-        'demoproto: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 }',
-      ),
-    );
+    if (scenario.features.rewards === 'flat') {
+      assert.ok(
+        demoprotoEntry.includes(
+          "rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.demoproto }",
+        ),
+      );
+      assert.ok(
+        earnings.includes(
+          'demoproto: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 }',
+        ),
+      );
+    } else {
+      assert.ok(demoprotoEntry.includes("rewards: { policy: 'none' },"));
+      assert.ok(!earnings.includes('demoproto:'), 'rewards=none adds no reward row');
+    }
 
     // The contract expectation row and engine declaration must carry
     // exactly the capabilities derived from the declared feature profile.
@@ -623,7 +708,9 @@ for (const scenario of FEATURE_SCENARIOS) {
     assert.ok(clientCatalog.includes(`import { demoprotoHome } from '@/games/demoproto/home';`));
     assert.ok(
       clientCatalog.includes(
-        '  demoproto: { home: demoprotoHome, AccountStats: DemoprotoStatsPanel },',
+        scenario.features.stats === 'enabled'
+          ? '  demoproto: { home: demoprotoHome, AccountStats: DemoprotoStatsPanel },'
+          : '  demoproto: { home: demoprotoHome },',
       ),
     );
     const clientModules = readFixture(root, 'packages/web/src/games/clientModules.tsx');
@@ -669,6 +756,13 @@ for (const scenario of FEATURE_SCENARIOS) {
     assert.ok(
       reviewRegistry.includes('  demoproto: reviewCase(demoprotoReview, DEMOPROTO_REVIEW_ROUNDS),'),
     );
+    const previewRegistry = readFixture(root, 'packages/web/preview/previewGames.ts');
+    assert.ok(previewRegistry.includes(`import { demoprotoPreview } from './demoprotoPreview';`));
+    assert.match(
+      previewRegistry,
+      /previewGames: readonly PreviewGame\[\] = \[[^\]]*demoprotoPreview\];/,
+    );
+    assert.ok(fs.existsSync(path.join(root, 'packages/web/preview/demoprotoPreview.tsx')));
 
     // Integration report: parameters, migration and the manual steps
     // that must not be automated away (migration review, e2e approval).
@@ -684,8 +778,11 @@ for (const scenario of FEATURE_SCENARIOS) {
     assert.ok(report.includes('e2e 启用需用户批准'));
     assert.ok(report.includes('__tests__/engine.test.ts'));
     assert.ok(report.includes('notImplemented'));
-    assert.ok(report.includes('__tests__/publicStats.test.ts'));
-    assert.ok(report.includes('__tests__/publicUserStats.test.ts'));
+    assert.equal(
+      report.includes('__tests__/publicUserStats.test.ts'),
+      scenario.features.stats === 'enabled',
+      'the report asks for statistics semantics only when the game has statistics',
+    );
     assert.ok(report.includes('观战者内容'));
     // The review step names the skeleton document and contribution a
     // game fills, and the closed block vocabulary it fills them with.
@@ -728,48 +825,61 @@ for (const scenario of FEATURE_SCENARIOS) {
     assert.ok(lists.length >= 2, 'expected both game_type CHECK lists');
     for (const list of lists) assert.ok(list[1].includes(`'demoproto'`));
     assert.ok(migration.includes('TODO(gameplay)'));
-    assert.ok(migration.includes('CREATE TABLE demoproto_user_stats'));
-    assert.ok(migration.includes("typeof(games_played) = 'integer'"));
-    assert.ok(migration.includes('ON DELETE CASCADE'));
+    const statsEnabled = scenario.features.stats === 'enabled';
+    assert.equal(migration.includes('CREATE TABLE demoproto_user_stats'), statsEnabled);
+    assert.equal(migration.includes("typeof(games_played) = 'integer'"), statsEnabled);
+    if (statsEnabled) assert.ok(migration.includes('ON DELETE CASCADE'));
     const statsOwnerContract = readFixture(root, 'contracts/architecture.contract.test.ts');
-    assert.ok(
+    assert.equal(
       statsOwnerContract.includes(
         "['demoproto_user_stats', 'packages/api-worker/src/games/demoproto/dbSchema.ts']",
       ),
+      statsEnabled,
     );
     const statsModule = readFixture(root, 'packages/api-worker/src/games/demoproto/module.ts');
-    assert.ok(statsModule.includes('parsePublicUserStats: parseDemoprotoPublicStats'));
-    assert.ok(statsModule.includes('getPublicUserStats: getDemoprotoPublicUserStats'));
+    assert.equal(
+      statsModule.includes('parsePublicUserStats: parseDemoprotoPublicStats'),
+      statsEnabled,
+    );
+    assert.equal(
+      statsModule.includes('getPublicUserStats: getDemoprotoPublicUserStats'),
+      statsEnabled,
+    );
     const statsEffects = readFixture(root, 'packages/api-worker/src/games/demoproto/effects.ts');
-    assert.ok(
+    assert.equal(
       statsEffects.includes(
         'z.union([gameCompletionPayloadSchema, demoprotoCompletionPayloadSchema])',
       ),
+      statsEnabled,
     );
-    assert.ok(
+    assert.equal(
       statsEffects.includes(
         "'stats' in effect.payload ? demoprotoStatsSettlement(effect.payload.stats) : undefined",
       ),
+      statsEnabled,
     );
     const roomHook = readFixture(
       root,
       'packages/web/src/games/demoproto/room/hooks/useDemoprotoRoomState.ts',
     );
-    assert.ok(
+    assert.equal(
       roomHook.includes("useGameProfileDetails(profile.selection, '演示原型战绩', '本游戏局数')"),
+      statsEnabled,
     );
-    assert.ok(roomHook.includes('    gameDetails,'));
-    assert.ok(
+    assert.equal(roomHook.includes('    gameDetails,'), statsEnabled);
+    assert.equal(
       readFixture(root, 'packages/web/src/games/demoproto/room/DemoprotoRoomScreen.tsx').includes(
         'profileDetailsRenderer=',
       ),
+      statsEnabled,
     );
-    assert.ok(
+    assert.equal(
       readFixture(root, 'packages/web/src/games/demoproto/room/demoprotoRoomAdapter.ts').includes(
         'gameDetails: input.gameDetails',
       ),
+      statsEnabled,
     );
-    assert.ok(report.includes('不需要额外指标也必须记录批准理由'));
+    assert.equal(report.includes('不需要额外指标也必须记录批准理由'), statsEnabled);
     assert.ok(
       report.includes('名单同步不是上线充分条件') || report.includes('两处齐不是上线充分条件'),
     );
@@ -1046,6 +1156,9 @@ it('night narration derives audio orchestration and renders its full wiring', ()
     __GAME_FEATURE_GUIDED_NARRATION__: '无',
     __GAME_FEATURE_STAGE_DEADLINE__: '无',
     __GAME_FEATURE_WORD_SUPPLY__: '无',
+    __GAME_FEATURE_BOTS__: 'enabled',
+    __GAME_FEATURE_STATS__: 'enabled',
+    __GAME_FEATURE_REWARDS__: 'flat',
     __GAME_COMPLETION_TYPE__: 'DemoprotoCompletionPayload | ',
     __GAME_REQUIREMENT_COUNT__: '11',
     __GAME_TEST_BEGIN__: "session.send({ type: 'demoproto.game.begin' });",
@@ -1055,7 +1168,8 @@ it('night narration derives audio orchestration and renders its full wiring', ()
     sharedSteps: features.night === 'narrated',
     armDeadlineAtBegin: false,
     stageDeadlineAtStart: false,
-    businessStats: true,
+    completion: features.rewards !== 'none',
+    businessStats: features.stats === 'enabled',
   });
   const renderTree = (capabilities) => {
     const rendered = new Map();
@@ -1250,7 +1364,10 @@ it('generator facts track feature test obligations and migration numbering uses 
   assert.deepEqual(facts.featureTestRequirements, FEATURE_TEST_REQUIREMENTS);
   assert.equal(
     facts.templateCount,
-    expectedCreatedFiles('demoproto', FEATURE_SCENARIOS.at(-1).features).length,
+    expectedCreatedFiles(
+      'demoproto',
+      FEATURE_SCENARIOS.find((scenario) => scenario.name === 'all declared features').features,
+    ).length,
   );
 });
 
@@ -1262,6 +1379,7 @@ it('new registration migrations do not repeat the one-time demo cleanup', () => 
     sourceContent,
     gameId: 'probe',
     displayName: 'Probe',
+    includeStatsTable: true,
   });
 
   assert.ok(sourceContent.includes("DELETE FROM rooms WHERE game_type = 'demo';"));

@@ -20,6 +20,7 @@ const PRODUCTION_GAME_TYPES = [
   'spotmatch',
   'secrethitler',
   'decrypto',
+  'toolbox',
 ] as const;
 
 describe('client game home production filter', () => {

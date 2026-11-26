@@ -301,6 +301,7 @@ describe('identity viewing protocol (fibking)', () => {
 
 describeIdentityViewingProtocol({
   game: 'fibking',
+  seating: 'humansAndBots',
   makeSession: () => {
     let state = dealRound(createRoom());
     const users: Readonly<Record<number, string>> = { 0: 'host', 1: 'alice', 2: 'bob' };

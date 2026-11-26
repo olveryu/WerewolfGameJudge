@@ -83,6 +83,26 @@ describe('createRoomProfileCardModel', () => {
     expect(model?.onLeaveSeat).toBeNull();
   });
 
+  it('does not expose numbered-seat actions for a seatless profile', () => {
+    const { capabilities } = makeCapabilities(true, true);
+    for (const isSelf of [true, false]) {
+      const model = createRoomProfileCardModel({
+        selection: {
+          target: {
+            seat: null,
+            occupant: { kind: 'human', userId: 'player' },
+            rosterName: '玩家',
+          },
+          isSelf,
+        },
+        capabilities,
+        onClose,
+      });
+      expect(model?.onKick).toBeNull();
+      expect(model?.onLeaveSeat).toBeNull();
+    }
+  });
+
   it('passes gameDetails through and defaults it to null', () => {
     const { capabilities } = makeCapabilities(true, true);
     const withDetails = createRoomProfileCardModel({

@@ -169,6 +169,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
     },
   },
   decrypto: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
+  toolbox: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
 };
 
 /** Concatenated non-test source of one directory tree (engine or worker side). */

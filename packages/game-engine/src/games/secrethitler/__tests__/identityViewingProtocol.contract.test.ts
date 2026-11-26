@@ -40,6 +40,7 @@ function game(humanCount: number) {
 
 describeIdentityViewingProtocol({
   game: 'secrethitler',
+  seating: 'humansAndBots',
   makeSession: () => {
     const { session, send, seatUser } = game(3);
     return {

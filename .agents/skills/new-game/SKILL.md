@@ -86,19 +86,49 @@ settlement and rewards, and game statistics and the test plan; plus the change p
 impact scope, and alternatives. The design doc enters the repo with
 the PR and stays in sync with later copy/semantics changes.
 
+When the user requests a UI mock, follow the mock-to-production flow in
+[game-ui-mock-design.md](../../../docs/game-ui-mock-design.md):
+
+1. **Mock.** Use the local game preview (`packages/web/preview/`) and its
+   coverage checklist. Reuse production pages and shared room components with
+   offline scenario data; list excluded checklist items with reasons. Write the
+   game's own UI as promotable components (props in, callbacks out, theme
+   tokens, accessible names), never as one-off page copies.
+2. **Promote.** Once the user confirms the mock, production moves or reuses
+   those components and their interaction structure (hand card → dialog,
+   dialog titles and button names). Any deviation from the confirmed mock needs
+   the user's approval first; do not redraw a confirmed component.
+3. **Shared names and builders.** Use the shared room builders and wording
+   rather than game-specific copies: `buildClearSeatsAction` (清空座位),
+   `buildResetToLobbyAction` (重新开始), `buildStartGameAction`,
+   `GameSettingsStepper`, `RoomDialog` opened from the action hand,
+   `RoomGameSummary` / `BoardInfoContent` / `RoleCardDialog` for public info.
+4. **Preview the real game.** The generator scaffolds
+   `packages/web/preview/<camel>Preview.tsx` and registers it in
+   `previewGames`; it renders the real config and room screens through
+   `createPreviewRoomLink` with the real engine and the server's per-user
+   projection. Extend its engine-built scenarios as phases are implemented. Delete the mock copies, and compare against the confirmed
+   mock screenshots before delivery.
+
+Previewing a design does not implement its rules or replace tests.
+
 ### 3. Declare game features
 
 Complete every feature field explicitly using
 `references/capabilities-and-report.md`: identity (`none|private`),
 night (`none|narrated`), guided narration (`none|narrated`), stage deadline
-(`none|enabled`), and word supply (`none|in-game|background|both`).
+(`none|enabled`), word supply (`none|in-game|background|both`), bots
+(`enabled|none`), statistics (`enabled|none`) and rewards (`flat|none`).
+Nearly every game declares `bots=enabled`, `stats=enabled` and
+`rewards=flat`; `none` needs an approved reason in the design document, and
+statistics require rewards.
 The generator derives capabilities and required behavior tests from this
 profile. Private identities automatically require per-seat identity viewing,
 bulk bot identity handling and reveal animation; narrated night actions
 automatically require `nightPhase`, shared engine steps, shared client
 interaction, audio orchestration, and reviewed-catalogue coverage; other guided
 narration requires audio orchestration without inventing a night phase.
-Every profile must declare all five fields. Do not select or edit derived
+Every profile must declare all eight fields. Do not select or edit derived
 capabilities directly.
 
 Narrated-night generation registers its catalogue and documentation entry,
@@ -110,10 +140,10 @@ then explicitly run `catalogue:update --reviewed <gameId>-night`.
 ### 4. Run the generator, once
 
 ```sh
-corepack pnpm new-game <gameId> --feature identity=none --feature night=none --feature guidedNarration=none --feature stageDeadline=none --feature wordSupply=none --name <中文名> --subtitle <一句话玩法>
+corepack pnpm new-game <gameId> --feature identity=none --feature night=none --feature guidedNarration=none --feature stageDeadline=none --feature wordSupply=none --feature bots=enabled --feature stats=enabled --feature rewards=flat --name <中文名> --subtitle <一句话玩法>
 ```
 
-Replace each feature value with the approved profile; all five declarations
+Replace each feature value with the approved profile; all eight declarations
 are required and duplicate/unknown fields fail before writing. See
 `references/generator.md` for options and generated outputs. Preflight computes
 all templates, shared edits and the migration

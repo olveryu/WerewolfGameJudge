@@ -2,13 +2,13 @@
 
 import type { NightStepProgress } from './nightProgress';
 import type { RoomActionAudience, RoomPlayerAction, RoomPlayerActionGroup } from './RoomAction';
-import type { RoomViewer } from './RoomViewer';
+import { isEffectiveRoomParticipant, type RoomViewer } from './RoomViewer';
 
 /** Status message shown while narration audio plays. */
 export const AUDIO_WAITING_LABEL = '语音播报中…';
 
 /**
- * The lobby hint shown to a seated non-host player while the host has
+ * The lobby hint shown to a participating non-host player while the host has
  * not started the game yet: 「等待房主开始游戏」. One source for the
  * gating predicate and the copy so the bottom info line cannot drift
  * per game.
@@ -17,13 +17,13 @@ export function buildLobbyHostStartMessage(input: {
   readonly isLobby: boolean;
   readonly viewer: RoomViewer;
 }): string | null {
-  return input.isLobby && !input.viewer.isHost && input.viewer.seat !== null
+  return input.isLobby && !input.viewer.isHost && isEffectiveRoomParticipant(input.viewer, null)
     ? '等待房主开始游戏'
     : null;
 }
 
 /**
- * The ended-phase hint shown to a seated non-host player while the host
+ * The ended-phase hint shown to a participating non-host player while the host
  * decides between a rematch and returning to the lobby. The copy is
  * DrawGuess's ended view sentence, kept as the single source so every
  * game's ended phase waits on the host in the same words.
@@ -34,7 +34,7 @@ export function buildEndedWaitingMessage(input: {
   readonly isEnded: boolean;
   readonly viewer: RoomViewer;
 }): string | null {
-  return input.isEnded && !input.viewer.isHost && input.viewer.seat !== null
+  return input.isEnded && !input.viewer.isHost && isEffectiveRoomParticipant(input.viewer, null)
     ? ENDED_WAITING_MESSAGE
     : null;
 }

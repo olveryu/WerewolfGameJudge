@@ -78,6 +78,7 @@ describe('engine skeleton contract', () => {
       'secrethitler',
       'spotmatch',
       'storyrelay',
+      'toolbox',
       'undercover',
       'werewolf',
     ]);

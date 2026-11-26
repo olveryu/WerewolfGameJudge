@@ -9,23 +9,29 @@ The generator takes a complete, explicit profile using repeated
 corepack pnpm new-game <gameId> \
   --feature identity=private --feature night=narrated \
   --feature guidedNarration=none --feature stageDeadline=enabled \
-  --feature wordSupply=none
+  --feature wordSupply=none --feature bots=enabled \
+  --feature stats=enabled --feature rewards=flat
 ```
 
-| Feature           | Allowed values                          | Derived capabilities and required behavior                                                                                       |
-| ----------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `identity`        | `none`, `private`                       | `private` derives `identityViewing`, `botBulkViewing`, and `revealAnimation`; every human and bot must satisfy the viewing gate. |
-| `night`           | `none`, `narrated`                      | `narrated` derives night steps, shared interaction, narration and catalogue acceptance; no separate step opt-in.                 |
-| `guidedNarration` | `none`, `narrated`                      | `narrated` derives `audioOrchestration` but does not invent a night phase.                                                       |
-| `stageDeadline`   | `none`, `enabled`                       | `enabled` derives deadline wiring and protocol tests. Identity viewing delays arming until play begins.                          |
-| `wordSupply`      | `none`, `in-game`, `background`, `both` | Any supplied mode derives `wordLibrary`; the report requires the matching workflow and deployment integration.                   |
+| Feature           | Allowed values                          | Derived capabilities and required behavior                                                                                        |
+| ----------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `identity`        | `none`, `private`                       | `private` derives `identityViewing` and `revealAnimation`, plus `botBulkViewing` with `bots=enabled`; every seat must view.       |
+| `night`           | `none`, `narrated`                      | `narrated` derives night steps, shared interaction, narration and catalogue acceptance; no separate step opt-in.                  |
+| `guidedNarration` | `none`, `narrated`                      | `narrated` derives `audioOrchestration` but does not invent a night phase.                                                        |
+| `stageDeadline`   | `none`, `enabled`                       | `enabled` derives deadline wiring and protocol tests. Identity viewing delays arming until play begins.                           |
+| `wordSupply`      | `none`, `in-game`, `background`, `both` | Any supplied mode derives `wordLibrary`; the report requires the matching workflow and deployment integration.                    |
+| `bots`            | `enabled`, `none`                       | `enabled` derives `botsAndTakeover`: bot seats, host takeover and their tests. `none` seats humans only; the Worker rejects bots. |
+| `stats`           | `enabled`, `none`                       | `enabled` derives `businessStats`: owned stats table, completion stats payload and profile panel. Requires `rewards=flat`.        |
+| `rewards`         | `flat`, `none`                          | `flat` derives `completion` settlement and flat rewards. `none` registers `{ policy: 'none' }` and emits no completion effect.    |
 
 Unknown, missing, duplicate and invalid declarations fail during preflight,
 before files are written. There is no CLI for choosing derived capabilities.
-`botsAndTakeover` and `hostConfig` are always wired by the base skeleton.
-Host-controlled bot seats and host takeover are platform behavior for every
-game—not selectable features. Identity games automatically add bulk bot
-identity handling rather than relying on a separately remembered option.
+`hostConfig` is always wired by the base skeleton. Nearly every game declares
+`bots=enabled`, `stats=enabled` and `rewards=flat`; declare `none` only for an
+approved design reason recorded in the design document. Identity games with
+bots automatically add bulk bot identity handling rather than relying on a
+separately remembered option. `--xp`, `--draws` and `--daily-target` require
+`rewards=flat`.
 
 The generator's behavior-test contract is part of this mapping: base games
 require host-only confirmed abort and bot setup tests; identity requires

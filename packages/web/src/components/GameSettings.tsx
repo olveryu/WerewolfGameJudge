@@ -20,6 +20,8 @@ export function GameSettingsStepper({
   onIncrement,
   isDecrementDisabled,
   isIncrementDisabled,
+  decrementLabel = '减少人数',
+  incrementLabel = '增加人数',
 }: {
   readonly label: string;
   readonly value: string;
@@ -31,13 +33,16 @@ export function GameSettingsStepper({
   readonly onIncrement: () => void;
   readonly isDecrementDisabled: boolean;
   readonly isIncrementDisabled: boolean;
+  /** Accessible names of the step buttons; player-count fields keep the defaults. */
+  readonly decrementLabel?: string;
+  readonly incrementLabel?: string;
 }) {
   return (
     <div className="game-settings-row">
       <span className="game-settings-label">{label}</span>
       <span className="game-settings-stepper">
         <IconButton
-          label="减少人数"
+          label={decrementLabel}
           icon={<IconRemove aria-hidden />}
           disabled={isDecrementDisabled}
           onClick={onDecrement}
@@ -53,7 +58,7 @@ export function GameSettingsStepper({
           onChange={(event) => onChangeText(event.currentTarget.value)}
         />
         <IconButton
-          label="增加人数"
+          label={incrementLabel}
           icon={<IconAdd aria-hidden />}
           disabled={isIncrementDisabled}
           onClick={onIncrement}

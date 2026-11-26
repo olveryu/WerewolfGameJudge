@@ -145,7 +145,9 @@ export interface WorkerGameModuleDefinition<
   readonly gameType: TGameType;
   readonly engine: TEngine;
   readonly stateCodec: GameStateCodec<TState>;
-  readonly projectStateForUser?: (state: TState, userId: string) => TState;
+  /** Codec for a per-user wire view when it differs from authoritative state. */
+  readonly viewCodec?: GameStateCodec<BaseGameState<TGameType>>;
+  readonly projectStateForUser?: (state: TState, userId: string) => BaseGameState<TGameType>;
   readonly createConfigSchema: ZodType<TConfig>;
   readonly publicCommandSchema: ZodType<TPublicCommand>;
   readonly internalCommandSchema: ZodType<TInternalCommand>;
@@ -532,11 +534,21 @@ function buildWorkerGameModule<
     }
   };
 
+  if (definition.viewCodec !== undefined && definition.projectStateForUser === undefined) {
+    throw new Error(
+      `Game module ${definition.gameType} declares a view codec without a projection`,
+    );
+  }
+  if (definition.viewCodec !== undefined && definition.viewCodec.gameType !== definition.gameType) {
+    throw new Error(`Game module ${definition.gameType} declares a view codec for another game`);
+  }
+
   const parseState = (value: unknown): TState => {
     const state = engine.normalize(definition.stateCodec.parse(value));
     assertStateIdentity(state);
     return state;
   };
+  const projectStateForUser = definition.projectStateForUser;
 
   const parseCreateConfig = (
     rawConfig: unknown,
@@ -589,6 +601,22 @@ function buildWorkerGameModule<
 
   return {
     ...definition,
+    projectStateForUser:
+      projectStateForUser === undefined
+        ? undefined
+        : (state, userId) => {
+            const view = (definition.viewCodec ?? definition.stateCodec).parse(
+              projectStateForUser(state, userId),
+            );
+            if (
+              view.gameType !== state.gameType ||
+              view.roomCode !== state.roomCode ||
+              view.hostUserId !== state.hostUserId
+            ) {
+              throw new Error(`Game module ${definition.gameType} produced a mismatched view`);
+            }
+            return view;
+          },
     parseCreateConfig,
     createInitialState: (rawConfig, context) => {
       const parsedConfig = parseCreateConfig(rawConfig);

@@ -6,7 +6,8 @@
  * in the lobby; at the end, a document the platform accepts, named for its
  * game and room, that eligible readers may share — resolved purely to plain data
  * and keyed by its round, so a new round never reuses the last round's
- * export. The registry is exhaustive over `GameType`; the
+ * export. The registry is exhaustive over `GameType` except the toolbox,
+ * which has no ending and therefore never offers a review; the
  * new-game generator registers each new game's rounds (`<GAME>_REVIEW_ROUNDS`
  * in `packages/web/src/test-utils/<gameId>State.ts`).
  *
@@ -18,6 +19,10 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
+import {
+  DEFAULT_TOOLBOX_CONFIG,
+  type ToolboxView,
+} from '@game-judge/game-engine/games/toolbox/public';
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
@@ -36,6 +41,7 @@ import { pictionaryReview } from '@/games/pictionary/review/pictionaryReview';
 import { secrethitlerReview } from '@/games/secrethitler/review/secrethitlerReview';
 import { spotmatchReview } from '@/games/spotmatch/review/spotmatchReview';
 import { storyRelayReview } from '@/games/storyrelay/review/storyRelayReview';
+import { toolboxReview } from '@/games/toolbox/review/toolboxReview';
 import { undercoverReview } from '@/games/undercover/review/undercoverReview';
 import { werewolfReview } from '@/games/werewolf/review/werewolfReview';
 import { AVALON_REVIEW_ROUNDS } from '@/test-utils/avalonState';
@@ -53,6 +59,24 @@ import { WEREWOLF_REVIEW_ROUNDS } from '@/test-utils/werewolfNightReview';
 
 const ROOM_CODE = '1234';
 const HOST = viewerFor('host');
+const HOST_USER_ID = HOST.userId;
+const TOOLBOX_ACTIVE_VIEW: ToolboxView = {
+  gameType: 'toolbox',
+  roomCode: '1234',
+  hostUserId: HOST_USER_ID,
+  viewerUserId: HOST_USER_ID,
+  isViewerMember: true,
+  memberCount: 2,
+  config: DEFAULT_TOOLBOX_CONFIG,
+  configVersion: 1,
+  phase: {
+    kind: 'active',
+    sessionId: 'session',
+    participantCount: 2,
+    identity: null,
+    participation: { kind: 'participant', dice: null, hand: null },
+  },
+};
 
 /** One game's review over its rounds, resolved for the host. */
 interface ReviewContractCase {
@@ -95,7 +119,7 @@ const REVIEW_CONTRACT = {
   spotmatch: reviewCase(spotmatchReview, SPOTMATCH_REVIEW_ROUNDS),
   secrethitler: reviewCase(secrethitlerReview, SECRETHITLER_REVIEW_ROUNDS),
   decrypto: reviewCase(decryptoReview, DECRYPTO_REVIEW_ROUNDS),
-} as const satisfies Record<GameType, ReviewContractCase>;
+} as const satisfies Record<Exclude<GameType, 'toolbox'>, ReviewContractCase>;
 
 function documentOf(availability: RoomReviewAvailability): RoomReviewDocument {
   if (availability.kind !== 'available') {
@@ -131,6 +155,14 @@ describe.each(Object.entries(REVIEW_CONTRACT))('%s review', (gameType, contract)
   it('keys the document by its round', () => {
     const { first, nextRound } = contract.resolveEnded();
     expect(documentOf(nextRound).roundKey).not.toBe(documentOf(first).roundKey);
+  });
+});
+
+describe('toolbox review', () => {
+  it('never offers a review because a toolbox session has no ending', () => {
+    expect(
+      toolboxReview.resolve({ state: TOOLBOX_ACTIVE_VIEW, viewer: HOST, roomCode: ROOM_CODE }),
+    ).toEqual({ kind: 'notEnded' });
   });
 });
 

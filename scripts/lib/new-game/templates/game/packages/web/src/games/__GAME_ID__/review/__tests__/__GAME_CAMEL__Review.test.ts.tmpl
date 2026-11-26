@@ -61,8 +61,14 @@ describe('to__GAME_PASCAL__ReviewDocument', () => {
               rows: [
                 participant(0, '房主'),
                 participant(1, '小明'),
+//#cap botsAndTakeover
                 participant(2, '机器人3号'),
                 participant(3, '机器人4号'),
+//#end
+//#cap !botsAndTakeover
+                participant(2, '小红'),
+                participant(3, '小刚'),
+//#end
               ],
             },
           ],

@@ -94,6 +94,7 @@ export type __GAME_PASCAL__Event =
   | { readonly type: '__GAME_ID__.game.ended' }
   | { readonly type: '__GAME_ID__.game.returnedToLobby' };
 
+//#cap completion
 //#cap !stageDeadline
 /**
  * Effect 词汇：终局结算只是第一个成员。给游戏加定时/异步流程时，
@@ -139,10 +140,36 @@ export type __GAME_PASCAL__Effect =
       };
     };
 //#end
+//#end
+//#cap !completion
+//#cap !stageDeadline
+/** 本游戏不结算奖励、也没有定时阶段：没有任何 effect。 */
+export type __GAME_PASCAL__Effect = never;
+//#end
+//#cap stageDeadline
+/** 本游戏不结算奖励：唯一的 effect 是阶段到期结算。 */
+export type __GAME_PASCAL__Effect =
+  | {
+      /**
+       * Armed stage deadline: emitted exactly once when a stage with a
+       * deadline opens. The Worker outbox delivers it at `deadlineAt`
+       * (alarm-scheduled), and the handler settles through the internal
+       * settle command unless the phase has already moved on. The
+       * payload pins the exact arming (game, deadline) so a late or
+       * replayed delivery can never settle a newer stage.
+       */
+      readonly type: '__GAME_ID__.settle.due';
+      readonly payload: {
+        readonly gameSequence: number;
+        readonly deadlineAt: number;
+      };
+    };
+//#end
+//#end
 
 export type __GAME_PASCAL__Decision = Decision<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>;
 
-/** Commits domain events and completion effects through the shared runtime. */
+/** Commits domain events and effects through the shared runtime. */
 export function commit__GAME_PASCAL__(
   events: readonly __GAME_PASCAL__Event[],
   effects: readonly __GAME_PASCAL__Effect[] = [],

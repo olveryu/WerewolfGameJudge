@@ -30,6 +30,7 @@ import {
   editGuidanceMatrixRegistry,
   editNightCatalogueRegistry,
   editNightCatalogueIndex,
+  editPreviewGames,
   editProductionGameTypes,
   editRegistry,
   editReviewContractRegistry,
@@ -174,6 +175,10 @@ export const SHARED_EDITS = [
   {
     file: 'contracts/architecture.contract.test.ts',
     apply: (content, ctx) => editStatsTableOwner(content, ctx),
+  },
+  {
+    file: 'packages/web/preview/previewGames.ts',
+    apply: (content, ctx) => editPreviewGames(content, ctx),
   },
 ];
 
@@ -356,7 +361,7 @@ function createGenerationContext(options) {
     subtitle = 'TODO(gameplay):一句话玩法',
     iconName = 'game-controller-outline',
     tier = 'mini',
-    rewards = DEFAULT_REWARDS,
+    rewards: requestedRewards,
     production = false,
   } = options;
   if (tier !== 'main' && tier !== 'mini') {
@@ -367,16 +372,24 @@ function createGenerationContext(options) {
   const iconComponent = iconComponentName(iconName);
   const names = deriveGameNames(gameId);
   const features = normalizeFeatureProfile(requestedFeatures);
+  if (features.rewards === 'none' && requestedRewards !== undefined) {
+    throw new Error(
+      'Reward amounts need --feature rewards=flat; rewards=none has no completion settlement.',
+    );
+  }
+  const rewards = features.rewards === 'none' ? null : (requestedRewards ?? DEFAULT_REWARDS);
   const capabilities = deriveCapabilities(features);
   const selectedCapabilities = DERIVED_CAPABILITY_KEYS.filter((key) => capabilities[key]);
-  // Statistics are part of every generated game. Deadline arming is
-  // delayed until play begins only when identity viewing precedes it.
+  // Statistics ride the completion settlement, so they exist only with
+  // rewards. Deadline arming is delayed until play begins only when
+  // identity viewing precedes it.
   const renderCapabilities = {
     ...capabilities,
     sharedSteps: capabilities.nightPhase,
     armDeadlineAtBegin: capabilities.identityViewing && capabilities.stageDeadline,
     stageDeadlineAtStart: !capabilities.identityViewing && capabilities.stageDeadline,
-    businessStats: true,
+    completion: features.rewards !== 'none',
+    businessStats: features.stats === 'enabled',
   };
   const home = { displayName, subtitle, iconName, tier };
   const extraTokens = {
@@ -394,7 +407,11 @@ function createGenerationContext(options) {
     __GAME_FEATURE_GUIDED_NARRATION__: formatFeatureValue(features.guidedNarration),
     __GAME_FEATURE_STAGE_DEADLINE__: formatFeatureValue(features.stageDeadline),
     __GAME_FEATURE_WORD_SUPPLY__: formatFeatureValue(features.wordSupply),
-    __GAME_COMPLETION_TYPE__: `${names.pascal}CompletionPayload | `,
+    __GAME_FEATURE_BOTS__: formatFeatureValue(features.bots),
+    __GAME_FEATURE_STATS__: formatFeatureValue(features.stats),
+    __GAME_FEATURE_REWARDS__: formatFeatureValue(features.rewards),
+    __GAME_COMPLETION_TYPE__:
+      features.stats === 'enabled' ? `${names.pascal}CompletionPayload | ` : '',
     __GAME_REQUIREMENT_COUNT__: '11',
     __GAME_TEST_BEGIN__: [
       capabilities.identityViewing
@@ -411,6 +428,7 @@ function createGenerationContext(options) {
     pascal: names.pascal,
     rewards,
     capabilities,
+    features,
     home,
     production,
   };
@@ -506,6 +524,7 @@ function buildGenerationPlan(context) {
     sourceContent: source.content,
     gameId,
     displayName,
+    includeStatsTable: features.stats === 'enabled',
   });
   created.set(`packages/api-worker/migrations/${migrationName}`, migrationContent);
 

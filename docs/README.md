@@ -11,6 +11,7 @@
 | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [multigame-platform-design.md](multigame-platform-design.md)                               | 多游戏平台三层架构（Platform / Game module / Catalog）、不变量与第 25 节新游戏接入清单                                                                      |
 | [room-shell-contract.md](room-shell-contract.md)                                           | config / guide / room 共享组件归属契约与完整状态验收矩阵                                                                                                    |
+| [game-ui-mock-design.md](game-ui-mock-design.md)                                           | 新游戏离线 UI 预览与公共组件覆盖清单                                                                                                                        |
 | [room-stage-layout-design.md](room-stage-layout-design.md)                                 | 你画我猜 / 你画我猜接龙 / 轮流讲故事进行中舞台布局：标题栏主持管理、信息条、名单抽屉接管、画布占满剩余高度                                                  |
 | [room-hand-and-information-design.md](room-hand-and-information-design.md)                 | 房间手牌与信息区的目标外观、阶段展示与交互体验；不含实现细节                                                                                                |
 | [room-hand-and-information-implementation.md](room-hand-and-information-implementation.md) | 房间手牌与信息区的实施步骤、游戏迁移与验收清单                                                                                                              |
@@ -47,6 +48,7 @@
 | [secrethitler-game-design.md](secrethitler-game-design.md)       | `secrethitler` | 秘密希特勒：标准 5–10 人规则、首夜私密互认     |
 | [decoding-battle-game-design.md](decoding-battle-game-design.md) | `decrypto`     | 解码战：已批准规则、交互决定及验收状态         |
 | [decrypto-game-design.md](decrypto-game-design.md)               | `decrypto`     | 解码战                                         |
+| [tabletop-toolbox-proposal.md](tabletop-toolbox-proposal.md)     | `toolbox`      | 聚会工具：摇骰子、抽身份；设计与实现状态       |
 
 ## 3. 产品模块
 

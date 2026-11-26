@@ -502,6 +502,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       ['secrethitler_user_stats', 'packages/api-worker/src/games/secrethitler/dbSchema.ts'],
       ['spotmatch_user_stats', 'packages/api-worker/src/games/spotmatch/dbSchema.ts'],
       ['storyrelay_user_stats', 'packages/api-worker/src/games/storyrelay/dbSchema.ts'],
+      ['toolbox_identity_presets', 'packages/api-worker/src/games/toolbox/dbSchema.ts'],
       ['undercover_round_word_selections', 'packages/api-worker/src/games/undercover/dbSchema.ts'],
       ['undercover_user_stats', 'packages/api-worker/src/games/undercover/dbSchema.ts'],
       ['undercover_word_packs', 'packages/api-worker/src/games/undercover/dbSchema.ts'],
@@ -1416,10 +1417,27 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
     werewolf: 'games/werewolf/room/hooks/useWerewolfRoomState.ts',
   };
 
+  // Games without numbered seats have no seat presses: participation is a seatless
+  // join expressed by the game's own view, never through the shared seat handler.
+  const seatlessGames: Partial<Record<GameType, string>> = {
+    toolbox: 'games/toolbox/room/useToolboxRoomState.ts',
+  };
+
   it('assigns every game exactly one seat-press composition', () => {
     expect(
-      [...Object.keys(setupControllerGames), ...Object.keys(rosterControllerGames)].sort(),
+      [
+        ...Object.keys(setupControllerGames),
+        ...Object.keys(rosterControllerGames),
+        ...Object.keys(seatlessGames),
+      ].sort(),
     ).toEqual([...GAME_TYPES].sort());
+  });
+
+  it('seatless games never route through the shared seat-press handler', () => {
+    for (const relativePath of Object.values(seatlessGames)) {
+      const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
+      expect(source).not.toContain('createRoomSeatPressHandler(');
+    }
   });
 
   it('lobby-profile games delegate setup and seat presses to shared controllers', () => {

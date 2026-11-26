@@ -25,7 +25,9 @@ function reset__GAME_PASCAL__Game(state: __GAME_PASCAL__State): __GAME_PASCAL__S
     roleViewedSeats: [],
     reviewCompletedUserIds: [],
 //#end
+//#cap completion
     xpSettled: false,
+//#end
 //#cap audioOrchestration
     pendingAudioEffects: [],
     isAudioPlaying: false,
@@ -151,7 +153,12 @@ export function evolve__GAME_PASCAL__State(
 //#end
     case '__GAME_ID__.game.ended': {
       if (state.phase.kind === 'ended') return state;
+//#cap completion
       return { ...bumped, phase: { kind: 'ended' }, xpSettled: true };
+//#end
+//#cap !completion
+      return { ...bumped, phase: { kind: 'ended' } };
+//#end
     }
     case '__GAME_ID__.game.returnedToLobby':
       return reset__GAME_PASCAL__Game(state);

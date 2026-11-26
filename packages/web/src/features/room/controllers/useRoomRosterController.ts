@@ -9,7 +9,7 @@ import type { RoomSetupCapabilitiesInput } from '@/features/room/model/RoomCapab
 import type { RoomCommandSubmission } from './useRoomCommandSubmission';
 import { useRoomHostOperations } from './useRoomHostOperations';
 import { type RoomProfileController, useRoomProfileController } from './useRoomProfileController';
-import type { RoomSeatSession } from './useRoomSeatCommands';
+import type { RoomSeating } from './useRoomSeatCommands';
 import { type RoomSeatController, useRoomSeatController } from './useRoomSeatController';
 import { useStandardSeatCommands } from './useStandardSeatCommands';
 
@@ -23,13 +23,14 @@ interface RoomRosterController {
 }
 
 /** Bind roster commands without taking over game-owned phase or profile permissions. */
-export function useRoomRosterController<TState extends BaseGameState<string>>(params: {
-  readonly session: RoomSeatSession<TState, RoomSeatProfile>;
-  readonly user: User;
-  readonly mySeat: number | null;
-  readonly submitOperation: RoomCommandSubmission<TState>['submit'];
-}): RoomRosterController {
-  const seats = useStandardSeatCommands(params.session, params.user);
+export function useRoomRosterController<TState extends BaseGameState<string>>(
+  params: RoomSeating<TState, RoomSeatProfile> & {
+    readonly user: User;
+    readonly mySeat: number | null;
+    readonly submitOperation: RoomCommandSubmission<TState>['submit'];
+  },
+): RoomRosterController {
+  const seats = useStandardSeatCommands(params, params.user);
   const seatController = useRoomSeatController({
     currentSeat: params.mySeat,
     takeSeat: seats.takeSeat,

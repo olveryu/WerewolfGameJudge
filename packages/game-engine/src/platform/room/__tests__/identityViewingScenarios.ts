@@ -21,18 +21,33 @@ export interface IdentityViewingSession {
   participants(): readonly IdentityViewingParticipant[];
   /** That seat views its identity (its own action or a host takeover). */
   view(seat: number): void;
-  /** The host scaffold action that fills every unviewed bot record. */
-  markAllBotsViewed(): void;
   /** Whether the game has advanced past the viewing checkpoint. */
   isCheckpointOpen(): boolean;
 }
 
-export interface IdentityViewingSuite {
-  /** Display name for the describe block. */
-  readonly game: string;
-  /** A fresh session: at least one human and one bot seat, nobody viewed. */
-  makeSession(): IdentityViewingSession;
+/** A session of a game that seats bots, with the host's bulk bot mark. */
+export interface IdentityViewingBotSession extends IdentityViewingSession {
+  /** The host scaffold action that fills every unviewed bot record. */
+  markAllBotsViewed(): void;
 }
+
+/**
+ * The game under test and its seating model. A game with bots runs the
+ * bot-mark scenarios against a session holding at least one human and
+ * one bot seat; a game without bots runs the same protocol over human
+ * seats only (at least two humans, nobody viewed).
+ */
+export type IdentityViewingSuite =
+  | {
+      readonly game: string;
+      readonly seating: 'humansAndBots';
+      makeSession(): IdentityViewingBotSession;
+    }
+  | {
+      readonly game: string;
+      readonly seating: 'humansOnly';
+      makeSession(): IdentityViewingSession;
+    };
 
 export function describeIdentityViewingProtocol(suite: IdentityViewingSuite): void {
   describe(`Identity Viewing Protocol - shared scenarios (${suite.game})`, () => {
@@ -42,31 +57,20 @@ export function describeIdentityViewingProtocol(suite: IdentityViewingSuite): vo
       expect(session.isCheckpointOpen()).toBe(false);
     });
 
-    it('holds the checkpoint while any bot seat is unmarked, even with every human viewed', () => {
-      const session = suite.makeSession();
-      for (const participant of session.participants()) {
-        if (!participant.isBot) session.view(participant.seat);
-      }
-      expect(session.isCheckpointOpen()).toBe(false);
-      expect(haveAllViewed(session.participants(), session.viewedSeats())).toBe(false);
+    if (suite.seating === 'humansAndBots') {
+      describeBotMarkScenarios(suite.makeSession);
+    } else {
+      it('holds the checkpoint while any seated player is unviewed', () => {
+        const session = suite.makeSession();
+        const seats = session.participants().map((participant) => participant.seat);
+        for (const seat of seats.slice(0, -1)) session.view(seat);
+        expect(session.isCheckpointOpen()).toBe(false);
 
-      session.markAllBotsViewed();
-      expect(session.isCheckpointOpen()).toBe(true);
-      expect(haveAllViewed(session.participants(), session.viewedSeats())).toBe(true);
-    });
-
-    it('holds the checkpoint while any human is unviewed, even with every bot marked', () => {
-      const session = suite.makeSession();
-      session.markAllBotsViewed();
-      expect(session.isCheckpointOpen()).toBe(false);
-
-      const humans = session.participants().filter((participant) => !participant.isBot);
-      for (const participant of humans.slice(0, -1)) session.view(participant.seat);
-      expect(session.isCheckpointOpen()).toBe(false);
-
-      session.view(humans[humans.length - 1]!.seat);
-      expect(session.isCheckpointOpen()).toBe(true);
-    });
+        session.view(seats[seats.length - 1]!);
+        expect(session.isCheckpointOpen()).toBe(true);
+        expect(haveAllViewed(session.participants(), session.viewedSeats())).toBe(true);
+      });
+    }
 
     it('marks idempotently: viewing the same seat twice changes nothing further', () => {
       const session = suite.makeSession();
@@ -78,14 +82,56 @@ export function describeIdentityViewingProtocol(suite: IdentityViewingSuite): vo
     });
 
     it('keeps the viewed record sorted and duplicate-free', () => {
-      const session = suite.makeSession();
-      const seats = session.participants().map((participant) => participant.seat);
-      for (const seat of [...seats].reverse()) session.view(seat);
-      session.markAllBotsViewed();
+      const session = viewEverySeatInReverse(suite);
       const viewed = session.viewedSeats();
       expect([...viewed]).toEqual([...viewed].sort((a, b) => a - b));
       expect(new Set(viewed).size).toBe(viewed.length);
       expect(session.isCheckpointOpen()).toBe(true);
     });
+  });
+}
+
+/** Views every seat from the last to the first, then (with bots) re-marks the bots. */
+function viewEverySeatInReverse(suite: IdentityViewingSuite): IdentityViewingSession {
+  const viewInReverse = (session: IdentityViewingSession): void => {
+    const seats = session.participants().map((participant) => participant.seat);
+    for (const seat of [...seats].reverse()) session.view(seat);
+  };
+  if (suite.seating === 'humansOnly') {
+    const session = suite.makeSession();
+    viewInReverse(session);
+    return session;
+  }
+  const session = suite.makeSession();
+  viewInReverse(session);
+  session.markAllBotsViewed();
+  return session;
+}
+
+function describeBotMarkScenarios(makeSession: () => IdentityViewingBotSession): void {
+  it('holds the checkpoint while any bot seat is unmarked, even with every human viewed', () => {
+    const session = makeSession();
+    for (const participant of session.participants()) {
+      if (!participant.isBot) session.view(participant.seat);
+    }
+    expect(session.isCheckpointOpen()).toBe(false);
+    expect(haveAllViewed(session.participants(), session.viewedSeats())).toBe(false);
+
+    session.markAllBotsViewed();
+    expect(session.isCheckpointOpen()).toBe(true);
+    expect(haveAllViewed(session.participants(), session.viewedSeats())).toBe(true);
+  });
+
+  it('holds the checkpoint while any human is unviewed, even with every bot marked', () => {
+    const session = makeSession();
+    session.markAllBotsViewed();
+    expect(session.isCheckpointOpen()).toBe(false);
+
+    const humans = session.participants().filter((participant) => !participant.isBot);
+    for (const participant of humans.slice(0, -1)) session.view(participant.seat);
+    expect(session.isCheckpointOpen()).toBe(false);
+
+    session.view(humans[humans.length - 1]!.seat);
+    expect(session.isCheckpointOpen()).toBe(true);
   });
 }

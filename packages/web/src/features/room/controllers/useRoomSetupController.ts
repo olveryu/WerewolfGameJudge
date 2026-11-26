@@ -15,24 +15,23 @@ import {
 import type { RoomCommandSubmission } from './useRoomCommandSubmission';
 import type { RoomProfileController } from './useRoomProfileController';
 import { useRoomRosterController } from './useRoomRosterController';
-import type { RoomSeatSession } from './useRoomSeatCommands';
+import type { RoomSeating } from './useRoomSeatCommands';
 import type { RoomSeatController } from './useRoomSeatController';
 
-interface UseRoomSetupControllerParams<TState extends BaseGameState<string>> extends Pick<
+type UseRoomSetupControllerParams<TState extends BaseGameState<string>> = Pick<
   RoomSetupCapabilitiesInput,
   | 'isSetup'
   | 'isHost'
   | 'mySeat'
-  | 'supportsBots'
   | 'hasOccupiedSeats'
   | 'isRoomFull'
   | 'configureGame'
   | 'shareRoom'
-> {
-  readonly session: RoomSeatSession<TState, RoomSeatProfile>;
-  readonly user: User;
-  readonly submitOperation: RoomCommandSubmission<TState>['submit'];
-}
+> &
+  RoomSeating<TState, RoomSeatProfile> & {
+    readonly user: User;
+    readonly submitOperation: RoomCommandSubmission<TState>['submit'];
+  };
 
 interface RoomSetupController {
   readonly seatController: RoomSeatController;

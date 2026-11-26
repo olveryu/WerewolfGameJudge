@@ -27,7 +27,7 @@ export type ApiAuthMode = 'required' | 'passthrough' | 'none';
 type JsonBody = Record<string, unknown>;
 
 interface BaseRequestSpec {
-  readonly method: 'GET' | 'POST' | 'PUT';
+  readonly method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   readonly path: string;
   readonly auth: ApiAuthMode;
   /** Only idempotent requests are retried when fetch() itself fails. */

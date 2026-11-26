@@ -61,7 +61,8 @@ export function bootSplash(): Plugin {
     },
     transformIndexHtml: {
       order: 'post',
-      handler(_html, { bundle, chunk }) {
+      handler(_html, { bundle, chunk, path: htmlPath }) {
+        if (htmlPath.startsWith('/preview/')) return [];
         if (bundle === undefined || chunk === undefined) {
           return [
             {

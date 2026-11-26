@@ -2,6 +2,7 @@ import type { AvalonPublicStats } from '@game-judge/game-engine/games/avalon/pub
 import type { DrawGuessPublicStats } from '@game-judge/game-engine/games/drawguess/public';
 import type { FibPublicStats } from '@game-judge/game-engine/games/fibking/public';
 import type { PictionaryPublicStats } from '@game-judge/game-engine/games/pictionary/public';
+import { GAME_REGISTRY } from '@game-judge/game-engine/games/registry';
 import type { StoryRelayPublicStats } from '@game-judge/game-engine/games/storyrelay/public';
 import type { UndercoverPublicStats } from '@game-judge/game-engine/games/undercover/public';
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
@@ -67,14 +68,17 @@ function resetMocks() {
 beforeEach(resetMocks);
 
 describe('game-owned account statistics panels', () => {
-  it('registers one account panel for every game in the catalog', () => {
-    expect(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).toEqual([...GAME_TYPES]);
-    expect(new Set(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).size).toBe(
-      GAME_TYPES.length,
+  it('registers account panels once, in game order, only for games that complete player games', () => {
+    // Statistics ride the completion settlement: a `none` reward policy never completes a player
+    // game, so it cannot own a panel. A completing game may still declare no statistics.
+    const panelGameTypes = GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType);
+    expect(panelGameTypes).toEqual(
+      GAME_TYPES.filter((gameType) => panelGameTypes.includes(gameType)),
     );
-    expect(GAME_ACCOUNT_STATS_SECTIONS.every((section) => section.Section !== undefined)).toBe(
-      true,
-    );
+    expect(new Set(panelGameTypes).size).toBe(panelGameTypes.length);
+    for (const gameType of panelGameTypes) {
+      expect(GAME_REGISTRY[gameType].rewards.policy).not.toBe('none');
+    }
   });
 
   it('shows Avalon faction outcomes and expandable per-role wins', () => {

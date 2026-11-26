@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../commandSchemas';
+import { ROOM_HUMAN_PUBLIC_COMMAND_SCHEMAS, ROOM_PUBLIC_COMMAND_SCHEMAS } from '../commandSchemas';
 
 const roomCommandSchema = z.discriminatedUnion('type', [...ROOM_PUBLIC_COMMAND_SCHEMAS]);
 
@@ -80,5 +80,24 @@ describe('room profile command schemas', () => {
         revealEffect: 'reveal-1',
       }),
     );
+  });
+});
+
+describe('room command schemas of a game without bots', () => {
+  const humanRoomCommandSchema = z.discriminatedUnion('type', [
+    ...ROOM_HUMAN_PUBLIC_COMMAND_SCHEMAS,
+  ]);
+
+  it('rejects fill-bots and accepts every other shared room command', () => {
+    expect(humanRoomCommandSchema.safeParse({ type: 'room.seat.fillBots' }).success).toBe(false);
+    for (const command of [
+      { type: 'room.seat.take', seat: 0, profile: { displayName: 'Alice' } },
+      { type: 'room.seat.leave' },
+      { type: 'room.seat.kick', seat: 1 },
+      { type: 'room.seat.clear' },
+      { type: 'room.profile.update', profile: { displayName: 'Bob' } },
+    ]) {
+      expect(humanRoomCommandSchema.parse(command)).toEqual(command);
+    }
   });
 });

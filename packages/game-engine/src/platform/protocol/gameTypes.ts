@@ -11,6 +11,7 @@ export const GAME_TYPES = [
   'spotmatch',
   'secrethitler',
   'decrypto',
+  'toolbox',
 ] as const;
 
 export type GameType = (typeof GAME_TYPES)[number];

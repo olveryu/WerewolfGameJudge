@@ -26,6 +26,7 @@ import { SpotmatchStatsPanel } from '@/games/spotmatch/components/SpotmatchStats
 import { spotmatchHome } from '@/games/spotmatch/home';
 import { StoryRelayStatsPanel } from '@/games/storyrelay/components/StoryRelayStatsPanel';
 import { storyRelayHome } from '@/games/storyrelay/home';
+import { toolboxHome } from '@/games/toolbox/home';
 import { UndercoverStatsPanel } from '@/games/undercover/components/UndercoverStatsPanel';
 import { undercoverHome } from '@/games/undercover/home';
 import { createWerewolfAudioPreview } from '@/games/werewolf/audio/audioPreview';
@@ -63,6 +64,7 @@ const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
   spotmatch: { home: spotmatchHome, AccountStats: SpotmatchStatsPanel },
   secrethitler: { home: secrethitlerHome, AccountStats: SecrethitlerStatsPanel },
   decrypto: { home: decryptoHome, AccountStats: DecryptoStatsPanel },
+  toolbox: { home: toolboxHome },
 };
 
 export interface ClientGameModeOption extends GameModePresentation {

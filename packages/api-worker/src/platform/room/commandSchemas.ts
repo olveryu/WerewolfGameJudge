@@ -32,7 +32,8 @@ const roomProfileUpdateSchema: z.ZodType<RoomProfileUpdate> = z.strictObject({
   revealEffect: z.string().optional(),
 });
 
-export const ROOM_PUBLIC_COMMAND_SCHEMAS = [
+/** Shared room commands of a game without bots: every room command except fill-bots. */
+export const ROOM_HUMAN_PUBLIC_COMMAND_SCHEMAS = [
   z.strictObject({
     type: z.literal('room.seat.take'),
     seat: z.number().int().nonnegative(),
@@ -44,9 +45,13 @@ export const ROOM_PUBLIC_COMMAND_SCHEMAS = [
     seat: z.number().int().nonnegative(),
   }),
   z.strictObject({ type: z.literal('room.seat.clear') }),
-  z.strictObject({ type: z.literal('room.seat.fillBots') }),
   z.strictObject({
     type: z.literal('room.profile.update'),
     profile: roomProfileUpdateSchema,
   }),
+] as const;
+
+export const ROOM_PUBLIC_COMMAND_SCHEMAS = [
+  ...ROOM_HUMAN_PUBLIC_COMMAND_SCHEMAS,
+  z.strictObject({ type: z.literal('room.seat.fillBots') }),
 ] as const;

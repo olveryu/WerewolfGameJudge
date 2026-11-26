@@ -1,0 +1,177 @@
+import {
+  __GAME_CAMEL__Engine,
+  type __GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { MemoryRouter, Route, Routes, useNavigate, useParams } from 'react-router';
+
+import { AlertHostSlot } from '@/components/AlertHostSlot';
+import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
+import { ServiceProvider } from '@/contexts/ServiceContext';
+import { createGameConfigDefiner } from '@/features/room/config/createGameConfigScreen';
+import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
+import { define__GAME_PASCAL__Config } from '@/games/__GAME_ID__/module';
+import { __GAME_CAMEL__Review } from '@/games/__GAME_ID__/review/__GAME_CAMEL__Review';
+import { __GAME_PASCAL__RoomScreen } from '@/games/__GAME_ID__/room/__GAME_PASCAL__RoomScreen';
+import { __GAME_PASCAL__RulesScreen } from '@/games/__GAME_ID__/screens/__GAME_PASCAL__RulesScreen';
+import { GamePickerPage } from '@/routes/games/GamePickerPage';
+import { HomePage } from '@/routes/home/HomePage';
+import {
+  build__GAME_PASCAL__TestLobby,
+  end__GAME_PASCAL__TestGame,
+  start__GAME_PASCAL__TestGame,
+} from '@/test-utils/__GAME_ID__State';
+import { showErrorAlert } from '@/utils/alertPresets';
+
+//#cap audioOrchestration
+import { createPreviewRoomLink, createPreviewServices, previewAudio } from './offlineServices';
+//#end
+//#cap !audioOrchestration
+import { createPreviewRoomLink, createPreviewServices } from './offlineServices';
+//#end
+import type { PreviewGame, PreviewPage } from './previewGames';
+
+// TODO(gameplay): add a scenario for every phase the mock reviews, built through the engine.
+const scenarios = new Map<string, { readonly label: string; readonly build: () => __GAME_PASCAL__State }>([
+  ['lobby', { label: '准备中', build: build__GAME_PASCAL__TestLobby }],
+  ['playing', { label: '游戏中', build: () => start__GAME_PASCAL__TestGame(build__GAME_PASCAL__TestLobby()) }],
+  [
+    'ended',
+    {
+      label: '已结束',
+      build: () => end__GAME_PASCAL__TestGame(start__GAME_PASCAL__TestGame(build__GAME_PASCAL__TestLobby())),
+    },
+  ],
+]);
+const viewerOptions = [
+  { id: 'host', label: '1号（房主）' },
+  { id: 'u1', label: '2号' },
+//#cap !botsAndTakeover
+  { id: 'u2', label: '3号' },
+  { id: 'u3', label: '4号' },
+//#end
+] as const;
+const ConfigScreen = define__GAME_PASCAL__Config(
+  createGameConfigDefiner('__GAME_ID__', '__GAME_DISPLAY_NAME__'),
+);
+const room = {
+  roomCode: '1234',
+  roomId: 'preview-room',
+  gameType: '__GAME_ID__',
+  hostUserId: 'host',
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+} as const;
+
+function readScenario(phase: string): __GAME_PASCAL__State {
+  const scenario = scenarios.get(phase);
+  if (scenario === undefined) throw new Error(`Unknown __GAME_DISPLAY_NAME__ preview phase: ${phase}`);
+  return scenario.build();
+}
+
+function unsupported() {
+  showErrorAlert('离线预览', '此入口尚未接入预览，不会连接真实服务。');
+}
+
+function PreviewRoutes({ link }: { readonly link: __GAME_PASCAL__RoomSession }) {
+  const navigate = useNavigate();
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/games" element={<GamePickerPage />} />
+      <Route path="/game/:gameType/config/:mode/:roomCode?" element={<ConfigRoute link={link} />} />
+      <Route path="/game/__GAME_ID__/guide/:roomCode?" element={<__GAME_PASCAL__RulesScreen />} />
+      <Route
+        path="/room/:roomCode"
+        element={
+          <__GAME_PASCAL__RoomScreen
+            room={room}
+            entryReason={null}
+            session={link}
+//#cap audioOrchestration
+            audio={previewAudio}
+//#end
+            review={__GAME_CAMEL__Review}
+            onOpenMusicSettings={unsupported}
+            onOpenRoomSettings={() => void navigate('/game/__GAME_ID__/config/edit/1234')}
+            onOpenUserSettings={unsupported}
+          />
+        }
+      />
+      <Route path="*" element={<p role="status">此页面尚未接入离线预览。</p>} />
+    </Routes>
+  );
+}
+
+function ConfigRoute({ link }: { readonly link: __GAME_PASCAL__RoomSession }) {
+  const { gameType } = useParams();
+  if (gameType !== '__GAME_ID__') return <p role="status">该游戏尚未接入离线预览。</p>;
+  return <ConfigScreen session={link} />;
+}
+
+function AuthenticatedPreviewRoutes({ link }: { readonly link: __GAME_PASCAL__RoomSession }) {
+  const { loading, error, user } = useAuthContext();
+  if (loading) return <p role="status">正在加载预览账号…</p>;
+  if (error !== null || user === null) throw new Error(error ?? '预览账号未就绪');
+  return <PreviewRoutes link={link} />;
+}
+
+const pagePaths: Record<PreviewPage, string> = {
+  home: '/',
+  config: '/game/__GAME_ID__/config/create',
+  room: '/room/1234',
+};
+
+/** Renders the real __GAME_DISPLAY_NAME__ pages against an in-memory room driven by the real engine. */
+function __GAME_PASCAL__PreviewScreen({
+  phase,
+  viewer,
+  page,
+}: {
+  readonly phase: string;
+  readonly viewer: string;
+  readonly page: PreviewPage;
+}) {
+  if (!viewerOptions.some((option) => option.id === viewer))
+    throw new Error(`Unknown __GAME_DISPLAY_NAME__ preview viewer: ${viewer}`);
+  const services = useMemo(() => createPreviewServices(viewer), [viewer]);
+  const queryClient = useMemo(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+    [],
+  );
+  const link = useMemo(
+    () =>
+      createPreviewRoomLink({
+        initialState: readScenario(phase),
+        identity: { room, userId: viewer },
+        engine: __GAME_CAMEL__Engine,
+        // The worker broadcasts this game's state unprojected; mirror projectStateForUser once it has one.
+        project: (state) => state,
+      }),
+    [phase, viewer],
+  );
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ServiceProvider services={services}>
+        <MemoryRouter initialEntries={[pagePaths[page]]}>
+          <AuthProvider key={viewer}>
+            <div className="preview-content">
+              <AuthenticatedPreviewRoutes link={link} />
+            </div>
+            <AlertHostSlot />
+          </AuthProvider>
+        </MemoryRouter>
+      </ServiceProvider>
+    </QueryClientProvider>
+  );
+}
+
+/** __GAME_DISPLAY_NAME__'s real screens and engine-built scenarios for the shared preview host. */
+export const __GAME_CAMEL__Preview: PreviewGame = {
+  id: '__GAME_ID__',
+  label: '__GAME_DISPLAY_NAME__',
+  phases: Array.from(scenarios, ([id, { label }]) => ({ id, label })),
+  viewers: () => viewerOptions,
+  supportsPopulation: false,
+  Screen: __GAME_PASCAL__PreviewScreen,
+};
