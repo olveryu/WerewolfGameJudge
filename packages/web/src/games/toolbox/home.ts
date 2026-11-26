@@ -1,4 +1,5 @@
 /** 聚会工具 contribution to the Home surface. */
+import toolboxArt from '@/assets/game-art/toolbox.webp';
 import type { GameHomeContribution } from '@/games/model/GameHome';
 import { colors } from '@/theme/colors';
 import { lighten } from '@/theme/colorUtils';
@@ -11,5 +12,6 @@ export const toolboxHome = {
     Icon: IconDiceOutline,
     tier: 'mini',
     gradient: [lighten(colors.handResourceInk, 0.5), colors.handResourceInk],
+    artUrl: toolboxArt,
   },
 } satisfies GameHomeContribution;
