@@ -244,6 +244,8 @@ export const TESTIDS = {
   avalonLadyResultClose: 'avalon-lady-result-close',
 
   // Secret Hitler vote / policy cards
+  secrethitlerGameAction: 'secrethitler-game-action',
+  secrethitlerActionModal: 'secrethitler-action-modal',
   secrethitlerVoteYes: 'secrethitler-vote-yes',
   secrethitlerNominationModal: 'secrethitler-nomination-modal',
   secrethitlerNominationCount: 'secrethitler-nomination-count',
@@ -252,6 +254,19 @@ export const TESTIDS = {
   secrethitlerNominationConfirm: 'secrethitler-nomination-confirm',
   secrethitlerVoteNo: 'secrethitler-vote-no',
   secrethitlerSettledVoteBanner: 'secrethitler-settled-vote-banner',
+  secrethitlerVoteResultSummary: 'secrethitler-vote-result-summary',
+  secrethitlerVoteResultRow: (seat: number) => `secrethitler-vote-result-row-${seat}`,
+  secrethitlerPolicyResultImage: 'secrethitler-policy-result-image',
+  secrethitlerPolicyPeekModal: 'secrethitler-policy-peek-modal',
+  secrethitlerPolicyPeekCard: (index: number) => `secrethitler-policy-peek-card-${index}`,
+  secrethitlerPolicyPeekAcknowledge: 'secrethitler-policy-peek-acknowledge',
+  secrethitlerInvestigationResultDialog: 'secrethitler-investigation-result-dialog',
+  secrethitlerInvestigationResultTitle: 'secrethitler-investigation-result-title',
+  secrethitlerInvestigationResultFaction: 'secrethitler-investigation-result-faction',
+  secrethitlerInvestigationAcknowledge: 'secrethitler-investigation-acknowledge',
+  secrethitlerVetoRequest: 'secrethitler-veto-request',
+  secrethitlerVetoApprove: 'secrethitler-veto-approve',
+  secrethitlerVetoReject: 'secrethitler-veto-reject',
   secrethitlerPolicyCard: (
     action: 'discard' | 'enact',
     policy: 'liberal' | 'fascist',

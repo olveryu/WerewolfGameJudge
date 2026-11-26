@@ -115,7 +115,11 @@ export function ToolboxDiceCup({
                 >
                   <span className="toolbox-dice-pips" aria-hidden="true">
                     {Array.from({ length: 9 }, (_, pip) => (
-                      <span key={pip} data-visible={DICE_PIPS[die.value - 1]?.includes(pip)} />
+                      <span
+                        key={pip}
+                        className="toolbox-dice-pip"
+                        data-visible={DICE_PIPS[die.value - 1]?.includes(pip)}
+                      />
                     ))}
                   </span>
                   {die.held && (

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import type { AdminUser } from '@/features/admin/model/adminContracts';
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { fetchUsers } from '@/features/admin/services/adminApi';
@@ -179,7 +180,10 @@ function userColumns(
           aria-label={`查看${user.displayName ?? '匿名用户'}的详情`}
           onClick={() => onSelect(user)}
         >
-          <span className="admin-avatar" data-anonymous={user.isAnonymous}>
+          <span
+            className={`admin-avatar ${AVATAR_CONCENTRIC_CLASS}`}
+            data-anonymous={user.isAnonymous}
+          >
             {(user.displayName ?? '匿').slice(0, 1)}
           </span>
           <span className="admin-user-identity">
