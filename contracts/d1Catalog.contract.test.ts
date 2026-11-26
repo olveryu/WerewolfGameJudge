@@ -128,6 +128,28 @@ describe('D1 catalog projection', () => {
     );
   });
 
+  it('accepts all 40 canonical decrypto categories and rejects unregistered ones in words and packs', () => {
+    const word =
+      database.prepare(`INSERT INTO decrypto_words (id, word, category, status, created_at)
+      VALUES (?, ?, ?, 'active', 'now')`);
+    const pack = database.prepare(`INSERT INTO decrypto_word_packs
+      (id, category, request_token, status, model, prompt_version, review_version, created_at)
+      VALUES (?, ?, 'request', 'reserved', 'model', 'prompt', 'review', 'now')`);
+    expect(DECRYPTO_WORD_CATEGORY_CATALOG.ids).toHaveLength(40);
+    for (const [index, category] of DECRYPTO_WORD_CATEGORY_CATALOG.ids.entries()) {
+      word.run(`category-${category}`, `分类词${index}`, category);
+      pack.run(`pack-${category}`, category);
+    }
+    for (const invalid of ['general', 'unknown']) {
+      expect(() => word.run(`invalid-${invalid}`, `无效词${invalid}`, invalid)).toThrow(
+        /FOREIGN KEY constraint failed/,
+      );
+      expect(() => pack.run(`invalid-${invalid}`, invalid)).toThrow(
+        /FOREIGN KEY constraint failed/,
+      );
+    }
+  });
+
   it('keeps categories that words still reference', () => {
     const [category] = DECRYPTO_WORD_CATEGORY_CATALOG.ids;
     database.exec(
