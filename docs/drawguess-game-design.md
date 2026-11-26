@@ -617,8 +617,8 @@ UI 组件只接收已按当前用户可见性裁剪的 view model。组件不得
 平台改动仅限组合与基础设施：
 
 - Worker game catalog 注册新模块。
-- D1 migration：在所有含 `game_type CHECK (...)` 的表上加 `'drawguess'`（仿 0049/0056/0059 模式）。
-- `drawguess_words` 表：`word`（2–8 简体汉字，具象名词优先，适合绘画）、`category`、`pinyin_initials`（入库时拼音库生成，如"大熊猫"→"dxm"，多音字取常用读音人工确认）；服务端开局/选词时随机取 3 个本局未用过的候选词，优先本桌没有真人玩过的，不够时用玩过的补足（共用抽词机制 `platform/wordSupply/wordDraw.ts`）。候选词不记入已见；画手选定或超时指派的那一个，由 `drawguess.word.recordSeen` 记入全桌真人的已见记录。**不复用** `fib_words`（跨游戏 import 违反架构约束，且瞎掰王词多为抽象词，不适合绘画）。分类（`category`，`DRAWGUESS_WORD_CATEGORIES` 为唯一来源）共 40 类：动物、食物、日用品、植物、交通工具、场所、运动、人物身份、成语、网络梗、乐器、职业、太空天文、节日习俗、电器数码、动漫角色、自然现象、建筑地标、文具校园、海洋生物、服饰穿搭、家具、厨房用具、玩具、工具、昆虫、音乐活动、医疗用品、清洁用品、户外活动、约会场景、恋爱互动、婚礼现场、夜生活、聚会游戏、酒吧文化、动作喜剧、悬疑推理、尴尬瞬间、成年生活。供词优先选择三天内未尝试的分类，再按启用词数和上次尝试时间排序；所有分类都在冷却期时仍可补词。
+- D1 migration：在所有含 `game_type CHECK (...)` 的表上加 `'drawguess'`（仿 0049/0056/0059 模式）。（2026-11-26 起已被取代：游戏清单改为 `game_types` 查表（`0095_game_catalog_lookup.sql`），注册迁移只插一行、不扩展 CHECK、不重建表，见 `packages/api-worker/AGENTS.md`。）
+- `drawguess_words` 表：`word`（2–8 简体汉字，具象名词优先，适合绘画）、`category`、`pinyin_initials`（入库时拼音库生成，如"大熊猫"→"dxm"，多音字取常用读音人工确认）；服务端开局/选词时随机取 3 个本局未用过的候选词，优先本桌没有真人玩过的，不够时用玩过的补足（共用抽词机制 `platform/wordSupply/wordDraw.ts`）。候选词不记入已见；画手选定或超时指派的那一个，由 `drawguess.word.recordSeen` 记入全桌真人的已见记录。**不复用** `fib_words`（跨游戏 import 违反架构约束，且瞎掰王词多为抽象词，不适合绘画）。分类（`category`，`DRAWGUESS_WORD_CATEGORY_CATALOG`（`packages/game-engine/src/games/drawguess/wordCategories.ts`）为唯一来源，D1 `word_categories` 是它的投影）共 40 类：动物、食物、日用品、植物、交通工具、场所、运动、人物身份、成语、网络梗、乐器、职业、太空天文、节日习俗、电器数码、动漫角色、自然现象、建筑地标、文具校园、海洋生物、服饰穿搭、家具、厨房用具、玩具、工具、昆虫、音乐活动、医疗用品、清洁用品、户外活动、约会场景、恋爱互动、婚礼现场、夜生活、聚会游戏、酒吧文化、动作喜剧、悬疑推理、尴尬瞬间、成年生活。供词优先选择三天内未尝试的分类，再按启用词数和上次尝试时间排序；所有分类都在冷却期时仍可补词。
 
 2026-11-14 本地供词调整：生成版本 `drawguess-generation-v3`、审核版本 `drawguess-review-v3`。生成和审核以「普通玩家会怎么画、别人会打出哪些词」判断，考虑精确猜词规则及字数、渐显拼音提示，不一刀切拒绝角色或地标专名。审核输出 schema 按 `word → reason → qualityChecks` 排序，六个质量字段及全通过的程序门槛不变。
 

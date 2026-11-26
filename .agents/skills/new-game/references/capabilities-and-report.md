@@ -132,10 +132,14 @@ disposition in the PR description.
    `references/skeleton-and-wiring.md`, including the explicit
    `workflowName` and `binding` registry metadata, then regenerate
    `worker-configuration.d.ts`. The skeleton carries no workflow body.
-   The word-library catalog (same entries as `--word-category`) and
-   `GAME_WORD_GAMES` entry land in the same change; the registration
-   migration already seeds `word_games` / `word_categories`
-   (`references/registration-checklist.md` item 7).
+   The word-library catalog (same entries as `--word-category`),
+   `GAME_WORD_GAMES` entry and `CATEGORY_CATALOGS` row are generated from
+   that list by the generator; the registration migration already seeds
+   `word_games` / `word_categories`
+   (`references/registration-checklist.md` item 7). The per-game adapters
+   stay manual; draw rows (`word_draw_index` / `word_draw_ordinals`) are
+   only needed for a pool using the shared draw and land with the supply
+   migration, not the registration migration.
 8. Re-run scoped engine/Worker/web tests and affected contracts, root
    `tsc --noEmit`, changed-package typechecks, `knip`, the skill check, and
    changed-file prettier/eslint. Full suites/quality/E2E belong to CI.

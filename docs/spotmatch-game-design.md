@@ -319,6 +319,8 @@ undercover_round_word_selections、product_game_reward_results，保留其数据
 累计查询主键查单用户，不加二级索引；settlement跟既有幂等批次，重试不额外计数。
 测试验证8/256无关账号时读取≤2行，统计写入相较基线最多增加行和主键项2次。
 
+（2026-11-26 起已被取代：游戏清单改为 `game_types` 查表（`0095_game_catalog_lookup.sql`），注册迁移只插一行、不扩展 CHECK、不重建表，见 `packages/api-worker/AGENTS.md`。）
+
 ## 17. 测试与验收
 
 - 数学：全部1596对；20人140次动态出牌（超过57），当前类型互异、别人top不变、旧类型回归不能重放实例。

@@ -18,6 +18,7 @@ import {
   editClientModuleLoaders,
   editCompletionRewards,
   editDesignDocIndex,
+  editD1Catalog,
   editDispatchDiscipline,
   editEngineCatalog,
   editEngineContractsTest,
@@ -27,6 +28,7 @@ import {
   editExpectedPackageExports,
   editExpectedPhaseDeadlineVariants,
   editGameTypes,
+  editGameWordGames,
   editGuidanceMatrixRegistry,
   editMigrationManifest,
   editNightCatalogueRegistry,
@@ -85,6 +87,7 @@ export const FILE_CAPABILITY_GATES = {
     'stageDeadline',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts':
     'identityViewing',
+  'packages/game-engine/src/games/__GAME_ID__/wordCategories.ts': 'wordLibrary',
   'packages/web/src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts':
     'identityViewing',
   'packages/web/src/games/__GAME_ID__/room/hooks/use__GAME_PASCAL__AudioOrchestration.ts':
@@ -115,6 +118,14 @@ export const SHARED_EDITS = [
   {
     file: 'docs/README.md',
     apply: (content, ctx) => editDesignDocIndex(content, ctx),
+  },
+  {
+    file: 'packages/game-engine/src/product/wordSupply/games.ts',
+    apply: (content, ctx) => editGameWordGames(content, ctx),
+  },
+  {
+    file: 'contracts/d1Catalog.contract.test.ts',
+    apply: (content, ctx) => editD1Catalog(content, ctx),
   },
   {
     file: 'packages/game-engine/src/product/rewards/earnings.ts',
@@ -432,6 +443,15 @@ function createGenerationContext(options) {
     __GAME_COMPLETION_TYPE__:
       features.stats === 'enabled' ? `${names.pascal}CompletionPayload | ` : '',
     __GAME_REQUIREMENT_COUNT__: '11',
+    __GAME_WORD_CATEGORIES__:
+      wordCategories === null
+        ? ''
+        : wordCategories
+            .map(
+              (entry) =>
+                `  { id: ${JSON.stringify(entry.id)}, name: ${JSON.stringify(entry.name)} },`,
+            )
+            .join('\n'),
     __GAME_TEST_BEGIN__: [
       capabilities.identityViewing
         ? 'viewAllAndBegin(session);'

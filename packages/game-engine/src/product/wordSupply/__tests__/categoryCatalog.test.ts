@@ -31,6 +31,9 @@ describe('defineWordCategoryCatalog', () => {
       'repeats name "甲"',
     ],
     ['a blank id', [{ id: ' ', name: '甲' }], 'blank id or name'],
+    ['an id with a space', [{ id: 'a b', name: '甲' }], 'invalid id "a b"'],
+    ['an id starting uppercase', [{ id: 'Ab', name: '甲' }], 'invalid id "Ab"'],
+    ['an id with an underscore', [{ id: 'a_b', name: '甲' }], 'invalid id "a_b"'],
     ['a blank name', [{ id: 'a', name: '' }], 'blank id or name'],
   ] as const)('rejects %s at definition time', (_label, entries, message) => {
     expect(() => defineWordCategoryCatalog('undercover', entries)).toThrow(message);

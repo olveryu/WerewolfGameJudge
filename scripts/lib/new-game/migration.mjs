@@ -152,6 +152,14 @@ function wordCategoryProblems(gameId, categories) {
       );
       continue;
     }
+    // Category ids are TS identifiers in the generated wordCategories.ts and D1 CHECK ids:
+    // lowercase first letter, letters and digits only (camelCase like sportsAndGames).
+    if (!/^[a-z][a-zA-Z0-9]*$/.test(id)) {
+      problems.push(
+        `word category id "${id}" of '${gameId}' must start lowercase and contain only letters and digits`,
+      );
+      continue;
+    }
     if (ids.has(id)) problems.push(`word category id "${id}" of '${gameId}' is repeated`);
     if (names.has(name)) problems.push(`word category name "${name}" of '${gameId}' is repeated`);
     ids.add(id);
