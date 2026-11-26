@@ -161,7 +161,7 @@ describe('GET /admin/games/words/stats', () => {
   it.each([
     ['drawguess', 'actionComedy', '动作喜剧', 40],
     ['undercover', 'dating', '约会场景', 40],
-    ['decrypto', 'general', '常用词', 1],
+    ['decrypto', 'school', '校园学习', 40],
     ['fibking', 'courtship', '婚恋风俗', 42],
   ] as const)(
     'shows the new %s category even before it has words',
@@ -412,7 +412,7 @@ describe('POST /admin/games/words/trigger-supply', () => {
           ? 'dating'
           : game === 'drawguess'
             ? 'actionComedy'
-            : 'general';
+            : 'animals';
     const resp = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
       game,
       category,
@@ -437,7 +437,7 @@ describe('POST /admin/games/words/trigger-supply', () => {
           ? { game, category: 'dating' }
           : game === 'drawguess'
             ? { game, category: 'actionComedy' }
-            : { game, category: 'general' };
+            : { game, category: 'animals' };
     const result = await triggerGameWordSupply(env, input);
     for (const candidateGame of GAME_WORD_GAMES) {
       expect(workflows[candidateGame]).toHaveBeenCalledTimes(candidateGame === game ? 1 : 0);

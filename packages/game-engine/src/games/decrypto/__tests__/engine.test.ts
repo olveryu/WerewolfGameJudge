@@ -1,11 +1,16 @@
 /** Exercises Decrypto setup, authorization, privacy, and round progression through the engine. */
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import { REASON_SYSTEM_ACTOR_REQUIRED } from '../../../platform/protocol/reasons';
 import { DECRYPTO_REASONS } from '../domain/decision';
 import { getDecryptoViewModel, projectDecryptoStateForUser } from '../domain/visibility';
 import { decryptoEngine } from '../engine';
 import { parseDecryptoState } from '../state/parseState';
-import { type DecryptoConfig, DEFAULT_DECRYPTO_CONFIG } from '../state/types';
+import {
+  DECRYPTO_REVEAL_INTERVAL_MS,
+  type DecryptoConfig,
+  DEFAULT_DECRYPTO_CONFIG,
+} from '../state/types';
 
 function createSession(configOverrides: Partial<DecryptoConfig> = {}) {
   const config = { ...DEFAULT_DECRYPTO_CONFIG, ...configOverrides };
@@ -48,6 +53,34 @@ function startPreparedGame(numberOfPlayers = 4) {
   expect(session.state.phase.game.encryptors?.blue).not.toBeNull();
   expect(session.state.phase.game.encryptors?.purple).not.toBeNull();
   return fixture;
+}
+
+function startRevealingGame() {
+  const fixture = startPreparedGame();
+  const { session, userForSeat } = fixture;
+  if (session.state.phase.kind !== 'playing') throw new Error('Expected gameplay');
+  const game = session.state.phase.game;
+  for (const team of ['blue', 'purple'] as const) {
+    const encryptor = game.encryptors?.[team];
+    if (encryptor === null || encryptor === undefined) throw new Error('Missing encryptor');
+    session.send(
+      { type: 'decrypto.clues.submit', clues: ['线索甲', '线索乙', '线索丙'] },
+      userForSeat(encryptor),
+    );
+  }
+  for (const team of ['blue', 'purple'] as const) {
+    const decoder = Object.entries(game.assignments).find(
+      ([seat, assignedTeam]) => assignedTeam === team && Number(seat) !== game.encryptors?.[team],
+    )?.[0];
+    if (decoder === undefined) throw new Error('Missing decoder');
+    session.send(
+      { type: 'decrypto.guess.submit', kind: 'decode', guess: game.codes[team] },
+      userForSeat(Number(decoder)),
+    );
+  }
+  const effect = session.effects.at(-1);
+  if (effect?.type !== 'decrypto.reveal.due') throw new Error('Missing reveal timer');
+  return { ...fixture, effect };
 }
 
 describe('Decrypto team setup', () => {
@@ -216,6 +249,47 @@ describe('Decrypto round flow', () => {
     if (session.state.phase.kind !== 'playing') throw new Error('Expected gameplay');
     expect(session.state.phase.game.step).toBe('reveal');
     expect(session.effects.some((effect) => effect.type === 'decrypto.reveal.due')).toBe(true);
+  });
+
+  it('distinguishes early and superseded reveal deliveries and advances once at the deadline', () => {
+    const { session, effect } = startRevealingGame();
+    const command = { type: 'decrypto.reveal.advance', ...effect.payload } as const;
+    session.expectReject(command, REASON_SYSTEM_ACTOR_REQUIRED);
+    session.setNow(effect.payload.revealAt - 1);
+    expect(session.decideAs(command, session.systemContext('early'))).toEqual({
+      kind: 'reject',
+      reason: DECRYPTO_REASONS.revealEarly,
+    });
+    session.setNow(effect.payload.revealAt);
+    const stalePins = [
+      { ...effect.payload, gameSequence: effect.payload.gameSequence + 1 },
+      { ...effect.payload, round: effect.payload.round + 1 },
+      { ...effect.payload, team: effect.payload.team === 'blue' ? 'purple' : 'blue' },
+      { ...effect.payload, revealIndex: effect.payload.revealIndex + 1 },
+      { ...effect.payload, revealAt: effect.payload.revealAt + 1 },
+    ] as const;
+    for (const payload of stalePins) {
+      expect(
+        session.decideAs(
+          { type: 'decrypto.reveal.advance', ...payload },
+          session.systemContext('stale'),
+        ),
+      ).toEqual({ kind: 'reject', reason: DECRYPTO_REASONS.stale });
+    }
+    session.sendAs(command, session.systemContext('on-time'));
+    if (session.state.phase.kind !== 'playing') throw new Error('Expected gameplay');
+    expect(session.state.phase.game.revealIndex).toBe(1);
+    expect(session.effects.at(-1)).toMatchObject({
+      type: 'decrypto.reveal.due',
+      payload: {
+        revealIndex: 1,
+        revealAt: effect.payload.revealAt + DECRYPTO_REVEAL_INTERVAL_MS,
+      },
+    });
+    expect(session.decideAs(command, session.systemContext('replayed'))).toEqual({
+      kind: 'reject',
+      reason: DECRYPTO_REASONS.stale,
+    });
   });
 
   it('redacts the opposing keywords and unrevealed answers from user snapshots', () => {

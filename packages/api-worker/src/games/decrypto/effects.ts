@@ -97,7 +97,7 @@ export async function handleDecryptoEffect(
         { type: 'decrypto.reveal.advance', ...effect.payload },
         {
           namespace: 'decrypto:reveal',
-          supersededReasons: [DECRYPTO_REASONS.phase, DECRYPTO_REASONS.revealEarly],
+          supersededReasons: [DECRYPTO_REASONS.phase, DECRYPTO_REASONS.stale],
           label: 'Decrypto staged reveal',
         },
       );

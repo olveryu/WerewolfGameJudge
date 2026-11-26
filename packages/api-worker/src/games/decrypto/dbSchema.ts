@@ -1,3 +1,4 @@
+import { DECRYPTO_WORD_CATEGORIES } from '@game-judge/game-engine/games/decrypto/public';
 import { sql } from 'drizzle-orm';
 import {
   check,
@@ -40,7 +41,7 @@ export const decryptoWords = sqliteTable(
   {
     id: text('id').primaryKey(),
     word: text('word').notNull(),
-    category: text('category').notNull(),
+    category: text('category', { enum: DECRYPTO_WORD_CATEGORIES }).notNull(),
     status: text('status', { enum: ['active', 'disabled'] }).notNull(),
     createdAt: text('created_at').notNull(),
   },
@@ -48,7 +49,6 @@ export const decryptoWords = sqliteTable(
     uniqueIndex('decrypto_words_word_unique').on(table.word),
     index('idx_decrypto_words_active').on(table.status, table.id),
     check('decrypto_words_word_check', sql`length(trim(${table.word})) > 0`),
-    check('decrypto_words_category_check', sql`${table.category} = 'general'`),
     check('decrypto_words_status_check', sql`${table.status} IN ('active', 'disabled')`),
   ],
 );
@@ -58,7 +58,7 @@ export const decryptoWordPacks = sqliteTable(
   'decrypto_word_packs',
   {
     id: text('id').primaryKey(),
-    category: text('category').notNull(),
+    category: text('category', { enum: DECRYPTO_WORD_CATEGORIES }).notNull(),
     requestToken: text('request_token').notNull(),
     status: text('status', { enum: ['reserved', 'published', 'failed'] }).notNull(),
     model: text('model').notNull(),
@@ -72,7 +72,6 @@ export const decryptoWordPacks = sqliteTable(
     completedAt: text('completed_at'),
   },
   (table) => [
-    check('decrypto_word_packs_category_check', sql`${table.category} = 'general'`),
     check(
       'decrypto_word_packs_status_check',
       sql`${table.status} IN ('reserved', 'published', 'failed')`,

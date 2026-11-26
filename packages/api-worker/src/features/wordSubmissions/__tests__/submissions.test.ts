@@ -1531,7 +1531,7 @@ describe('External word submissions', () => {
       items: [
         {
           clientItemId: 'manual-decrypto-word',
-          content: { word: '大象', category: 'general', potentialIssues: [] },
+          content: { word: '大象', category: 'animals', potentialIssues: [] },
         },
       ],
     } satisfies WordSubmissionInput,
@@ -1608,11 +1608,19 @@ describe('External word submissions', () => {
             config_json, status, created_at, updated_at) VALUES ('human-decrypto-room', '9013',
             'decrypto', 'human-decrypto-player', 'human-decrypto-creation', '{}', 'active',
             '2026-11-26T00:00:00.000Z', '2026-11-26T00:00:00.000Z')`),
-          ...['苹果', '桥梁', '火山', '钢琴', '月亮', '雨伞', '沙漠'].map((word, index) =>
+          ...[
+            ['苹果', 'ingredients'],
+            ['桥梁', 'architecture'],
+            ['火山', 'geography'],
+            ['钢琴', 'instruments'],
+            ['月亮', 'space'],
+            ['雨伞', 'dailyObjects'],
+            ['沙漠', 'geography'],
+          ].map(([word, category], index) =>
             env.DB.prepare(
               `INSERT INTO decrypto_words (id, word, category, status, created_at)
-               VALUES (?, ?, 'general', 'active', '2026-11-26T00:00:00.000Z')`,
-            ).bind(`decrypto-fixture-${index}`, word),
+               VALUES (?, ?, ?, 'active', '2026-11-26T00:00:00.000Z')`,
+            ).bind(`decrypto-fixture-${index}`, word, category),
           ),
         ]);
         const selectionInput = {

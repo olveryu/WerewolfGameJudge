@@ -1,5 +1,8 @@
--- Decrypto background supply stores generated words in the shared editorial
--- submission queue; this table records only the durable generation run.
+-- Extend the editorial queue once per table. Replacement children reference
+-- replacement parents, so the old graph can be dropped child-first without
+-- detaching foreign keys or copying a table a second time.
+PRAGMA defer_foreign_keys = true;
+
 UPDATE word_submission_agents
 SET games_json = json_insert(games_json, '$[#]', 'decrypto')
 WHERE id = '00000000-0000-4000-8000-000000000001'
@@ -7,80 +10,9 @@ WHERE id = '00000000-0000-4000-8000-000000000001'
     SELECT 1 FROM json_each(word_submission_agents.games_json) WHERE value = 'decrypto'
   );
 
--- Extend the shared editorial queue's game checks while preserving its
--- batches, items, actions, audit trail, indexes, counters, and foreign keys.
-CREATE TABLE word_submission_events_next (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  action_id TEXT NOT NULL,
-  item_id TEXT,
-  action TEXT NOT NULL,
-  actor TEXT NOT NULL CHECK (actor IN ('shared-admin', 'review-workflow')),
-  reason TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-INSERT INTO word_submission_events_next SELECT * FROM word_submission_events;
-UPDATE sqlite_sequence SET seq = MAX(seq, (
-  SELECT seq FROM sqlite_sequence WHERE name = 'word_submission_events'
-)) WHERE name = 'word_submission_events_next';
-INSERT INTO sqlite_sequence (name, seq)
-  SELECT 'word_submission_events_next', seq FROM sqlite_sequence
-  WHERE name = 'word_submission_events'
-    AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'word_submission_events_next');
-DROP TABLE word_submission_events;
-ALTER TABLE word_submission_events_next RENAME TO word_submission_events;
-CREATE INDEX idx_word_submission_events_action ON word_submission_events(action_id, id);
-CREATE INDEX idx_word_submission_events_item ON word_submission_events(item_id, id);
-
 DROP TRIGGER word_submission_items_insert;
 DROP TRIGGER word_submission_items_status_counts;
 DROP TRIGGER word_submission_items_close;
-
-CREATE TABLE word_submission_items_next (
-  id TEXT PRIMARY KEY,
-  batch_id TEXT NOT NULL,
-  game TEXT NOT NULL CHECK (game IN ('fibking', 'undercover', 'drawguess', 'decrypto')),
-  client_item_id TEXT NOT NULL,
-  identity TEXT NOT NULL,
-  content_hash TEXT NOT NULL,
-  title TEXT NOT NULL,
-  category TEXT NOT NULL,
-  material_json TEXT NOT NULL CHECK (json_valid(material_json)),
-  status TEXT NOT NULL CHECK (status IN (
-    'pending', 'approved', 'reviewing', 'passed', 'rejected', 'failed',
-    'published', 'dismissed', 'unpublished', 'duplicate'
-  )),
-  duplicate_of TEXT,
-  review_id TEXT,
-  review_version TEXT,
-  review_model TEXT,
-  review_json TEXT CHECK (review_json IS NULL OR json_valid(review_json)),
-  verified_material_json TEXT CHECK (verified_material_json IS NULL OR json_valid(verified_material_json)),
-  failure TEXT,
-  approval_reason TEXT,
-  revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0),
-  publication_action_id TEXT,
-  UNIQUE (batch_id, client_item_id)
-);
-INSERT INTO word_submission_items_next SELECT * FROM word_submission_items;
-DROP TABLE word_submission_items;
-ALTER TABLE word_submission_items_next RENAME TO word_submission_items;
-
-CREATE TABLE word_submission_actions_next (
-  id TEXT PRIMARY KEY,
-  batch_id TEXT NOT NULL,
-  action TEXT NOT NULL CHECK (action IN (
-    'review', 'publish', 'dismiss', 'approve', 'endorse', 'unendorse', 'unpublish'
-  )),
-  request_hash TEXT NOT NULL,
-  items_json TEXT NOT NULL CHECK (json_valid(items_json)),
-  reason TEXT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('applying', 'queued', 'complete', 'failed')),
-  created_at TEXT NOT NULL,
-  completed_at TEXT
-);
-INSERT INTO word_submission_actions_next SELECT * FROM word_submission_actions;
-DROP TABLE word_submission_actions;
-ALTER TABLE word_submission_actions_next RENAME TO word_submission_actions;
 
 CREATE TABLE word_submission_batches_next (
   id TEXT PRIMARY KEY,
@@ -91,14 +23,11 @@ CREATE TABLE word_submission_batches_next (
   created_at TEXT NOT NULL,
   UNIQUE (agent_id, idempotency_key)
 );
-INSERT INTO word_submission_batches_next
-  SELECT * FROM word_submission_batches;
-DROP TABLE word_submission_batches;
-ALTER TABLE word_submission_batches_next RENAME TO word_submission_batches;
+INSERT INTO word_submission_batches_next SELECT * FROM word_submission_batches;
 
 CREATE TABLE word_submission_items_next (
   id TEXT PRIMARY KEY,
-  batch_id TEXT NOT NULL REFERENCES word_submission_batches(id),
+  batch_id TEXT NOT NULL REFERENCES word_submission_batches_next(id),
   game TEXT NOT NULL CHECK (game IN ('fibking', 'undercover', 'drawguess', 'decrypto')),
   client_item_id TEXT NOT NULL,
   identity TEXT NOT NULL,
@@ -123,15 +52,10 @@ CREATE TABLE word_submission_items_next (
   UNIQUE (batch_id, client_item_id)
 );
 INSERT INTO word_submission_items_next SELECT * FROM word_submission_items;
-DROP TABLE word_submission_items;
-ALTER TABLE word_submission_items_next RENAME TO word_submission_items;
-CREATE INDEX idx_word_submission_items_batch ON word_submission_items(batch_id, status);
-CREATE INDEX idx_word_submission_items_content ON word_submission_items(game, content_hash, status);
-CREATE INDEX idx_word_submission_items_identity ON word_submission_items(game, identity, status);
 
 CREATE TABLE word_submission_actions_next (
   id TEXT PRIMARY KEY,
-  batch_id TEXT NOT NULL REFERENCES word_submission_batches(id),
+  batch_id TEXT NOT NULL REFERENCES word_submission_batches_next(id),
   action TEXT NOT NULL CHECK (action IN (
     'review', 'publish', 'dismiss', 'approve', 'endorse', 'unendorse', 'unpublish'
   )),
@@ -143,15 +67,11 @@ CREATE TABLE word_submission_actions_next (
   completed_at TEXT
 );
 INSERT INTO word_submission_actions_next SELECT * FROM word_submission_actions;
-DROP TABLE word_submission_actions;
-ALTER TABLE word_submission_actions_next RENAME TO word_submission_actions;
-CREATE INDEX idx_word_submission_actions_batch
-  ON word_submission_actions(batch_id, created_at DESC, id DESC);
 
 CREATE TABLE word_submission_events_next (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  action_id TEXT NOT NULL REFERENCES word_submission_actions(id),
-  item_id TEXT REFERENCES word_submission_items(id),
+  action_id TEXT NOT NULL REFERENCES word_submission_actions_next(id),
+  item_id TEXT REFERENCES word_submission_items_next(id),
   action TEXT NOT NULL,
   actor TEXT NOT NULL CHECK (actor IN ('shared-admin', 'review-workflow')),
   reason TEXT NOT NULL,
@@ -165,8 +85,21 @@ INSERT INTO sqlite_sequence (name, seq)
   SELECT 'word_submission_events_next', seq FROM sqlite_sequence
   WHERE name = 'word_submission_events'
     AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'word_submission_events_next');
+
 DROP TABLE word_submission_events;
+DROP TABLE word_submission_actions;
+DROP TABLE word_submission_items;
+DROP TABLE word_submission_batches;
+ALTER TABLE word_submission_batches_next RENAME TO word_submission_batches;
+ALTER TABLE word_submission_items_next RENAME TO word_submission_items;
+ALTER TABLE word_submission_actions_next RENAME TO word_submission_actions;
 ALTER TABLE word_submission_events_next RENAME TO word_submission_events;
+
+CREATE INDEX idx_word_submission_items_batch ON word_submission_items(batch_id, status);
+CREATE INDEX idx_word_submission_items_content ON word_submission_items(game, content_hash, status);
+CREATE INDEX idx_word_submission_items_identity ON word_submission_items(game, identity, status);
+CREATE INDEX idx_word_submission_actions_batch
+  ON word_submission_actions(batch_id, created_at DESC, id DESC);
 CREATE INDEX idx_word_submission_events_action ON word_submission_events(action_id, id);
 CREATE INDEX idx_word_submission_events_item ON word_submission_events(item_id, id);
 
@@ -206,15 +139,19 @@ BEGIN
   UPDATE word_submission_limits SET pending_count = pending_count - 1 WHERE id = 1;
 END;
 
-ALTER TABLE decrypto_words
-  ADD COLUMN category TEXT NOT NULL DEFAULT 'general' CHECK (category = 'general');
-
-CREATE INDEX idx_decrypto_words_category_created
-  ON decrypto_words(category, created_at DESC, word);
+PRAGMA defer_foreign_keys = false;
 
 CREATE TABLE decrypto_word_packs (
   id TEXT PRIMARY KEY,
-  category TEXT NOT NULL CHECK (category = 'general'),
+  category TEXT NOT NULL CHECK (category IN (
+    'animals', 'plants', 'food', 'drinks', 'desserts', 'ingredients', 'cooking',
+    'dailyObjects', 'vehicles', 'places', 'occupations', 'clothing', 'furniture',
+    'kitchenware', 'tools', 'stationery', 'electronics', 'toys', 'sports',
+    'instruments', 'music', 'art', 'literature', 'filmAndTelevision', 'festivals',
+    'geography', 'weather', 'space', 'architecture', 'oceanLife', 'insects',
+    'pets', 'health', 'medicalSupplies', 'bodyParts', 'school', 'work', 'travel',
+    'outdoorActivities', 'crafts'
+  )),
   request_token TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('reserved', 'published', 'failed')),
   model TEXT NOT NULL,

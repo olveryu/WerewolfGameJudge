@@ -60,3 +60,8 @@ export {
   isDecryptoOccupiedSeat,
   isValidDecryptoConfig,
 } from './state/types';
+export {
+  DECRYPTO_WORD_CATEGORIES,
+  DECRYPTO_WORD_CATEGORY_NAMES,
+  type DecryptoWordCategory,
+} from './wordCategories';

@@ -1,4 +1,8 @@
 /** Reserve and fail one Decrypto word-supply batch. */
+import {
+  DECRYPTO_WORD_CATEGORIES,
+  type DecryptoWordCategory,
+} from '@game-judge/game-engine/games/decrypto/public';
 import { z } from 'zod';
 
 import {
@@ -6,7 +10,6 @@ import {
   failWordPack,
   insertReservedWordPack,
 } from '../../platform/wordSupply/wordPackLedger';
-import { DECRYPTO_WORD_CATEGORIES, type DecryptoWordCategory } from './wordCategories';
 import { DECRYPTO_WORD_PROMPT_VERSION, DECRYPTO_WORD_REVIEW_VERSION } from './wordEditorial';
 import { DECRYPTO_WORD_MODEL } from './wordProvider';
 

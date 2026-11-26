@@ -52,7 +52,7 @@ describe('Decrypto supply workflow', () => {
     });
     await env.DECRYPTO_WORD_SUPPLY.create({
       id,
-      params: { day, runId, category: 'general' },
+      params: { day, runId, category: 'animals' },
     });
 
     await instance.waitForStatus('complete');
@@ -70,9 +70,9 @@ describe('Decrypto supply workflow', () => {
           .bind(`${day}-${runId}`)
           .first(),
       );
-    expect(pack).toMatchObject({ category: 'general', status: 'reserved' });
+    expect(pack).toMatchObject({ category: 'animals', status: 'reserved' });
     expect(JSON.parse(pack.generation_json)).toEqual({
-      candidates: [{ ...candidate, category: 'general' }],
+      candidates: [{ ...candidate, category: 'animals' }],
     });
     expect(
       await env.DB.prepare(

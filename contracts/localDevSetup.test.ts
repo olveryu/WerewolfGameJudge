@@ -441,7 +441,7 @@ it('recovers an interrupted seed without resetting rows already written', () => 
 it('provides eight selectable local Decrypto keywords without replacing an existing word identity', () => {
   withMigratedDatabase((database) => {
     database.exec(
-      "INSERT INTO decrypto_words (id, word, category, status, created_at) VALUES ('keep-apple', '苹果', 'general', 'disabled', 'preserved')",
+      "INSERT INTO decrypto_words (id, word, category, status, created_at) VALUES ('keep-apple', '苹果', 'ingredients', 'disabled', 'preserved')",
     );
     database.exec(seedSql);
     expect(
@@ -451,7 +451,7 @@ it('provides eight selectable local Decrypto keywords without replacing an exist
     ).toEqual({ id: 'keep-apple', status: 'disabled', created_at: 'preserved' });
     const words = database
       .prepare(
-        "SELECT word FROM decrypto_words WHERE id LIKE 'decrypto-local-%' AND status = 'active' AND category = 'general' ORDER BY random() LIMIT 8",
+        "SELECT word FROM decrypto_words WHERE id LIKE 'decrypto-local-%' AND status = 'active' ORDER BY random() LIMIT 8",
       )
       .all();
     expect(words).toHaveLength(8);

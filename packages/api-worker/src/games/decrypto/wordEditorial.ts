@@ -1,12 +1,15 @@
 /** Editorial-only Decrypto words; review evidence never enters room snapshots. */
+import {
+  DECRYPTO_WORD_CATEGORIES,
+  type DecryptoWordCategory,
+} from '@game-judge/game-engine/games/decrypto/public';
 import { z } from 'zod';
 
 import { type AiContext, AiOutputValidationError } from '../../platform/ai/aiError';
 import { parseGeneratedCandidateBatch } from '../../platform/wordSupply/generatedCandidates';
-import { DECRYPTO_WORD_CATEGORIES, type DecryptoWordCategory } from './wordCategories';
 
 export const DECRYPTO_WORD_BATCH_LIMIT = 1;
-export const DECRYPTO_WORD_PROMPT_VERSION = 'decrypto-generation-v1';
+export const DECRYPTO_WORD_PROMPT_VERSION = 'decrypto-generation-v2';
 export const DECRYPTO_WORD_REVIEW_VERSION = 'decrypto-review-v1';
 const STORED_BATCH_LIMIT = 30;
 

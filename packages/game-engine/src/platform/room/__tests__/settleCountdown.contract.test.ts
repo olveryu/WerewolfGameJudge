@@ -260,7 +260,7 @@ interface DeadlineArithmeticRegistration {
  */
 const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = [
   {
-    // Reveal playback, not an all-submitted settlement countdown.
+    // Server-paced playback uses the effect outbox, not the settlement countdown.
     file: 'games/decrypto/domain/roundCommands.ts',
     symbol: 'beginReveal',
     expression: 'nowMs + DECRYPTO_REVEAL_INTERVAL_MS',

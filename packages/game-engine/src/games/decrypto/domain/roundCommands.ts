@@ -1,6 +1,6 @@
 /** Clue, decoding, reveal, and tiebreak commands for Decrypto rounds. */
 
-import { reject, requireHost } from '../../../platform/engine';
+import { reject, requireHost, resolveSystemActorEffectId } from '../../../platform/engine';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import type { DecryptoCommand } from '../commands/types';
 import {
@@ -235,7 +235,8 @@ function advanceReveal(
   command: Extract<DecryptoCommand, { type: 'decrypto.reveal.advance' }>,
   context: Parameters<typeof requireHost>[0],
 ): DecryptoDecision {
-  if (context.actor.kind !== 'system') return reject(DECRYPTO_REASONS.revealEarly);
+  const actor = resolveSystemActorEffectId(context);
+  if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.phase.kind !== 'playing' || state.phase.game.step !== 'reveal')
     return reject(DECRYPTO_REASONS.phase);
   const game = state.phase.game;
@@ -244,10 +245,10 @@ function advanceReveal(
     command.round !== game.round ||
     command.revealIndex !== game.revealIndex ||
     command.team !== game.activeTeam ||
-    command.revealAt !== game.revealAt ||
-    context.nowMs < command.revealAt
+    command.revealAt !== game.revealAt
   )
-    return reject(DECRYPTO_REASONS.revealEarly);
+    return reject(DECRYPTO_REASONS.stale);
+  if (context.nowMs < command.revealAt) return reject(DECRYPTO_REASONS.revealEarly);
   const nextIndex = game.revealIndex + 1;
   if (nextIndex === game.revealSequence.length) {
     const finished = finishReveal(game);

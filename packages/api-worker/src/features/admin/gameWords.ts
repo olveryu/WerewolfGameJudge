@@ -7,6 +7,10 @@
  */
 
 import {
+  DECRYPTO_WORD_CATEGORIES,
+  DECRYPTO_WORD_CATEGORY_NAMES,
+} from '@game-judge/game-engine/games/decrypto/public';
+import {
   GAME_WORD_GAMES,
   type GameWordGame,
   type GameWordsStats,
@@ -19,10 +23,6 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
-import {
-  DECRYPTO_WORD_CATEGORIES,
-  DECRYPTO_WORD_CATEGORY_NAMES,
-} from '../../games/decrypto/wordCategories';
 import {
   FIB_WORD_CATEGORY_IDS,
   FIB_WORD_CATEGORY_LABELS,

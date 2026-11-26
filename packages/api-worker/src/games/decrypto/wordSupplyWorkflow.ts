@@ -1,4 +1,5 @@
 /** Scheduled Decrypto word supply; generation creates pending submissions only. */
+import { DECRYPTO_WORD_CATEGORIES } from '@game-judge/game-engine/games/decrypto/public';
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { z } from 'zod';
 
@@ -8,7 +9,6 @@ import {
   runWordSupplyWorkflow,
   type WordSupplyParams,
 } from '../../platform/wordSupply/wordSupplyWorkflow';
-import { DECRYPTO_WORD_CATEGORIES } from './wordCategories';
 import { parseDecryptoCandidates } from './wordEditorial';
 import { createDecryptoWordProvider, DECRYPTO_WORD_MODEL } from './wordProvider';
 import { failDecryptoWordPack, reserveDecryptoWordPack } from './wordPublication';
