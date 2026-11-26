@@ -475,7 +475,7 @@ GROUP BY u.last_country, u.last_colo;
 
 - **后台语义别名。** 后台变量定义在后台根节点，但都映射到 `colors.ts` 发布的网站 `--color-*` 色值；后台样式只引用这些别名和 `tokens.css` 里的尺寸变量，不维护另一套调色板。
 - **尺寸。** 指标最小列宽、内容最大宽度、表格行高、面板圆角等变量加进 `theme/tokens.css`；媒体查询断点直接写在后台样式内，CSS 自定义属性不能用于媒体查询条件。
-- **契约测试。** `noHardcodedStyleValues` 会拦截样式里的颜色字面量和像素值，新变量的定义位置和前缀要让这个测试认可；实施时先读它的规则，再决定变量放在 `colors.ts` 还是 `tokens.css`。
+- **样式检查。** Stylelint（`stylelint.config.mjs`，`pnpm run lint:css`）会拦截样式里的颜色字面量和写死的尺寸值，`tokens.css` 之外也不许把字面量定义成局部变量；新变量放 `colors.ts` 还是 `tokens.css`，实施时先读这套规则再定。
 - **主题偏好。** 后台不读取系统颜色偏好、不保存主题选择；跟随网站当前浅色主题。
 - 现在的 `AdminPage.css`、`AdminTabs.css`、`AdminComponents.css`（共约 950 行）整体删除，新样式从零写，不在旧样式上叠加。
 - 全站代码是一个体积预算（`packages/web/scripts/check-bundle-size.mjs`，余量约 4%）。重做不加依赖，旧的后台代码同步删除；`pnpm --filter @game-judge/web run build` 会检查。

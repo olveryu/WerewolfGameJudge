@@ -3,7 +3,12 @@
   "exclude": ["types"],
   "workspaces": {
     ".": {
-      "entry": ["scripts/*.{ts,mjs,sh}", "functions/**/*.ts!", "e2e/**/*.ts"],
+      "entry": [
+        "scripts/*.{ts,mjs,sh}",
+        "scripts/ui-lint/**/*.mjs",
+        "functions/**/*.ts!",
+        "e2e/**/*.ts"
+      ],
       "project": ["contracts/**/*.ts", "e2e/**/*.ts"],
       "ignoreDependencies": ["@sentry/cli", "serve"]
     },
