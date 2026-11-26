@@ -1,5 +1,6 @@
 import { type RefObject, use, useEffect, useRef, useState } from 'react';
 
+import { resolveCssLength } from '@/scene/cssLength';
 import {
   type AvatarCoverage,
   type AvatarPose,
@@ -26,10 +27,6 @@ interface SeatEntranceProps {
   onActiveChange: (active: boolean) => void;
   /** Opacity of the stage-drawn effect, for dimmed (locked) picker cells. */
   opacity: number;
-}
-
-function cssLength(value: string, basis: number): number {
-  return value.endsWith('%') ? (Number.parseFloat(value) / 100) * basis : Number.parseFloat(value);
 }
 
 function relativeBox(element: HTMLElement, host: HTMLElement, origin: { x: number; y: number }) {
@@ -66,7 +63,7 @@ function measureCoverage(
     };
   }
   const box = relativeBox(picture, host, origin);
-  const radius = cssLength(getComputedStyle(picture).borderTopLeftRadius, box.width);
+  const radius = resolveCssLength(getComputedStyle(picture).borderTopLeftRadius, box.width);
   return { kind: 'box', ...box, radius };
 }
 
@@ -80,7 +77,7 @@ function measureEntrance(
   return {
     ...origin,
     size: tile.offsetWidth,
-    cornerRadius: cssLength(getComputedStyle(tile).borderTopLeftRadius, tile.offsetWidth),
+    cornerRadius: resolveCssLength(getComputedStyle(tile).borderTopLeftRadius, tile.offsetWidth),
     pivotX: avatarBox.x + avatarBox.width / 2,
     pivotY: avatarBox.y + avatarBox.height / 2,
     coverage: measureCoverage(avatar, host, origin),

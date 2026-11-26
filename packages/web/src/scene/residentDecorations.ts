@@ -65,3 +65,11 @@ export function resolveResidentDecorations(
   }
   return residents;
 }
+
+/**
+ * Whether these decorations include a frame. A framed avatar tile drops its border and its avatar
+ * fills the border box, so a tile and any box around it read this to stay concentric with it.
+ */
+export function wearsFrame(residents: ResidentDecorations | null): boolean {
+  return residents?.frameId != null;
+}

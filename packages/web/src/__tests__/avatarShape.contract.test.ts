@@ -11,14 +11,26 @@
  * called; the census of `<Avatar>` sites fails when a site is added, so its host gets registered.
  * Avatar artwork reaches the page only through `<Avatar>`: no bare `<img>` of a portrait or an
  * uploaded avatar URL. Files hosting an `<Avatar>` set no inline corner, clip or overflow either.
+ *
+ * A square box around an avatar (a seat, a tile, a mat, an avatar-sized placeholder) is
+ * concentric with it: it carries `AVATAR_CONCENTRIC_CLASS`, whose one rule derives its corners
+ * from the published ratio and the box's own `--avatar-inset`, and sets no radius of its own.
+ * Every host names the box drawn around its avatar, so a new bordered box cannot slip in with a
+ * fixed radius.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { AVATAR_CORNER_RATIO } from '@/config/avatarShape';
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
+import {
+  applyAvatarShapeTokens,
+  AVATAR_CORNER_RATIO,
+  AVATAR_CORNER_RATIO_PROPERTY,
+} from '@/config/avatarShape';
 
 const SRC_DIR = join(import.meta.dirname, '..');
 const AVATAR_CSS = 'components/avatar/Avatar.css';
+const CONCENTRIC_CSS = 'components/avatar/avatarConcentric.css';
 
 /** A selector whose subject (last compound) is the avatar element itself. */
 const TARGETS_AVATAR = /\.avatar(?![-\w])[^\s>+~]*$/;
@@ -47,6 +59,39 @@ const AVATAR_HOSTS: readonly string[] = [
   'undercover-reveal-identity',
   'unlocks-thumb',
 ];
+
+/**
+ * The box drawn around each host's avatar: a concentric box class, or `null` when no border,
+ * background or ring hugs the avatar (it sits inside a padded card, a dialog or a bare link).
+ */
+const HOST_BOXES: Readonly<Record<string, string | null>> = {
+  'account-entry': null,
+  'appearance-avatar-preview': null,
+  'appearance-cell-thumb': 'appearance-cell',
+  'login-strip-portrait': null,
+  'profile-equip-preview': null,
+  'resident-tile-avatar': 'resident-tile',
+  'reward-preview': null,
+  'seat-avatar': 'seat-tile-button',
+  'settings-teaser-item': null,
+  'undercover-reveal-identity': null,
+  'unlocks-thumb': null,
+};
+
+/**
+ * Every concentric box and the file that gives it `AVATAR_CONCENTRIC_CLASS`: the host boxes above,
+ * the boxes around a tile (the profile mat, the settings link), the seat's emphasis ring, and the
+ * placeholders that stand where an avatar would.
+ */
+const CONCENTRIC_BOXES: Readonly<Record<string, string>> = {
+  'appearance-cell': 'routes/appearance/AppearancePickers.tsx',
+  'appearance-cell-upload': 'routes/appearance/AppearancePickers.tsx',
+  'resident-tile': 'features/product/components/ResidentPreview.tsx',
+  'seat-status-emphasis': 'features/room/components/RoomSeatTile.tsx',
+  'seat-tile-button': 'features/room/components/RoomSeatTile.tsx',
+  'settings-avatar': 'routes/settings/SettingsPage.tsx',
+  'settings-teaser-lock': 'routes/settings/SettingsPage.tsx',
+};
 
 /** Production `<Avatar>` sites per file. Adding one? Register its host in `AVATAR_HOSTS`. */
 const AVATAR_SITES: Readonly<Record<string, number>> = {
@@ -130,6 +175,12 @@ function rules(source: string): { selector: string; body: string }[] {
 /** Every stylesheet except Avatar's own, whose shape is pinned separately. */
 function otherCssFiles(): string[] {
   return cssFiles(SRC_DIR).filter((file) => relative(SRC_DIR, file) !== AVATAR_CSS);
+}
+
+/** Does this compound style the concentric box `.<name>` (not its non-concentric variant)? */
+function styles(compound: string, name: string): boolean {
+  if (compound.includes(`:not(.${AVATAR_CONCENTRIC_CLASS})`)) return false;
+  return new RegExp(`\\.${name}(?![-\\w])`).test(compound);
 }
 
 describe('Avatar shape', () => {
@@ -217,6 +268,64 @@ describe('Avatar shape', () => {
         .map((body) => `${file}: style={{${body.trim()}}}`),
     );
     expect(inlineShapes).toEqual([]);
+  });
+
+  it('names the box drawn around every host', () => {
+    expect(Object.keys(HOST_BOXES).sort()).toEqual([...AVATAR_HOSTS].sort());
+    const hostBoxes = Object.values(HOST_BOXES).filter((box) => box !== null);
+    expect(hostBoxes.filter((box) => !(box in CONCENTRIC_BOXES))).toEqual([]);
+  });
+
+  it('gives every concentric box the shared class', () => {
+    // The class joins the box's own in one template literal: `<box> ${AVATAR_CONCENTRIC_CLASS}`.
+    const missing = Object.entries(CONCENTRIC_BOXES)
+      .filter(([box, file]) => {
+        const joined = '`' + box + ' ${AVATAR_CONCENTRIC_CLASS}`';
+        return !readFileSync(join(SRC_DIR, file), 'utf8').includes(joined);
+      })
+      .map(([box]) => box);
+    expect(missing).toEqual([]);
+  });
+
+  it('lets no concentric box set its own corners, and has each set its inset', () => {
+    const sheets = otherCssFiles().map((file) => ({
+      file: relative(SRC_DIR, file),
+      rules: rules(readFileSync(file, 'utf8')),
+    }));
+    const ownRadius: string[] = [];
+    const withoutInset: string[] = [];
+    for (const box of Object.keys(CONCENTRIC_BOXES)) {
+      let setsInset = false;
+      for (const { file, rules: sheetRules } of sheets) {
+        for (const { selector, body } of sheetRules) {
+          const subjects = selector.split(',').map((part) => subjectOf(part));
+          if (!subjects.some((subject) => styles(subject, box))) continue;
+          if (RADIUS.test(body)) ownRadius.push(`${file}: ${selector}`);
+          if (/^\s*--avatar-inset\s*:/m.test(body)) setsInset = true;
+        }
+      }
+      if (!setsInset) withoutInset.push(box);
+    }
+    expect(ownRadius).toEqual([]);
+    expect(withoutInset).toEqual([]);
+  });
+
+  it('derives concentric corners from the published ratio alone', () => {
+    const shared = rules(readFileSync(join(SRC_DIR, CONCENTRIC_CSS), 'utf8'));
+    expect(shared.map(({ selector }) => selector)).toEqual([`.${AVATAR_CONCENTRIC_CLASS}`]);
+    const radius = /border-radius\s*:([^;]*);/.exec(shared[0]?.body ?? '')?.[1] ?? '';
+    expect(radius).toContain(`var(${AVATAR_CORNER_RATIO_PROPERTY})`);
+    expect(radius).toContain('var(--avatar-inset');
+    // Only the formula's own constants: no second copy of the ratio, no fixed corner.
+    expect(radius.match(/\d+(?:\.\d+)?(?:px|%)?/g)).toEqual(['100%', '1', '2', '0px']);
+    const root = document.createElement('div');
+    applyAvatarShapeTokens(root);
+    expect(root.style.getPropertyValue(AVATAR_CORNER_RATIO_PROPERTY)).toBe(
+      String(AVATAR_CORNER_RATIO),
+    );
+    expect(readFileSync(join(SRC_DIR, 'main.tsx'), 'utf8')).toMatch(
+      /applyAvatarShapeTokens\(document\.documentElement\)/,
+    );
   });
 
   it('is a rounded square, not a circle or a sharp square', () => {
