@@ -172,6 +172,22 @@ export const GAME_REGISTRY = {
     workerWorkflows: [],
     httpRoutes: [],
   },
+  decrypto: {
+    gameType: 'decrypto',
+    enginePublicExport: './games/decrypto/public',
+    clientModulePath: 'packages/web/src/games/decrypto/module.ts',
+    isProduction: true,
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.decrypto },
+    workerWorkflows: [
+      {
+        workflowName: 'decrypto-word-supply',
+        binding: 'DECRYPTO_WORD_SUPPLY',
+        exportName: 'DecryptoWordSupplyWorkflow',
+        modulePath: './games/decrypto/wordSupplyWorkflow',
+      },
+    ],
+    httpRoutes: ['/api/games/decrypto/rooms'],
+  },
 } as const satisfies { readonly [TGameType in GameType]: GameRegistration<TGameType> };
 
 export type GameRegistry = typeof GAME_REGISTRY;

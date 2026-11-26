@@ -38,7 +38,7 @@ TypeScript strictness is per config: the root and web configs set `strict` and `
 
 Layout: a pnpm workspace with four parts — the root (cross-package contracts in `contracts/`, Pages functions in `functions/`, E2E in `e2e/`, tooling in `scripts/`), `packages/web` (the client), `packages/game-engine` (pure game logic; its only runtime dependency is Zod), and `packages/api-worker` (the Worker, Durable Object, and D1 access).
 
-Games (9): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, spotmatch, secrethitler.
+Games (10): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, spotmatch, secrethitler, decrypto.
 
 The application release version is authoritative in the root `package.json`; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it. Game state has no version field or read-time migration: parsers validate the current shape and identity, and invalid persisted state fails fast.
 
@@ -67,7 +67,9 @@ The application release version is authoritative in the root `package.json`; `pa
 | New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                      |
 | Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Release script                                                         |
 
-The local D1 seed creates `dev@test.local` with password `dev123` (level 99, all reward items unlocked). It explicitly uses Wrangler `--local`; run it only against the local database, never production.
+`pnpm run dev` applies local migrations and seeds missing data before starting either server; initialization failures terminate startup. The local D1 seed creates `dev@test.local` with password `dev123` (level 99, all reward items unlocked), preserving existing accounts, progress and word edits on reruns, including recovery after interruption. It explicitly uses Wrangler `--local` in this worktree's Worker directory; run it only against the local database, never production.
+
+The dev launcher skips occupied Worker/Vite/inspector ports, sets Vite's API URL to the selected Worker, and stops both servers when either exits. It preserves configured `JWT_SECRET` values and persists a missing local auth key in the Worker's gitignored `.env.local` (or an existing `.dev.vars`); never commit these files or print the key.
 
 `pnpm run quality` runs `turbo run build typecheck lint knip format test && pnpm run validate:agents`. In CI the same work is split: one job runs Turbo build/typecheck/knip plus the agent-files check, lint/format run as a parallel job, root-contract, engine, web, and worker tests run sharded, and `ci-gate` requires all of them plus E2E. E2E is not part of `quality`; it serves the `packages/web/dist` build from the `build-web` job, and the `e2e` matrix in `.github/workflows/ci.yml` runs every spec exactly once, pinned by `runs every E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`. Locally, run the scoped form of the failing area (path-filtered tests, the changed package's typecheck) plus `tsc --noEmit` and `knip`; do not present a local full `quality` run as the gate.
 
@@ -81,7 +83,7 @@ Room link and state identity: the client link lives in `packages/web/src/platfor
 
 Settlement uses one arm decision (`decideSettleCountdownArm`, `SETTLE_COUNTDOWN_MS = 5000`) with no manual finish, pinned by `settleCountdown.contract.test.ts` (`packages/game-engine/src/platform/room/settleCountdown.ts`).
 
-Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (38, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage, with no migration chain or schema-version table: a stored table name or column mismatch discards the room. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
+Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (42, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage, with no migration chain or schema-version table: a stored table name or column mismatch discards the room. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
 
 A new game is registered in the engine registry, the engine catalog, the worker catalog, the web client catalog, and the static web factories, with a D1 registration migration and contract-test whitelists updated. The generator also wires completed-games statistics end to end; approved gameplay metrics and reward/stat semantics remain go-live requirements. See the new-game skill.
 

@@ -1,6 +1,7 @@
 /** Strict validation, agent-scoped idempotency, and atomic submission quotas. No model calls. */
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import {
+  GAME_WORD_GAMES,
   type GameWordGame,
   WORD_SUBMISSION_DAILY_LIMIT,
   WORD_SUBMISSION_PENDING_LIMIT,
@@ -407,7 +408,7 @@ async function ensureSupplyAgent(db: D1Database): Promise<void> {
         SUPPLY_AGENT_ID,
         SUPPLY_AGENT_NAME,
         '补词 workflow 生成的投稿',
-        JSON.stringify(['fibking', 'undercover', 'drawguess']),
+        JSON.stringify([...GAME_WORD_GAMES]),
         SUPPLY_CREDENTIAL_ID,
         now,
       ),

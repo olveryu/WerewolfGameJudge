@@ -19,7 +19,7 @@
     "quality": "turbo run build typecheck lint knip format test && pnpm run validate:agents",
     "e2e:night": "playwright test --reporter=list werewolf-night-flow restart",
     "e2e:ui": "playwright test --ui",
-    "dev": "node scripts/dev.mjs",
+    "dev": "node scripts/setup-local-dev.mjs && node scripts/dev.mjs",
     "release": "bash scripts/release.sh",
     "new-game": "node scripts/new-game.mjs",
     "catalogue:check": "node scripts/catalogues.mjs check",

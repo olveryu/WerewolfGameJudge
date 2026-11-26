@@ -20,6 +20,10 @@ import { z } from 'zod';
 
 import type { Env } from '../../env';
 import {
+  DECRYPTO_WORD_CATEGORIES,
+  DECRYPTO_WORD_CATEGORY_NAMES,
+} from '../../games/decrypto/wordCategories';
+import {
   FIB_WORD_CATEGORY_IDS,
   FIB_WORD_CATEGORY_LABELS,
 } from '../../games/fibking/wordCategories';
@@ -51,6 +55,10 @@ export const triggerSupplySchema = z.discriminatedUnion('game', [
     game: z.literal('drawguess'),
     category: z.enum(DRAWGUESS_DASHBOARD_CATEGORY_IDS),
   }),
+  z.strictObject({
+    game: z.literal('decrypto'),
+    category: z.enum(DECRYPTO_WORD_CATEGORIES),
+  }),
 ]);
 export type TriggerSupplyInput = z.output<typeof triggerSupplySchema>;
 
@@ -63,12 +71,16 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
     ? 'fib_words'
     : game === 'undercover'
       ? 'undercover_word_pairs'
-      : 'drawguess_words';
+      : game === 'drawguess'
+        ? 'drawguess_words'
+        : 'decrypto_words';
   const packsTable = isFib
     ? 'fib_word_packs'
     : game === 'undercover'
       ? 'undercover_word_packs'
-      : 'drawguess_word_packs';
+      : game === 'drawguess'
+        ? 'drawguess_word_packs'
+        : 'decrypto_word_packs';
   const categoryColumn = 'category';
   const labels = isFib
     ? [
@@ -77,7 +89,12 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
       ]
     : game === 'undercover'
       ? UNDERCOVER_DASHBOARD_CATEGORIES
-      : DRAWGUESS_DASHBOARD_CATEGORIES;
+      : game === 'drawguess'
+        ? DRAWGUESS_DASHBOARD_CATEGORIES
+        : DECRYPTO_WORD_CATEGORIES.map((id) => ({
+            id,
+            name: DECRYPTO_WORD_CATEGORY_NAMES[id],
+          }));
   const bucket = `COALESCE(${categoryColumn}, 'other')`;
   // Pending counts now read the submission queue: the candidate tables are
   // dropped (0085). All games group by the shared inventory category.
@@ -295,6 +312,18 @@ async function getDrawGuessWordStats(env: Env): Promise<DashboardBase> {
   };
 }
 
+async function getDecryptoWordStats(env: Env): Promise<DashboardBase> {
+  return {
+    game: 'decrypto',
+    tavilyRequestsUsed: null,
+    tavilyMonthlyQuota: null,
+    reviewDecisions: await getSubmissionReviewDecisions(env.DB, 'decrypto'),
+    reviewCheckStats: [],
+    queryLeaderboard: [],
+    supplyEnabled: isWordSupplyAvailable(env, 'decrypto'),
+  };
+}
+
 const GAME_WORD_ADAPTERS = {
   fibking: {
     getStats: getFibWordStats,
@@ -307,6 +336,10 @@ const GAME_WORD_ADAPTERS = {
   drawguess: {
     getStats: getDrawGuessWordStats,
     getWorkflow: (env: Env) => env.DRAWGUESS_WORD_SUPPLY,
+  },
+  decrypto: {
+    getStats: getDecryptoWordStats,
+    getWorkflow: (env: Env) => env.DECRYPTO_WORD_SUPPLY,
   },
 } satisfies Record<
   GameWordGame,

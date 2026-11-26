@@ -158,16 +158,25 @@ Tech stack: React 19 · Vite 8 · TypeScript 6 · Cloudflare Workers / D1 / R2 /
 
 ```bash
 pnpm install          # Install dependencies
-pnpm run dev          # Worker + Vite concurrently (Worker defaults to 127.0.0.1:8787)
+pnpm run dev          # Migrate and safely seed local D1, then start Worker + Vite
 pnpm run quality      # Full gate: types, build, Knip, lint, format, tests
 pnpm run e2e          # Playwright E2E
 
-# Local D1 seed — dev user (dev@test.local / dev123) with all items unlocked
+# Optional: initialize local D1 without starting servers
 pnpm -F @game-judge/api-worker db:migrate:local
 pnpm -F @game-judge/api-worker db:seed:local
 ```
 
-If port 8787 is occupied, the Worker uses another port and Vite connects to it. When either service exits, the other is stopped.
+The first start creates `dev@test.local` / `dev123` with all rewards unlocked and
+sample words for four word-bank games, including 24 local Decrypto keywords. Later starts only insert missing data;
+accounts, progress and word edits are preserved. Initialization failures prevent
+server startup. Local state lives in this worktree's
+`packages/api-worker/.wrangler/state`; no remote database is touched.
+Occupied ports are skipped, and Vite connects to the Worker started by this run;
+open the Web URL printed at startup. The Worker defaults to `127.0.0.1:8787` and
+uses an OS-assigned port when occupied. A missing `JWT_SECRET` is generated and
+persisted in the Worker's `.env.local` (or appended to an existing `.dev.vars`).
+Existing keys are preserved. Both servers stop when either exits.
 
 Contributors and AI coding agents: read [AGENTS.md](AGENTS.md) first (build, test, and code conventions). New games can start from the generator scaffold with `pnpm run new-game`; see the multi-game platform design doc for the registration checklist.
 

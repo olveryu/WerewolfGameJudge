@@ -20,6 +20,7 @@ import {
   WORKER_GAME_CATALOG,
   WORKER_GAME_HTTP_ROUTES,
 } from '../catalog';
+import { decryptoWordRoutes } from '../decrypto/wordRoutes';
 import { drawGuessMediaRoutes } from '../drawguess/mediaRoutes';
 import { fibEffectSchema } from '../fibking/effects';
 import {
@@ -175,6 +176,7 @@ describe('Worker game catalog', () => {
       '/api/games/pictionary/rooms': pictionaryMediaRoutes,
       '/api/games/undercover/inventory': undercoverInventoryRoutes,
       '/api/games/drawguess/rooms': drawGuessMediaRoutes,
+      '/api/games/decrypto/rooms': decryptoWordRoutes,
     };
     const expectedRoutes = GAME_TYPES.flatMap((gameType) =>
       GAME_REGISTRY[gameType].httpRoutes.map((routePath) => {

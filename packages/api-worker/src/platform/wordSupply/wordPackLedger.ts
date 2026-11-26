@@ -13,7 +13,8 @@
  * reserve insert and failure completion stay in its own publication module.
  */
 
-export type WordPacksTable = 'undercover_word_packs' | 'drawguess_word_packs' | 'fib_word_packs';
+export type WordPacksTable =
+  'undercover_word_packs' | 'drawguess_word_packs' | 'decrypto_word_packs' | 'fib_word_packs';
 
 /**
  * Columns the failure statement writes, per packs table. The undercover and
@@ -30,6 +31,7 @@ const WORD_PACK_FAILURE_COLUMNS: Readonly<
 > = {
   undercover_word_packs: { failureReason: 'failure_reason', completedAt: 'completed_at' },
   drawguess_word_packs: { failureReason: 'failure_reason', completedAt: 'completed_at' },
+  decrypto_word_packs: { failureReason: 'failure_reason', completedAt: 'completed_at' },
   fib_word_packs: { failureReason: null, completedAt: null },
 };
 

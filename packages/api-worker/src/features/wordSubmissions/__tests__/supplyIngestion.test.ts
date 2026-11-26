@@ -83,7 +83,12 @@ describe('storeSupplySubmissions', () => {
       daily_quota: 1000,
       pending_quota: 1000,
     });
-    expect(JSON.parse(agent?.games_json ?? '[]')).toEqual(['fibking', 'undercover', 'drawguess']);
+    expect(JSON.parse(agent?.games_json ?? '[]')).toEqual([
+      'fibking',
+      'undercover',
+      'drawguess',
+      'decrypto',
+    ]);
     const credential = await env.DB.prepare(
       `SELECT prefix, revoked_at, expires_at FROM word_submission_credentials
        WHERE agent_id = ?`,

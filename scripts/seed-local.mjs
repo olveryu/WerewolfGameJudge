@@ -3,14 +3,16 @@
  * seed-local — 本地 D1 开发账号、奖励与词库 seed 脚本
  *
  * 通过 TypeScript AST 读取 product/rewards/catalog.ts 的奖励 ID 数组，
- * 创建确定性 dev 用户（全解锁）及三款词库游戏的本地样例词条，通过 wrangler d1 execute --local 写入。
+ * 仅补齐缺失的 dev 用户、奖励与词条；不重置已有数据。中断后可安全重跑。
+ * 通过 wrangler d1 execute --local 写入当前工作树的本地数据库。
  *
  * 用法：node scripts/seed-local.mjs
  * 或：  pnpm -F @game-judge/api-worker db:seed:local
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
@@ -107,6 +109,33 @@ const DRAWGUESS_WORDS = [
   ['drawguess-local-010', '吹风机', 'cfj', 'dailyObjects', 'medium'],
   ['drawguess-local-011', '仙人掌', 'xrz', 'plants', 'medium'],
   ['drawguess-local-012', '直升机', 'zsj', 'vehicles', 'hard'],
+];
+
+const DECRYPTO_WORDS = [
+  ['decrypto-local-001', '苹果'],
+  ['decrypto-local-002', '桥梁'],
+  ['decrypto-local-003', '钢琴'],
+  ['decrypto-local-004', '灯塔'],
+  ['decrypto-local-005', '火箭'],
+  ['decrypto-local-006', '蜂蜜'],
+  ['decrypto-local-007', '雪人'],
+  ['decrypto-local-008', '钟表'],
+  ['decrypto-local-009', '邮局'],
+  ['decrypto-local-010', '帐篷'],
+  ['decrypto-local-011', '森林'],
+  ['decrypto-local-012', '钥匙'],
+  ['decrypto-local-013', '镜子'],
+  ['decrypto-local-014', '骆驼'],
+  ['decrypto-local-015', '樱花'],
+  ['decrypto-local-016', '城墙'],
+  ['decrypto-local-017', '磁铁'],
+  ['decrypto-local-018', '贝壳'],
+  ['decrypto-local-019', '迷宫'],
+  ['decrypto-local-020', '面包'],
+  ['decrypto-local-021', '气球'],
+  ['decrypto-local-022', '稻草人'],
+  ['decrypto-local-023', '电梯'],
+  ['decrypto-local-024', '向日葵'],
 ];
 
 function sqlString(value) {
@@ -213,10 +242,9 @@ const maxLevel = 99;
 const maxXp = 9999;
 
 const sql = [
-  // Dev user (INSERT OR REPLACE to be idempotent)
-  `INSERT OR REPLACE INTO users (id, email, password_hash, display_name, is_anonymous, created_at, updated_at) VALUES ('${DEV_USER_ID}', '${DEV_EMAIL}', '${DEV_PASSWORD_HASH}', '${DEV_DISPLAY_NAME}', 0, datetime('now'), datetime('now'));`,
-  // Full-unlock user_stats with gacha tickets for testing
-  `INSERT OR REPLACE INTO user_stats (user_id, xp, level, games_played, unlocked_items, normal_draws, golden_draws, normal_pity, golden_pity, version, last_login_reward_at, updated_at) VALUES ('${DEV_USER_ID}', ${maxXp}, ${maxLevel}, 100, '${unlockedJson}', 50, 10, 0, 0, 0, NULL, datetime('now'));`,
+  // Preserve an existing dev account, including one created with a different UUID.
+  `INSERT INTO users (id, email, password_hash, display_name, is_anonymous, created_at, updated_at) VALUES ('${DEV_USER_ID}', '${DEV_EMAIL}', '${DEV_PASSWORD_HASH}', '${DEV_DISPLAY_NAME}', 0, datetime('now'), datetime('now')) ON CONFLICT (email) DO NOTHING;`,
+  `INSERT INTO user_stats (user_id, xp, level, games_played, unlocked_items, normal_draws, golden_draws, normal_pity, golden_pity, version, last_login_reward_at, updated_at) SELECT id, ${maxXp}, ${maxLevel}, 100, '${unlockedJson}', 50, 10, 0, 0, 0, NULL, datetime('now') FROM users WHERE email = '${DEV_EMAIL}' ON CONFLICT (user_id) DO NOTHING;`,
   ...FIB_WORDS.flatMap(([id, word, coreMeaning, usageNote], index) => [
     `INSERT INTO fib_word_sequence (word, published_at, pack_id) VALUES (${sqlString(word)}, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL) ON CONFLICT (word) DO NOTHING;`,
     `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, generation_cycle_id, created_at, activated_at) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(coreMeaning)}, ${sqlString(usageNote)}, 'literature', 'local', 'active', ${index}, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) ON CONFLICT (word) DO NOTHING;`,
@@ -229,29 +257,35 @@ const sql = [
     ([id, word, pinyinInitials, category, difficulty]) =>
       `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(pinyinInitials)}, ${sqlString(category)}, ${sqlString(difficulty)}, 'active', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL) ON CONFLICT (id) DO NOTHING;`,
   ),
+  ...DECRYPTO_WORDS.map(
+    ([id, word]) =>
+      `INSERT INTO decrypto_words (id, word, category, status, created_at) VALUES (${sqlString(id)}, ${sqlString(word)}, 'general', 'active', strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) ON CONFLICT (word) DO NOTHING;`,
+  ),
 ].join(' ');
 
-console.log('\n=== Dev user seed ===');
+console.log('\n=== Defaults for missing dev data (existing data is preserved) ===');
 console.log(`  Email:    ${DEV_EMAIL}`);
 console.log(`  Password: dev123`);
 console.log(`  UUID:     ${DEV_USER_ID}`);
 console.log(`  Level:    ${maxLevel} (XP: ${maxXp})`);
 console.log(`  Unlocked: ${allIds.length} items`);
 console.log(
-  `  Word bank: ${FIB_WORDS.length} FibKing words, ${UNDERCOVER_WORD_PAIRS.length} Undercover pairs, ${DRAWGUESS_WORDS.length} DrawGuess words\n`,
+  `  Word bank: ${FIB_WORDS.length} FibKing words, ${UNDERCOVER_WORD_PAIRS.length} Undercover pairs, ${DRAWGUESS_WORDS.length} DrawGuess words, ${DECRYPTO_WORDS.length} Decrypto words\n`,
 );
 
 // ── 执行 ────────────────────────────────────────────────────────────────────
 
 const workerDir = resolve(__dirname, '../packages/api-worker');
-const tmpSql = join(workerDir, '.seed-local-tmp.sql');
+const temporaryDir = mkdtempSync(join(tmpdir(), 'game-judge-seed-local-'));
+const tmpSql = join(temporaryDir, 'seed.sql');
 
 try {
   // Write SQL to temp file to avoid shell $ expansion mangling the password hash
   writeFileSync(tmpSql, sql, 'utf-8');
   execFileSync(
-    'npx',
+    'pnpm',
     [
+      'exec',
       'wrangler',
       'd1',
       'execute',
@@ -263,15 +297,14 @@ try {
     {
       cwd: workerDir,
       encoding: 'utf-8',
-      stdio: 'inherit',
+      stdio: ['ignore', 'inherit', 'inherit'],
+      timeout: 5 * 60 * 1000,
     },
   );
-  console.log('\nSeed complete! Login with dev@test.local / dev123');
+  console.log('\nSeed complete! Existing accounts and progress were preserved.');
 } catch (e) {
   console.error('Seed failed:', e);
   process.exitCode = 1;
 } finally {
-  if (existsSync(tmpSql)) {
-    unlinkSync(tmpSql);
-  }
+  rmSync(temporaryDir, { recursive: true, force: true });
 }

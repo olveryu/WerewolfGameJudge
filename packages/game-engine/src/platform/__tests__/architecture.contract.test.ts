@@ -43,6 +43,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './games/werewolf/public',
   './games/spotmatch/public',
   './games/secrethitler/public',
+  './games/decrypto/public',
   './platform/audio',
   './platform/config/configSchema',
   './platform/engine',

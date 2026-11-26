@@ -2,6 +2,12 @@
 
 import type { z } from 'zod';
 
+type Mutable<T> = T extends readonly unknown[]
+  ? { -readonly [Index in keyof T]: Mutable<T[Index]> }
+  : T extends object
+    ? { -readonly [Key in keyof T]: Mutable<T[Key]> }
+    : T;
+
 /**
  * Build the identity over one command schema option list, checked
  * both ways against the game's command union: an option list that
@@ -15,8 +21,8 @@ export function definePublicCommandOptions<TCommand>(): <
   const TOptions extends readonly z.ZodType[],
 >(
   options: TOptions &
-    ([TCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [TCommand] ? unknown : never),
+    ([Mutable<TCommand>] extends [Mutable<z.output<TOptions[number]>>] ? unknown : never) &
+    ([Mutable<z.output<TOptions[number]>>] extends [Mutable<TCommand>] ? unknown : never),
 ) => TOptions {
   return (options) => options;
 }

@@ -683,7 +683,7 @@ jobs:
           - shard: '7'
             specs: 'avalon.spec.ts'
           - shard: '8'
-            specs: 'werewolf-night-completion.spec.ts pictionary.spec.ts resilience-restart.spec.ts resilience-offline-canary.spec.ts spotmatch.spec.ts'
+            specs: 'werewolf-night-completion.spec.ts pictionary.spec.ts resilience-restart.spec.ts resilience-offline-canary.spec.ts spotmatch.spec.ts decrypto.spec.ts'
           - shard: '9'
             specs: 'undercover.spec.ts werewolf-seating.spec.ts fibking.spec.ts fibking-responsive.spec.ts storyrelay.spec.ts drawguess.spec.ts app-entry-flow.spec.ts app-home.spec.ts werewolf-config.spec.ts werewolf-sheriff-election.spec.ts app-room-lifecycle.spec.ts room-narration.spec.ts resilience-rejoin.spec.ts'
     uses: ./.github/workflows/e2e-run.yml
