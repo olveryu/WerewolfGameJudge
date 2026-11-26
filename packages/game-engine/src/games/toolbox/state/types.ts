@@ -18,10 +18,7 @@ export const TOOLBOX_DICE_MAX_COUNT = 20;
 export const TOOLBOX_DICE_DEFAULT_COUNT = 5;
 export const TOOLBOX_DICE_FACES = 6;
 
-/**
- * 身份配置输入上限。设计文档第 12 节要求按实测确定容量；这些数值是
- * 首版的保守存储保护，客户端与服务端共用同一来源，调整需走容量评审。
- */
+/** 身份配置输入上限；客户端与服务端共用同一来源。 */
 export const TOOLBOX_IDENTITY_LIMITS = {
   nameMaxLength: 20,
   descriptionMaxLength: 200,
