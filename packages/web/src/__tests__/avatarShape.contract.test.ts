@@ -9,10 +9,13 @@
  *
  * Every element that hosts an `<Avatar>` is registered in `AVATAR_HOSTS`, whatever its class is
  * called; the census of `<Avatar>` sites fails when a site is added, so its host gets registered.
- * Avatar artwork reaches the page only through `<Avatar>`: no bare `<img>` of a portrait URL.
+ * Avatar artwork reaches the page only through `<Avatar>`: no bare `<img>` of a portrait or an
+ * uploaded avatar URL. Files hosting an `<Avatar>` set no inline corner, clip or overflow either.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+
+import { AVATAR_CORNER_RATIO } from '@/config/avatarShape';
 
 const SRC_DIR = join(import.meta.dirname, '..');
 const AVATAR_CSS = 'components/avatar/Avatar.css';
@@ -65,6 +68,14 @@ const ROLE_ART = /^games\/[\w-]+\/assets\/roleAvatars\.ts$/;
 /** Avatar artwork, or an `avatarSources` export that turns an avatar into an image URL. */
 const AVATAR_IMAGE_SOURCE =
   /assets\/avatars\/|\b(?:getHandDrawnPortraitUrl|resolveAvatarSource|HAND_DRAWN_PORTRAITS)\b/;
+
+/** The `src` expression of every `<img>` in a TSX source (attributes may span lines). */
+const IMG_SRC = /<img\b[^>]*?\bsrc=\{([^}]*)\}/g;
+/** An inline style key that could cut or re-shape a hosted avatar. */
+const INLINE_SHAPE =
+  /\b(?:borderRadius|border\w*Radius|clipPath|WebkitClipPath|mask\w*|WebkitMask\w*|overflow[XY]?)\s*:/;
+/** The body of every inline `style={{ … }}` object in a TSX source. */
+const INLINE_STYLE = /\bstyle=\{\{([^}]*)\}\}/g;
 
 /** The last compound of a selector part: the element the rule styles. */
 function subjectOf(part: string): string {
@@ -182,6 +193,35 @@ describe('Avatar shape', () => {
       .filter((file) => !file.startsWith('components/avatar/') && !ROLE_ART.test(file))
       .filter((file) => AVATAR_IMAGE_SOURCE.test(readFileSync(join(SRC_DIR, file), 'utf8')));
     expect(bypasses).toEqual([]);
+  });
+
+  it('is never drawn as a bare <img> of an avatar URL', () => {
+    const bareImages = sourceFiles(SRC_DIR)
+      .filter((file) => file.endsWith('.tsx'))
+      .map((file) => relative(SRC_DIR, file))
+      .filter((file) => !file.startsWith('components/avatar/'))
+      .flatMap((file) =>
+        [...readFileSync(join(SRC_DIR, file), 'utf8').matchAll(IMG_SRC)]
+          .map(([, src]) => src ?? '')
+          .filter((src) => /avatarurl/i.test(src))
+          .map((src) => `${file}: src={${src.trim()}}`),
+      );
+    expect(bareImages).toEqual([]);
+  });
+
+  it('is not re-shaped by inline styles where it is hosted', () => {
+    const inlineShapes = Object.keys(AVATAR_SITES).flatMap((file) =>
+      [...readFileSync(join(SRC_DIR, file), 'utf8').matchAll(INLINE_STYLE)]
+        .map(([, body]) => body ?? '')
+        .filter((body) => INLINE_SHAPE.test(body))
+        .map((body) => `${file}: style={{${body.trim()}}}`),
+    );
+    expect(inlineShapes).toEqual([]);
+  });
+
+  it('is a rounded square, not a circle or a sharp square', () => {
+    expect(AVATAR_CORNER_RATIO).toBeGreaterThan(0);
+    expect(AVATAR_CORNER_RATIO).toBeLessThan(0.5);
   });
 
   it('keeps the shape out of the avatar stylesheet', () => {
