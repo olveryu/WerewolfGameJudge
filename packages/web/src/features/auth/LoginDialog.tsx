@@ -4,7 +4,8 @@ import { type FormEvent, useState, useSyncExternalStore } from 'react';
 import { useMatches, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
-import { HAND_DRAWN_PORTRAITS } from '@/components/avatar/avatarSources';
+import { Avatar } from '@/components/avatar/Avatar';
+import { pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -35,12 +36,7 @@ import IconPersonOutline from '~icons/ion/person-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
 
 const STRIP_COUNT = 5;
-const STRIP_STEP = Math.floor(HAND_DRAWN_PORTRAITS.length / STRIP_COUNT);
-const STRIP_PORTRAITS = Array.from({ length: STRIP_COUNT }, (_, index) => {
-  const url = HAND_DRAWN_PORTRAITS[index * STRIP_STEP];
-  if (url === undefined) throw new Error(`No portrait at strip slot ${index}`);
-  return url;
-});
+const STRIP_AVATAR_URLS = pickHandDrawnAvatarUrls(STRIP_COUNT);
 const EMAIL_DOMAINS = ['@qq.com', '@163.com', '@gmail.com', '@icloud.com', '@outlook.com'];
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -158,10 +154,10 @@ export function LoginOptions({
   return (
     <div className="login-options">
       <div className="login-strip">
-        <div className="login-strip-row">
-          {STRIP_PORTRAITS.map((url) => (
+        <div className="login-strip-row" aria-hidden>
+          {STRIP_AVATAR_URLS.map((url) => (
             <span key={url} className="login-strip-portrait">
-              <img src={url} alt="" decoding="async" />
+              <Avatar userId={url} avatarUrl={url} size="fill" />
             </span>
           ))}
         </div>

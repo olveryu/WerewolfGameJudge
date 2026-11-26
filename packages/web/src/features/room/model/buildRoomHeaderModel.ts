@@ -1,19 +1,16 @@
 /** Builds the shared room header model from header primitives. */
 
-import type { RoomHeaderModel } from './RoomShellModel';
+import { countUnusedTickets, type DrawBalances } from '@/features/gacha/model/unusedTickets';
 
-/** The gacha balances the header surfaces as a single ticket count. */
-export interface RoomHeaderGachaStatus {
-  readonly normalDraws: number;
-  readonly goldenDraws: number;
-}
+import type { RoomHeaderModel } from './RoomShellModel';
 
 export interface BuildRoomHeaderModelInput {
   readonly onBack: () => void;
   readonly onTitlePress: () => void;
   readonly onTitleLongPress: () => void;
   readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
-  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
+  /** The gacha balances the header surfaces as a single ticket count. */
+  readonly gachaStatus: DrawBalances | null | undefined;
   readonly onUserActionPress: () => void;
 }
 
@@ -30,9 +27,7 @@ export function buildRoomHeaderModel(input: BuildRoomHeaderModelInput): RoomHead
     onTitleLongPress: input.onTitleLongPress,
     userAction: {
       user: input.user,
-      ticketCount: input.gachaStatus
-        ? input.gachaStatus.normalDraws + input.gachaStatus.goldenDraws
-        : null,
+      ticketCount: input.gachaStatus ? countUnusedTickets(input.gachaStatus) : null,
       onPress: input.onUserActionPress,
     },
   };

@@ -3,6 +3,7 @@ import { getItemRarity, type Rarity } from '@game-judge/game-engine/product/rewa
 import { type ReactNode, type RefObject, useRef } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { makeBuiltinAvatarUrl } from '@/components/avatar/avatarSources';
 import { IonIcon } from '@/components/icons/IonIcon';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
@@ -22,6 +23,8 @@ import type { AppearanceState } from './useAppearanceState';
 /** Locked items are dimmed, as in the previous client. */
 const LOCKED_OPACITY = 0.4;
 const LONG_PRESS_MS = 500;
+/** An avatar-grid cell: a square around the avatar, concentric with it. */
+const AVATAR_CELL_CLASS = `appearance-cell ${AVATAR_CONCENTRIC_CLASS}`;
 
 /** Long press (touch or mouse) and the context menu open the item's preview. */
 function useLongPress(onLongPress: (() => void) | undefined) {
@@ -75,6 +78,8 @@ interface PickerCellProps {
   readonly showCheck?: boolean;
   /** Leaves room around the thumbnail for artwork drawn past its edge (avatar frames). */
   readonly inset?: boolean;
+  /** The thumbnail is a bare avatar (the avatar grid): the cell is concentric with it. */
+  readonly holdsAvatar?: boolean;
   readonly onPress: () => void;
   readonly onLongPress?: () => void;
   readonly children: ReactNode;
@@ -89,6 +94,7 @@ function PickerCell({
   showActive,
   showCheck = false,
   inset = false,
+  holdsAvatar = false,
   onPress,
   onLongPress,
   children,
@@ -101,7 +107,7 @@ function PickerCell({
   return (
     <button
       type="button"
-      className="appearance-cell"
+      className={holdsAvatar ? AVATAR_CELL_CLASS : 'appearance-cell'}
       aria-label={label}
       aria-pressed={isSelected}
       data-active={showActive}
@@ -172,12 +178,12 @@ function UploadCell({
   return (
     <button
       type="button"
-      className="appearance-cell"
+      className={AVATAR_CELL_CLASS}
       aria-label={hasCustomAvatar ? '更换自定义头像' : '上传自定义头像'}
       onClick={onUpload}
     >
       <span className="appearance-cell-thumb">
-        <span className="appearance-cell-upload">
+        <span className={`appearance-cell-upload ${AVATAR_CONCENTRIC_CLASS}`}>
           <IconCameraOutline aria-hidden />
           <span>{hasCustomAvatar ? '更换' : '上传'}</span>
         </span>
@@ -192,6 +198,7 @@ function AvatarCells({ state, productUi, userId }: PickerPanelProps) {
       return (
         <PickerCell
           key={item.key}
+          holdsAvatar
           label="默认头像"
           unlocked
           rarity={null}
@@ -208,6 +215,7 @@ function AvatarCells({ state, productUi, userId }: PickerPanelProps) {
       return (
         <PickerCell
           key={item.key}
+          holdsAvatar
           label="自定义头像"
           unlocked
           rarity={null}
@@ -226,6 +234,7 @@ function AvatarCells({ state, productUi, userId }: PickerPanelProps) {
     return (
       <PickerCell
         key={item.key}
+        holdsAvatar
         label={unlocked ? productUi.getAvatarDisplayName(avatarId) : '未解锁头像'}
         unlocked={unlocked}
         rarity={getItemRarity(avatarId)}

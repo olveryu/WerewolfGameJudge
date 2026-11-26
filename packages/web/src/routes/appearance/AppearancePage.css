@@ -198,7 +198,6 @@
   gap: var(--space-tight);
   padding: var(--space-small);
   border: var(--border-width-thick) solid transparent;
-  border-radius: var(--radius-large);
   background: var(--color-surface);
   color: var(--color-text);
   box-shadow: var(--shadow-tabletop-card);
@@ -211,8 +210,17 @@
     box-shadow 120ms ease-out;
 }
 
-.appearance-grid[data-kind='avatar'] .appearance-cell {
-  padding: var(--space-micro);
+/* A captioned card: its thumbnail sits well inside the corners. */
+.appearance-cell:not(.avatar-concentric) {
+  border-radius: var(--radius-large);
+}
+
+/* An avatar-grid cell: a thin square around the avatar, concentric with it. */
+.appearance-cell.avatar-concentric {
+  --appearance-avatar-gap: var(--space-micro);
+  --avatar-inset: calc(var(--border-width-thick) + var(--appearance-avatar-gap));
+
+  padding: var(--appearance-avatar-gap);
 }
 
 /* None, random, default and custom have no rarity colour: gold marks the selection. */
@@ -273,11 +281,13 @@
   padding: var(--space-small);
 }
 
+/* Stands where an avatar would: the avatar's own outline. */
 .appearance-cell-thumb > .appearance-cell-upload {
+  --avatar-inset: 0px;
+
   flex-direction: column;
   gap: var(--space-micro);
   border: var(--border-width) dashed var(--color-border);
-  border-radius: var(--radius-medium);
   color: var(--color-primary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);

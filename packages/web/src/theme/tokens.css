@@ -89,6 +89,8 @@
   --border-width: 1px;
   --border-width-thick: 2px;
   --border-width-highlight: 3px;
+  /* An unframed avatar tile's border; boxes around a tile read it to stay concentric. */
+  --border-width-avatar-tile: var(--border-width-thick);
   --opacity-pressed: 0.7;
   --opacity-disabled: 0.5;
 
