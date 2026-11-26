@@ -24,7 +24,10 @@
   border-color: color-mix(in srgb, var(--rarity-color) 25%, var(--color-border-light));
 }
 
-/* Shaped like the avatar it may hold (the shared concentric corners); an empty slot dashes it. */
+/*
+ * The slot's preview box, sized once here (the avatar slot's avatar fills it) and cornered by the
+ * shared concentric rule like the avatar; an empty slot dashes it.
+ */
 .profile-equip-preview {
   --avatar-inset: 0px;
 
