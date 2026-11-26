@@ -1,4 +1,5 @@
 import { avalonEngine } from '../../../games/avalon/engine';
+import { decryptoEngine } from '../../../games/decrypto/engine';
 import { drawGuessEngine } from '../../../games/drawguess/engine';
 import { fibEngine } from '../../../games/fibking/engine';
 import { pictionaryEngine } from '../../../games/pictionary/engine';
@@ -152,6 +153,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      decrypto: decryptoEngine,
       secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     };
@@ -174,6 +176,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      decrypto: decryptoEngine,
       secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     });
@@ -195,6 +198,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      decrypto: decryptoEngine,
       secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     });
@@ -208,6 +212,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      decrypto: decryptoEngine,
       secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     });
@@ -220,6 +225,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      decrypto: decryptoEngine,
       secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     });

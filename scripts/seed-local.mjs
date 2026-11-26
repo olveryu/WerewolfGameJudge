@@ -111,6 +111,33 @@ const DRAWGUESS_WORDS = [
   ['drawguess-local-012', '直升机', 'zsj', 'vehicles', 'hard'],
 ];
 
+const DECRYPTO_WORDS = [
+  ['decrypto-local-001', '苹果', 'ingredients'],
+  ['decrypto-local-002', '桥梁', 'architecture'],
+  ['decrypto-local-003', '钢琴', 'instruments'],
+  ['decrypto-local-004', '灯塔', 'architecture'],
+  ['decrypto-local-005', '火箭', 'space'],
+  ['decrypto-local-006', '蜂蜜', 'ingredients'],
+  ['decrypto-local-007', '雪人', 'outdoorActivities'],
+  ['decrypto-local-008', '钟表', 'dailyObjects'],
+  ['decrypto-local-009', '邮局', 'places'],
+  ['decrypto-local-010', '帐篷', 'outdoorActivities'],
+  ['decrypto-local-011', '森林', 'geography'],
+  ['decrypto-local-012', '钥匙', 'dailyObjects'],
+  ['decrypto-local-013', '镜子', 'dailyObjects'],
+  ['decrypto-local-014', '骆驼', 'animals'],
+  ['decrypto-local-015', '樱花', 'plants'],
+  ['decrypto-local-016', '城墙', 'architecture'],
+  ['decrypto-local-017', '磁铁', 'tools'],
+  ['decrypto-local-018', '贝壳', 'oceanLife'],
+  ['decrypto-local-019', '迷宫', 'places'],
+  ['decrypto-local-020', '面包', 'food'],
+  ['decrypto-local-021', '气球', 'toys'],
+  ['decrypto-local-022', '稻草人', 'crafts'],
+  ['decrypto-local-023', '电梯', 'electronics'],
+  ['decrypto-local-024', '向日葵', 'plants'],
+];
+
 function sqlString(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
@@ -230,6 +257,10 @@ const sql = [
     ([id, word, pinyinInitials, category, difficulty]) =>
       `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(pinyinInitials)}, ${sqlString(category)}, ${sqlString(difficulty)}, 'active', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL) ON CONFLICT DO NOTHING;`,
   ),
+  ...DECRYPTO_WORDS.map(
+    ([id, word, category]) =>
+      `INSERT INTO decrypto_words (id, word, category, status, created_at) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(category)}, 'active', strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) ON CONFLICT (word) DO NOTHING;`,
+  ),
 ].join(' ');
 
 console.log('\n=== Defaults for missing dev data (existing data is preserved) ===');
@@ -239,7 +270,7 @@ console.log(`  UUID:     ${DEV_USER_ID}`);
 console.log(`  Level:    ${maxLevel} (XP: ${maxXp})`);
 console.log(`  Unlocked: ${allIds.length} items`);
 console.log(
-  `  Word bank: ${FIB_WORDS.length} FibKing words, ${UNDERCOVER_WORD_PAIRS.length} Undercover pairs, ${DRAWGUESS_WORDS.length} DrawGuess words\n`,
+  `  Word bank: ${FIB_WORDS.length} FibKing words, ${UNDERCOVER_WORD_PAIRS.length} Undercover pairs, ${DRAWGUESS_WORDS.length} DrawGuess words, ${DECRYPTO_WORDS.length} Decrypto words\n`,
 );
 
 // ── 执行 ────────────────────────────────────────────────────────────────────

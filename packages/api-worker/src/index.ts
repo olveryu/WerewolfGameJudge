@@ -54,6 +54,7 @@ import { telemetryRoutes } from './platform/telemetry/routes';
 export { GameRoom } from './app/GameRoom';
 export { WeChatAuthProxy } from './features/auth/wechat/WeChatAuthProxy';
 export { WordSubmissionReviewWorkflow } from './features/wordSubmissions/reviewWorkflow';
+export { DecryptoWordSupplyWorkflow } from './games/decrypto/wordSupplyWorkflow';
 export { DrawGuessWordSupplyWorkflow } from './games/drawguess/wordSupplyWorkflow';
 export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';
 export { UndercoverWordSupplyWorkflow } from './games/undercover/wordSupplyWorkflow';

@@ -57,6 +57,8 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM fib_word_packs'),
     env.DB.prepare('DELETE FROM fib_word_supply_months'),
     env.DB.prepare('DELETE FROM drawguess_word_packs'),
+    env.DB.prepare('DELETE FROM decrypto_word_packs'),
+    env.DB.prepare('DELETE FROM decrypto_words'),
     env.DB.prepare('DELETE FROM undercover_word_pairs'),
     env.DB.prepare('DELETE FROM undercover_word_packs'),
     env.DB.prepare("UPDATE database_capacity SET state = 'normal' WHERE id = 1"),
@@ -159,6 +161,7 @@ describe('GET /admin/games/words/stats', () => {
   it.each([
     ['drawguess', 'actionComedy', '动作喜剧', 40],
     ['undercover', 'dating', '约会场景', 40],
+    ['decrypto', 'school', '校园学习', 40],
     ['fibking', 'courtship', '婚恋风俗', 42],
   ] as const)(
     'shows the new %s category even before it has words',
@@ -365,12 +368,15 @@ describe('GET /admin/games/words/stats', () => {
     expect(totalWords).toBe(1);
   });
 
-  it.each(['undercover', 'drawguess'] as const)('returns the %s dashboard shape', async (game) => {
-    const resp = await fetchWordsStats(`/admin/games/words/stats?game=${game}`, ADMIN_TOKEN);
-    expect(resp.status).toBe(200);
-    const body = await resp.json<GameWordsStats>();
-    expect(body.game).toBe(game);
-  });
+  it.each(['undercover', 'drawguess', 'decrypto'] as const)(
+    'returns the %s dashboard shape',
+    async (game) => {
+      const resp = await fetchWordsStats(`/admin/games/words/stats?game=${game}`, ADMIN_TOKEN);
+      expect(resp.status).toBe(200);
+      const body = await resp.json<GameWordsStats>();
+      expect(body.game).toBe(game);
+    },
+  );
 
   it('rejects unknown games and missing tokens', async () => {
     const badGame = await fetchWordsStats('/admin/games/words/stats?game=mahjong', ADMIN_TOKEN);
@@ -400,7 +406,13 @@ describe('POST /admin/games/words/trigger-supply', () => {
 
   it.each(GAME_WORD_GAMES)('enqueues a %s workflow run and echoes the request', async (game) => {
     const category =
-      game === 'fibking' ? 'courtship' : game === 'undercover' ? 'dating' : 'actionComedy';
+      game === 'fibking'
+        ? 'courtship'
+        : game === 'undercover'
+          ? 'dating'
+          : game === 'drawguess'
+            ? 'actionComedy'
+            : 'animals';
     const resp = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
       game,
       category,
@@ -416,13 +428,16 @@ describe('POST /admin/games/words/trigger-supply', () => {
       fibking: vi.spyOn(env.FIB_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
       undercover: vi.spyOn(env.UNDERCOVER_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
       drawguess: vi.spyOn(env.DRAWGUESS_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
+      decrypto: vi.spyOn(env.DECRYPTO_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
     };
     const input: TriggerSupplyInput =
       game === 'fibking'
         ? { game, category: 'courtship' }
         : game === 'undercover'
           ? { game, category: 'dating' }
-          : { game, category: 'actionComedy' };
+          : game === 'drawguess'
+            ? { game, category: 'actionComedy' }
+            : { game, category: 'animals' };
     const result = await triggerGameWordSupply(env, input);
     for (const candidateGame of GAME_WORD_GAMES) {
       expect(workflows[candidateGame]).toHaveBeenCalledTimes(candidateGame === game ? 1 : 0);

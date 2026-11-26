@@ -1,3 +1,7 @@
+import {
+  DECRYPTO_WORD_CATEGORIES,
+  DECRYPTO_WORD_CATEGORY_NAMES,
+} from '@game-judge/game-engine/games/decrypto/public';
 import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
 import {
   GAME_WORD_GAMES,
@@ -97,7 +101,7 @@ describe('admin mock fixtures', () => {
     expect(filtered.items.every((item) => item.category === category)).toBe(true);
   });
 
-  it('provides every game category in mock stats, including zero-inventory categories', () => {
+  it('retains zero-inventory categories in multi-category game fixtures', () => {
     for (const game of GAME_WORD_GAMES) {
       const categories = getWordStats(game).categories;
       expect(categories.some(({ active }) => active === 0)).toBe(true);
@@ -109,6 +113,17 @@ describe('admin mock fixtures', () => {
       active: 0,
       total: 0,
     });
+  });
+
+  it('provides all 40 Decrypto categories and retains empty inventory categories', () => {
+    const categories = getWordStats('decrypto').categories;
+    expect(categories).toHaveLength(40);
+    expect(new Set(categories.map(({ id }) => id)).size).toBe(40);
+    expect(categories.map(({ id, name }) => ({ id, name }))).toEqual(
+      DECRYPTO_WORD_CATEGORIES.map((id) => ({ id, name: DECRYPTO_WORD_CATEGORY_NAMES[id] })),
+    );
+    expect(categories.find(({ id }) => id === 'animals')?.active).toBeGreaterThan(0);
+    expect(categories.find(({ id }) => id === 'school')).toMatchObject({ active: 0, total: 0 });
   });
 
   it('authenticates with the local password and returns a visible error for unimplemented APIs', async () => {

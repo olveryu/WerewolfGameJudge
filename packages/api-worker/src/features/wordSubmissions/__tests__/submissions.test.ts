@@ -1,5 +1,6 @@
 /** Real D1, HTTP authorization, durable review, and atomic publication boundaries. */
 import {
+  type GameWordGame,
   type WordSubmissionAction,
   wordSubmissionActionSchema,
   wordSubmissionAgentSchema,
@@ -15,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
+import { getOrCreateDecryptoWordSelection } from '../../../games/decrypto/wordSelection';
 import { toPinyinInitials } from '../../../games/drawguess/wordEditorial';
 import { getOrCreateFibWordSelection } from '../../../games/fibking/wordSelection';
 import { sha256Hex } from '../../../platform/crypto/sha256Hex';
@@ -83,11 +85,15 @@ const checks = {
   isAppropriate: true,
   isUnambiguous: true,
 };
-async function agent(dailyQuota = 100, pendingQuota = 100) {
+async function agent(
+  dailyQuota = 100,
+  pendingQuota = 100,
+  games: GameWordGame[] = ['drawguess', 'undercover', 'fibking'],
+) {
   return createSubmissionAgent(env.DB, {
     name: 'Personal agent',
     description: 'Test fixture',
-    games: ['drawguess', 'undercover', 'fibking'],
+    games,
     dailyQuota,
     pendingQuota,
     expiresInDays: 30,
@@ -186,6 +192,7 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM word_submission_evidence_requests'),
     env.DB.prepare('DELETE FROM editorial_model_requests'),
     env.DB.prepare('DELETE FROM drawguess_words'),
+    env.DB.prepare('DELETE FROM decrypto_words'),
     env.DB.prepare('DELETE FROM undercover_word_pairs'),
     env.DB.prepare('DELETE FROM fib_round_word_selections'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),
@@ -1520,6 +1527,16 @@ describe('External word submissions', () => {
     payload,
     {
       schemaVersion: 1,
+      game: 'decrypto',
+      items: [
+        {
+          clientItemId: 'manual-decrypto-word',
+          content: { word: '大象', category: 'animals', potentialIssues: [] },
+        },
+      ],
+    } satisfies WordSubmissionInput,
+    {
+      schemaVersion: 1,
       game: 'undercover',
       items: [
         {
@@ -1538,7 +1555,7 @@ describe('External word submissions', () => {
   ])(
     'publishes $game material only after separate, authenticated human approval and publication',
     async (input) => {
-      const issued = await agent();
+      const issued = await agent(100, 100, [input.game]);
       const batch = await submit(issued.token, input);
       const approval = action(batch, 'approve');
       const send = (token: string, isAdmin: boolean) =>
@@ -1563,7 +1580,12 @@ describe('External word submissions', () => {
       });
       await applySubmissionAction(env, batch.id, action(approved, 'publish'));
       expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('published');
-      const inventory = input.game === 'drawguess' ? 'drawguess_words' : 'undercover_word_pairs';
+      const inventory =
+        input.game === 'drawguess'
+          ? 'drawguess_words'
+          : input.game === 'decrypto'
+            ? 'decrypto_words'
+            : 'undercover_word_pairs';
       expect(
         await env.DB.prepare(
           `SELECT COUNT(*) AS count FROM ${inventory} WHERE status = 'active'`,
@@ -1578,6 +1600,62 @@ describe('External word submissions', () => {
           reason: '',
           modelReview: null,
         });
+      }
+      if (input.game === 'decrypto') {
+        await env.DB.batch([
+          env.DB.prepare("INSERT INTO users (id) VALUES ('human-decrypto-player')"),
+          env.DB.prepare(`INSERT INTO rooms (id, code, game_type, host_user_id, creation_id,
+            config_json, status, created_at, updated_at) VALUES ('human-decrypto-room', '9013',
+            'decrypto', 'human-decrypto-player', 'human-decrypto-creation', '{}', 'active',
+            '2026-11-26T00:00:00.000Z', '2026-11-26T00:00:00.000Z')`),
+          ...[
+            ['苹果', 'ingredients'],
+            ['桥梁', 'architecture'],
+            ['火山', 'geography'],
+            ['钢琴', 'instruments'],
+            ['月亮', 'space'],
+            ['雨伞', 'dailyObjects'],
+            ['沙漠', 'geography'],
+          ].map(([word, category], index) =>
+            env.DB.prepare(
+              `INSERT INTO decrypto_words (id, word, category, status, created_at)
+               VALUES (?, ?, ?, 'active', '2026-11-26T00:00:00.000Z')`,
+            ).bind(`decrypto-fixture-${index}`, word, category),
+          ),
+        ]);
+        const selectionInput = {
+          db: env.DB,
+          roomIdentity: {
+            roomId: 'human-decrypto-room',
+            roomCode: '9013',
+            creationId: 'human-decrypto-creation',
+          },
+          effect: {
+            type: 'decrypto.words.select' as const,
+            payload: {
+              requestId: 'human-decrypto-selection',
+              gameSequence: 1,
+              participantUserIds: ['human-decrypto-player'],
+            },
+          },
+        };
+        const selection = await getOrCreateDecryptoWordSelection(selectionInput);
+        expect([...selection.blue, ...selection.purple]).toContain('大象');
+        await applySubmissionAction(
+          env,
+          batch.id,
+          action(await readSubmissionBatch(env.DB, batch.id), 'unpublish', '测试下架'),
+        );
+        expect(await getOrCreateDecryptoWordSelection(selectionInput)).toEqual(selection);
+        await expect(
+          getOrCreateDecryptoWordSelection({
+            ...selectionInput,
+            effect: {
+              ...selectionInput.effect,
+              payload: { ...selectionInput.effect.payload, gameSequence: 2 },
+            },
+          }),
+        ).rejects.toThrow('Decrypto requires at least eight active keywords');
       }
       expect(fetch).not.toHaveBeenCalled();
     },

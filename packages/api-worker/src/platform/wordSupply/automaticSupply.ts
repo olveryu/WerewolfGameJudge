@@ -6,6 +6,7 @@ const SUPPLY_FLAGS = {
   fibking: 'FIB_WORD_SUPPLY_ENABLED',
   undercover: 'UNDERCOVER_WORD_SUPPLY_ENABLED',
   drawguess: 'DRAWGUESS_WORD_SUPPLY_ENABLED',
+  decrypto: 'DECRYPTO_WORD_SUPPLY_ENABLED',
 } as const satisfies Record<GameWordGame, keyof Env>;
 
 /** Deployment availability does not depend on inventory or budget queries. */

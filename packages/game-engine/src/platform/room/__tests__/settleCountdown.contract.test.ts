@@ -59,7 +59,8 @@
  * drawguess stage-entry arming (E-2 domain), the relay
  * clock helper, gallery resume, and each game's first gallery reveal
  * (relay domain), and
- * the werewolf AUTO_SKIP writer. The switched
+ * the werewolf AUTO_SKIP writer, and Decrypto's staged reveal
+ * clock. The switched
  * adopters contribute no local arithmetic: their call sites
  * pass `nowMs` into the skeleton, whose set branch is the one
  * registered addition. (The two avalon legacy arm fragments
@@ -236,7 +237,8 @@ type DeadlineArithmeticDomain =
   | 'e2StageDeadline'
   | 'relayClock'
   | 'werewolfInlineAutoSkip'
-  | 'claimFeedback';
+  | 'claimFeedback'
+  | 'decryptoReveal';
 
 interface DeadlineArithmeticRegistration {
   /** File relative to `packages/game-engine/src` (posix separators). */
@@ -257,6 +259,19 @@ interface DeadlineArithmeticRegistration {
  * skeleton, and the skeleton's set branch is the one addition.
  */
 const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = [
+  {
+    // Server-paced playback uses the effect outbox, not the settlement countdown.
+    file: 'games/decrypto/domain/roundCommands.ts',
+    symbol: 'beginReveal',
+    expression: 'nowMs + DECRYPTO_REVEAL_INTERVAL_MS',
+    domain: 'decryptoReveal',
+  },
+  {
+    file: 'games/decrypto/domain/roundCommands.ts',
+    symbol: 'advanceReveal',
+    expression: 'context.nowMs + DECRYPTO_REVEAL_INTERVAL_MS',
+    domain: 'decryptoReveal',
+  },
   {
     // Per-seat wrong-answer lock; not a phase deadline or settlement arm.
     file: 'games/spotmatch/engine.ts',

@@ -1,3 +1,7 @@
+import {
+  DECRYPTO_WORD_CATEGORIES,
+  DECRYPTO_WORD_CATEGORY_NAMES,
+} from '@game-judge/game-engine/games/decrypto/public';
 import type {
   WordSubmissionAgent,
   wordSubmissionAuditSchema,
@@ -33,6 +37,7 @@ const MOCK_ACTIVE_COUNTS: Readonly<Record<GameWordGame, Readonly<Record<string, 
   fibking: { literature: 42, food: 28, animals: 19 },
   undercover: { food: 42, animals: 28, dailyLife: 19 },
   drawguess: { animals: 42, food: 28, dailyObjects: 19 },
+  decrypto: { animals: 12, food: 12, dailyObjects: 8 },
 };
 
 const GAME_CATEGORIES: Record<GameWordGame, readonly { id: string; name: string }[]> = {
@@ -82,6 +87,10 @@ const GAME_CATEGORIES: Record<GameWordGame, readonly { id: string; name: string 
   ],
   undercover: ADMIN_MOCK_UNDERCOVER_CATEGORIES,
   drawguess: ADMIN_MOCK_DRAWGUESS_CATEGORIES,
+  decrypto: DECRYPTO_WORD_CATEGORIES.map((id) => ({
+    id,
+    name: DECRYPTO_WORD_CATEGORY_NAMES[id],
+  })),
 };
 
 type SubmissionSeed = {
@@ -244,7 +253,7 @@ function makeAgent(
     id,
     name,
     description: '用于本地管理后台界面预览的示例 Agent。',
-    games: ['fibking', 'undercover', 'drawguess'],
+    games: ['fibking', 'undercover', 'drawguess', 'decrypto'],
     dailyQuota: 100,
     pendingQuota: 50,
     status,

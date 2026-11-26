@@ -14,6 +14,7 @@ ADMIN_PASSWORD = "test-admin-token-do-not-use-in-production"
 ENVIRONMENT = "test"
 FIB_WORD_SUPPLY_ENABLED = "false"
 UNDERCOVER_WORD_SUPPLY_ENABLED = "false"
+DECRYPTO_WORD_SUPPLY_ENABLED = "false"
 TAVILY_API_KEY = "test-key"
 GEMINI_API_KEY = "test-key"
 CLOUDFLARE_ACCOUNT_ID = "test-cloudflare-account"
@@ -93,6 +94,11 @@ class_name = "UndercoverWordSupplyWorkflow"
 name = "drawguess-word-supply"
 binding = "DRAWGUESS_WORD_SUPPLY"
 class_name = "DrawGuessWordSupplyWorkflow"
+
+[[workflows]]
+name = "decrypto-word-supply"
+binding = "DECRYPTO_WORD_SUPPLY"
+class_name = "DecryptoWordSupplyWorkflow"
 
 [[workflows]]
 name = "word-submission-review"

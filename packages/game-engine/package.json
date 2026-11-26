@@ -48,6 +48,10 @@
       "types": "./src/games/secrethitler/public.ts",
       "default": "./dist/games/secrethitler/public.js"
     },
+    "./games/decrypto/public": {
+      "types": "./src/games/decrypto/public.ts",
+      "default": "./dist/games/decrypto/public.js"
+    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"
