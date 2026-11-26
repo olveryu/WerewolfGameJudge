@@ -1,4 +1,4 @@
--- Game catalog lookup tables (replaces the never-applied 0093_toolbox.sql).
+-- Game catalog lookup tables.
 --
 -- 1. Create game_types / word_games / word_categories. Code is the single authority
 --    (GAME_TYPES, GAME_WORD_GAMES and each *_WORD_CATEGORY_CATALOG); these rows are its
@@ -12,7 +12,7 @@
 -- 3. product_game_reward_results.game_type references game_types (no descendants). The draw pool
 --    tables word_draw_index / word_seen / word_draw_ordinals reference word_games, and two
 --    triggers keep undercover draw partitions a projection of word_categories.
--- 4. toolbox is registered as one game_types row (everything 0093 was meant to do).
+-- 4. toolbox (added to the CHECK lists by 0093) becomes one game_types row like every game.
 -- 5. Drop idx_users_email (duplicated by the users.email UNIQUE autoindex) and the tables
 --    fib_word_progress / fib_word_exposures, unread and unwritten since 0067.
 PRAGMA defer_foreign_keys = true;

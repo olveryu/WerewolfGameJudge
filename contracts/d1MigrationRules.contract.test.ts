@@ -112,10 +112,10 @@ it('every rebuilt parent table rebuilds all foreign-key descendants and referenc
   }
 });
 
-it('detects the never-applied 0093 rebuild that dropped decrypto selections', () => {
-  // The deleted 0093_toolbox.sql rebuilt rooms without decrypto_round_word_selections; with
-  // foreign keys on, its DROP TABLE rooms cascaded and emptied that child. The check above must
-  // flag that shape: a rooms rebuild that omits one CASCADE child.
+it('detects a rooms rebuild that omits a cascading child table', () => {
+  // A rooms rebuild that leaves out decrypto_round_word_selections empties it: with foreign keys
+  // on, DROP TABLE rooms runs an implicit DELETE whose CASCADE is not deferred. The check above
+  // must flag that shape.
   const database = new DatabaseSync(':memory:');
   try {
     database.exec('PRAGMA foreign_keys = ON');
