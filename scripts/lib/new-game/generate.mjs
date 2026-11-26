@@ -30,6 +30,7 @@ import {
   editGuidanceMatrixRegistry,
   editNightCatalogueRegistry,
   editNightCatalogueIndex,
+  editPreviewGames,
   editProductionGameTypes,
   editRegistry,
   editReviewContractRegistry,
@@ -174,6 +175,10 @@ export const SHARED_EDITS = [
   {
     file: 'contracts/architecture.contract.test.ts',
     apply: (content, ctx) => editStatsTableOwner(content, ctx),
+  },
+  {
+    file: 'packages/web/preview/previewGames.ts',
+    apply: (content, ctx) => editPreviewGames(content, ctx),
   },
 ];
 

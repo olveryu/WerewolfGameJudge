@@ -394,6 +394,25 @@ export function editClientCatalog(content, { gameId, camel, pascal, features }) 
   );
 }
 
+/** Register the generated real-game preview in the shared local preview host. */
+export function editPreviewGames(content, { gameId, camel }) {
+  const file = 'packages/web/preview/previewGames.ts';
+  if (content.includes(`from './${camel}Preview'`))
+    fail(file, `'${gameId}' is already registered in the preview host.`);
+  const withImport = insertImportsSorted(
+    file,
+    content,
+    [`import { ${camel}Preview } from './${camel}Preview';`],
+    /^\.\//,
+  );
+  return replaceOnce(
+    file,
+    withImport,
+    /(export const previewGames: readonly PreviewGame\[\] = \[)([^\]]*)(\];)/,
+    (_match, head, body, tail) => `${head}${body.trim().replace(/,$/, '')}, ${camel}Preview${tail}`,
+  );
+}
+
 /** Register the generated owned table without relaxing the exhaustive ownership contract. */
 export function editStatsTableOwner(content, { gameId, features }) {
   if (features.stats !== 'enabled') return content;

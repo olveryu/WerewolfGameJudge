@@ -232,6 +232,7 @@ function expectedCreatedFiles(gameId, features) {
     `${worker}/module.ts`,
     `${worker}/__tests__/schemas.test.ts`,
     `${client}/assets/roleAvatars.ts`,
+    `packages/web/preview/${gameId}Preview.tsx`,
     `${client}/module.ts`,
     `${client}/home.ts`,
     `${client}/navigation/${gameId}GameNavigation.ts`,
@@ -755,6 +756,13 @@ for (const scenario of FEATURE_SCENARIOS) {
     assert.ok(
       reviewRegistry.includes('  demoproto: reviewCase(demoprotoReview, DEMOPROTO_REVIEW_ROUNDS),'),
     );
+    const previewRegistry = readFixture(root, 'packages/web/preview/previewGames.ts');
+    assert.ok(previewRegistry.includes(`import { demoprotoPreview } from './demoprotoPreview';`));
+    assert.match(
+      previewRegistry,
+      /previewGames: readonly PreviewGame\[\] = \[[^\]]*demoprotoPreview\];/,
+    );
+    assert.ok(fs.existsSync(path.join(root, 'packages/web/preview/demoprotoPreview.tsx')));
 
     // Integration report: parameters, migration and the manual steps
     // that must not be automated away (migration review, e2e approval).

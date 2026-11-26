@@ -103,10 +103,11 @@ When the user requests a UI mock, follow the mock-to-production flow in
    `buildResetToLobbyAction` (重新开始), `buildStartGameAction`,
    `GameSettingsStepper`, `RoomDialog` opened from the action hand,
    `RoomGameSummary` / `BoardInfoContent` / `RoleCardDialog` for public info.
-4. **Preview the real game.** After implementation, the preview renders the
-   real config and room screens through `createPreviewRoomLink` with the real
-   engine and the server's per-user projection; scenarios are built by
-   engine commands. Delete the mock copies, and compare against the confirmed
+4. **Preview the real game.** The generator scaffolds
+   `packages/web/preview/<camel>Preview.tsx` and registers it in
+   `previewGames`; it renders the real config and room screens through
+   `createPreviewRoomLink` with the real engine and the server's per-user
+   projection. Extend its engine-built scenarios as phases are implemented. Delete the mock copies, and compare against the confirmed
    mock screenshots before delivery.
 
 Previewing a design does not implement its rules or replace tests.

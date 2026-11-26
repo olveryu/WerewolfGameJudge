@@ -103,6 +103,11 @@ AccountStats: <Game>StatsPanel }` from the game's home and panel.
 20. `[G][C]` Explicit `--production` updates both `isProduction` and the Home
     contract list in canonical order. Without it, the generated game stays
     hidden and the CLI/report say so; visibility still requires user approval.
+21. `[G]` Real-game preview `packages/web/preview/<camel>Preview.tsx`
+    registered in `previewGames` (`packages/web/preview/previewGames.ts`):
+    the real config, rules and room screens over `createPreviewRoomLink`
+    with lobby, playing and ended scenarios from `test-utils/<id>State.ts`.
+    Add a scenario per reviewed phase as gameplay lands.
 
 If a contract test fails naming the new game, the wiring is missing;
 fix the wiring, not the expectation list
