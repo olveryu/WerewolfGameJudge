@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { type ReactNode, Suspense, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
@@ -30,7 +31,7 @@ import {
   getRoomOccupantUserId,
 } from '@/features/room/model/RoomOccupant';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import { resolveResidentDecorations } from '@/scene/residentDecorations';
+import { resolveResidentDecorations, wearsFrame } from '@/scene/residentDecorations';
 import { TESTIDS } from '@/testids';
 
 import { ProfileEquipmentShowcase } from './ProfileEquipmentShowcase';
@@ -127,7 +128,7 @@ export function PlayerProfileCard({
     body = (
       <>
         <div className="profile-header-band" data-tier="newbie" aria-hidden />
-        <div className="profile-avatar">
+        <div className={`profile-avatar ${AVATAR_CONCENTRIC_CLASS}`}>
           <ResidentAvatarTile
             userId={avatarSeed}
             avatarUrl={null}
@@ -160,18 +161,22 @@ export function PlayerProfileCard({
     const tier = levelTier(profile.level);
     const nextThreshold = getLevelThreshold(profile.level + 1);
     const progress = getLevelProgress(profile.xp);
+    const residents = resolveResidentDecorations({
+      avatarFrame: profile.avatarFrame,
+      seatFlair: profile.seatFlair,
+    });
     body = (
       <>
         <ResidentSceneLayer hostRef={sceneHostRef} />
         <div className="profile-header-band" data-tier={tier} aria-hidden />
-        <div className="profile-avatar">
+        <div
+          className={`profile-avatar ${AVATAR_CONCENTRIC_CLASS}`}
+          data-framed={wearsFrame(residents)}
+        >
           <ResidentAvatarTile
             userId={avatarSeed}
             avatarUrl={profile.avatarUrl ?? null}
-            residents={resolveResidentDecorations({
-              avatarFrame: profile.avatarFrame,
-              seatFlair: profile.seatFlair,
-            })}
+            residents={residents}
             sceneHostRef={sceneHostRef}
           />
           <span className="profile-level" data-tier={tier}>

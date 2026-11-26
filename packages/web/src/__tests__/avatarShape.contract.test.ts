@@ -86,6 +86,7 @@ const HOST_BOXES: Readonly<Record<string, string | null>> = {
 const CONCENTRIC_BOXES: Readonly<Record<string, string>> = {
   'appearance-cell': 'routes/appearance/AppearancePickers.tsx',
   'appearance-cell-upload': 'routes/appearance/AppearancePickers.tsx',
+  'profile-avatar': 'features/room/components/PlayerProfileCard.tsx',
   'resident-tile': 'features/product/components/ResidentPreview.tsx',
   'seat-status-emphasis': 'features/room/components/RoomSeatTile.tsx',
   'seat-tile-button': 'features/room/components/RoomSeatTile.tsx',
@@ -276,15 +277,19 @@ describe('Avatar shape', () => {
     expect(hostBoxes.filter((box) => !(box in CONCENTRIC_BOXES))).toEqual([]);
   });
 
-  it('gives every concentric box the shared class', () => {
+  it('gives every concentric box the shared class wherever it is drawn', () => {
     // The class joins the box's own in one template literal: `<box> ${AVATAR_CONCENTRIC_CLASS}`.
-    const missing = Object.entries(CONCENTRIC_BOXES)
-      .filter(([box, file]) => {
-        const joined = '`' + box + ' ${AVATAR_CONCENTRIC_CLASS}`';
-        return !readFileSync(join(SRC_DIR, file), 'utf8').includes(joined);
-      })
-      .map(([box]) => box);
-    expect(missing).toEqual([]);
+    // Only the captioned appearance cell (a card, not a box around the avatar) goes without it.
+    const bareAllowed: Readonly<Record<string, number>> = { 'appearance-cell': 1 };
+    const wrong = Object.entries(CONCENTRIC_BOXES).flatMap(([box, file]) => {
+      const source = readFileSync(join(SRC_DIR, file), 'utf8');
+      const joined = '`' + box + ' ${AVATAR_CONCENTRIC_CLASS}`';
+      const uses = source.match(new RegExp(`["'\`]${box}(?=["'\` ])`, 'g'))?.length ?? 0;
+      const joinedUses = source.split(joined).length - 1;
+      const bare = uses - joinedUses;
+      return joinedUses === 0 || bare !== (bareAllowed[box] ?? 0) ? [`${file}: ${box}`] : [];
+    });
+    expect(wrong).toEqual([]);
   });
 
   it('lets no concentric box set its own corners, and has each set its inset', () => {
