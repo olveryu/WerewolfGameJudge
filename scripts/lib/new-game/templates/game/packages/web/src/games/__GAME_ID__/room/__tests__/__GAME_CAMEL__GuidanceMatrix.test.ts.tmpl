@@ -34,7 +34,9 @@ import {
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import {
+//#cap botsAndTakeover
   createBotTakeoverCapability,
+//#end
   createRoomSetupCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
@@ -134,7 +136,7 @@ function drive(
   return decision.events.reduce(__GAME_CAMEL__Engine.evolve, state);
 }
 
-function lobbyState(fillBots = true): __GAME_PASCAL__State {
+function lobbyState(fillRemainingSeats = true): __GAME_PASCAL__State {
   let state = __GAME_CAMEL__Engine.createInitialState(
     { ...DEFAULT___GAME_UPPER___CONFIG, numberOfPlayers: 4 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
@@ -147,7 +149,20 @@ function lobbyState(fillBots = true): __GAME_PASCAL__State {
       userId: 'u1',
     },
   );
-  if (fillBots) state = drive(state, { type: 'room.seat.fillBots' });
+//#cap botsAndTakeover
+  if (fillRemainingSeats) state = drive(state, { type: 'room.seat.fillBots' });
+//#end
+//#cap !botsAndTakeover
+  if (fillRemainingSeats) {
+    for (const seat of [2, 3]) {
+      state = drive(
+        state,
+        { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+        { userId: `u${seat}` },
+      );
+    }
+  }
+//#end
   return state;
 }
 //#cap identityViewing
@@ -168,8 +183,8 @@ function startedState(): __GAME_PASCAL__State {
   state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
 //#end
 //#cap !botBulkViewing
-  state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 2 });
-  state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 3 });
+  state = drive(state, { type: '__GAME_ID__.role.viewed' }, { userId: 'u2' });
+  state = drive(state, { type: '__GAME_ID__.role.viewed' }, { userId: 'u3' });
 //#end
   state = drive(state, { type: '__GAME_ID__.game.begin' });
 //#end
@@ -243,7 +258,12 @@ function capabilities(isSetup = true, isRoomFull = true): RoomCapabilities {
       isSetup,
       isHost: true,
       mySeat: 0,
+//#cap botsAndTakeover
       supportsBots: true,
+//#end
+//#cap !botsAndTakeover
+      supportsBots: false,
+//#end
       hasOccupiedSeats: true,
       isRoomFull,
       requestTakeSeat: vi.fn(),
@@ -256,7 +276,12 @@ function capabilities(isSetup = true, isRoomFull = true): RoomCapabilities {
       shareRoom: vi.fn(),
     }),
     canViewProfiles: { isAllowed: true, execute: vi.fn() },
+//#cap botsAndTakeover
     canTakeOverBots: createBotTakeoverCapability(true, vi.fn()),
+//#end
+//#cap !botsAndTakeover
+    canTakeOverBots: { isAllowed: false, reason: '本游戏没有机器人' },
+//#end
   };
 }
 
@@ -339,7 +364,12 @@ describe('__GAME_PASCAL__ host controls', () => {
   });
 
 //#cap identityViewing
+//#cap botsAndTakeover
   it('enables begin only after every human and bot identity has been viewed', () => {
+//#end
+//#cap !botsAndTakeover
+  it('enables begin only after every seated identity has been viewed', () => {
+//#end
     let state = viewingState();
     const getBeginAction = () =>
       hostModel(state).actions
@@ -352,8 +382,8 @@ describe('__GAME_PASCAL__ host controls', () => {
     state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
 //#end
 //#cap !botBulkViewing
-    state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 2 });
-    state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 3 });
+    state = drive(state, { type: '__GAME_ID__.role.viewed' }, { userId: 'u2' });
+    state = drive(state, { type: '__GAME_ID__.role.viewed' }, { userId: 'u3' });
 //#end
     expect(getBeginAction()?.state.kind).toBe('ready');
   });
@@ -367,13 +397,24 @@ describe('__GAME_PASCAL__ host controls', () => {
       .find((action) => action.key === HOST_ACTION_KEYS.startGame);
     expect(begin?.state.kind).toBe('blocked');
 
+//#cap botsAndTakeover
     let unseated = drive(lobbyState(false), { type: 'room.seat.leave' });
     unseated = drive(unseated, { type: 'room.seat.fillBots' });
+//#end
+//#cap !botsAndTakeover
+    let unseated = drive(lobbyState(), { type: 'room.seat.leave' });
+    unseated = drive(
+      unseated,
+      { type: 'room.seat.take', seat: 0, profile: { displayName: 'P0' } },
+      { userId: 'u0' },
+    );
+//#end
     unseated = drive(unseated, { type: '__GAME_ID__.roles.assign' });
     expect(hostModel(unseated).pendingActionKeys).toEqual([HOST_ACTION_KEYS.startGame]);
   });
 //#end
 
+//#cap botsAndTakeover
   it('offers fill-bots only for an open lobby and runs each setup action through its capability', () => {
     const roomCapabilities = capabilities(true, false);
     const actions = hostModel(lobbyState(false), false, roomCapabilities).actions;
@@ -390,6 +431,25 @@ describe('__GAME_PASCAL__ host controls', () => {
     }
     expect(actions.map((action) => action.key)).toContain(HOST_ACTION_KEYS.fillBots);
   });
+//#end
+//#cap !botsAndTakeover
+  it('never offers fill-bots and runs each setup action through its capability', () => {
+    const roomCapabilities = capabilities(true, false);
+    expect(roomCapabilities.canFillBots.isAllowed).toBe(false);
+    const actions = hostModel(lobbyState(false), false, roomCapabilities).actions;
+    for (const [actionKey, capability] of [
+      [HOST_ACTION_KEYS.configureGame, roomCapabilities.canConfigureGame],
+      [HOST_ACTION_KEYS.clearSeats, roomCapabilities.canClearSeats],
+    ] as const) {
+      const action = actions.find((entry) => entry.key === actionKey);
+      if (action?.state.kind !== 'ready' || !capability.isAllowed)
+        throw new Error(`Missing enabled setup action: ${actionKey}`);
+      action.state.onPress();
+      expect(capability.execute).toHaveBeenCalledOnce();
+    }
+    expect(actions.map((action) => action.key)).not.toContain(HOST_ACTION_KEYS.fillBots);
+  });
+//#end
 
 //#cap identityViewing
   it('dispatches the role assignment only after host confirmation', async () => {
@@ -612,7 +672,9 @@ function shellModel(
     onViewRolePress: options.onViewRolePress ?? vi.fn(),
 //#end
     buildHostManagement,
+//#cap botsAndTakeover
     releaseBot: vi.fn(),
+//#end
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
   });
 }
@@ -733,10 +795,17 @@ function reviewAction(room: ReturnType<typeof use__GAME_PASCAL__RoomState>) {
 }
 
 describe('__GAME_PASCAL__ identity action', () => {
+//#cap botsAndTakeover
   it('opens the actual role-viewing flow and confirms for the controlled bot seat', async () => {
+//#end
+//#cap !botsAndTakeover
+  it('opens the actual role-viewing flow and confirms for the viewer seat', async () => {
+//#end
     const state = viewingState();
     const { session, result } = renderRoomState(state);
+//#cap botsAndTakeover
     act(() => result.current.shellModel.seats.onBotSeatLongPress?.(2));
+//#end
     const buttons = result.current.shellModel.playerActions.actions;
     const button = buttons.find((entry) => entry.key === 'view-identity');
     if (button?.state.kind !== 'ready') throw new Error('missing identity action');
@@ -754,7 +823,12 @@ describe('__GAME_PASCAL__ identity action', () => {
     await act(async () => result.current.roleViewing.close());
     expect(session.dispatch).toHaveBeenCalledWith(
       { type: '__GAME_ID__.role.viewed' },
+//#cap botsAndTakeover
       expect.objectContaining({ controlledSeat: 2 }),
+//#end
+//#cap !botsAndTakeover
+      expect.objectContaining({ controlledSeat: null }),
+//#end
     );
   });
 
@@ -768,10 +842,23 @@ describe('__GAME_PASCAL__ identity action', () => {
     expect(onViewRolePress).toHaveBeenCalledOnce();
   });
 
+//#cap botsAndTakeover
   it('tracks the effective seat, including a bot controlled by the host', () => {
+//#end
+//#cap !botsAndTakeover
+  it('tracks identity viewing on each viewer seat', () => {
+//#end
     const viewed = drive(viewingState(), { type: '__GAME_ID__.role.viewed' }, { userId: 'u1' });
     const playerButtons = shellModel(viewed, 'seated').playerActions.actions;
     expect(playerButtons.find((button) => button.key === 'view-identity')).toMatchObject({ isPending: false });
+//#cap !botsAndTakeover
+    expect(shellModel(viewed, 'host').playerActions.actions.find((button) => button.key === 'view-identity'))
+      .toMatchObject({ isPending: true });
+    const hostViewed = drive(viewed, { type: '__GAME_ID__.role.viewed' });
+    expect(shellModel(hostViewed, 'host').playerActions.actions.find((button) => button.key === 'view-identity'))
+      .toMatchObject({ isPending: false });
+//#end
+//#cap botsAndTakeover
 
     const hostViewed = drive(viewed, { type: '__GAME_ID__.role.viewed' });
     const botModel = shellModel(hostViewed, 'host', undefined, { controlledSeat: 2 });
@@ -781,6 +868,7 @@ describe('__GAME_PASCAL__ identity action', () => {
     const viewedBotModel = shellModel(botViewed, 'host', undefined, { controlledSeat: 2 });
     expect(viewedBotModel.playerActions.actions.find((button) => button.key === 'view-identity'))
       .toMatchObject({ isPending: false });
+//#end
   });
 
   it('hides identity in the lobby and from spectators, and locks it while submitting', () => {
@@ -807,7 +895,9 @@ describe('__GAME_PASCAL__ terminal review action', () => {
   ] as const)('marks and completes review for %s only when eligible', async (userId, pending) => {
     const state = stateFor('ended');
     const { session, result } = renderRoomState(state, userId);
+//#cap botsAndTakeover
     if (userId === 'host') act(() => result.current.shellModel.seats.onBotSeatLongPress?.(2));
+//#end
     const entry = reviewAction(result.current);
     expect(entry?.isPending ?? false).toBe(pending);
     if (entry === null || entry.action.state.kind !== 'ready') throw new Error('Missing enabled review');

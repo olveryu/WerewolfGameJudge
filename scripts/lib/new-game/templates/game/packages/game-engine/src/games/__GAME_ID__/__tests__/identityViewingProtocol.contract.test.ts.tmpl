@@ -5,15 +5,23 @@
  * lands in the viewing stage with an empty record
  * (__GAME_ID__.role.viewed, idempotent), and play is gated at the
  * host's begin command (__GAME_ID__.game.begin) — play opens only once
- * every seated player has viewed their identity. The host can take over
- * bot seats individually or use the optional bulk-mark scaffold action.
+ * every seated player has viewed their identity.
+//#cap botsAndTakeover
+ * The host can take over bot seats individually or use the optional
+ * bulk-mark scaffold action.
+//#end
+//#cap !botsAndTakeover
+ * The game has no bots: every seat is a human who views for themselves.
+//#end
  */
 
 import { describe, expect, it } from 'vitest';
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
+//#cap botsAndTakeover
 import { isBotSeat } from '../../../platform/room/seating';
+//#end
 //#cap sharedSteps
 import { finishScaffoldNight } from './nightDriver';
 //#end
@@ -39,13 +47,17 @@ function game(humanCount: number) {
   for (let seat = 0; seat < humanCount; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
+//#cap botsAndTakeover
   if (humanCount < 4) send({ type: 'room.seat.fillBots' });
+//#end
   send({ type: '__GAME_ID__.roles.assign' });
   return { session, send, seatUser };
 }
 
+//#cap botsAndTakeover
 describeIdentityViewingProtocol({
   game: '__GAME_ID__',
+  seating: 'humansAndBots',
   makeSession: () => {
     const { session, send, seatUser } = game(3);
     return {
@@ -76,8 +88,31 @@ describeIdentityViewingProtocol({
     };
   },
 });
+//#end
+//#cap !botsAndTakeover
+describeIdentityViewingProtocol({
+  game: '__GAME_ID__',
+  seating: 'humansOnly',
+  makeSession: () => {
+    const { session, send, seatUser } = game(4);
+    return {
+      viewedSeats: () => session.state.roleViewedSeats,
+      participants: () => get__GAME_PASCAL__ViewingParticipants(session.state),
+      view: (seat) => send({ type: '__GAME_ID__.role.viewed' }, seatUser(seat)),
+      isCheckpointOpen: () => {
+        // The checkpoint is the host's begin gate: probe it with a
+        // non-mutating decide so the shared scenarios can ask at any
+        // point without starting the game.
+        const decision = session.decide({ type: '__GAME_ID__.game.begin' }, 'host');
+        return decision.kind === 'commit';
+      },
+    };
+  },
+});
+//#end
 
 describe('Identity Viewing Protocol — __GAME_ID__ confirm through the shared skeleton (D-2)', () => {
+//#cap botsAndTakeover
   it('can deal and begin with every seat filled by a bot; reward eligibility is separate', () => {
     const { session, send } = game(0);
     expect(session.state.phase.kind).toBe('viewing');
@@ -91,7 +126,9 @@ describe('Identity Viewing Protocol — __GAME_ID__ confirm through the shared s
     expect(session.state.phase.kind).toBe('playing');
   });
 
+//#end
   it('still confirms an already-viewed seat after play began', () => {
+//#cap botsAndTakeover
     const { session, send, seatUser } = game(3);
     send({ type: '__GAME_ID__.role.viewed' }, seatUser(1));
     send({ type: '__GAME_ID__.role.viewed' }, seatUser(2));
@@ -100,6 +137,11 @@ describe('Identity Viewing Protocol — __GAME_ID__ confirm through the shared s
         send({ type: '__GAME_ID__.role.viewed' }, 'host', participant.seat);
       }
     }
+//#end
+//#cap !botsAndTakeover
+    const { session, send, seatUser } = game(4);
+    for (const seat of [1, 2, 3]) send({ type: '__GAME_ID__.role.viewed' }, seatUser(seat));
+//#end
     send({ type: '__GAME_ID__.role.viewed' }, 'host');
     send({ type: '__GAME_ID__.game.begin' });
 //#cap sharedSteps

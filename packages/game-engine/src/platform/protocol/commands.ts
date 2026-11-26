@@ -11,6 +11,12 @@ export type RoomSeatCommand<TProfile> =
   | { readonly type: 'room.seat.clear' }
   | { readonly type: 'room.seat.fillBots' };
 
+/** The seat vocabulary of a game without bots: every seat command except fill-bots. */
+export type RoomHumanSeatCommand<TProfile> = Exclude<
+  RoomSeatCommand<TProfile>,
+  { readonly type: 'room.seat.fillBots' }
+>;
+
 export interface RoomProfileUpdateCommand<TProfileUpdate> {
   readonly type: 'room.profile.update';
   readonly profile: TProfileUpdate;

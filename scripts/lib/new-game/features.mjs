@@ -4,6 +4,9 @@ export const FEATURE_VALUES = Object.freeze({
   guidedNarration: Object.freeze(['none', 'narrated']),
   stageDeadline: Object.freeze(['none', 'enabled']),
   wordSupply: Object.freeze(['none', 'in-game', 'background', 'both']),
+  bots: Object.freeze(['enabled', 'none']),
+  stats: Object.freeze(['enabled', 'none']),
+  rewards: Object.freeze(['flat', 'none']),
 });
 
 export const FEATURE_KEYS = Object.freeze(Object.keys(FEATURE_VALUES));
@@ -19,6 +22,8 @@ const AUDIO_ENGINE_TEST_CASES = Object.freeze([
 const AUDIO_RUNTIME_TEST_CASES = Object.freeze([
   'does not play or acknowledge a pending narration batch for non-host viewers',
 ]);
+const WITH_BOTS = Object.freeze({ bots: 'enabled' });
+const WITHOUT_BOTS = Object.freeze({ bots: 'none' });
 
 export const BASE_TEST_REQUIREMENTS = Object.freeze([
   Object.freeze({
@@ -33,11 +38,22 @@ export const BASE_TEST_REQUIREMENTS = Object.freeze([
     testCases: Object.freeze(['rejects stale restart command forms and invalid restart payloads']),
   }),
   Object.freeze({
+    template: 'packages/api-worker/src/games/__GAME_ID__/__tests__/schemas.test.ts',
+    requires: WITHOUT_BOTS,
+    testCases: Object.freeze(['rejects fill-bots because the game has no bots']),
+  }),
+  Object.freeze({
     template: GUIDANCE_TEST,
     testCases: Object.freeze([
-      'offers fill-bots only for an open lobby and runs each setup action through its capability',
       'marks the lobby host task as pending even when seats are missing',
       'submits in-game restart only after confirmation',
+    ]),
+  }),
+  Object.freeze({
+    template: GUIDANCE_TEST,
+    requires: WITHOUT_BOTS,
+    testCases: Object.freeze([
+      'never offers fill-bots and runs each setup action through its capability',
     ]),
   }),
 ]);
@@ -47,29 +63,58 @@ export const FEATURE_TEST_REQUIREMENTS = Object.freeze({
     Object.freeze({
       template:
         'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts',
+      testCases: Object.freeze(['still confirms an already-viewed seat after play began']),
+    }),
+    Object.freeze({
+      template:
+        'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts',
+      requires: WITH_BOTS,
       testCases: Object.freeze([
         'can deal and begin with every seat filled by a bot; reward eligibility is separate',
-        'still confirms an already-viewed seat after play began',
       ]),
     }),
     Object.freeze({
       template: ENGINE_TEST,
       testCases: Object.freeze([
-        'holds begin until every seat — bots included — has viewed',
         'tracks terminal review for eligible users without blocking restart',
       ]),
     }),
     Object.freeze({
+      template: ENGINE_TEST,
+      requires: WITH_BOTS,
+      testCases: Object.freeze(['holds begin until every seat — bots included — has viewed']),
+    }),
+    Object.freeze({
+      template: ENGINE_TEST,
+      requires: WITHOUT_BOTS,
+      testCases: Object.freeze(['holds begin until every seated player has viewed']),
+    }),
+    Object.freeze({
       template: GUIDANCE_TEST,
       testCases: Object.freeze([
-        'enables begin only after every human and bot identity has been viewed',
         'marks start pending only after the host has viewed their own identity',
-        'opens the actual role-viewing flow and confirms for the controlled bot seat',
         'is pending and opens the identity card for a seated player in viewing',
-        'tracks the effective seat, including a bot controlled by the host',
         'hides identity in the lobby and from spectators, and locks it while submitting',
-        'wires bulk viewing and removes it after all bots are marked',
         'marks terminal review pending without blocking confirmed restart',
+      ]),
+    }),
+    Object.freeze({
+      template: GUIDANCE_TEST,
+      requires: WITH_BOTS,
+      testCases: Object.freeze([
+        'enables begin only after every human and bot identity has been viewed',
+        'opens the actual role-viewing flow and confirms for the controlled bot seat',
+        'tracks the effective seat, including a bot controlled by the host',
+        'wires bulk viewing and removes it after all bots are marked',
+      ]),
+    }),
+    Object.freeze({
+      template: GUIDANCE_TEST,
+      requires: WITHOUT_BOTS,
+      testCases: Object.freeze([
+        'enables begin only after every seated identity has been viewed',
+        'opens the actual role-viewing flow and confirms for the viewer seat',
+        'tracks identity viewing on each viewer seat',
       ]),
     }),
   ]),
@@ -129,9 +174,18 @@ export const FEATURE_TEST_REQUIREMENTS = Object.freeze({
       ]),
     }),
   ]),
+  bots: Object.freeze([
+    Object.freeze({
+      template: GUIDANCE_TEST,
+      testCases: Object.freeze([
+        'offers fill-bots only for an open lobby and runs each setup action through its capability',
+      ]),
+    }),
+  ]),
 });
 
 export const DERIVED_CAPABILITY_KEYS = Object.freeze([
+  'botsAndTakeover',
   'nightPhase',
   'identityViewing',
   'botBulkViewing',
@@ -179,7 +233,19 @@ export function normalizeFeatureProfile(profile) {
     }
   }
 
+  if (profile.stats === 'enabled' && profile.rewards === 'none') {
+    throw new Error(
+      'Feature "stats=enabled" requires "rewards=flat": statistics ride the completion settlement.',
+    );
+  }
+
   return Object.freeze(Object.fromEntries(FEATURE_KEYS.map((key) => [key, profile[key]])));
+}
+
+function requirementApplies(requirement, features) {
+  return Object.entries(requirement.requires ?? {}).every(
+    ([feature, value]) => features[feature] === value,
+  );
 }
 
 export function resolveFeatureTestRequirements(profile, { gameId, gameName }) {
@@ -190,12 +256,14 @@ export function resolveFeatureTestRequirements(profile, { gameId, gameName }) {
       requirements.push(...(FEATURE_TEST_REQUIREMENTS[feature] ?? []));
     }
   }
-  return requirements.map(({ template, testCases }) =>
-    Object.freeze({
-      file: template.replaceAll('__GAME_ID__', gameId).replaceAll('__GAME_CAMEL__', gameName),
-      testCases,
-    }),
-  );
+  return requirements
+    .filter((requirement) => requirementApplies(requirement, features))
+    .map(({ template, testCases }) =>
+      Object.freeze({
+        file: template.replaceAll('__GAME_ID__', gameId).replaceAll('__GAME_CAMEL__', gameName),
+        testCases,
+      }),
+    );
 }
 
 export function parseFeatureDeclarations(declarations) {
@@ -229,11 +297,11 @@ export function parseFeatureDeclarations(declarations) {
 export function deriveCapabilities(profile) {
   const features = normalizeFeatureProfile(profile);
   const capabilities = Object.fromEntries(ENGINE_CAPABILITY_KEYS.map((key) => [key, false]));
-  capabilities.botsAndTakeover = true;
+  capabilities.botsAndTakeover = features.bots === 'enabled';
   capabilities.hostConfig = true;
   capabilities.nightPhase = features.night === 'narrated';
   capabilities.identityViewing = features.identity === 'private';
-  capabilities.botBulkViewing = features.identity === 'private';
+  capabilities.botBulkViewing = capabilities.identityViewing && capabilities.botsAndTakeover;
   capabilities.revealAnimation = capabilities.identityViewing;
   capabilities.audioOrchestration =
     features.night === 'narrated' || features.guidedNarration === 'narrated';

@@ -263,6 +263,7 @@ describe('Identity Viewing Protocol — undercover confirm through the shared sk
 
 describeIdentityViewingProtocol({
   game: 'undercover',
+  seating: 'humansAndBots',
   makeSession: () => {
     let state = viewingState();
     const attempt = (next: () => UndercoverState) => {

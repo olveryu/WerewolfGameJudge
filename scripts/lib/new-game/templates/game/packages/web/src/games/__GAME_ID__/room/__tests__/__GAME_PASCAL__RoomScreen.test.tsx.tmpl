@@ -29,7 +29,9 @@ import {
 } from '@/test-utils/__GAME_ID__State';
 
 //#cap identityViewing
+//#cap botsAndTakeover
 import { toRevealRoleData } from '../../components/__GAME_PASCAL__RoleCardAdapter';
+//#end
 import { create__GAME_PASCAL__SeatDataSource } from '../__GAME_CAMEL__RoomAdapter';
 //#end
 import { __GAME_CAMEL__Review } from '../../review/__GAME_CAMEL__Review';
@@ -244,6 +246,7 @@ it('offers the stage menu while playing and the bottom configuration after endin
 //#end
 
 //#cap identityViewing
+//#cap botsAndTakeover
 it('shows assigned bot identities to the room host only', () => {
   const lobby = build__GAME_PASCAL__TestLobby();
   const createSeatSource = (currentState: __GAME_PASCAL__State, userId: string) =>
@@ -267,4 +270,20 @@ it('shows assigned bot identities to the room host only', () => {
   expect(createSeatSource(viewing, 'u1').getSeat(2).secondaryLabel).toBeNull();
   expect(createSeatSource(viewing, 'spectator').getSeat(2).secondaryLabel).toBeNull();
 });
+//#end
+//#cap !botsAndTakeover
+it('never labels a seated identity on the seat board, even for the room host', () => {
+  const viewing = drive__GAME_PASCAL__TestCommand(build__GAME_PASCAL__TestLobby(), {
+    type: '__GAME_ID__.roles.assign',
+  });
+  const hostSeats = create__GAME_PASCAL__SeatDataSource({
+    state: viewing,
+    revision: 1,
+    userId: 'host',
+    controlledSeat: null,
+  });
+  for (let seat = 0; seat < viewing.config.numberOfPlayers; seat += 1)
+    expect(hostSeats.getSeat(seat).secondaryLabel).toBeNull();
+});
+//#end
 //#end

@@ -197,6 +197,7 @@ describe('Identity Viewing Protocol — werewolf confirm through the shared skel
 
 describeIdentityViewingProtocol({
   game: 'werewolf',
+  seating: 'humansAndBots',
   makeSession: () => {
     const base = createAssignedState();
     let state: GameState = { ...base, roster: { ...base.roster, 2: { seat: 2, kind: 'bot' } } };

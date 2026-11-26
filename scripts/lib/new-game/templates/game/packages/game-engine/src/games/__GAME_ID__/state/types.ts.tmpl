@@ -144,8 +144,10 @@ export interface __GAME_PASCAL__State extends BaseGameState<typeof __GAME_UPPER_
   /** 终局后已查看本局复盘的房主和入座玩家。 */
   readonly reviewCompletedUserIds: readonly string[];
 //#end
+//#cap completion
   /** 终局结算 effect 恰好发出一次的标记。 */
   readonly xpSettled: boolean;
+//#end
 //#cap audioOrchestration
   /** 待播放的播报队列（共享 AudioEffect，音频 key 见各入队点）；房主播完提交 ack 后清空。 */
   readonly pendingAudioEffects: readonly AudioEffect[];

@@ -14,14 +14,18 @@ import {
 //#end
   get__GAME_PASCAL__UserSeat,
   get__GAME_PASCAL__ViewModel,
+//#cap botsAndTakeover
   isBotSeat,
+//#end
   type __GAME_PASCAL__Command,
   type __GAME_PASCAL__State,
   type __GAME_PASCAL__ViewModel,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import type { ReactNode } from 'react';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
+//#cap botsAndTakeover
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
+//#end
 import {
   type ReadyRoomSession,
   useReadyRoomSession,
@@ -155,6 +159,7 @@ export function use__GAME_PASCAL__RoomState(
   const mySeat = get__GAME_PASCAL__UserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
   const isLobby = state.phase.kind === 'lobby';
+//#cap botsAndTakeover
   // 机器人接管：房主随时可接管；失去房主身份或座位不再是机器人时由共享守卫释放。
   const bots = useBotTakeover({
     viewer,
@@ -162,6 +167,12 @@ export function use__GAME_PASCAL__RoomState(
     gameName: '__GAME_PASCAL__',
   });
   const { controlledSeat, effectiveSeat } = bots;
+//#end
+//#cap !botsAndTakeover
+  // 本游戏没有机器人：没有接管席位，玩家始终以自己的座位行动。
+  const controlledSeat = null;
+  const effectiveSeat = mySeat;
+//#end
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: '__GAME_DISPLAY_NAME__',
@@ -175,7 +186,12 @@ export function use__GAME_PASCAL__RoomState(
     isSetup: isLobby,
     isHost,
     mySeat,
+//#cap botsAndTakeover
     supportsBots: true,
+//#end
+//#cap !botsAndTakeover
+    supportsBots: false,
+//#end
     hasOccupiedSeats: get__GAME_PASCAL__OccupiedSeatCount(state) > 0,
     isRoomFull: get__GAME_PASCAL__OccupiedSeatCount(state) === state.config.numberOfPlayers,
     configureGame: props.onOpenRoomSettings,
@@ -272,7 +288,12 @@ export function use__GAME_PASCAL__RoomState(
   });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
+//#cap botsAndTakeover
     canTakeOverBots: bots.capability,
+//#end
+//#cap !botsAndTakeover
+    canTakeOverBots: { isAllowed: false, reason: '本游戏没有机器人' },
+//#end
   };
   const defaultSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
@@ -340,7 +361,12 @@ export function use__GAME_PASCAL__RoomState(
     controlledSeat,
     seatsVisuallyDisabled: isSubmitting || seatController.isSubmitting,
     onSeatPress,
+//#cap botsAndTakeover
     onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
+//#end
+//#cap !botsAndTakeover
+    onBotSeatLongPress: null,
+//#end
     seatController,
     profileSelection: profile.selection,
 //#cap businessStats
@@ -360,7 +386,9 @@ export function use__GAME_PASCAL__RoomState(
     onViewRolePress: roleViewing.open,
 //#end
     buildHostManagement,
+//#cap botsAndTakeover
     releaseBot: bots.release,
+//#end
     review: review.entry,
   });
   return {

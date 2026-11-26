@@ -4,8 +4,10 @@
 import { acknowledgeAudioQueue, guardAudioPlayback } from '../../platform/audio';
 //#end
 import {
+//#cap completion
 //#cap !businessStats
   buildGameCompletionPayload,
+//#end
 //#end
   type CommandContext,
   type CommonGameLifecycle,
@@ -32,7 +34,12 @@ import {
   type PhaseExpiryActorChannel,
 } from '../../platform/room/phaseDeadline';
 //#end
-import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
+import {
+//#cap completion
+  getHumanSeatMap,
+//#end
+  isRoomFull,
+} from '../../platform/room/seating';
 //#cap sharedSteps
 //#cap !identityViewing
 import { resolveActingSeat } from '../../platform/room/actingSeat';
@@ -67,7 +74,9 @@ import {
   __GAME_UPPER___GAME_TYPE,
   type __GAME_PASCAL__Config,
   type __GAME_PASCAL__State,
+//#cap completion
   __GAME_UPPER___MIN_PLAYERS,
+//#end
 } from './state/types';
 //#cap businessStats
 import { buildGameCompletionPayloadV2 } from '../../platform/engine/completionEffect';
@@ -92,7 +101,9 @@ function createInitialState(
     reviewCompletedUserIds: [],
 //#end
     gameSequence: 0,
+//#cap completion
     xpSettled: false,
+//#end
 //#cap audioOrchestration
     pendingAudioEffects: [],
     isAudioPlaying: false,
@@ -101,6 +112,7 @@ function createInitialState(
   });
 }
 
+//#cap completion
 /** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
 function completionEffect(
   state: __GAME_PASCAL__State,
@@ -130,6 +142,7 @@ function completionEffect(
     payload,
   };
 }
+//#end
 
 //#cap stageDeadline
 /**
@@ -372,7 +385,12 @@ function ackAudio(
 
 /**
  * TODO(gameplay): 终局接缝。玩法状态机判定出胜负时从这里收口：
+//#cap completion
  * 一次性发 game.ended 事件 + 结算 effect（xpSettled 防重复）。
+//#end
+//#cap !completion
+ * 发 game.ended 事件；本游戏不结算奖励，终局没有 effect。
+//#end
 //#cap !stageDeadline
  * 骨架阶段没有任何命令能走到终局——玩法填空时把触发点挂到本函数上
 //#end
@@ -383,21 +401,32 @@ function ackAudio(
  */
 export function end__GAME_PASCAL__Game(
   state: __GAME_PASCAL__State,
+//#cap completion
   context: CommandContext,
+//#end
+//#cap !completion
+  // The seam keeps the command context for the gameplay that will decide the end.
+  _context: CommandContext,
+//#end
 ): __GAME_PASCAL__Decision {
   if (state.phase.kind !== 'playing') return reject(__GAME_UPPER___REASONS.phase);
+//#cap !completion
+  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.ended' }]);
+//#end
 //#cap businessStats
   const events: readonly __GAME_PASCAL__Event[] = [{ type: '__GAME_ID__.game.ended' }];
   const ended = events.reduce(evolve__GAME_PASCAL__State, state);
   const effect = state.xpSettled ? null : completionEffect(ended, context);
   return commit__GAME_PASCAL__(events, effect === null ? [] : [effect]);
 //#end
+//#cap completion
 //#cap !businessStats
   const effect = state.xpSettled ? null : completionEffect(state, context);
   return commit__GAME_PASCAL__(
     [{ type: '__GAME_ID__.game.ended' }],
     effect === null ? [] : [effect],
   );
+//#end
 //#end
 }
 
@@ -421,7 +450,9 @@ function decideCommand(
     case 'room.seat.leave':
     case 'room.seat.kick':
     case 'room.seat.clear':
+//#cap botsAndTakeover
     case 'room.seat.fillBots':
+//#end
     case 'room.profile.update':
     case '__GAME_ID__.config.update':
       return decide__GAME_PASCAL__Room(state, command, context);

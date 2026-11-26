@@ -16,7 +16,12 @@ import {
 //#end
 } from '../../../platform/protocol/reasons';
 //#cap identityViewing
+//#cap botsAndTakeover
 import { getBotSeats, isBotSeat } from '../../../platform/room/seating';
+//#end
+//#cap !botsAndTakeover
+import { getHumanSeatMap } from '../../../platform/room/seating';
+//#end
 //#end
 import type { __GAME_PASCAL__Command } from '../commands/types';
 import { __GAME_UPPER___REASONS } from '../domain/decision';
@@ -45,7 +50,7 @@ import {
 function game(
   configOverrides: Partial<__GAME_PASCAL__Config> = {},
   humanCount?: number,
-  fillRemainingWithBots = true,
+  fillRemainingSeats = true,
 ) {
   const numberOfPlayers =
     configOverrides.numberOfPlayers ?? DEFAULT___GAME_UPPER___CONFIG.numberOfPlayers;
@@ -68,8 +73,15 @@ function game(
   for (let seat = 0; seat < seatCount; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
-  if (humanCount !== undefined && humanCount < numberOfPlayers && fillRemainingWithBots) {
+  if (humanCount !== undefined && humanCount < numberOfPlayers && fillRemainingSeats) {
+//#cap botsAndTakeover
     send({ type: 'room.seat.fillBots' });
+//#end
+//#cap !botsAndTakeover
+    for (let seat = humanCount; seat < numberOfPlayers; seat += 1) {
+      send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
+    }
+//#end
   }
   return {
     get state(): __GAME_PASCAL__State {
@@ -86,6 +98,7 @@ function game(
 //#cap identityViewing
 function viewAllAndBegin(session: ReturnType<typeof game>): void {
   session.send({ type: '__GAME_ID__.roles.assign' });
+//#cap botsAndTakeover
   for (let seat = 0; seat < session.state.config.numberOfPlayers; seat += 1) {
     if (isBotSeat(session.state.roster, seat)) continue;
     session.send({ type: '__GAME_ID__.role.viewed' }, session.seatUser(seat));
@@ -101,6 +114,13 @@ function viewAllAndBegin(session: ReturnType<typeof game>): void {
     }
 //#end
   }
+//#end
+//#cap !botsAndTakeover
+  const seatedPlayers = getHumanSeatMap(session.state.roster, session.state.config.numberOfPlayers);
+  for (const player of Object.values(seatedPlayers)) {
+    session.send({ type: '__GAME_ID__.role.viewed' }, player.userId);
+  }
+//#end
   session.send({ type: '__GAME_ID__.game.begin' });
 //#cap sharedSteps
   finishScaffoldNight(session.session);
@@ -124,7 +144,9 @@ describe('__GAME_PASCAL__ restart', () => {
     expect(session.state.roster).toEqual(before.roster);
     expect(session.state.config).toEqual(before.config);
     expect(session.state.gameSequence).toBe(before.gameSequence);
+//#cap completion
     expect(session.state.xpSettled).toBe(false);
+//#end
     expect(session.effects).toHaveLength(effectsBefore);
     session.session.expectReject(command, __GAME_UPPER___REASONS.phase);
   });
@@ -165,6 +187,7 @@ describe('__GAME_PASCAL__ completion statistics eligibility', () => {
     expect(end__GAME_PASCAL__Game(ended, session.session.context('host')).kind).toBe('reject');
   });
 
+//#cap botsAndTakeover
   it('does not settle a bot-filled game below the human threshold', () => {
     const session = game({ numberOfPlayers: 4 }, 3);
     __GAME_TEST_BEGIN__
@@ -173,6 +196,7 @@ describe('__GAME_PASCAL__ completion statistics eligibility', () => {
     expect(decision.effects).toEqual([]);
     expect(decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state).phase.kind).toBe('ended');
   });
+//#end
 
   it('does not settle a game that has not reached its terminal seam', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
@@ -238,6 +262,7 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
     if (decision.kind === 'reject') expect(decision.reason).toBe(__GAME_UPPER___REASONS.phase);
   });
 
+//#cap botsAndTakeover
   it('holds begin until every seat — bots included — has viewed', () => {
     const session = game({ numberOfPlayers: 4 }, 2);
     session.send({ type: '__GAME_ID__.roles.assign' });
@@ -261,6 +286,26 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
 //#end
     expect(session.state.phase.kind).toBe('playing');
   });
+//#end
+//#cap !botsAndTakeover
+  it('holds begin until every seated player has viewed', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    session.send({ type: '__GAME_ID__.roles.assign' });
+    for (const seat of [0, 1, 2]) {
+      session.send({ type: '__GAME_ID__.role.viewed' }, session.seatUser(seat));
+    }
+    const blocked = session.decideAs({ type: '__GAME_ID__.game.begin' });
+    expect(blocked.kind).toBe('reject');
+    if (blocked.kind === 'reject')
+      expect(blocked.reason).toBe(__GAME_UPPER___REASONS.notAllViewed);
+    session.send({ type: '__GAME_ID__.role.viewed' }, session.seatUser(3));
+    session.send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session.session);
+//#end
+    expect(session.state.phase.kind).toBe('playing');
+  });
+//#end
 
   it('projects identities per viewer: self visible, others hidden until the end', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
@@ -344,7 +389,12 @@ describe('__GAME_PASCAL__ terminal review', () => {
   it('allows the host to complete a review without occupying a seat', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: 'room.seat.leave' });
+//#cap botsAndTakeover
     session.send({ type: 'room.seat.fillBots' });
+//#end
+//#cap !botsAndTakeover
+    session.send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Guest' } }, 'guest');
+//#end
     viewAllAndBegin(session);
     const endDecision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
     if (endDecision.kind !== 'commit') throw new Error(endDecision.reason);
@@ -405,12 +455,17 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
       session.session.systemContext('settle-effect'),
     );
     expect(state.phase.kind).toBe('ended');
+//#cap completion
     expect(state.xpSettled).toBe(true);
     const completions = session.effects.filter(
       (effect) => effect.type === '__GAME_ID__.game.completed',
     );
     expect(completions).toHaveLength(1);
     expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
+//#end
+//#cap !completion
+    expect(session.effects.map((effect) => effect.type)).toEqual(['__GAME_ID__.settle.due']);
+//#end
   });
 
   it('rejects the internal settle channel for a user actor', () => {
@@ -464,12 +519,17 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
       session.session.systemContext('settle-effect'),
     );
     expect(state.phase.kind).toBe('ended');
+//#cap completion
     expect(state.xpSettled).toBe(true);
     const completions = session.effects.filter(
       (effect) => effect.type === '__GAME_ID__.game.completed',
     );
     expect(completions).toHaveLength(1);
     expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
+//#end
+//#cap !completion
+    expect(session.effects.map((effect) => effect.type)).toEqual(['__GAME_ID__.settle.due']);
+//#end
   });
 
   it('rejects the internal settle channel for a user actor', () => {
@@ -592,21 +652,33 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
       expect(decision.reason).toBe(__GAME_UPPER___REASONS.notImplemented);
   });
 
+//#cap completion
   it('ends through the terminal seam with exactly one completion effect', () => {
+//#end
+//#cap !completion
+  it('ends through the terminal seam without a completion effect', () => {
+//#end
     const session = game({ numberOfPlayers: 4 }, 4);
     viewAllAndBegin(session);
     const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') return;
+//#cap completion
     expect(decision.effects).toHaveLength(1);
     const completion = decision.effects[0];
     expect(completion?.type).toBe('__GAME_ID__.game.completed');
     if (completion?.type === '__GAME_ID__.game.completed') {
       expect(completion.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
     }
+//#end
+//#cap !completion
+    expect(decision.effects).toEqual([]);
+//#end
     const ended = decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
     expect(ended.phase.kind).toBe('ended');
+//#cap completion
     expect(ended.xpSettled).toBe(true);
+//#end
     const view = get__GAME_PASCAL__ViewModel(ended, 0);
     expect(view.seats.every((seat) => seat.identity !== null)).toBe(true);
   });
@@ -624,7 +696,12 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
       expect(decision.reason).toBe(__GAME_UPPER___REASONS.notImplemented);
   });
 
+//#cap completion
   it('ends through the terminal seam with exactly one completion effect', () => {
+//#end
+//#cap !completion
+  it('ends through the terminal seam without a completion effect', () => {
+//#end
     const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: '__GAME_ID__.game.begin' });
 //#cap sharedSteps
@@ -633,15 +710,22 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
     const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') return;
+//#cap completion
     expect(decision.effects).toHaveLength(1);
     expect(decision.effects[0]?.type).toBe('__GAME_ID__.game.completed');
     const completion = decision.effects[0];
     if (completion?.type === '__GAME_ID__.game.completed') {
       expect(completion.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
     }
+//#end
+//#cap !completion
+    expect(decision.effects).toEqual([]);
+//#end
     const ended = decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
     expect(ended.phase.kind).toBe('ended');
+//#cap completion
     expect(ended.xpSettled).toBe(true);
+//#end
   });
 //#end
 });

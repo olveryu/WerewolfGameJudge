@@ -306,6 +306,7 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
 
 describeIdentityViewingProtocol({
   game: 'avalon',
+  seating: 'humansAndBots',
   makeSession: () => {
     const session = game({ numberOfPlayers: 5 }, 3);
     session.startGame();

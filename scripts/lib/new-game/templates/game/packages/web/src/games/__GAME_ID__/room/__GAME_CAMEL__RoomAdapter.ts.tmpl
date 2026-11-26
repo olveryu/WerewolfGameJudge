@@ -21,7 +21,9 @@ import { confirmAction } from '@/features/room/confirm';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { createRoomShellModel, type RoomShellModelInput } from '@/features/room/model/createRoomShellModel';
+//#cap botsAndTakeover
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+//#end
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
@@ -66,7 +68,9 @@ import {
 //#end
 } from '@/features/room/model/RoomPlayerActions';
 //#cap identityViewing
+//#cap botsAndTakeover
 import { toRevealRoleData } from '../components/__GAME_PASCAL__RoleCardAdapter';
+//#end
 //#end
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostAction } from '@/features/room/model/RoomAction';
@@ -125,11 +129,13 @@ export function create__GAME_PASCAL__SeatDataSource(
     isLobby: state.phase.kind === 'lobby',
     gameName: '__GAME_PASCAL__',
 //#cap identityViewing
+//#cap botsAndTakeover
     resolveSecondaryLabel: (seat, player) => {
       if (state.hostUserId !== userId || player?.occupant.kind !== 'bot') return null;
       const identity = state.identities[seat];
       return identity === undefined ? null : toRevealRoleData(identity).name;
     },
+//#end
 //#end
 //#cap identityViewing
     // 已查看勾只属于查看阶段（展示契约）：开始即消失。
@@ -170,7 +176,9 @@ export interface __GAME_PASCAL__RoomShellModelInput extends Omit<
   readonly effectiveSeat: number | null;
   readonly onViewRolePress: () => void;
 //#end
+//#cap botsAndTakeover
   readonly releaseBot: () => void;
+//#end
   /** 本局复盘入口（平台 useRoomReview）；没有可复盘的对局时为 null。 */
   readonly review: RoomReviewEntry | null;
 }
@@ -497,6 +505,7 @@ export function create__GAME_PASCAL__RoomShellModel(
       group: null,
 //#end
     },
+//#cap botsAndTakeover
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,
       controlledBotName:
@@ -506,5 +515,9 @@ export function create__GAME_PASCAL__RoomShellModel(
       release: input.releaseBot,
       gameName: '__GAME_PASCAL__',
     }),
+//#end
+//#cap !botsAndTakeover
+    controlledSeat: null,
+//#end
   });
 }

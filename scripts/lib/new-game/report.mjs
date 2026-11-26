@@ -32,9 +32,29 @@ export function buildIntegrationReport({
   const edited = editedFiles.map((file) => `- \`${file}\``).join('\n');
   const featureArgs = formatFeatureDeclarations(features);
   const identityNote =
-    features.identity === 'private'
-      ? ' 将 `TODO_IDENTITY` 替换为已批准的身份表；身份能力会自动包含机器人身份查看，验证主持人处理机器人身份及玩家/旁观者隐私。'
-      : '';
+    features.identity !== 'private'
+      ? ''
+      : features.bots === 'enabled'
+        ? ' 将 `TODO_IDENTITY` 替换为已批准的身份表；身份能力会自动包含机器人身份查看，验证主持人处理机器人身份及玩家/旁观者隐私。'
+        : ' 将 `TODO_IDENTITY` 替换为已批准的身份表；本游戏没有机器人，每个座位由真人自行查看，验证玩家/旁观者隐私。';
+  const rewardsRow =
+    rewards === null
+      ? '无（`rewards=none`：终局不产生 completion 结算、不发奖励）'
+      : `${rewards.xpEarned} XP · ${rewards.normalDrawsEarned} 次抽取 · 每日目标 ${rewards.dailyCompletionTarget}`;
+  const statsRow =
+    features.stats === 'enabled'
+      ? '通过人数门槛的终局 completion 计 1 局；不推断胜负/分数或历史数据'
+      : '无（`stats=none`：不建统计表、不提供战绩面板）';
+  const botsNote =
+    features.bots === 'enabled'
+      ? '已声明 `bots=enabled`：机器人座位与主持人接管已接通；身份游戏自动启用身份查看与机器人身份处理。'
+      : '本游戏声明 `bots=none`：命令词表不含 `room.seat.fillBots`，Worker 拒绝补机器人，客户端无接管入口；身份游戏只启用真人身份查看。';
+  const rewardsAndStatsStep =
+    rewards === null
+      ? '4. **奖励与战绩：不适用**：特征声明为 `rewards=none`、`stats=none`，终局不产生 completion 结算；在设计文档记录批准理由。设计变更需要奖励或战绩时，先更新特征声明再重新生成对应接线。'
+      : features.stats === 'enabled'
+        ? '4. **奖励与战绩口径确认**：明确批准 flat / levelRoll 和奖励数值；统计确定局/轮单位、事实归属、分母/零分母、时间精度、历史缺口、迁移和可见性/缓存策略。completed-games 只是基线；不需要额外指标也必须记录批准理由。每个批准指标都要在 engine `__tests__/publicStats.test.ts` 和 Worker `__tests__/publicUserStats.test.ts` 覆盖来源、单位、边界/零分母及所有权；只验证同步清单或 DTO 形状不算语义验收。保持冻结真人名单、作者过滤顺序及严格 legacy/v2 兼容；详见 [统计接线](.agents/skills/new-game/references/skeleton-and-wiring.md#statistics-and-settlement)。'
+        : '4. **奖励口径确认**：明确批准 flat / levelRoll 和奖励数值。特征声明为 `stats=none`：不建统计表、不提供战绩面板，在设计文档记录批准理由；需要战绩时先更新特征声明再重新生成。';
   const audioNote = capabilities.audioOrchestration
     ? ' 补齐 registry/player、每个夜晚/引导阶段的提示映射和打包音频；验证阶段顺序、行动者、播报门禁、重播、音乐及失败恢复。'
     : ' 本特征声明没有夜晚或其他引导播报；若设计变更，先更新特征声明再生成对应音频接线。';
@@ -66,8 +86,8 @@ export function buildIntegrationReport({
 | 游戏 ID / 特征 | \`${gameId}\` / ${formatFeatureSummary(features)} |
 | 生产态 / 首页可见 | ${production ? '是 / 是' : '否 / 否（注册但隐藏）'} |
 | 布局 / 展示 | ${capabilities.identityViewing ? '全阶段共享座位盘' : '大厅座位盘、开局后工作区'}；${home.displayName} / ${home.subtitle} |
-| 奖励占位值 | ${rewards.xpEarned} XP · ${rewards.normalDrawsEarned} 次抽取 · 每日目标 ${rewards.dailyCompletionTarget} |
-| 战绩基线 | 通过人数门槛的终局 completion 计 1 局；不推断胜负/分数或历史数据 |
+| 奖励占位值 | ${rewardsRow} |
+| 战绩基线 | ${statsRow} |
 
 ### 由特征推导的能力
 
@@ -75,7 +95,7 @@ export function buildIntegrationReport({
 | --- | --- |
 ${capabilityRows}
 
-机器人座位与主持人接管是平台基线，不作为可选游戏特征。身份游戏自动启用身份查看与机器人身份处理；夜晚自动启用夜晚阶段与音频编排，其他引导播报启用音频编排但不虚构夜晚阶段。生成器要求对应行为用例，能力与接线由 \`capabilities.contract.test.ts\` 验证。
+${botsNote}夜晚自动启用夜晚阶段与音频编排，其他引导播报启用音频编排但不虚构夜晚阶段。生成器要求对应行为用例，能力与接线由 \`capabilities.contract.test.ts\` 验证。
 
 ### 必需行为测试（预检）
 
@@ -98,7 +118,7 @@ ${edited}
 1. **设计定稿**：完成 \`docs/${gameId}-game-design.md\` 的 11 项需求表并取得批准。占位人数、展示名、副标题和图标不是最终设计。限制开局、参与、身份分配或目录可见性时，注明规则来源、合同依据或用户确认；奖励/战绩门槛不是玩法门槛。特征声明为：${formatFeatureSummary(features)}。${identityNote}
 2. **玩法实现**：在 engine、worker、web 的 \`${gameId}\` 目录处理所有 \`TODO(gameplay)\`。在 engine \`__tests__/engine.test.ts\` 为每个批准的状态转移、边界和拒绝路径补行为断言；示例命令的 \`notImplemented\` 测试必须保留到玩法真正实现，不能以骨架通过冒充完成。按 [骨架与接线清单](.agents/skills/new-game/references/skeleton-and-wiring.md) 复用房间组件，验证阶段操作、隐私投影、房主控件、素材预加载、身份/机器人变体与终局界面。${audioNote}${catalogueNote}
 3. **本局复盘填空**：实现 \`packages/web/src/games/${gameId}/review/to${names.pascal}ReviewDocument.ts\` 和 \`review/${names.camel}Review.ts\`，补齐 \`review/__tests__/${names.camel}Review.test.ts\`。只用 \`packages/web/src/features/room/review/types.ts\` 的封闭 block vocabulary；需要新表达时先扩展平台。按批准玩法断言终局事实、参与者/身份/成绩归属、轮次标识、阶段可用性和观战者内容，不要只保留生成器的通用名单示例。局面 fixture \`${names.upper}_REVIEW_ROUNDS\` 已注册，玩法变化时同步维护。
-4. **奖励与战绩口径确认**：明确批准 flat / levelRoll 和奖励数值；统计确定局/轮单位、事实归属、分母/零分母、时间精度、历史缺口、迁移和可见性/缓存策略。completed-games 只是基线；不需要额外指标也必须记录批准理由。每个批准指标都要在 engine \`__tests__/publicStats.test.ts\` 和 Worker \`__tests__/publicUserStats.test.ts\` 覆盖来源、单位、边界/零分母及所有权；只验证同步清单或 DTO 形状不算语义验收。保持冻结真人名单、作者过滤顺序及严格 legacy/v2 兼容；详见 [统计接线](.agents/skills/new-game/references/skeleton-and-wiring.md#statistics-and-settlement)。
+${rewardsAndStatsStep}
 5. **审 migration**：手工核对 \`packages/api-worker/migrations/${migrationName}\` 的约束、外键、索引/触发器和复制成本。注册 migration 来源与新增累计表见 [注册清单](.agents/skills/new-game/references/registration-checklist.md)；机械派生不代替 schema 审查。
 6. **e2e 启用需用户批准**：\`e2e/specs/${gameId}.spec.ts.tmpl\` 默认不进 CI。批准后按 \`new-e2e-spec\` skill 改为真实多 context 测试，并将 spec 加入 \`.github/workflows/ci.yml\` 分片矩阵。
 ${wordSupplyStep}

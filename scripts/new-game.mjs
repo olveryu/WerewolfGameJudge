@@ -28,9 +28,9 @@ Options:
   --subtitle <text>          Home subtitle (default: a TODO placeholder).
   --icon <ionicon-name>      Home icon (default: game-controller-outline).
   --tier <main|mini>         Home tier (default: mini).
-  --xp <n>                   Completion reward XP (default: ${DEFAULT_REWARDS.xpEarned}).
-  --draws <n>                Completion reward normal draws (default: ${DEFAULT_REWARDS.normalDrawsEarned}).
-  --daily-target <n>         Daily completion target (default: ${DEFAULT_REWARDS.dailyCompletionTarget}).
+  --xp <n>                   Completion reward XP (default: ${DEFAULT_REWARDS.xpEarned}; rewards=flat only).
+  --draws <n>                Completion reward normal draws (default: ${DEFAULT_REWARDS.normalDrawsEarned}; rewards=flat only).
+  --daily-target <n>         Daily completion target (default: ${DEFAULT_REWARDS.dailyCompletionTarget}; rewards=flat only).
 `;
 
 /** Reward values must be plain non-negative integers — no partial parses. */
@@ -41,7 +41,7 @@ function parseRewardValue(option, raw) {
 }
 
 export function parseArgs(argv) {
-  const options = { rewards: { ...DEFAULT_REWARDS }, featureDeclarations: [] };
+  const options = { rewardOverrides: {}, featureDeclarations: [] };
   const positional = [];
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -67,13 +67,13 @@ export function parseArgs(argv) {
         options.tier = next();
         break;
       case '--xp':
-        options.rewards.xpEarned = parseRewardValue('--xp', next());
+        options.rewardOverrides.xpEarned = parseRewardValue('--xp', next());
         break;
       case '--draws':
-        options.rewards.normalDrawsEarned = parseRewardValue('--draws', next());
+        options.rewardOverrides.normalDrawsEarned = parseRewardValue('--draws', next());
         break;
       case '--daily-target':
-        options.rewards.dailyCompletionTarget = parseRewardValue('--daily-target', next());
+        options.rewardOverrides.dailyCompletionTarget = parseRewardValue('--daily-target', next());
         break;
       case '--production':
         options.production = true;
@@ -105,10 +105,14 @@ function main() {
   if (options.tier !== undefined && options.tier !== 'main' && options.tier !== 'mini') {
     throw new Error(`Invalid --tier "${options.tier}": expected "main" or "mini".`);
   }
-  for (const [key, value] of Object.entries(options.rewards)) {
-    if (!Number.isInteger(value) || value < 0)
-      throw new Error(`Reward ${key} must be a non-negative integer.`);
+  const hasRewardOverrides = Object.keys(options.rewardOverrides).length > 0;
+  if (options.features.rewards === 'none' && hasRewardOverrides) {
+    throw new Error('--xp, --draws and --daily-target need --feature rewards=flat.');
   }
+  if (options.features.rewards === 'flat') {
+    options.rewards = { ...DEFAULT_REWARDS, ...options.rewardOverrides };
+  }
+  delete options.rewardOverrides;
   const summary = generateNewGame({ rootDir: process.cwd(), ...options });
   process.stdout.write(
     [

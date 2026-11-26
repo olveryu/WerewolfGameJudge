@@ -1,8 +1,13 @@
 /** __GAME_PASCAL__ commands; actors come from platform authentication. */
 
 import type {
+//#cap !botsAndTakeover
+  RoomHumanSeatCommand,
+//#end
   RoomProfileUpdateCommand,
+//#cap botsAndTakeover
   RoomSeatCommand,
+//#end
 } from '../../../platform/protocol/commands';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import type { __GAME_PASCAL__Config } from '../state/types';
@@ -11,7 +16,12 @@ import type { StepSubmission } from '../../../platform/steps';
 //#end
 
 export type __GAME_PASCAL__PublicCommand =
+//#cap botsAndTakeover
   | RoomSeatCommand<RoomSeatProfile>
+//#end
+//#cap !botsAndTakeover
+  | RoomHumanSeatCommand<RoomSeatProfile>
+//#end
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: '__GAME_ID__.config.update'; readonly config: __GAME_PASCAL__Config }
 //#cap stageDeadline

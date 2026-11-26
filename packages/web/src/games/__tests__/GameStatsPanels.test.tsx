@@ -68,20 +68,17 @@ function resetMocks() {
 beforeEach(resetMocks);
 
 describe('game-owned account statistics panels', () => {
-  it('registers one account panel for every game that completes player games', () => {
-    // A `none` reward policy means the game never completes a player game, so it has no stats.
-    const gamesWithCompletions = GAME_TYPES.filter(
-      (gameType) => GAME_REGISTRY[gameType].rewards.policy !== 'none',
+  it('registers account panels once, in game order, only for games that complete player games', () => {
+    // Statistics ride the completion settlement: a `none` reward policy never completes a player
+    // game, so it cannot own a panel. A completing game may still declare no statistics.
+    const panelGameTypes = GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType);
+    expect(panelGameTypes).toEqual(
+      GAME_TYPES.filter((gameType) => panelGameTypes.includes(gameType)),
     );
-    expect(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).toEqual(
-      gamesWithCompletions,
-    );
-    expect(new Set(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).size).toBe(
-      gamesWithCompletions.length,
-    );
-    expect(GAME_ACCOUNT_STATS_SECTIONS.every((section) => section.Section !== undefined)).toBe(
-      true,
-    );
+    expect(new Set(panelGameTypes).size).toBe(panelGameTypes.length);
+    for (const gameType of panelGameTypes) {
+      expect(GAME_REGISTRY[gameType].rewards.policy).not.toBe('none');
+    }
   });
 
   it('shows Avalon faction outcomes and expandable per-role wins', () => {

@@ -109,8 +109,8 @@ export function editGameTypes(content, { gameId }) {
   );
 }
 
-/** Append the registration metadata entry (flat rewards, production flag per --production, no workflows/routes yet). */
-export function editRegistry(content, { gameId, production }) {
+/** Append the registration metadata entry (reward policy per rewards feature, production flag per --production, no workflows/routes yet). */
+export function editRegistry(content, { gameId, production, rewards }) {
   const file = 'games/registry.ts';
   if (content.includes(`gameType: '${gameId}'`)) fail(file, `'${gameId}' is already registered.`);
   const entry = [
@@ -119,7 +119,9 @@ export function editRegistry(content, { gameId, production }) {
     `    enginePublicExport: './games/${gameId}/public',`,
     `    clientModulePath: 'packages/web/src/games/${gameId}/module.ts',`,
     `    isProduction: ${production},`,
-    `    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.${gameId} },`,
+    rewards === null
+      ? `    rewards: { policy: 'none' },`
+      : `    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.${gameId} },`,
     `    workerWorkflows: [],`,
     `    httpRoutes: [],`,
     `  },`,
@@ -185,8 +187,9 @@ export function editExpectedPhaseDeadlineVariants(content, { gameId, capabilitie
   );
 }
 
-/** Add the flat completion-reward parameter row referenced by the registry entry. */
+/** Add the flat completion-reward parameter row referenced by the registry entry; rewards=none has none. */
 export function editCompletionRewards(content, { gameId, rewards }) {
+  if (rewards === null) return content;
   const file = 'product/rewards/earnings.ts';
   if (new RegExp(`^  ${gameId}:`, 'm').test(content))
     fail(file, `'${gameId}' already has a reward row.`);
@@ -362,30 +365,38 @@ export function editWorkerCatalog(content, { gameId, camel }) {
 }
 
 /** Register the game's Home contribution in the exhaustive web client catalog. */
-export function editClientCatalog(content, { gameId, camel, pascal }) {
+export function editClientCatalog(content, { gameId, camel, pascal, features }) {
   const file = 'packages/web/src/games/catalog.ts';
   if (content.includes(`'@/games/${gameId}/home'`))
     fail(file, `'${gameId}' is already in the client catalog.`);
+  const hasStats = features.stats === 'enabled';
   const withImport = insertImportsSorted(
     file,
     content,
     [
       `import { ${camel}Home } from '@/games/${gameId}/home';`,
-      `import { ${pascal}StatsPanel } from '@/games/${gameId}/components/${pascal}StatsPanel';`,
+      ...(hasStats
+        ? [
+            `import { ${pascal}StatsPanel } from '@/games/${gameId}/components/${pascal}StatsPanel';`,
+          ]
+        : []),
     ],
     /^@\/games\//,
   );
+  const entry = hasStats
+    ? `{ home: ${camel}Home, AccountStats: ${pascal}StatsPanel }`
+    : `{ home: ${camel}Home }`;
   return replaceOnce(
     file,
     withImport,
     /(const CLIENT_GAMES: \{ readonly \[TGameType in GameType\]: ClientGameModule \} = \{[\s\S]*?)(\n\};)/,
-    (_match, head, tail) =>
-      `${head}\n  ${gameId}: { home: ${camel}Home, AccountStats: ${pascal}StatsPanel },${tail}`,
+    (_match, head, tail) => `${head}\n  ${gameId}: ${entry},${tail}`,
   );
 }
 
 /** Register the generated owned table without relaxing the exhaustive ownership contract. */
-export function editStatsTableOwner(content, { gameId }) {
+export function editStatsTableOwner(content, { gameId, features }) {
+  if (features.stats !== 'enabled') return content;
   const file = 'contracts/architecture.contract.test.ts';
   const table = `${gameId}_user_stats`;
   const pattern = /(const expectedOwners = new Map<string, string>\(\[\n)([\s\S]*?)(    \]\);)/;
