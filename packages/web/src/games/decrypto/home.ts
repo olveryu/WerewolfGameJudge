@@ -1,4 +1,5 @@
 /** 解码战 contribution to the Home surface. */
+import decryptoArt from '@/assets/game-art/decrypto.webp';
 import type { GameHomeContribution } from '@/games/model/GameHome';
 import { colors } from '@/theme/colors';
 import { lighten } from '@/theme/colorUtils';
@@ -11,5 +12,6 @@ export const decryptoHome = {
     Icon: IconGameControllerOutline,
     tier: 'mini',
     gradient: [lighten(colors.primary, 0.45), colors.primary],
+    artUrl: decryptoArt,
   },
 } satisfies GameHomeContribution;
