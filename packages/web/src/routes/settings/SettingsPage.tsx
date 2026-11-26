@@ -22,7 +22,7 @@ import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
 import { Switch } from '@/components/Switch';
-import { formatTicketBadgeCount } from '@/components/ticketBadgeCount';
+import { ticketBadgeText } from '@/components/ticketBadgeCount';
 import { DEVELOPER_WECHAT_ID } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
@@ -153,17 +153,13 @@ function ActionEntry({ onClick, tone, busy = false, ...body }: ActionEntryProps)
 function GachaEntry() {
   const { roomCode } = useParams();
   const { data: gachaStatus } = useGachaStatusQuery();
-  const ticketCount = gachaStatus ? countUnusedTickets(gachaStatus) : 0;
+  const badgeText = ticketBadgeText(gachaStatus ? countUnusedTickets(gachaStatus) : 0);
   return (
     <LinkEntry
       to={roomCode === undefined ? '/gacha' : `/gacha/${roomCode}`}
       icon={<IconGiftOutline aria-hidden />}
       label="扭蛋抽奖"
-      trailing={
-        ticketCount > 0 && (
-          <span className="settings-entry-badge">{formatTicketBadgeCount(ticketCount)}</span>
-        )
-      }
+      trailing={badgeText !== null && <span className="settings-entry-badge">{badgeText}</span>}
     />
   );
 }

@@ -2,7 +2,7 @@ import './AccountAvatar.css';
 
 import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 
-import { formatTicketBadgeCount } from '../ticketBadgeCount';
+import { ticketBadgeText } from '../ticketBadgeCount';
 import { Avatar } from './Avatar';
 
 /** Side of the account entry's avatar in px (Home and room headers). */
@@ -27,10 +27,11 @@ export function AccountAvatar({ user }: AccountAvatarProps) {
 
 /** The gacha ticket count over an account entry; nothing while there are no tickets. */
 export function AccountTicketBadge({ count }: { readonly count: number }) {
-  if (count <= 0) return null;
+  const text = ticketBadgeText(count);
+  if (text === null) return null;
   return (
     <span className="account-ticket-badge" aria-label={`${count} 张抽奖券`} role="img">
-      {formatTicketBadgeCount(count)}
+      {text}
     </span>
   );
 }
