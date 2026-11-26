@@ -107,7 +107,14 @@ describe('buildAvalonBoardStatus', () => {
     const { getByText, getByTestId } = render(
       <BoardStatusPreview
         status={buildAvalonBoardStatus({
-          tracks: <button type="button">任务轨道</button>,
+          tracks: [
+            {
+              key: 'quests',
+              heading: '任务轨道',
+              accessibleLabel: '任务轨道',
+              cells: [{ key: '1', state: 'success', title: '任务1', lines: ['成功'] }],
+            },
+          ],
           latestResult: '任务一 · 成功',
           pendingSeats: [1, 4],
           pendingLabel: '未出牌',
@@ -126,6 +133,7 @@ describe('buildAvalonBoardStatus', () => {
       '未出牌：2号 5号',
     );
     expect(getByText('任务轨道')).toBeTruthy();
+    expect(getByText('任务1').parentElement).toHaveAttribute('data-state', 'success');
     expect(getByText('任务一 · 成功')).toBeTruthy();
   });
 });

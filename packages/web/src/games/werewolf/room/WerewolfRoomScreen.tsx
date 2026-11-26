@@ -45,10 +45,8 @@ import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen
 import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import { TESTIDS } from '@/testids';
-import IconMoonOutline from '~icons/ion/moon-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
-import IconTimeOutline from '~icons/ion/time-outline';
 
 import { BoardNominationModal } from './components/BoardNominationList';
 import { MvpSelectionModal } from './components/MvpSelectionModal';
@@ -188,16 +186,6 @@ function WerewolfRoomContent(
     sheriffElectionPanel === null
       ? null
       : buildSheriffElectionBoardStatus(sheriffElectionPanel, isHost, phaseLabel);
-  const announcementContent =
-    publicAnnouncements.length === 0 ? null : (
-      <>
-        {publicAnnouncements.map((announcement) => (
-          <p className="room-compact-status-message" key={announcement.key}>
-            {announcement.message}
-          </p>
-        ))}
-      </>
-    );
 
   return (
     <RoomShell
@@ -303,13 +291,11 @@ function WerewolfRoomContent(
       content={{
         kind: 'seats',
         boardStatus: sheriffBoardStatus,
-        statusAdditionalContent: announcementContent,
-        compactStatusIcon:
-          status === GameStatus.Ongoing ? (
-            <IconMoonOutline aria-hidden />
-          ) : (
-            <IconTimeOutline aria-hidden />
-          ),
+        statusNotices: publicAnnouncements.map((announcement) => ({
+          key: announcement.key,
+          text: announcement.message,
+        })),
+        statusIcon: status === GameStatus.Ongoing ? 'moon-outline' : 'time-outline',
         contextHeader:
           sheriffElectionPanel === null && remainingSeconds === null ? null : (
             <StageSettleRescue

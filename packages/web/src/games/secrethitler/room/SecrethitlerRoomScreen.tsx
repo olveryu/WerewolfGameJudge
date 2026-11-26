@@ -36,9 +36,6 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
 import { TESTIDS } from '@/testids';
-import IconCheckboxOutline from '~icons/ion/checkbox-outline';
-import IconMoonOutline from '~icons/ion/moon-outline';
-import IconTimeOutline from '~icons/ion/time-outline';
 
 import {
   secrethitlerVoteFailImage,
@@ -59,7 +56,7 @@ import {
   secrethitlerSeatLabel,
 } from './secrethitlerPresentation';
 import { SECRETHITLER_GAME_ACTION_KEY } from './secrethitlerRoomAdapter';
-import { SecrethitlerRoomTracks } from './SecrethitlerRoomTracks';
+import { buildSecrethitlerRoomTracks, getSecrethitlerLatestResult } from './secrethitlerRoomTracks';
 
 type SecrethitlerRoomScreenProps = GameRoomScreenProps<'secrethitler'> & {
   readonly session: SecrethitlerRoomSession;
@@ -169,12 +166,7 @@ function SecrethitlerRoomContent(
       content={{
         kind: 'seats',
         boardStatus: matchStatus,
-        compactStatusIcon:
-          screen.state.phase.kind === 'night' ? (
-            <IconMoonOutline aria-hidden />
-          ) : (
-            <IconTimeOutline aria-hidden />
-          ),
+        statusIcon: screen.state.phase.kind === 'night' ? 'moon-outline' : 'time-outline',
         contextHeader: null,
         informationLayout: showHistory ? 'scroll-with-seats' : 'fixed',
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
@@ -428,8 +420,9 @@ export function buildSecrethitlerBoardStatus({
         ? `已投 ${view.livingSeats.length - pending.length}/${view.livingSeats.length}`
         : null,
     pendingSeats: isVoting && pending !== null ? { seats: pending, label: '未投票' } : null,
-    icon: isVoting ? <IconCheckboxOutline aria-hidden /> : <IconTimeOutline aria-hidden />,
-    attachment: <SecrethitlerRoomTracks state={state} view={view} />,
+    icon: isVoting ? 'checkbox-outline' : 'time-outline',
+    tracks: buildSecrethitlerRoomTracks(state, view),
+    footnote: getSecrethitlerLatestResult(state),
   };
 }
 

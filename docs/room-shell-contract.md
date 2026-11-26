@@ -29,7 +29,7 @@ component owns the complete geometry, including the value area, not just its out
 | Count / switch / radio controls              | `src/components/GameSettings.tsx` and `GameSettings.styles.ts`                                       | Values and intent callbacks; the form supplies them from the schema                                                                                       |
 | Reading sections and notices                 | `src/components/GameGuide.tsx`                                                                       | Accurate game-owned rules and tool limitations                                                                                                            |
 | Unified game configuration card              | `src/features/room/components/RoomGameSummary.tsx`                                                   | Game name/count, required guide intent, public content, phase collapse default and available strategy/notepad intents                                     |
-| Board status bar                             | `src/features/room/model/RoomBoardStatus.ts`                                                         | Public context, one status line, progress, pending seats, icon and attachment (e.g. score tracks) as data; only the shell renders the bar                 |
+| Board status bar                             | `src/features/room/model/RoomBoardStatus.ts`                                                         | Public context, one status line, progress, pending seats, notices, icon name, tracks and footnote as data; only the shell renders the bar                 |
 | Centered room details                        | `src/features/room/components/RoomDialog.tsx`                                                        | Title, scrollable details, close intent and fixed footer                                                                                                  |
 
 - Use the compact Werewolf settings hierarchy. Settings pages configure a game; long gameplay
@@ -280,13 +280,20 @@ authorized stage actions. Cards are ordered by category and state while preservi
 
 `RoomActionStatus` is separate from the hand container. Seat content places status above the seat
 board as exactly one `RoomCompactStatus` (context, one status line carrying `actionMessage`,
-optional progress, pending seats and an attachment such as score tracks). The game's
-`boardStatus` supplies its data, falling back to the shell's phase label and icon; without one the
-shell shows the phase or lobby status. Audio narration and seat selection replace only the
-message line and hide progress and pending seats, keeping the context and attachment. Games never
-render the bar themselves: only `RoomActionStatus` imports `RoomCompactStatus`, pinned by
+optional progress, pending seats, public notice lines, then score tracks and a footnote below a
+divider). The model holds data only: the icon is an `IoniconName`, tracks are `RoomTrack` cells
+(state, title, lines and an optional read-only rule detail) rendered by the shared `RoomTracks`,
+and no field takes React content. `resolveRoomBoardStatus` merges the inputs as a pure function.
+The game's `boardStatus` supplies its data, falling back to the shell's `statusIcon` and phase label;
+without one the shell shows the phase or lobby status. `statusNotices` are public text lines (e.g.
+dawn announcements) the shell keeps inside that same bar in every phase, with or without a
+`boardStatus`. Audio narration and seat selection replace only the message line and hide progress
+and pending seats, keeping the context, notices, tracks and footnote. Games never render the bar or its
+lines themselves: only `RoomActionStatus` imports `RoomCompactStatus` and no other source uses a
+`room-compact-status*` class, pinned by
 `packages/web/src/__tests__/roomBoardStatusOwnership.contract.test.ts`, and the shell's one-bar
-rendering is pinned in `RoomShell.stage.test.tsx`. Other hand surfaces place status in the bottom panel. Stage content
+rendering is pinned in `RoomShell.stage.test.tsx`; the web test setup fails any test whose room
+renders more than one bar. Other hand surfaces place status in the bottom panel. Stage content
 keeps its status in the HUD and requires the menu action surface. Dialog and game-workspace
 controls remain game-owned and are not moved into the hand.
 

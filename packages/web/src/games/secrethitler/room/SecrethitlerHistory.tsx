@@ -9,6 +9,7 @@ import { useState } from 'react';
 
 import { SeatDot } from '@/components/SeatDot';
 import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
+import { RoomTracks } from '@/features/room/components/RoomTracks';
 import IconCheckmark from '~icons/ion/checkmark';
 import IconClose from '~icons/ion/close';
 
@@ -19,7 +20,7 @@ import {
   SECRETHITLER_POWER_COPY,
   secrethitlerSeatLabel,
 } from './secrethitlerPresentation';
-import { SecrethitlerRoomTracks } from './SecrethitlerRoomTracks';
+import { buildSecrethitlerRoomTracks } from './secrethitlerRoomTracks';
 
 type RecordSection = 'governments' | 'policies' | 'actions';
 type Government = SecrethitlerViewModel['history']['governments'][number];
@@ -163,7 +164,7 @@ export function SecrethitlerMatchDetails({
         投票{formatSecrethitlerVoteMode(view.voteMode)} · 存活 {view.livingSeats.length} 人
         {view.vetoUnlocked ? ' · 否决权已解锁' : ''}
       </p>
-      <SecrethitlerRoomTracks state={state} view={view} showLatestResult={false} />
+      <RoomTracks tracks={buildSecrethitlerRoomTracks(state, view)} />
       {view.presidentSeat !== null && (
         <p className="secrethitler-record-config">
           总统：{secrethitlerSeatLabel(view, view.presidentSeat)}

@@ -41,6 +41,7 @@ import {
   createAvalonCurrentStatus,
   createAvalonHistorySummary,
 } from './avalonRoomAdapter';
+import { buildAvalonRoomTracks } from './avalonRoomTracks';
 import { createAvalonStatusContext } from './avalonStatusContext';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
@@ -48,7 +49,6 @@ import { AvalonLadyCheckConfirmModal } from './components/AvalonLadyCheckConfirm
 import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
-import { AvalonRoomTracks } from './components/AvalonRoomTracks';
 import { AvalonStrikeConfirmModal } from './components/AvalonStrikeConfirmModal';
 import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
@@ -112,7 +112,7 @@ function AvalonRoomContent(
     historySummary === null || currentStatus === null || viewModel === null
       ? null
       : buildAvalonBoardStatus({
-          tracks: <AvalonRoomTracks view={viewModel} />,
+          tracks: buildAvalonRoomTracks(viewModel),
           latestResult:
             phase.kind !== 'ended' &&
             (screen.state.roundHistory.some((round) => round.proposals.length > 0) ||

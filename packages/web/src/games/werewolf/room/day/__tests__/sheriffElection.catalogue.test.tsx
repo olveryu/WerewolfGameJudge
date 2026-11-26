@@ -548,7 +548,7 @@ const ELECTION_SOURCES = [
   'day/sheriffElectionPresentation.ts',
   'day/sheriffElectionViewModel.ts',
   'day/useSheriffElection.ts',
-  'day/sheriffElectionBoardStatus.tsx',
+  'day/sheriffElectionBoardStatus.ts',
   'components/SheriffElectionPanel.tsx',
   'components/SheriffElectionReadOnly.tsx',
 ];

@@ -146,7 +146,8 @@ function UndercoverRoomContent(
                 progress: null,
                 pendingSeats: null,
                 icon: null,
-                attachment: null,
+                tracks: [],
+                footnote: null,
               }
             : null,
         afterSeatBoard: null,

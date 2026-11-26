@@ -14,6 +14,7 @@ export function BoardStatusPreview({ status }: { readonly status: RoomBoardStatu
         lobbyDetail: null,
         icon: null,
         gameStatus: status,
+        notices: [],
       }}
     />
   );

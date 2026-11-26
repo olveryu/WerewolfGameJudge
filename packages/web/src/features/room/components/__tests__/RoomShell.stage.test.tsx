@@ -190,7 +190,15 @@ describe('RoomShell stage content', () => {
             progress: null,
             pendingSeats: null,
             icon: null,
-            attachment: <p>本局记录</p>,
+            tracks: [
+              {
+                key: 'record',
+                heading: '本局记录',
+                accessibleLabel: '本局记录',
+                cells: [{ key: '1', state: 'current', title: '第1格', lines: [] }],
+              },
+            ],
+            footnote: null,
           },
           beforeSeatBoard: <p>座位说明</p>,
           afterSeatBoard: null,
@@ -232,7 +240,15 @@ describe('RoomShell stage content', () => {
       progress: '已投 1/2',
       pendingSeats: { seats: [1], label: '未投票' },
       icon: null,
-      attachment: <p>竞选轨道</p>,
+      tracks: [
+        {
+          key: 'election',
+          heading: '竞选轨道',
+          accessibleLabel: '竞选轨道',
+          cells: [{ key: '1', state: 'current', title: '第1格', lines: [] }],
+        },
+      ],
+      footnote: null,
     };
     const cases: readonly {
       readonly name: string;

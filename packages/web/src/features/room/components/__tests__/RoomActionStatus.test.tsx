@@ -19,6 +19,7 @@ const SHELL_BOARD = {
   lobbyDetail: null,
   icon: null,
   gameStatus: null,
+  notices: [],
 };
 
 const GAME_STATUS: RoomBoardStatusModel = {
@@ -27,7 +28,15 @@ const GAME_STATUS: RoomBoardStatusModel = {
   progress: '已投 1/5',
   pendingSeats: { seats: [1, 2], label: '未投票', testId: 'pending' },
   icon: null,
-  attachment: <p>任务轨道</p>,
+  tracks: [
+    {
+      key: 'quests',
+      heading: '任务轨道',
+      accessibleLabel: '任务轨道',
+      cells: [{ key: '1', state: 'current', title: '任务1', lines: [] }],
+    },
+  ],
+  footnote: '任务一 · 成功',
   testId: 'game-status',
 };
 
@@ -88,18 +97,18 @@ it('falls back to the shell phase label and icon when the game status leaves the
       board={{
         ...SHELL_BOARD,
         phaseLabel: '本局结束',
-        icon: <svg data-testid="shell-icon" />,
+        icon: 'moon-outline',
         gameStatus: { ...GAME_STATUS, context: null, icon: null, message: '卧底获胜' },
       }}
     />,
   );
   expect(container.querySelectorAll('.room-compact-status')).toHaveLength(1);
   expect(screen.getByText('本局结束')).toBeInTheDocument();
-  expect(screen.getByTestId('shell-icon')).toBeInTheDocument();
+  expect(container.querySelector('.room-compact-status-context svg')).not.toBeNull();
   expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('卧底获胜');
 });
 
-it('replaces only the game message line during audio and selection, keeping context and attachment', () => {
+it('replaces only the game message line during audio and selection, keeping context and tracks', () => {
   const props = {
     model: {
       ...EMPTY_ACTIONS,
@@ -126,6 +135,7 @@ it('replaces only the game message line during audio and selection, keeping cont
   );
   expect(screen.getByText('任务二 · 投票中')).toBeInTheDocument();
   expect(screen.getByText('任务轨道')).toBeInTheDocument();
+  expect(screen.getByText('任务一 · 成功')).toBeInTheDocument();
   expect(screen.queryByText('已投 1/5')).not.toBeInTheDocument();
   expect(screen.queryByTestId('pending')).not.toBeInTheDocument();
 
@@ -134,4 +144,28 @@ it('replaces only the game message line during audio and selection, keeping cont
   expect(screen.getByTestId(TESTIDS.audioWaitingMessage)).toHaveTextContent('语音播报中…');
   expect(screen.getByText('任务二 · 投票中')).toBeInTheDocument();
   expect(screen.getByText('任务轨道')).toBeInTheDocument();
+});
+
+it('keeps notices inside the one bar with or without a game status, through audio', () => {
+  const notices = [{ key: 'mark', text: '猩红之子：7号' }];
+  const props = {
+    model: { ...EMPTY_ACTIONS, message: '等待发言' },
+    isAudioPlaying: false,
+    hostManagement: null,
+    board: { ...SHELL_BOARD, phaseLabel: '白天', notices },
+  };
+  const { container, rerender } = render(<RoomActionStatus {...props} />);
+  const bars = () => container.querySelectorAll('.room-compact-status');
+  expect(bars()).toHaveLength(1);
+  expect(bars()[0]).toHaveTextContent('白天');
+  expect(bars()[0]).toHaveTextContent('猩红之子：7号');
+
+  rerender(<RoomActionStatus {...props} board={{ ...props.board, gameStatus: GAME_STATUS }} />);
+  expect(bars()).toHaveLength(1);
+  expect(screen.getByTestId('game-status')).toHaveTextContent('猩红之子：7号');
+
+  rerender(<RoomActionStatus {...props} isAudioPlaying />);
+  expect(bars()).toHaveLength(1);
+  expect(bars()[0]).toHaveTextContent('语音播报中…');
+  expect(screen.getAllByText('猩红之子：7号')).toHaveLength(1);
 });
