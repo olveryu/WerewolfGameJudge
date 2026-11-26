@@ -1,19 +1,11 @@
 .toolbox-dice {
-  display: grid;
-  gap: var(--space-small);
   color: var(--color-text);
 }
 
 .toolbox-dice-heading {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toolbox-dice-heading h2 {
-  margin: 0;
-  font-size: var(--font-title);
-  font-weight: var(--weight-semibold);
+  justify-content: flex-end;
+  margin-bottom: var(--space-small);
 }
 
 .toolbox-dice-sound {
@@ -31,7 +23,9 @@
 }
 
 .toolbox-dice-table {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 13rem;
@@ -44,11 +38,58 @@
   box-shadow: inset 0 var(--space-tight) var(--space-medium) var(--color-text-muted-a30);
 }
 
-.toolbox-dice-cup {
+.toolbox-dice-table-caption {
+  position: absolute;
+  top: var(--space-medium);
+  left: var(--space-medium);
+  color: var(--color-text-inverse-a65);
+  font-size: var(--font-caption-small);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.16em;
+}
+
+.toolbox-dice-cup-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 11rem;
+  height: 11rem;
+  padding: var(--space-small);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toolbox-dice-cup-button:disabled {
+  cursor: default;
+}
+
+.toolbox-dice-cup-button:focus-visible,
+.toolbox-dice-die:focus-visible {
+  outline: var(--border-width-highlight) solid var(--color-text-inverse);
+  outline-offset: var(--space-tight);
+}
+
+.toolbox-dice-cup-button::before {
+  position: absolute;
+  right: 4%;
+  bottom: 1%;
+  left: 4%;
+  height: 15%;
+  border-radius: 50%;
+  background: var(--color-text-muted-a30);
+  filter: blur(var(--space-small));
+  content: '';
+}
+
+.toolbox-dice-cup-illustration {
   position: relative;
   display: block;
   width: 8.5rem;
   height: 9rem;
+  flex: none;
   transform-origin: 50% 80%;
   filter: drop-shadow(0 var(--space-small) var(--space-small) var(--color-text-muted-a30));
 }
@@ -113,12 +154,23 @@
   box-shadow: inset 0 var(--space-tight) var(--space-tight) var(--color-text);
 }
 
+.toolbox-dice-table[data-cup-state='open'] .toolbox-dice-cup-button {
+  width: 8rem;
+  height: 6.5rem;
+}
+
+.toolbox-dice-table[data-cup-state='open'] .toolbox-dice-cup-illustration {
+  transform-origin: center;
+  transform: scale(0.6) rotate(-8deg);
+}
+
 .toolbox-dice-faces {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-small);
-  margin: 0;
+  align-self: stretch;
+  margin: var(--space-small) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -139,20 +191,11 @@
   cursor: pointer;
 }
 
-.toolbox-dice-die:focus-visible {
-  outline: var(--border-width-highlight) solid var(--color-text-inverse);
-  outline-offset: var(--space-tight);
-}
-
 .toolbox-dice-die[aria-pressed='true'] {
   border-color: var(--color-warning);
   box-shadow:
     0 var(--space-tight) 0 var(--color-warning-text),
     0 var(--space-small) var(--space-small) var(--color-text-muted-a30);
-}
-
-.toolbox-dice-die:disabled {
-  cursor: default;
 }
 
 .toolbox-dice-pips {
@@ -167,6 +210,7 @@
   width: 65%;
   aspect-ratio: 1;
   border-radius: 50%;
+  background: transparent;
 }
 
 .toolbox-dice-pip[data-visible='true'] {
@@ -187,48 +231,25 @@
 }
 
 .toolbox-dice-status {
-  margin: var(--space-small) 0 0;
+  margin: var(--space-medium) 0 0;
   text-align: center;
-  font-size: var(--font-subtitle);
   font-weight: var(--weight-semibold);
 }
 
 .toolbox-dice-hint {
-  margin: 0;
+  margin: var(--space-tight) 0 0;
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   text-align: center;
 }
 
-.toolbox-dice-primary {
-  display: grid;
-}
-
-.toolbox-dice-count {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-medium);
-  padding: var(--space-medium);
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
-  background: var(--color-background);
-}
-
-.toolbox-dice-count strong,
-.toolbox-dice-count span {
-  display: block;
-}
-
-.toolbox-dice-count span {
-  margin-top: var(--space-tight);
-  color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-}
-
 @media (prefers-reduced-motion: no-preference) {
-  .toolbox-dice-table[data-cup-state='shaking'] .toolbox-dice-cup {
-    animation: toolbox-dice-shake 1.2s ease-in-out both;
+  .toolbox-dice-cup-illustration {
+    transition: transform 320ms ease-out;
+  }
+
+  .toolbox-dice-table[data-cup-state='shaking'] .toolbox-dice-cup-illustration {
+    animation: toolbox-dice-shake 1.4s ease-in-out both;
   }
 }
 
@@ -237,25 +258,31 @@
   100% {
     transform: translate(0, 0) rotate(0);
   }
-  10% {
+  8% {
     transform: translate(-0.75rem, -0.5rem) rotate(-12deg);
   }
-  22% {
+  18% {
     transform: translate(0.8rem, -0.9rem) rotate(13deg);
   }
-  34% {
-    transform: translate(-0.8rem, -0.55rem) rotate(-12deg);
+  29% {
+    transform: translate(-0.8rem, -0.55rem) rotate(-14deg);
   }
-  46% {
-    transform: translate(0.7rem, -0.75rem) rotate(10deg);
+  40% {
+    transform: translate(0.85rem, -0.9rem) rotate(13deg);
   }
-  60% {
-    transform: translate(-0.5rem, -0.35rem) rotate(-7deg);
+  51% {
+    transform: translate(-0.75rem, -0.5rem) rotate(-12deg);
   }
-  74% {
-    transform: translate(0.3rem, -0.2rem) rotate(4deg);
+  62% {
+    transform: translate(0.65rem, -0.75rem) rotate(10deg);
   }
-  88% {
+  73% {
+    transform: translate(-0.45rem, -0.3rem) rotate(-7deg);
+  }
+  84% {
+    transform: translate(0.25rem, -0.2rem) rotate(4deg);
+  }
+  94% {
     transform: translate(0, 0.15rem) rotate(-1deg);
   }
 }

@@ -60,17 +60,21 @@ export function evolveToolboxState(state: ToolboxState, event: ToolboxEvent): To
           participantUserIds: event.participantUserIds,
           dice: event.dice,
           identity: event.identity,
-          identityRoundSequence: event.identity === null ? 0 : 1,
         },
       };
-    case 'toolbox.session.ended':
-      requireActive(state, event.type);
+    case 'toolbox.session.ended': {
+      // 重新开始保留入座和配置；已离开房间的参与者不再入座。
+      const { participantUserIds } = requireActive(state, event.type);
       return {
         ...state,
-        config: { ...state.config, tools: [] },
-        configVersion: state.configVersion + 1,
-        phase: { kind: 'preparing', seatedUserIds: [] },
+        phase: {
+          kind: 'preparing',
+          seatedUserIds: participantUserIds.filter((userId) =>
+            state.memberUserIds.includes(userId),
+          ),
+        },
       };
+    }
     case 'toolbox.dice.cupChanged': {
       const phase = requireActive(state, event.type);
       if (phase.dice === null) throw new Error('[FAIL-FAST] dice event without dice tool');
@@ -106,19 +110,6 @@ export function evolveToolboxState(state: ToolboxState, event: ToolboxEvent): To
                 : hand,
             ),
           },
-        },
-      };
-    }
-    case 'toolbox.identity.restarted': {
-      const phase = requireActive(state, event.type);
-      return {
-        ...state,
-        config: { ...state.config, identity: event.round.config },
-        configVersion: state.configVersion + 1,
-        phase: {
-          ...phase,
-          identity: event.round,
-          identityRoundSequence: phase.identityRoundSequence + 1,
         },
       };
     }

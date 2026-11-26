@@ -128,7 +128,6 @@ function parseIdentityRound(value: unknown, path: string): ToolboxIdentityRound 
   return finishObject(
     raw,
     {
-      roundId: parseNonEmptyString(raw.roundId, `${path}.roundId`),
       config: parseToolboxIdentityConfig(raw.config, `${path}.config`),
       remaining: parseArray(raw.remaining, `${path}.remaining`, parseInteger),
       hands: parseArray(raw.hands, `${path}.hands`, parseHand),
@@ -157,10 +156,6 @@ function parsePhase(value: unknown, path: string): ToolboxPhase {
         parseArray(dice, dicePath, parseParticipantCup),
       ),
       identity: parseNullable(raw.identity, `${path}.identity`, parseIdentityRound),
-      identityRoundSequence: parseInteger(
-        raw.identityRoundSequence,
-        `${path}.identityRoundSequence`,
-      ),
     },
     path,
   );

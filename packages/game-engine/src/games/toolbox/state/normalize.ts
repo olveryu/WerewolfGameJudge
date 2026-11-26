@@ -10,7 +10,6 @@ import {
   isStorableToolboxConfig,
   isUsableToolboxIdentityConfig,
 } from '../domain/config';
-import { buildToolboxIdentityRoundId } from '../domain/identity';
 import {
   TOOLBOX_DICE_CUP_STAGES,
   TOOLBOX_DICE_FACES,
@@ -93,10 +92,6 @@ function assertIdentityRound(
   phase: ToolboxActivePhase,
   publicConfig: ToolboxIdentityConfig,
 ): void {
-  invariant(
-    round.roundId === buildToolboxIdentityRoundId(phase.sessionId, phase.identityRoundSequence),
-    'identity round id',
-  );
   invariant(isUsableToolboxIdentityConfig(round.config), 'identity round configuration');
   invariant(
     isSameToolboxIdentityConfig(round.config, publicConfig),
@@ -148,7 +143,6 @@ function assertActivePhase(state: ToolboxState, phase: ToolboxActivePhase): void
     (phase.identity !== null) === state.config.tools.includes('identity'),
     'identity tool state',
   );
-  invariant(isNonNegativeInteger(phase.identityRoundSequence), 'identity round sequence');
   if (phase.dice !== null) {
     invariant(
       phase.dice.length === phase.participantUserIds.length &&
@@ -157,10 +151,7 @@ function assertActivePhase(state: ToolboxState, phase: ToolboxActivePhase): void
     );
     phase.dice.forEach((entry, index) => assertCup(entry.cup, `dice cup ${index}`));
   }
-  if (phase.identity === null) {
-    invariant(phase.identityRoundSequence === 0, 'identity round sequence without identity');
-  } else {
-    invariant(phase.identityRoundSequence >= 1, 'identity round sequence with identity');
+  if (phase.identity !== null) {
     assertIdentityRound(phase.identity, phase, state.config.identity);
   }
 }

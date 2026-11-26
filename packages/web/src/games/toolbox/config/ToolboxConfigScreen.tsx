@@ -1,20 +1,22 @@
 /**
- * 聚会工具设置页：工具选择卡与身份配置工作区。
+ * 聚会工具设置页：本次工具复选框；启用身份牌时显示「身份配置」入口卡，点击打开「配置抽身份」弹窗。
  * 建房走共享创建流程；准备阶段的房间设置读当前房间快照并提交 `toolbox.config.update`。
  */
 import '@/features/room/config/GameConfigPage.css';
 import './ToolboxConfigScreen.css';
 
 import {
+  countToolboxIdentityCards,
   DEFAULT_TOOLBOX_CONFIG,
   isUsableToolboxIdentityConfig,
   TOOLBOX_TOOLS,
   type ToolboxConfig,
+  type ToolboxIdentityConfig,
   type ToolboxPublicCommand,
   type ToolboxTool,
   type ToolboxView,
 } from '@game-judge/game-engine/games/toolbox/public';
-import { type ComponentType, type ReactNode, useState } from 'react';
+import { type ComponentType, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import { Button } from '@/components/Button';
@@ -28,29 +30,17 @@ import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnap
 import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomLink } from '@/platform/realtime/types';
 import { TESTIDS } from '@/testids';
-import IonAlbumsOutline from '~icons/ion/albums-outline';
-import IonCheckmarkCircle from '~icons/ion/checkmark-circle';
-import IonDiceOutline from '~icons/ion/dice-outline';
-import IonEllipseOutline from '~icons/ion/ellipse-outline';
 
 import type { ToolboxRoomSession } from '../model/ToolboxRoomSession';
 import { parseToolboxConfigRouteParams } from '../navigation/toolboxGameNavigation';
 import { getToolboxRoomCommandFailureMessage } from '../room/toolboxRoomCommandFailureMessage';
-import { ToolboxIdentityEditor, ToolboxIdentitySummary } from './ToolboxIdentityEditor';
+import { ToolboxIdentitySetupDialog } from './ToolboxIdentityEditor';
 
-const TOOL_CARDS: Readonly<
-  Record<ToolboxTool, { readonly title: string; readonly detail: string; readonly icon: ReactNode }>
+const TOOL_OPTIONS: Readonly<
+  Record<ToolboxTool, { readonly title: string; readonly detail: string }>
 > = {
-  dice: {
-    title: '骰子',
-    detail: '每人一个骰盅：摇、掀开、固定',
-    icon: <IonDiceOutline aria-hidden="true" />,
-  },
-  identity: {
-    title: '身份牌',
-    detail: '配置身份，大家从同一牌堆各自抽取',
-    icon: <IonAlbumsOutline aria-hidden="true" />,
-  },
+  dice: { title: '骰子', detail: '摇骰并固定点数' },
+  identity: { title: '身份牌', detail: '配置身份牌，玩家自行抽取' },
 };
 
 /** 按规范顺序切换一项工具。 */
@@ -59,14 +49,6 @@ function toggleTool(tools: readonly ToolboxTool[], tool: ToolboxTool): ToolboxTo
     ? tools.filter((current) => current !== tool)
     : [...tools, tool];
   return TOOLBOX_TOOLS.filter((candidate) => selected.includes(candidate));
-}
-
-/** 未通过时返回不可提交的原因；服务端仍做同样的校验。 */
-function findToolboxConfigBlocker(config: ToolboxConfig): string | null {
-  if (config.tools.length === 0) return '请至少选择一个工具';
-  if (config.tools.includes('identity') && !isUsableToolboxIdentityConfig(config.identity))
-    return '请添加至少一种身份';
-  return null;
 }
 
 /** 准备阶段的房间设置只读取房主可编辑的快照；其余情况属于调用方错误。 */
@@ -85,7 +67,8 @@ function requireSignedInUser<TUser>(user: TUser | null): TUser {
   return user;
 }
 
-function ToolSelector({
+/** 本次工具复选框（由预览中确认的 ToolOptions 提升而来）。 */
+function ToolOptions({
   tools,
   isDisabled,
   onChange,
@@ -95,34 +78,74 @@ function ToolSelector({
   readonly onChange: (tools: ToolboxTool[]) => void;
 }) {
   return (
-    <fieldset className="toolbox-tool-selector">
-      <legend>本次使用的工具</legend>
-      <div>
-        {TOOLBOX_TOOLS.map((tool) => {
-          const isSelected = tools.includes(tool);
-          const card = TOOL_CARDS[tool];
-          return (
-            <button
-              key={tool}
-              type="button"
-              className="toolbox-tool-card"
-              aria-pressed={isSelected}
-              disabled={isDisabled}
-              onClick={() => onChange(toggleTool(tools, tool))}
-            >
-              <span className="toolbox-tool-card-icon">{card.icon}</span>
-              <span className="toolbox-tool-card-text">
-                <strong>{card.title}</strong>
-                <small>{card.detail}</small>
-              </span>
-              <span className="toolbox-tool-card-mark" aria-hidden="true">
-                {isSelected ? <IonCheckmarkCircle /> : <IonEllipseOutline />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <fieldset className="toolbox-tool-options" disabled={isDisabled}>
+      <legend>本次工具</legend>
+      {TOOLBOX_TOOLS.map((tool) => (
+        <label key={tool} className="toolbox-tool-option">
+          <input
+            type="checkbox"
+            checked={tools.includes(tool)}
+            onChange={() => onChange(toggleTool(tools, tool))}
+            data-testid={TESTIDS.gameConfigField('toolbox', tool)}
+          />
+          <span>
+            <strong>{TOOL_OPTIONS[tool].title}</strong>
+            <small>{TOOL_OPTIONS[tool].detail}</small>
+          </span>
+        </label>
+      ))}
     </fieldset>
+  );
+}
+
+/** 「身份配置」入口卡：摘要当前身份与张数，点击打开「配置抽身份」弹窗。 */
+function IdentityEntryCard({
+  identity,
+  seatedCount,
+  isDisabled,
+  onOpen,
+}: {
+  readonly identity: ToolboxIdentityConfig;
+  readonly seatedCount: number | null;
+  readonly isDisabled: boolean;
+  readonly onOpen: () => void;
+}) {
+  const isConfigured = isUsableToolboxIdentityConfig(identity);
+  const total = countToolboxIdentityCards(identity);
+  const required = seatedCount === null ? null : seatedCount * identity.cardsPerPlayer;
+  return (
+    <button
+      type="button"
+      className="toolbox-identity-entry"
+      disabled={isDisabled}
+      onClick={onOpen}
+      data-testid={TESTIDS.gameConfigField('toolbox', 'identityConfig')}
+    >
+      <span>
+        <strong>身份配置</strong>
+        {isConfigured ? (
+          <>
+            <small>
+              {identity.identities.map(({ name, count }) => `${name}×${count}`).join('、')}
+            </small>
+            <small>
+              共 {total} 张 · 每人抽 {identity.cardsPerPlayer} 张
+              {required !== null && ` · 已入座 ${seatedCount} 人需 ${required} 张`}
+            </small>
+            {required !== null && total < required && (
+              <small className="toolbox-identity-entry-shortage">
+                还差 {required - total} 张，请增加身份牌数量
+              </small>
+            )}
+          </>
+        ) : (
+          <small>还没有配置身份，点击配置</small>
+        )}
+      </span>
+      <span className="toolbox-identity-entry-chevron" aria-hidden="true">
+        ›
+      </span>
+    </button>
   );
 }
 
@@ -152,7 +175,9 @@ function ToolboxConfigPage({
       seatedCount: view.phase.kind === 'preparing' ? view.phase.seatedCount : null,
     };
   });
-  const [config, setConfig] = useState(initial.config);
+  const [tools, setTools] = useState(initial.config.tools);
+  const [identity, setIdentity] = useState(initial.config.identity);
+  const [isIdentityDialogOpen, setIsIdentityDialogOpen] = useState(false);
   const snapshot = useRoomLinkSnapshot(session);
   const isEditAvailable =
     params.mode !== 'edit' ||
@@ -164,6 +189,9 @@ function ToolboxConfigPage({
     snapshot.phase === 'ready' && snapshot.room.state.phase.kind === 'preparing'
       ? snapshot.room.state.phase.seatedCount
       : initial.seatedCount;
+  const isIdentityEnabled = tools.includes('identity');
+  const isIdentityMissing = isIdentityEnabled && !isUsableToolboxIdentityConfig(identity);
+  const submittedConfig = (): ToolboxConfig => ({ tools, identity });
   const submission = useRoomConfigSubmission<ToolboxView>({
     params,
     navigate,
@@ -171,77 +199,73 @@ function ToolboxConfigPage({
     createRequest: () => ({
       expectedHostUserId: user.id,
       gameType: 'toolbox',
-      config: { tools: config.tools, identity: config.identity },
+      config: { tools, identity },
     }),
     updateConfig: () =>
       session.dispatch(
-        { type: 'toolbox.config.update', config },
+        { type: 'toolbox.config.update', config: submittedConfig() },
         { controlledSeat: null, label: '保存设置', durable: false },
       ),
     creationLabel: '创建聚会工具房间',
     ...(dialog === undefined ? {} : { onEditSaved: dialog.onClose }),
   });
-  const blocker = findToolboxConfigBlocker(config);
-  const isDirty = JSON.stringify(config) !== JSON.stringify(initial.config);
-  const isIdentityEnabled = config.tools.includes('identity');
+  const isDirty = JSON.stringify(submittedConfig()) !== JSON.stringify(initial.config);
   const isLocked = submission.isSubmitting || !isEditAvailable;
   const body = (
     <div className="toolbox-config">
-      <ToolSelector
-        tools={config.tools}
-        isDisabled={isLocked}
-        onChange={(tools) => setConfig({ ...config, tools })}
-      />
+      <ToolOptions tools={tools} isDisabled={isLocked} onChange={setTools} />
       {isIdentityEnabled && (
-        <section
-          className="toolbox-config-identity"
-          aria-labelledby="toolbox-config-identity-title"
-        >
-          <h2 id="toolbox-config-identity-title">身份牌设置</h2>
-          <ToolboxIdentityEditor
-            value={config.identity}
-            onChange={(identity) => setConfig({ ...config, identity })}
-            isAnonymous={user.isAnonymous}
-            isDisabled={isLocked}
-          />
-        </section>
+        <IdentityEntryCard
+          identity={identity}
+          seatedCount={seatedCount}
+          isDisabled={isLocked}
+          onOpen={() => setIsIdentityDialogOpen(true)}
+        />
       )}
-    </div>
-  );
-  const footer = (
-    <div className="toolbox-config-footer">
-      {isIdentityEnabled && (
-        <ToolboxIdentitySummary
-          value={config.identity}
-          onCardsPerPlayerChange={(cardsPerPlayer) =>
-            setConfig({ ...config, identity: { ...config.identity, cardsPerPlayer } })
-          }
+      {isIdentityDialogOpen && (
+        <ToolboxIdentitySetupDialog
+          initial={identity}
           requirement={
             seatedCount === null
               ? null
-              : { playerCount: seatedCount, label: `按已入座 ${seatedCount} 人` }
+              : { playerCount: seatedCount, label: `已入座 ${seatedCount} 人` }
           }
-          isDisabled={isLocked}
+          isAnonymous={user.isAnonymous}
+          onDone={(next) => {
+            setIdentity(next);
+            setIsIdentityDialogOpen(false);
+          }}
+          onClose={() => setIsIdentityDialogOpen(false)}
         />
       )}
+    </div>
+  );
+  const actions = (
+    <>
       {!isEditAvailable && <p role="status">房间状态或权限已变化，不能保存设置。</p>}
-      {blocker !== null && (
+      {tools.length === 0 && (
         <p className="toolbox-config-blocker" role="status">
-          {blocker}
+          请至少选择一个工具
+        </p>
+      )}
+      {isIdentityMissing && (
+        <p className="toolbox-config-blocker" role="status">
+          请先配置身份牌
         </p>
       )}
       <Button
         size="lg"
         className="game-config-submit"
-        disabled={blocker !== null || !isEditAvailable}
+        disabled={tools.length === 0 || isIdentityMissing || !isEditAvailable}
         loading={submission.isSubmitting}
         onClick={submission.submit}
         data-testid={TESTIDS.gameConfigSubmit('toolbox')}
       >
         {params.mode === 'edit' ? '保存设置' : '创建房间'}
       </Button>
-    </div>
+    </>
   );
+  const footer = <div className="toolbox-config-footer">{actions}</div>;
   if (dialog !== undefined) {
     const requestClose = () => {
       if (submission.isSubmitting) return;

@@ -33,7 +33,6 @@ export const TOOLBOX_REASONS = {
   dieMissing: 'toolbox_die_missing',
   holdLimit: 'toolbox_hold_limit',
   handFull: 'toolbox_hand_full',
-  roundStale: 'toolbox_round_stale',
 } as const;
 
 export type ToolboxReason = (typeof TOOLBOX_REASONS)[keyof typeof TOOLBOX_REASONS];
@@ -62,8 +61,7 @@ export type ToolboxEvent =
       readonly type: 'toolbox.identity.drawn';
       readonly userId: string;
       readonly identityIndex: number;
-    }
-  | { readonly type: 'toolbox.identity.restarted'; readonly round: ToolboxIdentityRound };
+    };
 
 /** 工具箱不产生任何副作用：无奖励、无局数统计、无计时。 */
 export type ToolboxEffect = never;

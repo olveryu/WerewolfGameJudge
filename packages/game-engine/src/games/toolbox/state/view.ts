@@ -28,7 +28,6 @@ import {
 } from './types';
 
 export interface ToolboxIdentityRoundView {
-  readonly roundId: string;
   readonly config: ToolboxIdentityConfig;
   /** 仅公开总剩余张数。 */
   readonly remainingTotal: number;
@@ -94,7 +93,6 @@ function parseIdentityRoundView(value: unknown, path: string): ToolboxIdentityRo
   return finishObject(
     raw,
     {
-      roundId: parseNonEmptyString(raw.roundId, `${path}.roundId`),
       config: parseToolboxIdentityConfig(raw.config, `${path}.config`),
       remainingTotal: parseNonNegativeInteger(raw.remainingTotal, `${path}.remainingTotal`),
     },

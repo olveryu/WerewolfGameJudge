@@ -129,18 +129,33 @@ describe('toolbox membership and preparation', () => {
     game.expectReject({ type: 'toolbox.seat.take' }, TOOLBOX_REASONS.alreadyStarted, 'late');
   });
 
-  it('returns to preparation on end, clearing tools, seats and results', () => {
-    const game = startWith({ tools: ['dice', 'identity'], identity: IDENTITY }, ['a']);
+  it('returns to preparation on end, keeping seats of present members and the config', () => {
+    const config: ToolboxConfig = { tools: ['dice', 'identity'], identity: IDENTITY };
+    const game = startWith(config, ['a', 'b']);
     const { sessionId } = activePhase(game.state);
+    const { configVersion } = game.state;
+    game.send({ type: 'toolbox.identity.draw', sessionId }, 'a');
+    game.send({ type: 'toolbox.member.leave' }, 'b');
     game.expectReject(
       { type: 'toolbox.session.end', sessionId: 'stale' },
       TOOLBOX_REASONS.sessionStale,
     );
     game.send({ type: 'toolbox.session.end', sessionId });
-    expect(game.state.phase).toEqual({ kind: 'preparing', seatedUserIds: [] });
-    expect(game.state.config).toEqual({ tools: [], identity: IDENTITY });
+    expect(game.state.phase).toEqual({ kind: 'preparing', seatedUserIds: ['a'] });
+    expect(game.state.config).toEqual(config);
+    expect(game.state.configVersion).toBe(configVersion);
     expect(game.effects).toEqual([]);
     expect(toolboxEngine.getLifecycle(game.state)).toBe('setup');
+
+    game.send({ type: 'toolbox.session.begin', configVersion });
+    const next = activePhase(game.state);
+    expect(next.sessionId).not.toBe(sessionId);
+    expect(next.identity!.hands).toEqual([{ userId: 'a', identityIndexes: [] }]);
+    game.expectReject(
+      { type: 'toolbox.identity.draw', sessionId },
+      TOOLBOX_REASONS.sessionStale,
+      'a',
+    );
   });
 });
 
@@ -239,45 +254,12 @@ describe('toolbox identity deck', () => {
   it('draws from one shared deck without replacement until every quota is full', () => {
     const users = ['a', 'b', 'c', 'd', 'e'];
     const game = startWith({ tools: ['identity'], identity: IDENTITY }, users);
-    const roundId = () => activePhase(game.state).identity!.roundId;
-    for (const user of users)
-      game.send({ type: 'toolbox.identity.draw', roundId: roundId() }, user);
+    const { sessionId } = activePhase(game.state);
+    for (const user of users) game.send({ type: 'toolbox.identity.draw', sessionId }, user);
     const round = activePhase(game.state).identity!;
     expect(round.remaining).toEqual([0, 0]);
     expect(round.hands.flatMap((hand) => hand.identityIndexes).sort()).toEqual([0, 0, 1, 1, 1]);
-    game.expectReject(
-      { type: 'toolbox.identity.draw', roundId: roundId() },
-      TOOLBOX_REASONS.handFull,
-      'a',
-    );
-  });
-
-  it('restarts only the identity round, rejecting stale rounds and keeping dice', () => {
-    const game = startWith({ tools: ['dice', 'identity'], identity: IDENTITY }, ['a']);
-    game.send({ type: 'toolbox.dice.roll', cupVersion: 0 }, 'a');
-    const cupBefore = cupOf(game.state, 'a');
-    const firstRound = activePhase(game.state).identity!.roundId;
-    game.send({ type: 'toolbox.identity.draw', roundId: firstRound }, 'a');
-    const nextIdentity: ToolboxIdentityConfig = {
-      identities: [{ name: '预言家', description: '', count: 1 }],
-      cardsPerPlayer: 1,
-    };
-    game.expectReject(
-      { type: 'toolbox.identity.restart', roundId: firstRound, identity: nextIdentity },
-      TOOLBOX_REASONS.notHost,
-      'a',
-    );
-    game.send({ type: 'toolbox.identity.restart', roundId: firstRound, identity: nextIdentity });
-    const round = activePhase(game.state).identity!;
-    expect(round.roundId).not.toBe(firstRound);
-    expect(round.hands).toEqual([{ userId: 'a', identityIndexes: [] }]);
-    expect(game.state.config.identity).toEqual(nextIdentity);
-    expect(cupOf(game.state, 'a')).toEqual(cupBefore);
-    game.expectReject(
-      { type: 'toolbox.identity.draw', roundId: firstRound },
-      TOOLBOX_REASONS.roundStale,
-      'a',
-    );
+    game.expectReject({ type: 'toolbox.identity.draw', sessionId }, TOOLBOX_REASONS.handFull, 'a');
   });
 });
 
@@ -285,10 +267,7 @@ describe('toolbox per-user view', () => {
   it('projects only public counts and the viewer own private state', () => {
     const game = startWith({ tools: ['dice', 'identity'], identity: IDENTITY }, ['a', 'b']);
     game.send({ type: 'toolbox.dice.roll', cupVersion: 0 }, 'a');
-    game.send(
-      { type: 'toolbox.identity.draw', roundId: activePhase(game.state).identity!.roundId },
-      'a',
-    );
+    game.send({ type: 'toolbox.identity.draw', sessionId: activePhase(game.state).sessionId }, 'a');
     game.send({ type: 'toolbox.member.join' }, 'late');
 
     const own = parseToolboxView(

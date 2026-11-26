@@ -74,12 +74,7 @@ const toolboxPublicCommandOptions = definePublicCommandOptions<ToolboxPublicComm
     dieId: z.int().nonnegative(),
     cupVersion: cupVersionSchema,
   }),
-  z.strictObject({ type: z.literal('toolbox.identity.draw'), roundId: z.string().min(1) }),
-  z.strictObject({
-    type: z.literal('toolbox.identity.restart'),
-    roundId: z.string().min(1),
-    identity: toolboxIdentityConfigSchema,
-  }),
+  z.strictObject({ type: z.literal('toolbox.identity.draw'), sessionId: z.string().min(1) }),
 ]);
 
 export const toolboxPublicCommandSchema: z.ZodType<ToolboxPublicCommand> = z.discriminatedUnion(

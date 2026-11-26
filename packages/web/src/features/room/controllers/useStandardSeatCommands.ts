@@ -16,7 +16,7 @@ import { useCallback } from 'react';
 import type { User } from '@/contexts/AuthContext';
 import {
   type RoomSeatCommandOperations,
-  type RoomSeatSession,
+  type RoomSeating,
   useRoomSeatCommands,
 } from '@/features/room/controllers/useRoomSeatCommands';
 import { createSeatProfile } from '@/features/room/model/createSeatProfile';
@@ -24,7 +24,7 @@ import type { RoomIdentity } from '@/platform/realtime/types';
 
 /** Handles every seat mutation through the shared command client with the standard profile fields. */
 export function useStandardSeatCommands<TState extends BaseGameState<string>>(
-  session: RoomSeatSession<TState, RoomSeatProfile>,
+  seating: RoomSeating<TState, RoomSeatProfile>,
   user: User,
 ): RoomSeatCommandOperations<TState> {
   const queryClient = useQueryClient();
@@ -36,7 +36,7 @@ export function useStandardSeatCommands<TState extends BaseGameState<string>>(
     [queryClient, user],
   );
   return useRoomSeatCommands<TState, RoomSeatProfile>({
-    session,
+    ...seating,
     userId: user.id,
     createProfile,
   });

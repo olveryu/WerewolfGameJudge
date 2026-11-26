@@ -89,9 +89,9 @@ it('projects HTTP receipts, SYNC_RESULT and STATE_UPDATE to the viewer only', as
   await dispatch({ type: 'toolbox.seat.take' });
   await dispatch({ type: 'toolbox.seat.take' }, 'tb-player');
   await dispatch({ type: 'toolbox.session.begin', configVersion: 0 });
-  const roundId = active(await authority()).identity!.roundId;
+  const { sessionId } = active(await authority());
   await dispatch({ type: 'toolbox.dice.roll', cupVersion: 0 });
-  const hostReceipt = await dispatch({ type: 'toolbox.identity.draw', roundId });
+  const hostReceipt = await dispatch({ type: 'toolbox.identity.draw', sessionId });
 
   const state = await authority();
   expect(hostReceipt.viewerUserId).toBe('tb-host');

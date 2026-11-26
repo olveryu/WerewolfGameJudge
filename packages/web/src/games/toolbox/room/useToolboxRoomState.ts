@@ -3,7 +3,6 @@
  */
 
 import type {
-  ToolboxIdentityConfig,
   ToolboxPublicCommand,
   ToolboxView,
 } from '@game-judge/game-engine/games/toolbox/public';
@@ -27,6 +26,7 @@ import {
   createToolboxHostManagement,
   createToolboxPlayerActions,
   createToolboxRoomShellModel,
+  type ToolboxRoomDialog,
 } from './toolboxRoomAdapter';
 import { getToolboxRoomCommandFailureMessage } from './toolboxRoomCommandFailureMessage';
 
@@ -39,9 +39,26 @@ export interface ToolboxRoomScreenState {
   /** 有命令在途或连接不可提交时为 true。 */
   readonly isLocked: boolean;
   readonly openOwnProfile: () => void;
-  /** 房主重开身份的草稿；null 表示弹窗关闭。 */
-  readonly identityRestartDraft: ToolboxIdentityConfig | null;
-  readonly setIdentityRestartDraft: (draft: ToolboxIdentityConfig | null) => void;
+  /** 本次使用中打开的工具箱弹窗；准备阶段恒为 null。 */
+  readonly dialog: ToolboxRoomDialog | null;
+  readonly openDialog: (dialog: ToolboxRoomDialog) => void;
+  readonly closeDialog: () => void;
+}
+
+/** 弹窗绑定打开它的那次使用；结束或重新开始后旧弹窗不会再出现。 */
+function useToolboxDialog(view: ToolboxView) {
+  const [opened, setOpened] = useState<{
+    readonly sessionId: string;
+    readonly dialog: ToolboxRoomDialog;
+  } | null>(null);
+  const sessionId = view.phase.kind === 'active' ? view.phase.sessionId : null;
+  const dialog = opened !== null && opened.sessionId === sessionId ? opened.dialog : null;
+  const openDialog = (next: ToolboxRoomDialog) => {
+    if (sessionId === null)
+      throw new Error(`[FAIL-FAST] toolbox dialog ${next} requires an active session`);
+    setOpened({ sessionId, dialog: next });
+  };
+  return { dialog, openDialog, closeDialog: () => setOpened(null) };
 }
 
 /** 进入房间即以账号成为成员；成员身份决定能否入座。 */
@@ -74,9 +91,7 @@ export function useToolboxRoomState(
     props.session,
     getToolboxRoomCommandFailureMessage,
   );
-  const [identityRestartDraft, setIdentityRestartDraft] = useState<ToolboxIdentityConfig | null>(
-    null,
-  );
+  const dialogs = useToolboxDialog(state);
   const isHost = state.hostUserId === user.id;
   const isLive = entryController.connection.status.kind === 'live';
   useToolboxMembership(state, isLive, submit);
@@ -123,6 +138,7 @@ export function useToolboxRoomState(
       isSubmitting,
       pendingActionKey,
       submit,
+      openDialog: dialogs.openDialog,
     }),
     profileSelection: profile.selection,
     onProfileClose: profile.close,
@@ -133,11 +149,7 @@ export function useToolboxRoomState(
         isSubmitting,
         pendingActionKey,
         submit,
-        openIdentityRestart: () => {
-          if (state.phase.kind !== 'active' || state.phase.identity === null)
-            throw new Error('[FAIL-FAST] identity restart requires an active identity round');
-          setIdentityRestartDraft(state.phase.identity.config);
-        },
+        openDialog: dialogs.openDialog,
       }),
   });
   return {
@@ -152,7 +164,6 @@ export function useToolboxRoomState(
         occupant: { kind: 'human', userId: user.id },
         rosterName: user.displayName ?? '匿名玩家',
       }),
-    identityRestartDraft,
-    setIdentityRestartDraft,
+    ...dialogs,
   };
 }

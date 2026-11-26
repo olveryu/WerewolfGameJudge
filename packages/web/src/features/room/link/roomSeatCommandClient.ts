@@ -1,6 +1,9 @@
 /** Canonical seat-command client shared by every seated room game. */
 
-import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/commands';
+import type {
+  RoomHumanSeatCommand,
+  RoomSeatCommand,
+} from '@game-judge/game-engine/platform/protocol/commands';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { DispatchOptions, DispatchOutcome } from '@/platform/realtime/types';
@@ -16,16 +19,22 @@ export type RoomSeatCommandContext<
   TProfile,
 > = RoomCommandContext<TState, RoomSeatCommand<TProfile>>;
 
-function dispatchSeatCommand<TState extends BaseGameState<string>, TProfile>(
-  context: RoomSeatCommandContext<TState, TProfile>,
-  command: RoomSeatCommand<TProfile>,
+/** Dispatch surface of a game without bots: every seat command except `room.seat.fillBots`. */
+export type RoomHumanSeatCommandContext<
+  TState extends BaseGameState<string>,
+  TProfile,
+> = RoomCommandContext<TState, RoomHumanSeatCommand<TProfile>>;
+
+function dispatchSeatCommand<TState extends BaseGameState<string>, TCommand extends object>(
+  context: RoomCommandContext<TState, TCommand>,
+  command: TCommand,
   label: string,
 ): Promise<DispatchOutcome<TState>> {
   return context.dispatch(command, { controlledSeat: null, label, durable: false });
 }
 
 export function takeRoomSeat<TState extends BaseGameState<string>, TProfile>(
-  context: RoomSeatCommandContext<TState, TProfile>,
+  context: RoomHumanSeatCommandContext<TState, TProfile>,
   seat: number,
   profile: TProfile,
 ): Promise<DispatchOutcome<TState>> {
@@ -34,14 +43,14 @@ export function takeRoomSeat<TState extends BaseGameState<string>, TProfile>(
 }
 
 export function leaveRoomSeat<TState extends BaseGameState<string>, TProfile>(
-  context: RoomSeatCommandContext<TState, TProfile>,
+  context: RoomHumanSeatCommandContext<TState, TProfile>,
 ): Promise<DispatchOutcome<TState>> {
   roomSessionLog.debug('leaveRoomSeat');
   return dispatchSeatCommand(context, { type: 'room.seat.leave' }, '离座');
 }
 
 export function kickRoomSeat<TState extends BaseGameState<string>, TProfile>(
-  context: RoomSeatCommandContext<TState, TProfile>,
+  context: RoomHumanSeatCommandContext<TState, TProfile>,
   seat: number,
 ): Promise<DispatchOutcome<TState>> {
   roomSessionLog.debug('kickRoomSeat', { seat });
@@ -49,7 +58,7 @@ export function kickRoomSeat<TState extends BaseGameState<string>, TProfile>(
 }
 
 export function clearRoomSeats<TState extends BaseGameState<string>, TProfile>(
-  context: RoomSeatCommandContext<TState, TProfile>,
+  context: RoomHumanSeatCommandContext<TState, TProfile>,
 ): Promise<DispatchOutcome<TState>> {
   roomSessionLog.debug('clearRoomSeats');
   return dispatchSeatCommand(context, { type: 'room.seat.clear' }, '清空座位');
@@ -59,5 +68,9 @@ export function fillRoomSeatsWithBots<TState extends BaseGameState<string>, TPro
   context: RoomSeatCommandContext<TState, TProfile>,
 ): Promise<DispatchOutcome<TState>> {
   roomSessionLog.debug('fillRoomSeatsWithBots');
-  return dispatchSeatCommand(context, { type: 'room.seat.fillBots' }, '填充机器人');
+  return dispatchSeatCommand<TState, RoomSeatCommand<TProfile>>(
+    context,
+    { type: 'room.seat.fillBots' },
+    '填充机器人',
+  );
 }

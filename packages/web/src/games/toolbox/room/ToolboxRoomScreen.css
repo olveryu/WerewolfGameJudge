@@ -56,7 +56,8 @@
   font-weight: var(--weight-semibold);
 }
 
-.toolbox-room-status[data-state='seated'] .toolbox-room-status-label {
+.toolbox-room-status[data-state='seated'] .toolbox-room-status-label,
+.toolbox-room-status[data-state='participating'] .toolbox-room-status-label {
   background: var(--color-primary-a10);
   color: var(--color-primary-dark);
 }
@@ -86,15 +87,4 @@
   margin: var(--space-large) 0 0;
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
-}
-
-.toolbox-room-tools {
-  display: grid;
-  gap: var(--space-medium);
-  min-width: 0;
-}
-
-.toolbox-room-restart-footer {
-  display: grid;
-  gap: var(--space-medium);
 }

@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 
-import { dicePreview } from './dicePreview';
 import { secrethitlerPreview } from './secrethitlerPreview';
+import { toolboxPreview } from './toolboxPreview';
 
 export type PreviewPage = 'home' | 'config' | 'room';
 
@@ -23,6 +23,8 @@ export interface PreviewGame {
   readonly label: string;
   readonly phases: readonly PreviewOption[];
   readonly viewers: (phase: string) => readonly PreviewOption[];
+  /** Whether the scenario honours the simulated room population controls. */
+  readonly supportsPopulation: boolean;
   readonly Screen: ComponentType<{
     readonly phase: string;
     readonly viewer: string;
@@ -31,7 +33,7 @@ export interface PreviewGame {
   }>;
 }
 
-export const previewGames: readonly PreviewGame[] = [secrethitlerPreview, dicePreview];
+export const previewGames: readonly PreviewGame[] = [secrethitlerPreview, toolboxPreview];
 
 export function getPreviewGame(id: string): PreviewGame {
   const game = previewGames.find((candidate) => candidate.id === id);

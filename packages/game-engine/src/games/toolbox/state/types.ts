@@ -86,8 +86,8 @@ export interface ToolboxHand {
   readonly identityIndexes: readonly number[];
 }
 
+/** 本次使用的身份牌：开始时按配置洗好，使用中不再更换。 */
 export interface ToolboxIdentityRound {
-  readonly roundId: string;
   readonly config: ToolboxIdentityConfig;
   /** 与 `config.identities` 一一对应的共享牌堆剩余数量。 */
   readonly remaining: readonly number[];
@@ -108,8 +108,6 @@ export interface ToolboxActivePhase {
   readonly participantUserIds: readonly string[];
   readonly dice: readonly ToolboxParticipantCup[] | null;
   readonly identity: ToolboxIdentityRound | null;
-  /** 本次使用内身份轮次计数，用于生成新的轮次 ID。 */
-  readonly identityRoundSequence: number;
 }
 
 export type ToolboxPhase = ToolboxPreparingPhase | ToolboxActivePhase;

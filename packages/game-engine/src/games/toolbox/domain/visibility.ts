@@ -37,7 +37,6 @@ function projectPhase(state: ToolboxState, userId: string): ToolboxPhaseView {
     phase.identity === null
       ? null
       : {
-          roundId: phase.identity.roundId,
           config: phase.identity.config,
           remainingTotal: phase.identity.remaining.reduce((sum, count) => sum + count, 0),
         };

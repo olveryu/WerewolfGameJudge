@@ -33,5 +33,4 @@ export const getToolboxRoomCommandFailureMessage = createRoomCommandFailureMessa
   [TOOLBOX_REASONS.dieMissing]: STALE_REFRESH,
   [TOOLBOX_REASONS.holdLimit]: '固定的骰子不能多于目标数量，请先调整数量',
   [TOOLBOX_REASONS.handFull]: '你已经抽满了',
-  [TOOLBOX_REASONS.roundStale]: '身份已重开，请在新一轮中抽牌',
 });

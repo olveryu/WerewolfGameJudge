@@ -99,6 +99,7 @@ export function useUndercoverRoomState({
   });
   // 座位 / 资料卡：资料卡全程可开（对齐狼人杀），故用 roster 控制器 + 本家能力表。
   const { seatController, profile, actions } = useRoomRosterController({
+    supportsBots: true,
     session,
     user,
     mySeat,

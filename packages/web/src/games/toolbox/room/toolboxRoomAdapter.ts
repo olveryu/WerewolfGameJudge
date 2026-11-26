@@ -5,7 +5,6 @@
 import {
   hasEnoughToolboxCards,
   type ToolboxConfig,
-  type ToolboxIdentityConfig,
   type ToolboxPublicCommand,
   type ToolboxView,
 } from '@game-judge/game-engine/games/toolbox/public';
@@ -18,7 +17,8 @@ import {
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
 import {
-  buildPendingAwareHostAction,
+  buildClearSeatsAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
@@ -37,13 +37,15 @@ import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSourc
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 
-export const TOOLBOX_ACTION_KEYS = {
+const TOOLBOX_ACTION_KEYS = {
   takeSeat: 'toolbox-take-seat',
   releaseSeat: 'toolbox-release-seat',
-  clearSeats: 'toolbox-clear-seats',
-  restartIdentity: 'toolbox-restart-identity',
-  endSession: 'toolbox-end-session',
+  openDice: 'toolbox-dice',
+  openDraw: 'toolbox-draw',
 } as const;
+
+/** 房间内由工具箱自己打开的弹窗。 */
+export type ToolboxRoomDialog = 'dice' | 'draw';
 
 const TOOL_LABELS: Readonly<Record<ToolboxConfig['tools'][number], string>> = {
   dice: '骰子',
@@ -68,7 +70,7 @@ function createToolboxViewer(view: ToolboxView): RoomViewer {
     : { ...identity, seat: null };
 }
 
-/** 房间卡片里公开的工具与身份摘要。 */
+/** 信息卡的公开设置项；身份种类由信息卡的身份小标签展示。 */
 export function describeToolboxSettings(
   config: ToolboxConfig,
 ): readonly { readonly label: string; readonly value: string }[] {
@@ -78,19 +80,7 @@ export function describeToolboxSettings(
       : config.tools.map((tool) => TOOL_LABELS[tool]).join('、');
   const settings = [{ label: '本次工具', value: tools }];
   if (!config.tools.includes('identity')) return settings;
-  return [...settings, ...describeToolboxIdentity(config.identity)];
-}
-
-function describeToolboxIdentity(
-  identity: ToolboxIdentityConfig,
-): readonly { readonly label: string; readonly value: string }[] {
-  return [
-    {
-      label: '身份',
-      value: identity.identities.map((entry) => `${entry.name}×${entry.count}`).join('、'),
-    },
-    { label: '每人抽', value: `${identity.cardsPerPlayer} 张` },
-  ];
+  return [...settings, { label: '每人抽', value: `${config.identity.cardsPerPlayer} 张` }];
 }
 
 /** 开始按钮不可用时的唯一原因；与引擎的开始校验同序。 */
@@ -137,15 +127,48 @@ export function createToolboxCapabilities(input: {
   };
 }
 
-/** 准备阶段的入座 / 取消入座；使用中的操作都在工作区里。 */
+/** 使用中参与者手牌里的工具入口：每个已启用的工具打开自己的弹窗。 */
+function createParticipantToolActions(
+  view: ToolboxView,
+  openDialog: (dialog: ToolboxRoomDialog) => void,
+): readonly RoomPlayerAction[] {
+  if (view.phase.kind !== 'active' || view.phase.participation.kind !== 'participant') return [];
+  const { dice, hand } = view.phase.participation;
+  const actions: RoomPlayerAction[] = [];
+  if (dice !== null)
+    actions.push({
+      key: TOOLBOX_ACTION_KEYS.openDice,
+      label: '骰子',
+      category: 'player',
+      audience: 'participant',
+      icon: 'game-controller-outline',
+      opensDialog: true,
+      state: { kind: 'ready', onPress: () => openDialog('dice') },
+    });
+  if (hand !== null)
+    actions.push({
+      key: TOOLBOX_ACTION_KEYS.openDraw,
+      label: '抽牌',
+      category: 'player',
+      audience: 'participant',
+      icon: 'albums-outline',
+      opensDialog: true,
+      state: { kind: 'ready', onPress: () => openDialog('draw') },
+    });
+  return actions;
+}
+
+/** 准备阶段的入座 / 取消入座；使用中参与者的骰子与抽牌入口。 */
 export function createToolboxPlayerActions(input: {
   readonly view: ToolboxView;
   readonly isSubmitting: boolean;
   readonly pendingActionKey: string | null;
   readonly submit: ToolboxSubmit;
+  readonly openDialog: (dialog: ToolboxRoomDialog) => void;
 }): readonly RoomPlayerAction[] {
   const { view } = input;
-  if (view.phase.kind !== 'preparing' || !view.isViewerMember) return [];
+  if (view.phase.kind === 'active') return createParticipantToolActions(view, input.openDialog);
+  if (!view.isViewerMember) return [];
   const isSeated = view.phase.isViewerSeated;
   const key = isSeated ? TOOLBOX_ACTION_KEYS.releaseSeat : TOOLBOX_ACTION_KEYS.takeSeat;
   const label = isSeated ? '取消入座' : '入座';
@@ -178,7 +201,7 @@ export interface ToolboxHostManagementInput {
   readonly isSubmitting: boolean;
   readonly pendingActionKey: string | null;
   readonly submit: ToolboxSubmit;
-  readonly openIdentityRestart: () => void;
+  readonly openDialog: (dialog: ToolboxRoomDialog) => void;
 }
 
 function createPreparingHostManagement(input: ToolboxHostManagementInput): RoomHostManagementModel {
@@ -209,28 +232,22 @@ function createPreparingHostManagement(input: ToolboxHostManagementInput): RoomH
     actions.push(buildRoomConfigAction({ onPress: input.capabilities.canConfigureGame.execute }));
   if (seatedCount > 0)
     actions.push(
-      buildPendingAwareHostAction(
-        {
-          key: TOOLBOX_ACTION_KEYS.clearSeats,
-          label: '全部站起来',
-          icon: 'people-outline',
-          category: 'danger',
-        },
-        input.isSubmitting,
-        () =>
+      buildClearSeatsAction({
+        onPress: () =>
           confirmAction({
-            label: '全部站起来？',
-            body: '让所有已入座的人站起来，房间成员不会退出。',
+            label: '清空座位',
+            body: '所有人会离开座位，房间成员不会退出。',
             tone: 'danger',
-            confirmText: '全部站起来',
             onConfirm: () =>
               void input.submit(
-                '全部站起来',
+                '清空座位',
                 { type: 'toolbox.seats.clear' },
-                { actionKey: TOOLBOX_ACTION_KEYS.clearSeats },
+                { actionKey: HOST_ACTION_KEYS.clearSeats },
               ),
           }),
-      ),
+        isEnabled: !input.isSubmitting,
+        isLoading: input.isSubmitting && input.pendingActionKey === HOST_ACTION_KEYS.clearSeats,
+      }),
     );
   return {
     task: hostActionTask(HOST_ACTION_KEYS.startGame),
@@ -243,48 +260,29 @@ function createActiveHostManagement(input: ToolboxHostManagementInput): RoomHost
   const { view } = input;
   if (view.phase.kind !== 'active') throw new Error('[FAIL-FAST] expected active phase');
   const sessionId = view.phase.sessionId;
-  const actions: RoomHostAction[] = [];
-  if (view.phase.identity !== null)
-    actions.push(
-      buildPendingAwareHostAction(
-        {
-          key: TOOLBOX_ACTION_KEYS.restartIdentity,
-          label: '重开身份',
-          icon: 'refresh-outline',
-          category: 'host',
-        },
-        input.isSubmitting,
-        input.openIdentityRestart,
-      ),
-    );
-  actions.push(
-    buildPendingAwareHostAction(
-      {
-        key: TOOLBOX_ACTION_KEYS.endSession,
-        label: '结束本次使用',
-        icon: 'stop-circle-outline',
-        category: 'danger',
-      },
-      input.isSubmitting,
-      () =>
+  const actions: RoomHostAction[] = [
+    buildResetToLobbyAction({
+      onPress: () =>
         confirmAction({
-          label: '结束本次使用？',
-          body: '结束后将清空本次骰子和身份结果，并返回准备。已保存的方案不会删除。',
+          label: '重新开始？',
+          body: '保留座位和配置，清空本次骰子和身份结果并回到准备。要更换身份牌，可在准备时打开房间设置调整。',
           tone: 'danger',
-          confirmText: '结束',
+          confirmText: '重新开始',
           onConfirm: () =>
             void input.submit(
-              '结束本次使用',
+              '重新开始',
               { type: 'toolbox.session.end', sessionId },
-              { actionKey: TOOLBOX_ACTION_KEYS.endSession },
+              { actionKey: HOST_ACTION_KEYS.restart },
             ),
         }),
-    ),
-  );
+      isEnabled: !input.isSubmitting,
+      isLoading: input.isSubmitting && input.pendingActionKey === HOST_ACTION_KEYS.restart,
+    }),
+  ];
   return { task: null, pendingActionKeys: [], actions };
 }
 
-/** 房主面板：准备时开始 / 设置 / 全部站起来；使用中重开身份 / 结束。 */
+/** 房主面板：准备时开始 / 房间设置 / 清空座位；使用中重新开始。 */
 export function createToolboxHostManagement(
   input: ToolboxHostManagementInput,
 ): RoomHostManagementModel {

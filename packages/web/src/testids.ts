@@ -15,6 +15,9 @@ export const TESTIDS = {
   spotmatchOwnCard: 'spotmatch-own-card',
   spotmatchSymbol: (symbolId: number) => `spotmatch-symbol-${symbolId}`,
   spotmatchResult: 'spotmatch-result',
+  toolboxDiceCount: 'toolbox-dice-count',
+  toolboxDiceCountDecrement: 'toolbox-dice-count-decrement',
+  toolboxDiceCountIncrement: 'toolbox-dice-count-increment',
   // RoomScreen - Seat Grid
   // Used by: RoomScreen.tsx, e2e/night1.basic.spec.ts
   seatTile: (seat: number) => `seat-tile-${seat}`,

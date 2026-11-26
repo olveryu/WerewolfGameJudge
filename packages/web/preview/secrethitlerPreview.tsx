@@ -1,4 +1,7 @@
-import type { SecrethitlerPhaseKind } from '@game-judge/game-engine/games/secrethitler/public';
+import {
+  secrethitlerEngine,
+  type SecrethitlerPhaseKind,
+} from '@game-judge/game-engine/games/secrethitler/public';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { MemoryRouter, Route, Routes, useNavigate, useParams } from 'react-router';
@@ -8,6 +11,7 @@ import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ServiceProvider } from '@/contexts/ServiceContext';
 import { createGameConfigDefiner } from '@/features/room/config/createGameConfigScreen';
 import { getSecrethitlerIdentityName } from '@/games/secrethitler/components/SecrethitlerRoleCardAdapter';
+import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
 import { defineSecrethitlerConfig } from '@/games/secrethitler/module';
 import { secrethitlerReview } from '@/games/secrethitler/review/secrethitlerReview';
 import { SECRETHITLER_PHASE_LABELS } from '@/games/secrethitler/room/secrethitlerPresentation';
@@ -66,7 +70,16 @@ function PreviewRoutes({
           },
     [fixture, userId, viewerSeat],
   );
-  const link = useMemo(() => createPreviewRoomLink(state, { room, userId }), [state, userId]);
+  const link = useMemo(
+    () =>
+      createPreviewRoomLink({
+        initialState: state,
+        identity: { room, userId },
+        engine: secrethitlerEngine,
+        project: (authorityState) => authorityState,
+      }),
+    [state, userId],
+  );
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
@@ -107,7 +120,7 @@ function AuthenticatedPreviewRoutes(props: {
   return <PreviewRoutes {...props} />;
 }
 
-function ConfigRoute({ link }: { readonly link: ReturnType<typeof createPreviewRoomLink> }) {
+function ConfigRoute({ link }: { readonly link: SecrethitlerRoomSession }) {
   const { gameType } = useParams();
   if (gameType !== 'secrethitler') return <p role="status">该游戏尚未接入离线预览。</p>;
   return <ConfigScreen session={link} />;
@@ -173,5 +186,6 @@ export const secrethitlerPreview: PreviewGame = {
       };
     });
   },
+  supportsPopulation: false,
   Screen: SecrethitlerPreviewScreen,
 };

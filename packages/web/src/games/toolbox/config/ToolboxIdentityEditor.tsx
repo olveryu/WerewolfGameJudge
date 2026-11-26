@@ -1,336 +1,332 @@
 /**
- * 身份配置工作区：「身份」与「已保存方案」两个标签，以及固定在编辑区底部的牌数摘要。
- * 建房、准备阶段的房间设置和使用中的重开身份共用这一套编辑器；提交由调用方负责。
+ * 「配置抽身份」弹窗（由预览中确认的 IdentitySetupDialog 提升而来）：「身份方案」折叠区、
+ * 每种身份一个标签、「添加身份」，以及底部的每人抽牌数与牌数摘要。建房与房间设置共用。
  */
-import '../components/ToolboxTabs.css';
 import './ToolboxIdentityEditor.css';
 
 import { Tabs } from '@ark-ui/react/tabs';
 import {
-  countToolboxIdentityCards,
-  findToolboxIdentityConfigIssue,
-  normalizeToolboxName,
   TOOLBOX_IDENTITY_LIMITS,
   type ToolboxIdentityConfig,
-  type ToolboxIdentityDefinition,
 } from '@game-judge/game-engine/games/toolbox/public';
-import { useId, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/Button';
-import { IconButton } from '@/components/IconButton';
-import IonCreateOutline from '~icons/ion/create-outline';
-import IonTrashOutline from '~icons/ion/trash-outline';
+import { GameSettingsStepper } from '@/components/GameSettings';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
+import { confirmAction } from '@/features/room/confirm';
+import { TESTIDS } from '@/testids';
 
-import { ToolboxStepper } from '../components/ToolboxStepper';
-import { ToolboxPresetPanel } from './ToolboxPresetPanel';
+import {
+  countToolboxDraftCards,
+  createToolboxIdentityDraft,
+  findToolboxIdentityDraftProblem,
+  parseToolboxCountInput,
+  readToolboxIdentityDraft,
+  type ToolboxIdentityDraft,
+  type ToolboxIdentityRoleDraft,
+} from './toolboxIdentityDraft';
+import { ToolboxPresetSection } from './ToolboxPresetSection';
 
-export interface ToolboxIdentityEditorProps {
-  readonly value: ToolboxIdentityConfig;
-  readonly onChange: (next: ToolboxIdentityConfig) => void;
+/** 编辑器的草稿、当前身份标签和底部提示；由弹窗持有。 */
+export interface ToolboxIdentitySetupState {
+  readonly draft: ToolboxIdentityDraft;
+  readonly activeRoleId: string;
+  readonly message: string;
+  readonly update: (draft: ToolboxIdentityDraft) => void;
+  readonly selectRole: (roleId: string) => void;
+  /** 用载入的方案替换草稿并回到第一种身份。 */
+  readonly replace: (config: ToolboxIdentityConfig) => void;
+  readonly showMessage: (message: string) => void;
+  /** 合法时返回配置；否则切到出错的身份并在底部说明。`playerCount` 为 null 时不核对张数。 */
+  readonly validate: (playerCount: number | null) => ToolboxIdentityConfig | null;
+}
+
+function firstRoleId(draft: ToolboxIdentityDraft): string {
+  const first = draft.roles[0];
+  if (first === undefined) throw new Error('[FAIL-FAST] identity draft must keep one role');
+  return String(first.id);
+}
+
+function useToolboxIdentitySetup(initial: ToolboxIdentityConfig): ToolboxIdentitySetupState {
+  const [draft, setDraft] = useState(() => createToolboxIdentityDraft(initial));
+  const [activeRoleId, setActiveRoleId] = useState(() => firstRoleId(draft));
+  const [message, setMessage] = useState('');
+  return {
+    draft,
+    activeRoleId,
+    message,
+    update: (next) => {
+      setDraft(next);
+      setMessage('');
+    },
+    selectRole: setActiveRoleId,
+    replace: (config) => {
+      const next = createToolboxIdentityDraft(config);
+      setDraft(next);
+      setActiveRoleId(firstRoleId(next));
+      setMessage('');
+    },
+    showMessage: setMessage,
+    validate: (playerCount) => {
+      const problem = findToolboxIdentityDraftProblem(draft, playerCount);
+      if (problem === null) return readToolboxIdentityDraft(draft);
+      if (problem.roleId !== null) setActiveRoleId(String(problem.roleId));
+      setMessage(problem.message);
+      return null;
+    },
+  };
+}
+
+function IdentityRoleEditor({
+  role,
+  index,
+  isRemovable,
+  isDisabled,
+  onChange,
+  onRemove,
+}: {
+  readonly role: ToolboxIdentityRoleDraft;
+  readonly index: number;
+  readonly isRemovable: boolean;
+  readonly isDisabled: boolean;
+  readonly onChange: (role: ToolboxIdentityRoleDraft) => void;
+  readonly onRemove: () => void;
+}) {
+  const prefix = useId();
+  return (
+    <fieldset className="toolbox-identity-role" disabled={isDisabled}>
+      <legend>身份 {index + 1}</legend>
+      <label htmlFor={`${prefix}-name`}>身份名称</label>
+      <input
+        id={`${prefix}-name`}
+        value={role.name}
+        maxLength={TOOLBOX_IDENTITY_LIMITS.nameMaxLength}
+        autoComplete="off"
+        onChange={(event) => onChange({ ...role, name: event.currentTarget.value })}
+      />
+      <label htmlFor={`${prefix}-description`}>身份说明（可选）</label>
+      <textarea
+        id={`${prefix}-description`}
+        value={role.description}
+        maxLength={TOOLBOX_IDENTITY_LIMITS.descriptionMaxLength}
+        rows={2}
+        onChange={(event) => onChange({ ...role, description: event.currentTarget.value })}
+      />
+      <div className="toolbox-identity-role-row">
+        <div>
+          <label htmlFor={`${prefix}-count`}>数量</label>
+          <input
+            id={`${prefix}-count`}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={TOOLBOX_IDENTITY_LIMITS.maxCountPerIdentity}
+            value={role.count}
+            onChange={(event) => onChange({ ...role, count: event.currentTarget.value })}
+          />
+        </div>
+        {isRemovable && (
+          <Button variant="ghost" onClick={onRemove} aria-label={`删除身份 ${index + 1}`}>
+            删除
+          </Button>
+        )}
+      </div>
+    </fieldset>
+  );
+}
+
+/** 选中的身份标签滚动到可见区域。 */
+function useActiveTabInView(activeRoleId: string) {
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = tabsRef.current;
+    const tab = list?.querySelector('[role="tab"][aria-selected="true"]');
+    if (list === null || list === undefined || tab === null || tab === undefined) return;
+    const listBounds = list.getBoundingClientRect();
+    const tabBounds = tab.getBoundingClientRect();
+    if (tabBounds.left < listBounds.left) list.scrollLeft += tabBounds.left - listBounds.left;
+    if (tabBounds.right > listBounds.right) list.scrollLeft += tabBounds.right - listBounds.right;
+  }, [activeRoleId]);
+  return tabsRef;
+}
+
+/** 编辑区主体：方案折叠区、每种身份一个标签与「添加身份」。 */
+function ToolboxIdentitySetup({
+  setup,
+  isAnonymous,
+  isDisabled,
+}: {
+  readonly setup: ToolboxIdentitySetupState;
   readonly isAnonymous: boolean;
   readonly isDisabled: boolean;
-}
-
-type IdentityEditing = { readonly kind: 'new' } | { readonly kind: 'edit'; readonly index: number };
-
-interface IdentityFieldErrors {
-  readonly name: string | null;
-  readonly description: string | null;
-  readonly count: string | null;
-}
-
-const NO_FIELD_ERRORS: IdentityFieldErrors = { name: null, description: null, count: null };
-
-/** 身份数量的输入只接受十进制正整数；其余一律视为无效，由引擎规则给出提示。 */
-function parseCountInput(raw: string): number {
-  return /^\d+$/.test(raw.trim()) ? Number(raw.trim()) : Number.NaN;
-}
-
-/** 把引擎对候选配置的判定映射到当前表单字段；与其他条目无关的问题不会出现在这里。 */
-function findFieldErrors(
-  candidate: ToolboxIdentityConfig,
-  targetIndex: number,
-): IdentityFieldErrors | null {
-  const issue = findToolboxIdentityConfigIssue(candidate);
-  if (issue === null) return null;
-  switch (issue.kind) {
-    case 'nameInvalid':
-      return issue.index === targetIndex
-        ? {
-            ...NO_FIELD_ERRORS,
-            name: `请填写 1–${TOOLBOX_IDENTITY_LIMITS.nameMaxLength} 个字的身份名称`,
-          }
-        : null;
-    case 'nameDuplicate':
-      return issue.index === targetIndex
-        ? { ...NO_FIELD_ERRORS, name: '已有同名身份，相同身份请调整数量' }
-        : null;
-    case 'descriptionInvalid':
-      return issue.index === targetIndex
-        ? {
-            ...NO_FIELD_ERRORS,
-            description: `说明最多 ${TOOLBOX_IDENTITY_LIMITS.descriptionMaxLength} 个字`,
-          }
-        : null;
-    case 'countInvalid':
-      return issue.index === targetIndex
-        ? {
-            ...NO_FIELD_ERRORS,
-            count: `数量需为 1–${TOOLBOX_IDENTITY_LIMITS.maxCountPerIdentity} 的整数`,
-          }
-        : null;
-    case 'noIdentities':
-    case 'tooManyIdentities':
-    case 'cardsPerPlayerInvalid':
-      return null;
-  }
-}
-
-function IdentityForm({
-  initial,
-  title,
-  onSubmit,
-  onCancel,
-}: {
-  readonly initial: ToolboxIdentityDefinition | null;
-  readonly title: string;
-  /** 返回字段错误时表单保持打开；返回 null 表示已接受。 */
-  readonly onSubmit: (identity: ToolboxIdentityDefinition) => IdentityFieldErrors | null;
-  readonly onCancel: () => void;
 }) {
-  const formId = useId();
-  const [name, setName] = useState(initial?.name ?? '');
-  const [description, setDescription] = useState(initial?.description ?? '');
-  const [count, setCount] = useState(String(initial?.count ?? 1));
-  const [errors, setErrors] = useState<IdentityFieldErrors>(NO_FIELD_ERRORS);
-  const field = (key: keyof IdentityFieldErrors) => ({
-    id: `${formId}-${key}`,
-    'aria-invalid': errors[key] !== null,
-    'aria-describedby': errors[key] === null ? undefined : `${formId}-${key}-error`,
-  });
-  const fieldError = (key: keyof IdentityFieldErrors) =>
-    errors[key] === null ? null : (
-      <p id={`${formId}-${key}-error`} className="toolbox-identity-field-error">
-        {errors[key]}
-      </p>
-    );
+  const { draft } = setup;
+  const tabsRef = useActiveTabInView(setup.activeRoleId);
+  const isFull = draft.roles.length >= TOOLBOX_IDENTITY_LIMITS.maxIdentityTypes;
   return (
-    <form
-      className="toolbox-identity-form"
-      aria-label={title}
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        const nextErrors = onSubmit({
-          name: normalizeToolboxName(name),
-          description: description.trim(),
-          count: parseCountInput(count),
-        });
-        if (nextErrors !== null) setErrors(nextErrors);
-      }}
-    >
-      <h3>{title}</h3>
-      <label htmlFor={`${formId}-name`}>身份名称</label>
-      <input
-        {...field('name')}
-        value={name}
-        autoComplete="off"
-        onChange={(event) => setName(event.currentTarget.value)}
-      />
-      {fieldError('name')}
-      <label htmlFor={`${formId}-description`}>说明（可选）</label>
-      <textarea
-        {...field('description')}
-        value={description}
-        rows={2}
-        onChange={(event) => setDescription(event.currentTarget.value)}
-      />
-      {fieldError('description')}
-      <label htmlFor={`${formId}-count`}>数量</label>
-      <input
-        {...field('count')}
-        value={count}
-        inputMode="numeric"
-        onChange={(event) => setCount(event.currentTarget.value)}
-      />
-      {fieldError('count')}
-      <div className="toolbox-identity-form-actions">
-        <Button type="submit">保存身份</Button>
-        <Button variant="secondary" onClick={onCancel}>
-          取消
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function IdentityList({
-  value,
-  onChange,
-  isDisabled,
-}: Omit<ToolboxIdentityEditorProps, 'isAnonymous'>) {
-  const [editing, setEditing] = useState<IdentityEditing | null>(null);
-  const isFull = value.identities.length >= TOOLBOX_IDENTITY_LIMITS.maxIdentityTypes;
-  const commit = (identity: ToolboxIdentityDefinition, target: IdentityEditing) => {
-    const identities =
-      target.kind === 'new'
-        ? [...value.identities, identity]
-        : value.identities.map((current, index) => (index === target.index ? identity : current));
-    const candidate = { ...value, identities };
-    const targetIndex = target.kind === 'new' ? identities.length - 1 : target.index;
-    const errors = findFieldErrors(candidate, targetIndex);
-    if (errors !== null) return errors;
-    onChange(candidate);
-    setEditing(null);
-    return null;
-  };
-  return (
-    <div className="toolbox-identity-list">
-      {editing?.kind === 'new' ? (
-        <IdentityForm
-          initial={null}
-          title="添加身份"
-          onSubmit={(identity) => commit(identity, editing)}
-          onCancel={() => setEditing(null)}
-        />
-      ) : (
-        <Button
-          variant="outline"
-          disabled={isDisabled || isFull || editing !== null}
-          onClick={() => setEditing({ kind: 'new' })}
-        >
-          {isFull ? `最多 ${TOOLBOX_IDENTITY_LIMITS.maxIdentityTypes} 种身份` : '添加身份'}
-        </Button>
-      )}
-      {value.identities.length === 0 && editing === null && (
-        <p className="toolbox-identity-empty-state">还没有身份，添加身份后才能开始</p>
-      )}
-      <ul>
-        {value.identities.map((identity, index) =>
-          editing?.kind === 'edit' && editing.index === index ? (
-            <li key={`editing-${identity.name}`}>
-              <IdentityForm
-                initial={identity}
-                title={`编辑「${identity.name}」`}
-                onSubmit={(next) => commit(next, editing)}
-                onCancel={() => setEditing(null)}
-              />
-            </li>
-          ) : (
-            <li key={identity.name} className="toolbox-identity-item">
-              <div>
-                <strong>{identity.name}</strong>
-                <span className="toolbox-identity-item-count">× {identity.count}</span>
-                {identity.description.length > 0 && <p>{identity.description}</p>}
-              </div>
-              <IconButton
-                label={`编辑身份「${identity.name}」`}
-                icon={<IonCreateOutline aria-hidden="true" />}
-                disabled={isDisabled || editing !== null}
-                onClick={() => setEditing({ kind: 'edit', index })}
-              />
-              <IconButton
-                label={`删除身份「${identity.name}」`}
-                icon={<IonTrashOutline aria-hidden="true" />}
-                disabled={isDisabled || editing !== null}
-                onClick={() =>
-                  onChange({
-                    ...value,
-                    identities: value.identities.filter((_, current) => current !== index),
-                  })
-                }
-              />
-            </li>
-          ),
-        )}
-      </ul>
+    <div className="toolbox-identity-setup">
+      <ToolboxPresetSection setup={setup} isAnonymous={isAnonymous} isDisabled={isDisabled} />
+      <Tabs.Root
+        value={setup.activeRoleId}
+        onValueChange={(details) => setup.selectRole(details.value)}
+      >
+        <Tabs.List ref={tabsRef} className="toolbox-identity-tabs" aria-label="身份">
+          {draft.roles.map((role, index) => (
+            <Tabs.Trigger key={role.id} value={String(role.id)} className="toolbox-identity-tab">
+              {role.name.trim() || `身份 ${index + 1}`}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
+        {draft.roles.map((role, index) => (
+          <Tabs.Content key={role.id} value={String(role.id)}>
+            <IdentityRoleEditor
+              role={role}
+              index={index}
+              isRemovable={draft.roles.length > 1}
+              isDisabled={isDisabled}
+              onChange={(next) =>
+                setup.update({
+                  ...draft,
+                  roles: draft.roles.map((item) => (item.id === role.id ? next : item)),
+                })
+              }
+              onRemove={() => {
+                const remaining = draft.roles.filter((item) => item.id !== role.id);
+                const neighbour = remaining[Math.max(0, index - 1)];
+                if (neighbour === undefined)
+                  throw new Error('[FAIL-FAST] the last identity cannot be removed');
+                setup.update({ ...draft, roles: remaining });
+                setup.selectRole(String(neighbour.id));
+              }}
+            />
+          </Tabs.Content>
+        ))}
+      </Tabs.Root>
+      <Button
+        variant="outline"
+        disabled={isDisabled || isFull}
+        onClick={() => {
+          const id = Math.max(...draft.roles.map((role) => role.id)) + 1;
+          setup.update({
+            ...draft,
+            roles: [...draft.roles, { id, name: '', description: '', count: '1' }],
+          });
+          setup.selectRole(String(id));
+        }}
+      >
+        {isFull ? `最多 ${TOOLBOX_IDENTITY_LIMITS.maxIdentityTypes} 种身份` : '添加身份'}
+      </Button>
     </div>
   );
 }
 
-/** 「身份」「已保存方案」两个标签；草稿只在当前房间生效。 */
-export function ToolboxIdentityEditor(props: ToolboxIdentityEditorProps) {
-  const [tab, setTab] = useState('identities');
-  return (
-    <Tabs.Root
-      className="toolbox-identity-editor"
-      value={tab}
-      onValueChange={(details) => setTab(details.value)}
-    >
-      <Tabs.List className="toolbox-tabs" aria-label="身份配置">
-        <Tabs.Trigger value="identities" className="toolbox-tab">
-          身份（{props.value.identities.length}）
-        </Tabs.Trigger>
-        <Tabs.Trigger value="presets" className="toolbox-tab">
-          已保存方案
-        </Tabs.Trigger>
-      </Tabs.List>
-      <Tabs.Content value="identities">
-        <IdentityList value={props.value} onChange={props.onChange} isDisabled={props.isDisabled} />
-      </Tabs.Content>
-      <Tabs.Content value="presets">
-        {props.isAnonymous ? (
-          <p className="toolbox-identity-empty-state">登录后可保存和使用方案</p>
-        ) : (
-          <ToolboxPresetPanel
-            draft={props.value}
-            isDisabled={props.isDisabled}
-            onLoad={(identity) => {
-              props.onChange(identity);
-              setTab('identities');
-            }}
-          />
-        )}
-      </Tabs.Content>
-    </Tabs.Root>
-  );
-}
-
-export interface ToolboxIdentitySummaryProps {
-  readonly value: ToolboxIdentityConfig;
-  readonly onCardsPerPlayerChange: (cardsPerPlayer: number) => void;
-  /** 开始前按已入座人数，使用中按本轮锁定人数；建房时尚无人入座为 null。 */
-  readonly requirement: { readonly playerCount: number; readonly label: string } | null;
-  readonly isDisabled: boolean;
-}
-
-/** 固定在编辑区底部的牌数摘要：每人抽牌数、总张数、需要张数与缺口。 */
-export function ToolboxIdentitySummary({
-  value,
-  onCardsPerPlayerChange,
+/** 编辑区底部：每人抽牌数、「共 N 张 · M 人需 K 张」、提示与操作按钮。 */
+function ToolboxIdentitySetupFooter({
+  setup,
   requirement,
   isDisabled,
-}: ToolboxIdentitySummaryProps) {
-  const total = countToolboxIdentityCards(value);
-  const required = requirement === null ? null : value.cardsPerPlayer * requirement.playerCount;
-  const shortage = required === null ? 0 : required - total;
+  children,
+}: {
+  readonly setup: ToolboxIdentitySetupState;
+  /** 准备阶段按已入座人数；建房时尚无人入座为 null。 */
+  readonly requirement: { readonly playerCount: number; readonly label: string } | null;
+  readonly isDisabled: boolean;
+  readonly children: ReactNode;
+}) {
+  const { draft } = setup;
+  const total = countToolboxDraftCards(draft);
+  const perPlayer = parseToolboxCountInput(draft.cardsPerPlayer);
+  const isPerPlayerValid = Number.isSafeInteger(perPlayer);
+  const required =
+    requirement === null || !isPerPlayerValid ? null : perPlayer * requirement.playerCount;
+  const step = (delta: number) =>
+    setup.update({ ...draft, cardsPerPlayer: String((isPerPlayerValid ? perPlayer : 1) + delta) });
   return (
-    <div className="toolbox-identity-summary">
-      <div className="toolbox-identity-summary-row">
-        <strong>每人抽 {value.cardsPerPlayer} 张</strong>
-        <ToolboxStepper
-          label="每人抽牌数量"
-          value={value.cardsPerPlayer}
-          unit="张"
-          min={1}
-          max={TOOLBOX_IDENTITY_LIMITS.maxCardsPerPlayer}
-          isDisabled={isDisabled}
-          onChange={onCardsPerPlayerChange}
-        />
-      </div>
-      <p className="toolbox-identity-summary-counts" aria-live="polite">
-        <span>共 {total} 张</span>
-        <span>
-          {requirement === null || required === null
-            ? '开始时按入座人数核对'
-            : `需要 ${required} 张（${requirement.label}）`}
-        </span>
+    <div className="toolbox-identity-footer">
+      <GameSettingsStepper
+        label="每人抽牌数量"
+        value={draft.cardsPerPlayer}
+        onChangeText={(cardsPerPlayer) => setup.update({ ...draft, cardsPerPlayer })}
+        onDecrement={() => step(-1)}
+        onIncrement={() => step(1)}
+        isDecrementDisabled={isDisabled || !isPerPlayerValid || perPlayer <= 1}
+        isIncrementDisabled={
+          isDisabled || !isPerPlayerValid || perPlayer >= TOOLBOX_IDENTITY_LIMITS.maxCardsPerPlayer
+        }
+        decrementLabel="减少每人抽牌数量"
+        incrementLabel="增加每人抽牌数量"
+        testId={TESTIDS.gameConfigField('toolbox', 'cardsPerPlayer')}
+        decrementTestId={TESTIDS.gameConfigFieldDecrement('toolbox', 'cardsPerPlayer')}
+        incrementTestId={TESTIDS.gameConfigFieldIncrement('toolbox', 'cardsPerPlayer')}
+      />
+      <p className="toolbox-identity-summary" aria-live="polite">
+        共 {total} 张 ·{' '}
+        {requirement === null
+          ? '开始时按入座人数核对'
+          : `${requirement.label}需 ${required ?? '—'} 张`}
       </p>
-      {shortage > 0 && (
-        <p className="toolbox-identity-summary-shortage" role="status">
-          还差 {shortage} 张，请增加身份牌数量
+      {required !== null && total < required && (
+        <p className="toolbox-identity-shortage">还差 {required - total} 张，请增加身份牌数量</p>
+      )}
+      {setup.message !== '' && (
+        <p className="toolbox-identity-message" role="status">
+          {setup.message}
         </p>
       )}
+      {children}
     </div>
+  );
+}
+
+/**
+ * 「配置抽身份」弹窗：编辑副本，「完成」校验后交回设置页；取消或关闭时丢弃修改。
+ * 张数不足不阻止完成：入座人数在开始前仍会变化，开始按钮会按当时人数说明。
+ */
+export function ToolboxIdentitySetupDialog({
+  initial,
+  requirement,
+  isAnonymous,
+  onDone,
+  onClose,
+}: {
+  readonly initial: ToolboxIdentityConfig;
+  readonly requirement: { readonly playerCount: number; readonly label: string } | null;
+  readonly isAnonymous: boolean;
+  readonly onDone: (identity: ToolboxIdentityConfig) => void;
+  readonly onClose: () => void;
+}) {
+  const setup = useToolboxIdentitySetup(initial);
+  const requestClose = () => {
+    if (JSON.stringify(setup.draft) === JSON.stringify(createToolboxIdentityDraft(initial))) {
+      onClose();
+      return;
+    }
+    confirmAction({ label: '放弃修改？', body: '还没有保存此次修改。', onConfirm: onClose });
+  };
+  const done = () => {
+    const identity = setup.validate(null);
+    if (identity !== null) onDone(identity);
+  };
+  return (
+    <RoomDialog
+      title="配置抽身份"
+      dismissOnEscape
+      onClose={requestClose}
+      footer={
+        <ToolboxIdentitySetupFooter setup={setup} requirement={requirement} isDisabled={false}>
+          <div className="toolbox-identity-footer-actions">
+            <Button onClick={done} data-testid={TESTIDS.gameConfigSubmit('toolbox-identity')}>
+              完成
+            </Button>
+            <Button variant="secondary" onClick={requestClose}>
+              取消
+            </Button>
+          </div>
+        </ToolboxIdentitySetupFooter>
+      }
+    >
+      <ToolboxIdentitySetup setup={setup} isAnonymous={isAnonymous} isDisabled={false} />
+    </RoomDialog>
   );
 }

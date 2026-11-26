@@ -26,15 +26,15 @@ export function ToolboxGuide({ embedded = false }: { readonly embedded?: boolean
         <RuleItem
           icon="game-controller-outline"
           title="骰子"
-          description="每人一个骰盅，普通六面骰 1–20 颗。摇好后自己掀开，只有你能看到点数；可以固定部分骰子，再摇时保留它们的点数。"
+          description="参与者从手牌「骰子」打开自己的骰盅，普通六面骰 1–20 颗。摇好后自己掀开，只有你能看到点数；可以固定部分骰子，再摇时保留它们的点数。"
         />
         <RuleItem
           icon="albums-outline"
           title="身份牌"
-          description="房主配置身份和每人抽牌数。所有人从同一个牌堆随机抽，抽走不放回；只公开牌堆总剩余张数。"
+          description="房主在房间设置中配置身份和每人抽牌数。参与者从手牌「抽牌」打开弹窗，所有人从同一个牌堆随机抽，抽走不放回；只公开牌堆总剩余张数。"
         />
       </GameGuideSection>
-      <GameNotice text="本工具不判断胜负，不计战绩和奖励。房主可以重开身份（只清空身份牌，骰子不受影响），或结束本次使用回到准备。" />
+      <GameNotice text="本工具不判断胜负，不计战绩和奖励。房主可以重新开始：保留座位和配置，清空本次骰子和身份结果并回到准备，要更换身份牌可在准备时调整房间设置。" />
     </GameGuide>
   );
 }

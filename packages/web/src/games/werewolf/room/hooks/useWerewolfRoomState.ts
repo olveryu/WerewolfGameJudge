@@ -210,6 +210,7 @@ export function useWerewolfRoomState(
     entryReason: props.entryReason,
   });
   const { seatController, profile, actions } = useRoomRosterController({
+    supportsBots: true,
     session,
     user,
     mySeat,

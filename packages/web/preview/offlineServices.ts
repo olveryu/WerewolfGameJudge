@@ -1,9 +1,8 @@
+import type { CommittedCommandOutcome } from '@game-judge/game-engine/platform/protocol/commandResult';
 import {
-  type SecrethitlerCommand,
-  secrethitlerEngine,
-  type SecrethitlerState,
-} from '@game-judge/game-engine/games/secrethitler/public';
-import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+  type BaseGameState,
+  createRoomSnapshot,
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
@@ -66,17 +65,55 @@ export function createPreviewServices(userId: string): ServiceContextValue {
   };
 }
 
+interface PreviewCommandContext {
+  readonly actor: { readonly kind: 'user'; readonly userId: string };
+  readonly controlledSeat: number | null;
+  readonly nowMs: number;
+  readonly commandId: string;
+  readonly randomSeed: string;
+}
+
+type PreviewDecision<TEvent> =
+  | {
+      readonly kind: 'commit';
+      readonly events: readonly TEvent[];
+      readonly outcome: CommittedCommandOutcome;
+    }
+  | { readonly kind: 'reject'; readonly reason: string };
+
+/** The subset of a game engine definition the offline room needs. */
+export interface PreviewEngine<TState, TCommand, TEvent> {
+  decide(state: TState, command: TCommand, context: PreviewCommandContext): PreviewDecision<TEvent>;
+  evolve(state: TState, event: TEvent): TState;
+}
+
+interface PreviewRoomLinkInput<TState, TView extends BaseGameState<string>, TCommand, TEvent> {
+  readonly initialState: TState;
+  readonly identity: RoomIdentity<TView['gameType']>;
+  readonly engine: PreviewEngine<TState, TCommand, TEvent>;
+  /** Projects the authoritative state for the preview viewer, as the room server does. */
+  readonly project: (state: TState) => TView;
+}
+
 /** Keeps all room commands in memory and applies the same engine decisions as a real room. */
-export function createPreviewRoomLink(
-  initialState: SecrethitlerState,
-  identity: RoomIdentity<'secrethitler'>,
-): RoomLink<SecrethitlerState, SecrethitlerCommand> {
-  let snapshot: LinkSnapshot<SecrethitlerState> = {
+export function createPreviewRoomLink<
+  TState,
+  TView extends BaseGameState<string>,
+  TCommand extends { readonly type: string },
+  TEvent,
+>({
+  initialState,
+  identity,
+  engine,
+  project,
+}: PreviewRoomLinkInput<TState, TView, TCommand, TEvent>): RoomLink<TView, TCommand> {
+  let authorityState = initialState;
+  let snapshot: LinkSnapshot<TView> = {
     phase: 'ready',
     epoch: 1,
     identity,
     status: { kind: 'live' },
-    room: createRoomSnapshot(initialState, 1),
+    room: createRoomSnapshot(project(initialState), 1),
     lastCommand: null,
     pendingDurableCount: 0,
   };
@@ -94,7 +131,7 @@ export function createPreviewRoomLink(
     dispatch: async (command, options) => {
       if (snapshot.phase !== 'ready') throw new Error('预览房间未就绪');
       const commandId = `preview-${++counter}`;
-      const decision = secrethitlerEngine.decide(snapshot.room.state, command, {
+      const decision = engine.decide(authorityState, command, {
         actor: { kind: 'user', userId: identity.userId },
         controlledSeat: options.controlledSeat,
         nowMs: Date.now(),
@@ -103,8 +140,11 @@ export function createPreviewRoomLink(
       });
       if (decision.kind === 'reject')
         return { kind: 'rejected', commandId, reason: decision.reason };
-      const state = decision.events.reduce(secrethitlerEngine.evolve, snapshot.room.state);
-      const room = createRoomSnapshot(state, snapshot.room.revision + 1);
+      authorityState = decision.events.reduce(
+        (current, event) => engine.evolve(current, event),
+        authorityState,
+      );
+      const room = createRoomSnapshot(project(authorityState), snapshot.room.revision + 1);
       snapshot = {
         ...snapshot,
         room,

@@ -116,6 +116,7 @@ export function useFibRoomState({
   const { controlledSeat, effectiveSeat } = bots;
   // 资料卡全程可开（对齐狼人杀），故用 roster 控制器 + 本家能力表。
   const { seatController, profile, actions } = useRoomRosterController({
+    supportsBots: true,
     session,
     user,
     mySeat,

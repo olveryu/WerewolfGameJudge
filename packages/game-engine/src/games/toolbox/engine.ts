@@ -34,11 +34,7 @@ import {
   type ToolboxCupOutcome,
 } from './domain/dice';
 import { evolveToolboxState } from './domain/evolve';
-import {
-  buildToolboxIdentityRoundId,
-  createToolboxIdentityRound,
-  drawToolboxIdentityIndex,
-} from './domain/identity';
+import { createToolboxIdentityRound, drawToolboxIdentityIndex } from './domain/identity';
 import { buildToolboxSessionId, normalizeToolboxState } from './state/normalize';
 import {
   TOOLBOX_GAME_TYPE,
@@ -188,13 +184,7 @@ function decideBegin(
       dice: tools.includes('dice')
         ? participantUserIds.map((userId) => ({ userId, cup: createToolboxDiceCup() }))
         : null,
-      identity: usesIdentity
-        ? createToolboxIdentityRound(
-            buildToolboxIdentityRoundId(sessionId, 1),
-            identity,
-            participantUserIds,
-          )
-        : null,
+      identity: usesIdentity ? createToolboxIdentityRound(identity, participantUserIds) : null,
     },
   ]);
 }
@@ -274,14 +264,14 @@ function decideDice(
 
 function decideIdentityDraw(
   state: ToolboxState,
-  roundId: string,
+  sessionId: string,
   context: CommandContext,
 ): ToolboxDecision {
   const participant = resolveParticipant(state, context);
   if (participant.kind === 'rejected') return participant.decision;
+  if (participant.phase.sessionId !== sessionId) return reject(TOOLBOX_REASONS.sessionStale);
   const round = participant.phase.identity;
   if (round === null) return reject(TOOLBOX_REASONS.identityDisabled);
-  if (round.roundId !== roundId) return reject(TOOLBOX_REASONS.roundStale);
   const hand = round.hands.find((candidate) => candidate.userId === participant.userId);
   if (hand === undefined) throw new Error('[FAIL-FAST] toolbox participant has no hand');
   if (hand.identityIndexes.length >= round.config.cardsPerPlayer) {
@@ -292,34 +282,6 @@ function decideIdentityDraw(
       type: 'toolbox.identity.drawn',
       userId: participant.userId,
       identityIndex: drawToolboxIdentityIndex(round, context.randomSeed),
-    },
-  ]);
-}
-
-function decideIdentityRestart(
-  state: ToolboxState,
-  command: Extract<ToolboxCommand, { type: 'toolbox.identity.restart' }>,
-  context: CommandContext,
-): ToolboxDecision {
-  const actor = resolveHostMember(state, context);
-  if (actor.kind === 'rejected') return actor.decision;
-  if (state.phase.kind !== 'active') return reject(TOOLBOX_REASONS.sessionStale);
-  const { phase } = state;
-  if (phase.identity === null) return reject(TOOLBOX_REASONS.identityDisabled);
-  if (phase.identity.roundId !== command.roundId) return reject(TOOLBOX_REASONS.roundStale);
-  const identityIssue = findToolboxIdentityConfigIssue(command.identity);
-  if (identityIssue !== null) return rejectIdentityIssue(identityIssue);
-  if (!hasEnoughToolboxCards(command.identity, phase.participantUserIds.length)) {
-    return reject(TOOLBOX_REASONS.notEnoughCards);
-  }
-  return commitToolbox([
-    {
-      type: 'toolbox.identity.restarted',
-      round: createToolboxIdentityRound(
-        buildToolboxIdentityRoundId(phase.sessionId, phase.identityRoundSequence + 1),
-        command.identity,
-        phase.participantUserIds,
-      ),
     },
   ]);
 }
@@ -349,9 +311,7 @@ export function decideToolboxCommand(
     case 'toolbox.dice.toggleHold':
       return decideDice(state, command, context);
     case 'toolbox.identity.draw':
-      return decideIdentityDraw(state, command.roundId, context);
-    case 'toolbox.identity.restart':
-      return decideIdentityRestart(state, command, context);
+      return decideIdentityDraw(state, command.sessionId, context);
   }
 }
 

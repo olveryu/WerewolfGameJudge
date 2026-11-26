@@ -31,7 +31,7 @@ export function PreviewApp() {
   const [populationError, setPopulationError] = useState('');
   const game = getPreviewGame(gameId);
   const parameters = new URLSearchParams({ embedded: '1', game: gameId, phase, viewer, page });
-  if (gameId === 'dice') {
+  if (game.supportsPopulation) {
     parameters.set('otherPlayers', String(population.otherPlayers));
     parameters.set('seatedOthers', String(population.seatedOthers));
   }
@@ -119,7 +119,7 @@ export function PreviewApp() {
             ))}
           </select>
         </label>
-        {gameId === 'dice' && (
+        {game.supportsPopulation && (
           <>
             <label htmlFor="preview-others">
               其他在场人数

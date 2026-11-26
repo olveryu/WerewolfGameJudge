@@ -4,20 +4,14 @@ import { createSeededRng, randomIntInclusive } from '../../../platform/random/ra
 import type { ToolboxIdentityConfig, ToolboxIdentityRound } from '../state/types';
 
 export function createToolboxIdentityRound(
-  roundId: string,
   config: ToolboxIdentityConfig,
   participantUserIds: readonly string[],
 ): ToolboxIdentityRound {
   return {
-    roundId,
     config,
     remaining: config.identities.map((identity) => identity.count),
     hands: participantUserIds.map((userId) => ({ userId, identityIndexes: [] })),
   };
-}
-
-export function buildToolboxIdentityRoundId(sessionId: string, sequence: number): string {
-  return `${sessionId}:identity:${sequence}`;
 }
 
 /**
@@ -27,7 +21,7 @@ export function buildToolboxIdentityRoundId(sessionId: string, sequence: number)
 export function drawToolboxIdentityIndex(round: ToolboxIdentityRound, randomSeed: string): number {
   const total = round.remaining.reduce((sum, count) => sum + count, 0);
   if (total === 0) {
-    throw new Error(`[FAIL-FAST] toolbox identity round ${round.roundId} has an empty deck`);
+    throw new Error('[FAIL-FAST] toolbox identity round has an empty deck');
   }
   let position = randomIntInclusive(
     0,

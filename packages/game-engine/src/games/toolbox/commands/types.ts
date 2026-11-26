@@ -1,6 +1,6 @@
 /** 工具箱公共命令。所有身份均来自认证上下文，命令不携带用户 ID。 */
 
-import type { ToolboxConfig, ToolboxIdentityConfig } from '../state/types';
+import type { ToolboxConfig } from '../state/types';
 
 export type ToolboxPublicCommand =
   | { readonly type: 'toolbox.member.join' }
@@ -23,12 +23,7 @@ export type ToolboxPublicCommand =
       readonly dieId: number;
       readonly cupVersion: number;
     }
-  | { readonly type: 'toolbox.identity.draw'; readonly roundId: string }
-  | {
-      readonly type: 'toolbox.identity.restart';
-      readonly roundId: string;
-      readonly identity: ToolboxIdentityConfig;
-    };
+  | { readonly type: 'toolbox.identity.draw'; readonly sessionId: string };
 
 /** 工具箱没有系统命令：无计时、无结算、无机器人。 */
 export type ToolboxCommand = ToolboxPublicCommand;

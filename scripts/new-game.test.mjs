@@ -817,48 +817,61 @@ for (const scenario of FEATURE_SCENARIOS) {
     assert.ok(lists.length >= 2, 'expected both game_type CHECK lists');
     for (const list of lists) assert.ok(list[1].includes(`'demoproto'`));
     assert.ok(migration.includes('TODO(gameplay)'));
-    assert.ok(migration.includes('CREATE TABLE demoproto_user_stats'));
-    assert.ok(migration.includes("typeof(games_played) = 'integer'"));
-    assert.ok(migration.includes('ON DELETE CASCADE'));
+    const statsEnabled = scenario.features.stats === 'enabled';
+    assert.equal(migration.includes('CREATE TABLE demoproto_user_stats'), statsEnabled);
+    assert.equal(migration.includes("typeof(games_played) = 'integer'"), statsEnabled);
+    if (statsEnabled) assert.ok(migration.includes('ON DELETE CASCADE'));
     const statsOwnerContract = readFixture(root, 'contracts/architecture.contract.test.ts');
-    assert.ok(
+    assert.equal(
       statsOwnerContract.includes(
         "['demoproto_user_stats', 'packages/api-worker/src/games/demoproto/dbSchema.ts']",
       ),
+      statsEnabled,
     );
     const statsModule = readFixture(root, 'packages/api-worker/src/games/demoproto/module.ts');
-    assert.ok(statsModule.includes('parsePublicUserStats: parseDemoprotoPublicStats'));
-    assert.ok(statsModule.includes('getPublicUserStats: getDemoprotoPublicUserStats'));
+    assert.equal(
+      statsModule.includes('parsePublicUserStats: parseDemoprotoPublicStats'),
+      statsEnabled,
+    );
+    assert.equal(
+      statsModule.includes('getPublicUserStats: getDemoprotoPublicUserStats'),
+      statsEnabled,
+    );
     const statsEffects = readFixture(root, 'packages/api-worker/src/games/demoproto/effects.ts');
-    assert.ok(
+    assert.equal(
       statsEffects.includes(
         'z.union([gameCompletionPayloadSchema, demoprotoCompletionPayloadSchema])',
       ),
+      statsEnabled,
     );
-    assert.ok(
+    assert.equal(
       statsEffects.includes(
         "'stats' in effect.payload ? demoprotoStatsSettlement(effect.payload.stats) : undefined",
       ),
+      statsEnabled,
     );
     const roomHook = readFixture(
       root,
       'packages/web/src/games/demoproto/room/hooks/useDemoprotoRoomState.ts',
     );
-    assert.ok(
+    assert.equal(
       roomHook.includes("useGameProfileDetails(profile.selection, '演示原型战绩', '本游戏局数')"),
+      statsEnabled,
     );
-    assert.ok(roomHook.includes('    gameDetails,'));
-    assert.ok(
+    assert.equal(roomHook.includes('    gameDetails,'), statsEnabled);
+    assert.equal(
       readFixture(root, 'packages/web/src/games/demoproto/room/DemoprotoRoomScreen.tsx').includes(
         'profileDetailsRenderer=',
       ),
+      statsEnabled,
     );
-    assert.ok(
+    assert.equal(
       readFixture(root, 'packages/web/src/games/demoproto/room/demoprotoRoomAdapter.ts').includes(
         'gameDetails: input.gameDetails',
       ),
+      statsEnabled,
     );
-    assert.ok(report.includes('不需要额外指标也必须记录批准理由'));
+    assert.equal(report.includes('不需要额外指标也必须记录批准理由'), statsEnabled);
     assert.ok(
       report.includes('名单同步不是上线充分条件') || report.includes('两处齐不是上线充分条件'),
     );
@@ -1135,6 +1148,9 @@ it('night narration derives audio orchestration and renders its full wiring', ()
     __GAME_FEATURE_GUIDED_NARRATION__: '无',
     __GAME_FEATURE_STAGE_DEADLINE__: '无',
     __GAME_FEATURE_WORD_SUPPLY__: '无',
+    __GAME_FEATURE_BOTS__: 'enabled',
+    __GAME_FEATURE_STATS__: 'enabled',
+    __GAME_FEATURE_REWARDS__: 'flat',
     __GAME_COMPLETION_TYPE__: 'DemoprotoCompletionPayload | ',
     __GAME_REQUIREMENT_COUNT__: '11',
     __GAME_TEST_BEGIN__: "session.send({ type: 'demoproto.game.begin' });",
@@ -1144,7 +1160,8 @@ it('night narration derives audio orchestration and renders its full wiring', ()
     sharedSteps: features.night === 'narrated',
     armDeadlineAtBegin: false,
     stageDeadlineAtStart: false,
-    businessStats: true,
+    completion: features.rewards !== 'none',
+    businessStats: features.stats === 'enabled',
   });
   const renderTree = (capabilities) => {
     const rendered = new Map();
@@ -1339,7 +1356,10 @@ it('generator facts track feature test obligations and migration numbering uses 
   assert.deepEqual(facts.featureTestRequirements, FEATURE_TEST_REQUIREMENTS);
   assert.equal(
     facts.templateCount,
-    expectedCreatedFiles('demoproto', FEATURE_SCENARIOS.at(-1).features).length,
+    expectedCreatedFiles(
+      'demoproto',
+      FEATURE_SCENARIOS.find((scenario) => scenario.name === 'all declared features').features,
+    ).length,
   );
 });
 
@@ -1351,6 +1371,7 @@ it('new registration migrations do not repeat the one-time demo cleanup', () => 
     sourceContent,
     gameId: 'probe',
     displayName: 'Probe',
+    includeStatsTable: true,
   });
 
   assert.ok(sourceContent.includes("DELETE FROM rooms WHERE game_type = 'demo';"));
