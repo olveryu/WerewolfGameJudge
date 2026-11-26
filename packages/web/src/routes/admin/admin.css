@@ -964,13 +964,14 @@
   font-size: var(--font-caption-small);
 }
 .admin-avatar {
+  --avatar-inset: 0px;
+
   display: grid;
   place-items: center;
   width: var(--size-avatar-xs);
   height: var(--size-avatar-xs);
   background: var(--admin-accent-soft);
   color: var(--admin-accent);
-  border-radius: var(--radius-full);
   flex-shrink: 0;
   font-size: var(--font-caption);
 }

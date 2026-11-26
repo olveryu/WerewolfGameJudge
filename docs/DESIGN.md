@@ -270,8 +270,10 @@ Avatars are rounded squares at every size: `Avatar` alone sets their corners fro
 along the same corner, and `applyAvatarShapeTokens` publishes the ratio as `--avatar-corner-ratio`.
 A square box hugging an avatar (a tile, a seat, a mat, a placeholder standing where an avatar
 would) is concentric with it through the shared `avatar-concentric` rule and its `--avatar-inset`;
-no stylesheet repeats the ratio or gives such a box a fixed radius. The avatar shape contract test
-pins this.
+no stylesheet repeats the ratio or gives such a box a fixed radius. The web avatar shape contract
+test (`packages/web/src/__tests__/avatarShape.contract.test.ts`) pins the avatar and box rules
+over every avatar site its census finds; the frame geometry tests
+(`packages/web/src/scene/frames/__tests__/frameBox.test.ts`) pin the frames to the same corner.
 
 ## Components
 

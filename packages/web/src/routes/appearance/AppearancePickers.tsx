@@ -106,13 +106,13 @@ function PickerCell({
       : { ...getRarityCellStyle(rarity), ...(isSelected ? getRaritySelectedStyle(rarity) : {}) };
   return (
     <button
+      {...longPress.handlers}
       type="button"
       className={holdsAvatar ? AVATAR_CELL_CLASS : 'appearance-cell'}
       aria-label={label}
       aria-pressed={isSelected}
       data-active={showActive}
       style={style}
-      {...longPress.handlers}
       onClick={() => {
         if (!longPress.consumeClick()) onPress();
       }}
