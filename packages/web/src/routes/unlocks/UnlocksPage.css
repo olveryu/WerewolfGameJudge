@@ -148,8 +148,24 @@
   padding: var(--space-small);
   box-sizing: border-box;
   border: 0;
-  border-radius: var(--radius-large);
   background: transparent;
+}
+
+/* A text or icon preview is a card. */
+.unlocks-cell-frame:not(.avatar-concentric) {
+  border-radius: var(--radius-large);
+}
+
+/*
+ * An avatar preview (bare, or in a tile) takes the shared concentric corners: its inset is the
+ * padding, plus the tile's border when the tile shows one.
+ */
+.unlocks-cell-frame.avatar-concentric {
+  --avatar-inset: var(--space-small);
+}
+
+.unlocks-cell-frame.avatar-concentric[data-tile-border='true'] {
+  --avatar-inset: calc(var(--space-small) + var(--border-width-avatar-tile));
 }
 
 .unlocks-cell-frame[data-locked='true'] {

@@ -24,13 +24,15 @@
   border-color: color-mix(in srgb, var(--rarity-color) 25%, var(--color-border-light));
 }
 
+/* Shaped like the avatar it may hold (the shared concentric corners); an empty slot dashes it. */
 .profile-equip-preview {
+  --avatar-inset: 0px;
+
   display: flex;
   align-items: center;
   justify-content: center;
   width: var(--size-profile-equipment-preview);
   height: var(--size-profile-equipment-preview);
-  border-radius: var(--radius-full);
   color: var(--color-text-secondary);
   font-size: var(--font-subtitle);
   font-weight: var(--weight-bold);
