@@ -97,8 +97,8 @@ describe('admin mock fixtures', () => {
     expect(filtered.items.every((item) => item.category === category)).toBe(true);
   });
 
-  it('provides every game category in mock stats, including zero-inventory categories', () => {
-    for (const game of GAME_WORD_GAMES) {
+  it('retains zero-inventory categories in multi-category game fixtures', () => {
+    for (const game of ['fibking', 'undercover', 'drawguess'] as const) {
       const categories = getWordStats(game).categories;
       expect(categories.some(({ active }) => active === 0)).toBe(true);
     }
@@ -109,6 +109,12 @@ describe('admin mock fixtures', () => {
       active: 0,
       total: 0,
     });
+  });
+
+  it('provides the single populated Decrypto category in mock stats', () => {
+    const categories = getWordStats('decrypto').categories;
+    expect(categories).toEqual([expect.objectContaining({ id: 'general', name: '常用词' })]);
+    expect(categories[0]?.active).toBeGreaterThan(0);
   });
 
   it('authenticates with the local password and returns a visible error for unimplemented APIs', async () => {
