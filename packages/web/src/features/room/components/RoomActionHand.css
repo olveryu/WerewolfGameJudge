@@ -3,10 +3,9 @@
   display: grid;
   grid-template-columns: repeat(var(--hand-card-count), minmax(var(--size-min-touch-target), 1fr));
   width: min(100%, calc(var(--hand-card-count) * var(--size-hand-card-width)));
+  block-size: var(--room-hand-height);
   margin-inline: auto;
-  margin-block-end: calc(-1 * var(--space-xxlarge));
-  padding: var(--space-medium) var(--space-tight)
-    calc(max(var(--space-small), env(safe-area-inset-bottom)) + var(--hand-max-drop));
+  padding: var(--space-small) var(--space-tight) env(safe-area-inset-bottom);
 }
 
 .room-hand-reason {
@@ -41,16 +40,18 @@
 .room-action-card-cell .room-hand-card {
   --hand-ink: var(--color-text-secondary);
   --hand-paper: var(--color-background);
-  position: relative;
+  /* Anchored below the edge so every card shows the same height; a label that needs an extra
+     line grows its card upward instead of hiding the name below the edge. */
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(-1 * var(--space-xxlarge));
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: var(--space-small);
-  width: 100%;
-  min-block-size: var(--size-hand-card-visible);
-  height: 100%;
-  padding: var(--space-small) var(--space-small) calc(var(--space-small) + var(--space-xxlarge));
+  gap: var(--space-tight);
+  min-block-size: calc(100% + var(--space-xxlarge));
+  padding: var(--space-small) var(--space-tight) calc(var(--space-xxlarge) + var(--hand-card-drop));
   border: var(--border-width-thick) solid var(--hand-ink);
   border-radius: var(--radius-small);
   background: var(--hand-paper);
