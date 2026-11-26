@@ -110,6 +110,7 @@ BEGIN_TEXT: dict[str, str] = {
     "night_end": "请各位整理表情。三、二、一，天亮了，请睁眼。",
     "wolf": "狼人请睁眼，互相确认身份后，请选择要袭击的玩家。",
     "wolf_queen": "狼美人请睁眼，请选择魅惑的对象。",
+    "scarlet_wolf_king": "猩红狼王请睁眼，请选择附着猩红之子的玩家。",
     "dark_wolf_king": "狼王请睁眼，请确认开枪状态。",
     "nightmare": "噩梦之影请睁眼，请选择要恐惧的玩家。",
     "gargoyle": "石像鬼请睁眼，请选择要查验的玩家。",
@@ -151,6 +152,7 @@ BEGIN_TEXT: dict[str, str] = {
 END_TEXT: dict[str, str] = {
     "wolf": "狼人请闭眼。",
     "wolf_queen": "狼美人请闭眼。",
+    "scarlet_wolf_king": "猩红狼王请闭眼。",
     "dark_wolf_king": "狼王请闭眼。",
     "nightmare": "噩梦之影请闭眼。",
     "gargoyle": "石像鬼请闭眼。",

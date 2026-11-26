@@ -24,6 +24,7 @@ const NIGHT_STEP_IDS = [
   'crowCurse',
   'wolfGirlConfess',
   'wolfKill',
+  'scarletWolfKingMark',
   'seedWolfInfect',
   'wolfQueenCharm',
   'hiddenWolfReveal',

@@ -168,7 +168,11 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   {
     type: 'actionConfirm',
     match: (t, m) =>
-      t.includes('确认') || t.includes('确定') || m.includes('是否') || m.includes('确定要'),
+      t.includes('确认') ||
+      t.includes('确定') ||
+      t.endsWith('？') ||
+      m.includes('是否') ||
+      m.includes('确定要'),
   },
 
   // Action prompt (generic "请XX行动" or role-specific prompts)

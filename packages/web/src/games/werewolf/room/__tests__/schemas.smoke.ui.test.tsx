@@ -74,6 +74,7 @@ const scenarios = [
   ),
   ...collectBoardNightScenarios('盗贼丘比特'),
   ...collectBoardNightScenarios('盗宝大师'),
+  ...collectBoardNightScenarios('猩红蜂舞'),
 ];
 
 describe('WerewolfRoomScreen shared-step smoke (one per night step)', () => {

@@ -31,7 +31,7 @@ export const spiritKnight = createPassiveRole(
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     wolfKillTargetForbidden: true,
     checkReaction: 'reflect',
-    immunities: ['wolfKill', 'poison', 'checkDeath'],
+    immunities: ['nightDamage'],
   },
   (_context: WerewolfRoleStepContext, seat) => [
     { kind: 'reflect', seat, against: ['poison', 'checkDeath'] },

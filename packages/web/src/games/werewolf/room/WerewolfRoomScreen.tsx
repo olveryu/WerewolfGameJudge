@@ -14,6 +14,7 @@ import {
   findClosestPresetName,
   type GameState,
   GameStatus,
+  getWerewolfDaytimeAnnouncements,
   isValidRoleId,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
@@ -138,6 +139,12 @@ function WerewolfRoomContent(
     boardNominations,
   } = useWerewolfRoomState(props, isReadingRoomInformation);
   const status = state.status;
+  const publicAnnouncements =
+    status === GameStatus.Day || status === GameStatus.Ended
+      ? getWerewolfDaytimeAnnouncements(state).filter(
+          (announcement) => announcement.timing === 'beforeSheriff',
+        )
+      : [];
 
   // ── Screen-local toggles ──
   const openSkillPreview = (roleId: string) => {
@@ -314,6 +321,9 @@ function WerewolfRoomContent(
         bottomSummary: sheriffHud,
         beforeSeatBoard: (
           <>
+            {publicAnnouncements.map((announcement) => (
+              <p key={announcement.key}>{announcement.message}</p>
+            ))}
             {!useConfigurationDialog && (
               <RoomGameSummary title="狼人杀" playerCount={seatCount} guide={null}>
                 <BoardInfoContent

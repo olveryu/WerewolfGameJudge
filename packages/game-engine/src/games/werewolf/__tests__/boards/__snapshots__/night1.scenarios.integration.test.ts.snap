@@ -3270,6 +3270,537 @@ exports[`Night-1 board scenarios through production commands > pure white and wo
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > scarlet wolf king feared: fear blocks mark and link 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "8号 poison",
+  ],
+  "review": [
+    "7号噩梦之影恐惧8号（猩红狼王，技能无效）",
+    "11号守卫未守护",
+    "狼队放弃袭击，被噩梦之影恐惧",
+    "8号猩红狼王未附着猩红之子",
+    "10号女巫未用解药",
+    "10号女巫毒杀8号",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "nightmareBlock 请选择要恐惧的玩家，如不使用请点击「不用技能」 [7号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 被噩梦之影恐惧，本夜无法袭击，请点击「放弃袭击」 [5号 6号 7号]",
+    "scarletWolfKingMark 你被噩梦之影恐惧，本夜无法使用技能，请点击「不用技能」 [8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "nightmareBlock",
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "wolfKill 袭击: 被噩梦之影恐惧，本夜无法袭击 [5号 6号 7号]",
+    "scarletWolfKingMark 附着猩红之子: 被噩梦之影恐惧，本夜无法使用技能 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king with cupid: link continues through lovers 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [
+    "1号 scarletLink",
+    "2号 coupleLink",
+    "8号 wolfKill",
+  ],
+  "review": [
+    "11号丘比特连接1号和2号为情侣",
+    "狼队（5、6、7号）袭击8号",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "cupidChooseLovers 请选择两名玩家成为情侣，可以选择自己 [11号]",
+    "cupidLoversReveal 请点击「查看情侣信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+    "wolfKill 请选择今晚的袭击目标。投票不一致将视为放弃袭击 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 8号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "cupidChooseLovers",
+    "cupidLoversReveal",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "cupidLoversReveal 你是情侣之一，你的另一半是：2号 [1号]",
+    "cupidLoversReveal 你是情侣之一，你的另一半是：1号 [2号]",
+    "cupidLoversReveal 你不是情侣 [3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king with magician: marks swapped landing 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：2号",
+  ],
+  "deaths": [],
+  "review": [
+    "11号魔术师交换1号和2号",
+    "狼队放弃袭击",
+    "8号猩红狼王附着猩红之子1号（实际为2号）",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "magicianSwap 请选择要交换的两名玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "magicianSwap",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king with masked man: link reaches delayed-death role 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：11号",
+  ],
+  "deaths": [
+    "8号 wolfKill",
+    "11号 scarletLink",
+  ],
+  "review": [
+    "狼队（5、6、7号）袭击8号",
+    "8号猩红狼王附着猩红之子11号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 8号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king with seed wolf: bee hunter is converted 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [],
+  "review": [
+    "11号守卫未守护",
+    "狼队（5、6、7号）袭击12号",
+    "8号猩红狼王附着猩红之子1号",
+    "7号种狼感染12号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验8号（查验结果：8号是狼人）",
+    "12号蜂之狂猎被种狼感染，转化为狼人",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "seedWolfInfect 12号被狼人袭击 [7号]",
+    "witchAction 12号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+    "seedWolfInfectReveal 请点击「查看感染信息」 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "seedWolfInfect",
+    "witchAction",
+    "seerCheck",
+    "seedWolfInfectReveal",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "seedWolfInfectReveal 你未被感染 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号]",
+    "seedWolfInfectReveal 你已被种狼感染并转化为普通狼人 [12号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king with shelter: link bypasses shelter 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [
+    "1号 scarletLink",
+    "8号 wolfKill",
+  ],
+  "review": [
+    "7号蚀时狼妃放逐1号到时间裂隙",
+    "11号守卫未守护",
+    "狼队（5、6、7号）袭击8号",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "eclipseWolfQueenShelter 请选择要放逐的玩家，如不使用请点击「不用技能」 [7号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 8号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "eclipseWolfQueenShelter",
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king without wolf pack: marks without a wolf attack 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：6号",
+  ],
+  "deaths": [],
+  "review": [
+    "4号守卫未守护",
+    "1号猩红狼王附着猩红之子6号",
+    "3号女巫未用解药",
+    "3号女巫未毒杀",
+    "2号预言家查验1号（查验结果：1号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [4号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [1号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [3号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [2号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 2号: 不能选择自己 [2号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king: antidote saves wolf king 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [],
+  "review": [
+    "11号守卫未守护",
+    "狼队（5、6、7号）袭击8号",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫对8号用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 8号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king: dead wolf king links marked target 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [
+    "1号 scarletLink",
+    "8号 wolfKill",
+  ],
+  "review": [
+    "11号守卫未守护",
+    "狼队（5、6、7号）袭击8号",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 8号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king: marked target is attacked 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "11号守卫未守护",
+    "狼队（5、6、7号）袭击1号",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king: marks guarded and checked target 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [
+    "2号 wolfKill",
+  ],
+  "review": [
+    "11号守卫守护1号",
+    "狼队（5、6、7号）袭击2号",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验1号（查验结果：1号是好人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king: marks itself 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：8号",
+  ],
+  "deaths": [
+    "8号 wolfKill",
+  ],
+  "review": [
+    "11号守卫未守护",
+    "狼队（5、6、7号）袭击8号",
+    "8号猩红狼王附着猩红之子8号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验8号（查验结果：8号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 8号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king: poison kills marked target 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [
+    "1号 poison",
+  ],
+  "review": [
+    "11号守卫未守护",
+    "狼队放弃袭击",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫未用解药",
+    "10号女巫毒杀1号",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > scarlet wolf king: poison kills wolf king 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [
+    "1号 scarletLink",
+    "8号 poison",
+  ],
+  "review": [
+    "11号守卫未守护",
+    "狼队放弃袭击",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫未用解药",
+    "10号女巫毒杀8号",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > seed wolf: convert seer and discard action 1`] = `
 {
   "announcements": [],
@@ -4757,6 +5288,83 @@ exports[`Night-1 board scenarios through production commands > step coverage: id
     "gargoyleCheck 查验 11号: 不能选择自己 [11号]",
     "pureWhiteCheck 查验 4号: 不能选择自己 [4号]",
     "psychicCheck 通灵 12号: 不能选择自己 [12号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > thief: takes the scarlet wolf king card 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：2号",
+  ],
+  "deaths": [
+    "2号 wolfKill",
+  ],
+  "review": [
+    "6号盗贼选择底牌（选择的身份：猩红狼王）",
+    "10号守卫未守护",
+    "狼队（3、11号）袭击2号",
+    "6号猩红狼王附着猩红之子2号",
+    "7号女巫未用解药",
+    "7号女巫未毒杀",
+    "9号预言家查验3号（查验结果：3号是狼人）",
+  ],
+  "status": [
+    "thiefChoose 请点击「选择底牌」 [6号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [10号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [3号 11号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [6号]",
+    "witchAction 2号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [7号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "thiefChoose",
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "thiefChoose 选择底牌 平民: 底牌中有狼人阵营的牌，必须选择狼人 [6号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > treasure master: borrows the bee hunter card 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "9号盗宝大师选择底牌（获得的技能：蜂之狂猎）",
+    "11号守卫未守护",
+    "狼队（5号）袭击1号",
+    "3号女巫未用解药",
+    "3号女巫未毒杀",
+    "4号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "treasureMasterChoose 请点击「选择底牌」 [9号]",
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [3号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [4号]",
+  ],
+  "steps": [
+    "treasureMasterChoose",
+    "guardProtect",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "treasureMasterChoose 选择底牌 狼人: 不可选择狼人阵营底牌 [9号]",
+    "seerCheck 查验 4号: 不能选择自己 [4号]",
   ],
   "views": [],
 }
@@ -7144,6 +7752,43 @@ exports[`Night-1 board scenarios through production commands > 狼美守卫 pres
   "unavailable": [
     "wolfKill 袭击 8号: 该角色不能被狼人直接袭击 [5号 6号 7号 8号]",
     "wolfQueenCharm 魅惑 8号: 不能选择自己 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > 猩红蜂舞 preset: ordinary night 1`] = `
+{
+  "announcements": [
+    "猩红之子（上警前公布）: 猩红之子：1号",
+  ],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "11号守卫未守护",
+    "狼队（5、6、7号）袭击1号",
+    "8号猩红狼王附着猩红之子1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "status": [
+    "guardProtect 请选择要守护的玩家，如不使用请点击「不用技能」 [11号]",
+    "wolfKill 请选择今晚的袭击目标。平票将随机刀人 [5号 6号 7号]",
+    "scarletWolfKingMark 请选择要附着猩红之子的玩家 [8号]",
+    "witchAction 1号被狼人袭击。请选择要毒杀的玩家，如不使用请点击「不用技能」 [10号]",
+    "seerCheck 请选择要查验的玩家，如不使用请点击「不用技能」 [9号]",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "scarletWolfKingMark",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
     "seerCheck 查验 9号: 不能选择自己 [9号]",
   ],
   "views": [],

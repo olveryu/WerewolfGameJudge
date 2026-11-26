@@ -4,7 +4,7 @@
 > [`packages/game-engine/src/games/werewolf/domain/models/Template.ts`](../packages/game-engine/src/games/werewolf/domain/models/Template.ts)
 > — `PRESET_TEMPLATES`
 >
-> Currently **27** preset boards in total, all 12-player configurations (Treasure Master / Thief+Cupid / Cursed Fox+Crow include bottom/reserve cards).
+> Currently **28** preset boards in total, all 12-player configurations (Treasure Master / Thief+Cupid / Cursed Fox+Crow include bottom/reserve cards).
 
 ---
 
@@ -19,12 +19,13 @@ Classic configurations suitable for beginners.
 | Wolf King+Guard         | ×4       | wolf ×3, darkWolfKing | seer, witch, hunter, guard |
 | White Wolf King+Guard   | ×4       | wolf ×3, wolfKing     | seer, witch, hunter, guard |
 
-## Advanced — 10 boards
+## Advanced — 11 boards
 
 Includes advanced roles, requires some gameplay experience.
 
 | Board Name               | Villager | Wolves                    | Gods                                 |
 | ------------------------ | -------- | ------------------------- | ------------------------------------ |
+| Scarlet Bee Dance        | ×4       | wolf ×3, scarletWolfKing  | seer, witch, guard, beeHunter        |
 | Gargoyle+GraveyardKeeper | ×4       | wolf ×3, gargoyle         | seer, witch, hunter, graveyardKeeper |
 | Nightmare+Guard          | ×4       | wolf ×3, nightmare        | seer, witch, hunter, guard           |
 | Blood Moon Hunter        | ×4       | wolf ×3, bloodMoon        | seer, witch, idiot, witcher          |

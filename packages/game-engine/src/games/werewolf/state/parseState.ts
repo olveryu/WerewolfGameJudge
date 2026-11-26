@@ -187,6 +187,7 @@ function parseDeathReason(value: unknown, path: string): DeathReason {
     case 'bondedLink':
     case 'coupleLink':
     case 'dreamcatcherLink':
+    case 'scarletLink':
     case 'reflection':
       return value;
     default:

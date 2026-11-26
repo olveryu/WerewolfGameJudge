@@ -2,7 +2,7 @@ import type { StepContextBase, StepDefinition, StepLock } from '../../../platfor
 import type { ResolvedWolfKillVerdict } from '../domain/protocol/types';
 import type { WerewolfStepAudio } from './audio';
 import type { WerewolfRoleContext } from './context';
-import type { AttackCause, DeathEffect, DeathResolution } from './deathEffects';
+import type { DeathEffect, DeathResolution, ImmunityCause } from './deathEffects';
 import type { IdentityLayer } from './identity';
 import type { LocationLayer, SeatSwap, TargetSelection } from './location';
 import type { NightPresenceFacts, PresenceDeclaration } from './presence';
@@ -199,13 +199,14 @@ export type WerewolfRoleStepDefinition = Omit<
   readonly canRescueWolfKillTarget?: (context: WerewolfRoleStepContext) => boolean;
 };
 
-export type WerewolfAnnouncementTiming = 'daySpeech' | 'exileVote';
+export type WerewolfAnnouncementTiming = 'beforeSheriff' | 'daySpeech' | 'exileVote';
 
 export interface WerewolfAnnouncementDeclaration {
   readonly timing: WerewolfAnnouncementTiming;
   readonly title: string;
   readonly targetMessage: string;
   readonly emptyMessage: string;
+  readonly omitWhenEmpty?: true;
 }
 
 export interface WerewolfRoleDefinition<TId extends string = string> {
@@ -224,7 +225,7 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
     /** This card is never set aside as a bottom card. */
     readonly cannotBeBottomCard?: true;
     readonly checkReaction?: WerewolfCheckReaction;
-    readonly immunities?: readonly AttackCause[];
+    readonly immunities?: readonly ImmunityCause[];
   };
   readonly steps: readonly WerewolfRoleStepDefinition[];
   /** What a seat is told when this role has locked all its skills for the night. */
