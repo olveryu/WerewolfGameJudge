@@ -166,8 +166,9 @@
   overscroll-behavior: contain;
 }
 
-/* Seat layout: the hand floats over the board so the room shows around the cards; the board
-   scrolls its last row clear of the hand, and only the cards themselves take pointer input. */
+/* Seat layout: the footer is pulled up by one hand height so the hand floats over the board and
+   the room shows around the cards. The board scrolls its last row clear of the hand, and only the
+   footer's own content takes pointer input. */
 .room-shell[data-hand-layout='overlay'] .room-board-scroll {
   padding-bottom: calc(var(--room-hand-height) + var(--space-large));
 }
@@ -177,25 +178,18 @@
 }
 
 .room-shell[data-hand-layout='overlay'] .bottom-action-panel {
-  padding-block: 0;
+  position: relative;
+  margin-block-start: calc(-1 * var(--room-hand-height));
+  padding-block-start: 0;
+  pointer-events: none;
 }
 
 .room-shell[data-hand-layout='overlay']
   .bottom-action-panel:has(> :not(.room-action-hand, .host-task-card:empty)) {
-  padding-block: var(--space-small) var(--room-hand-height);
+  padding-block-start: var(--space-small);
 }
 
-.room-shell[data-hand-layout='overlay'] .room-action-hand {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  width: min(
-    calc(100% - 2 * var(--space-medium)),
-    calc(var(--hand-card-count) * var(--size-hand-card-width))
-  );
-  pointer-events: none;
-}
-
+.room-shell[data-hand-layout='overlay'] .bottom-action-panel > :not(.room-action-hand),
 .room-shell[data-hand-layout='overlay'] .room-hand-card {
   pointer-events: auto;
 }
