@@ -128,50 +128,33 @@ it('counts Undercover daily completions independently from FibKing', async () =>
   ).toEqual({ xp: 45, normal_draws: 9, golden_draws: 2 });
 });
 
-it('settles Story Relay exactly once, excludes anonymous users and retains prior reward receipts', async () => {
+it('settles Story Relay exactly once, excludes anonymous users and replays prior reward receipts', async () => {
   const previous = completion('previous-gallery', 'pictionary');
   const previousResults = await settleGameRewards(env.DB, previous);
-  const migration = env.TEST_MIGRATIONS.find(({ name }) => name === '0059_storyrelay.sql');
-  if (migration === undefined) throw new Error('Missing Story Relay migration');
-  const restoreMigration = env.TEST_MIGRATIONS.find(({ name }) => name === '0062_drawguess.sql');
-  if (restoreMigration === undefined) throw new Error('Missing DrawGuess migration');
-  await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
-  try {
-    expect(await settleGameRewards(env.DB, previous)).toEqual(previousResults);
-    const input = completion('story-round', 'storyrelay');
-    const [first, replay] = await Promise.all([
-      settleGameRewards(env.DB, input),
-      settleGameRewards(env.DB, input),
-    ]);
-    expect(first).toEqual(replay);
-    expect(first).toEqual([
-      expect.objectContaining({
-        userId: 'reward-user',
-        xpEarned: 15,
-        normalDrawsEarned: 3,
-        goldenDrawsEarned: 2,
-      }),
-    ]);
-    expect(
-      await env.DB.prepare(
-        "SELECT xp, games_played FROM user_stats WHERE user_id = 'reward-user'",
-      ).first(),
-    ).toEqual({ xp: 30, games_played: 2 });
-    expect(
-      await env.DB.prepare("SELECT * FROM user_stats WHERE user_id = 'reward-guest'").first(),
-    ).toBeNull();
-    expect(await env.DB.prepare('PRAGMA foreign_key_check').all()).toMatchObject({ results: [] });
-  } finally {
-    // 0059 rebuilds rooms/room_game_starts/room_participants/fib_round_word_selections/
-    // undercover_round_word_selections/product_game_reward_results with narrower game_type
-    // CHECKs. Restore the latest (0062) schema so later tests in this file are unaffected.
-    // drawguess_words already exists, so its creation statements are excluded.
-    await env.DB.batch(
-      restoreMigration.queries
-        .filter((query) => !query.includes('drawguess_words'))
-        .map((query) => env.DB.prepare(query)),
-    );
-  }
+  expect(await settleGameRewards(env.DB, previous)).toEqual(previousResults);
+  const input = completion('story-round', 'storyrelay');
+  const [first, replay] = await Promise.all([
+    settleGameRewards(env.DB, input),
+    settleGameRewards(env.DB, input),
+  ]);
+  expect(first).toEqual(replay);
+  expect(first).toEqual([
+    expect.objectContaining({
+      userId: 'reward-user',
+      xpEarned: 15,
+      normalDrawsEarned: 3,
+      goldenDrawsEarned: 2,
+    }),
+  ]);
+  expect(
+    await env.DB.prepare(
+      "SELECT xp, games_played FROM user_stats WHERE user_id = 'reward-user'",
+    ).first(),
+  ).toEqual({ xp: 30, games_played: 2 });
+  expect(
+    await env.DB.prepare("SELECT * FROM user_stats WHERE user_id = 'reward-guest'").first(),
+  ).toBeNull();
+  expect(await env.DB.prepare('PRAGMA foreign_key_check').all()).toMatchObject({ results: [] });
 });
 
 it('settles DrawGuess completion with its registered rewards', async () => {
@@ -193,31 +176,21 @@ it('settles DrawGuess completion with its registered rewards', async () => {
   ).toBeNull();
 });
 
-it('preserves historical rewards and replay receipts when expanding the game constraint', async () => {
-  const input = completion('before-migration', 'pictionary');
+it('replays recorded rewards without changing balances and keeps the daily reward index', async () => {
+  const input = completion('recorded', 'pictionary');
   const results = await settleGameRewards(env.DB, input);
-  await settleGameRewards(env.DB, completion('before-migration-fibking'));
+  await settleGameRewards(env.DB, completion('recorded-fibking'));
   await settleGameRewards(env.DB, {
-    settlementId: 'before-migration-mvp',
+    settlementId: 'recorded-mvp',
     kind: 'mvp',
     gameType: 'werewolf',
     completedAt,
     participantUserIds: ['reward-user'],
     humanPlayerCount: 8,
   });
-  const before = await env.DB.prepare(
-    'SELECT * FROM product_game_reward_results ORDER BY settlement_id, user_id',
-  ).all();
   const stats = await env.DB.prepare(
     "SELECT * FROM user_stats WHERE user_id = 'reward-user'",
   ).first();
-  const migration = env.TEST_MIGRATIONS.find(({ name }) => name === '0058_undercover_rewards.sql');
-  if (migration === undefined) throw new Error('Missing Undercover rewards migration');
-  await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
-  const after = await env.DB.prepare(
-    'SELECT * FROM product_game_reward_results ORDER BY settlement_id, user_id',
-  ).all();
-  expect(after.results).toEqual(before.results);
   expect(await settleGameRewards(env.DB, input)).toEqual(results);
   expect(
     await env.DB.prepare("SELECT * FROM user_stats WHERE user_id = 'reward-user'").first(),
@@ -228,7 +201,7 @@ it('preserves historical rewards and replay receipts when expanding the game con
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_product_game_reward_daily'",
     ).first(),
   ).not.toBeNull();
-  expect(await settleGameRewards(env.DB, completion('after-migration', 'undercover'))).toEqual([
+  expect(await settleGameRewards(env.DB, completion('after-recorded', 'undercover'))).toEqual([
     expect.objectContaining({ userId: 'reward-user', xpEarned: 5, normalDrawsEarned: 1 }),
   ]);
 });

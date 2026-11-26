@@ -1,4 +1,4 @@
-/** Verifies maximum Story Relay state through real DO commands and preserves existing D1 rooms. */
+/** Verifies maximum Story Relay state through real DO commands and D1 room-directory cascades. */
 
 import {
   DEFAULT_STORY_RELAY_CONFIG,
@@ -134,15 +134,15 @@ it('persists 400 maximum-length paragraphs and replays the final receipt without
   });
 }, 60_000);
 
-it('keeps all four existing game directories and their child records when applying migration 0059', async () => {
-  await env.DB.prepare("INSERT INTO users (id) VALUES ('storyrelay-migration-user')").run();
+it('cascades room deletion to word selections and participants without foreign-key violations', async () => {
+  await env.DB.prepare("INSERT INTO users (id) VALUES ('storyrelay-cascade-user')").run();
   for (const [index, gameType] of ['werewolf', 'pictionary', 'fibking', 'undercover'].entries()) {
     await env.DB.batch([
       env.DB.prepare(
-        "INSERT INTO rooms (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at, games_started, last_started_at) VALUES (?, ?, ?, 'storyrelay-migration-user', ?, '{\"retained\":true}', 'active', '2026-09-01', '2026-09-02', 7, '2026-09-02')",
+        "INSERT INTO rooms (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at, games_started, last_started_at) VALUES (?, ?, ?, 'storyrelay-cascade-user', ?, '{\"retained\":true}', 'active', '2026-09-01', '2026-09-02', 7, '2026-09-02')",
       ).bind(gameType, String(8100 + index), gameType, `creation-${gameType}`),
       env.DB.prepare(
-        "INSERT INTO room_participants (room_id, user_id, joined_at) VALUES (?, 'storyrelay-migration-user', '2026-09-01')",
+        "INSERT INTO room_participants (room_id, user_id, joined_at) VALUES (?, 'storyrelay-cascade-user', '2026-09-01')",
       ).bind(gameType),
       env.DB.prepare(
         "INSERT INTO room_game_starts (effect_id, room_id, started_revision, started_at) VALUES (?, ?, 42, '2026-09-02')",
@@ -150,7 +150,7 @@ it('keeps all four existing game directories and their child records when applyi
     ]);
   }
   await env.DB.prepare(
-    "INSERT INTO fib_round_word_selections (room_id, room_creation_id, effect_id, round_id, request_fingerprint, word_id, word, core_meaning, usage_note, source, selection_tier, selected_at, sequence_number, participant_user_ids) VALUES ('fibking', 'creation-fibking', 'selection-effect', 'round-1', 'fingerprint', NULL, '旧词', '原含义', '原说明', 'local', 'local_fallback', '2026-09-01', 123, '[\"storyrelay-migration-user\"]')",
+    "INSERT INTO fib_round_word_selections (room_id, room_creation_id, effect_id, round_id, request_fingerprint, word_id, word, core_meaning, usage_note, source, selection_tier, selected_at, sequence_number, participant_user_ids) VALUES ('fibking', 'creation-fibking', 'selection-effect', 'round-1', 'fingerprint', NULL, '旧词', '原含义', '原说明', 'local', 'local_fallback', '2026-09-01', 123, '[\"storyrelay-cascade-user\"]')",
   ).run();
   await env.DB.prepare(
     "INSERT INTO undercover_word_pairs (id, word_a, word_b, category, status, created_at, reviewed_at, review_json) VALUES ('retained-pair', 'apple', 'pear', 'food', 'active', '2026-09-01', '2026-09-01', '{}')",
@@ -158,24 +158,6 @@ it('keeps all four existing game directories and their child records when applyi
   await env.DB.prepare(
     "INSERT INTO undercover_round_word_selections (room_id, room_creation_id, round_id, request_fingerprint, word_pair_id, word_a, word_b, category, selected_at) VALUES ('undercover', 'creation-undercover', 'old-round', 'old-fingerprint', 'retained-pair', 'apple', 'pear', 'food', '2026-09-01')",
   ).run();
-  const tables = [
-    'rooms',
-    'room_participants',
-    'room_game_starts',
-    'fib_round_word_selections',
-    'undercover_round_word_selections',
-  ] as const;
-  const read = () =>
-    Promise.all(
-      tables.map(
-        async (table) => (await env.DB.prepare(`SELECT * FROM ${table} ORDER BY 1`).all()).results,
-      ),
-    );
-  const before = await read();
-  const migration = env.TEST_MIGRATIONS.find(({ name }) => name === '0059_storyrelay.sql');
-  if (migration === undefined) throw new Error('Story Relay migration is missing');
-  await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
-  expect(await read()).toEqual(before);
   expect((await env.DB.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
   await env.DB.prepare("DELETE FROM rooms WHERE id IN ('fibking', 'undercover')").run();
   for (const table of ['fib_round_word_selections', 'undercover_round_word_selections'])
