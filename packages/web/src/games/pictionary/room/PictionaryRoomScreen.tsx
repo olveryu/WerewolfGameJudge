@@ -99,7 +99,6 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
           ? {
               kind: 'seats',
               contextHeader: null,
-              bottomSummary: null,
               afterSeatBoard: null,
               beforeSeatBoard: <PictionaryRoomSummary config={config} guide={null} />,
             }

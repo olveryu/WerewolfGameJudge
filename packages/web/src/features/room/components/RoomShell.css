@@ -149,19 +149,6 @@
   margin-bottom: 0;
 }
 
-.room-board-status-summary {
-  width: 100%;
-  min-width: 0;
-}
-
-.room-board-status-summary > .room-status-summary {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
 .room-workspace {
   flex: 1;
   min-height: 0;

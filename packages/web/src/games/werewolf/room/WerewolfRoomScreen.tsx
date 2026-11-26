@@ -45,18 +45,16 @@ import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen
 import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import { TESTIDS } from '@/testids';
-import IconMoonOutline from '~icons/ion/moon-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
-import IconTimeOutline from '~icons/ion/time-outline';
 
 import { BoardNominationModal } from './components/BoardNominationList';
 import { MvpSelectionModal } from './components/MvpSelectionModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { SheriffElectionDialog } from './components/SheriffElectionDetailsSurfaces';
-import { SheriffElectionHud } from './components/SheriffElectionHud';
 import { SheriffElectionPanel } from './components/SheriffElectionPanel';
 import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
+import { buildSheriffElectionBoardStatus } from './day/sheriffElectionBoardStatus';
 import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
 import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoomAdapter';
 
@@ -172,42 +170,28 @@ function WerewolfRoomContent(
       showRealIdentity
     />
   );
-  const sheriffHud =
-    sheriffElectionPanel === null ? null : (
-      <SheriffElectionHud
-        model={sheriffElectionPanel}
-        isHost={isHost}
-        isDay={status === GameStatus.Day}
-      />
-    );
-  const announcementContent =
-    publicAnnouncements.length === 0 ? null : (
-      <>
-        {publicAnnouncements.map((announcement) => (
-          <p className="room-compact-status-message" key={announcement.key}>
-            {announcement.message}
-          </p>
-        ))}
-      </>
-    );
+  const phaseLabel = isSetup
+    ? '待开局'
+    : status === GameStatus.Assigned
+      ? '已发牌'
+      : status === GameStatus.Ready
+        ? '准备开局'
+        : status === GameStatus.Ongoing
+          ? '夜晚'
+          : status === GameStatus.Day
+            ? '白天'
+            : '本局结束';
+  // 竞选存在于白天及其后的终局；有竞选时它就是唯一状态条的内容。
+  const sheriffBoardStatus =
+    sheriffElectionPanel === null
+      ? null
+      : buildSheriffElectionBoardStatus(sheriffElectionPanel, isHost, phaseLabel);
 
   return (
     <RoomShell
       model={shellModel}
       actionSurface={shellModel.isAudioPlaying ? 'hidden' : 'hand'}
-      phaseLabel={
-        isSetup
-          ? '待开局'
-          : status === GameStatus.Assigned
-            ? '已发牌'
-            : status === GameStatus.Ready
-              ? '准备开局'
-              : status === GameStatus.Ongoing
-                ? '夜晚'
-                : status === GameStatus.Day
-                  ? '白天'
-                  : '本局结束'
-      }
+      phaseLabel={phaseLabel}
       lobbyAction={isSetup ? { label: '分配角色', occupiedSeats: viewModel.seats.length } : null}
       selectionMode={
         night.seatSelection !== null
@@ -306,23 +290,12 @@ function WerewolfRoomContent(
       }}
       content={{
         kind: 'seats',
-        // 竞选面板只在白天接管底部行动（createWerewolfPlayerActions），HUD 进状态条的条件同源：
-        // 白天且有竞选；夜里开的报名只走 bottomSummary。
-        compactStatusContent:
-          status === GameStatus.Day && sheriffElectionPanel !== null ? (
-            <SheriffElectionHud
-              model={sheriffElectionPanel}
-              isHost={isHost}
-              additionalContent={announcementContent}
-            />
-          ) : null,
-        statusAdditionalContent: announcementContent,
-        compactStatusIcon:
-          status === GameStatus.Ongoing ? (
-            <IconMoonOutline aria-hidden />
-          ) : (
-            <IconTimeOutline aria-hidden />
-          ),
+        boardStatus: sheriffBoardStatus,
+        statusNotices: publicAnnouncements.map((announcement) => ({
+          key: announcement.key,
+          text: announcement.message,
+        })),
+        statusIcon: status === GameStatus.Ongoing ? 'moon-outline' : 'time-outline',
         contextHeader:
           sheriffElectionPanel === null && remainingSeconds === null ? null : (
             <StageSettleRescue
@@ -336,7 +309,6 @@ function WerewolfRoomContent(
               waitingLabel="等待推进…"
             />
           ),
-        bottomSummary: sheriffHud,
         beforeSeatBoard: (
           <>
             {!useConfigurationDialog && (

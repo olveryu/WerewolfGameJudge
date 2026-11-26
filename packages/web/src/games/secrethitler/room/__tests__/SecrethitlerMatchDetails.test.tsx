@@ -1,6 +1,7 @@
 import { getSecrethitlerViewModel } from '@game-judge/game-engine/games/secrethitler/public';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
+import { BoardStatusPreview } from '@/test-utils/boardStatus';
 import {
   buildSecrethitlerPhaseStates,
   completeSecrethitlerTestVote,
@@ -8,7 +9,7 @@ import {
 } from '@/test-utils/secrethitlerState';
 
 import { SecrethitlerMatchDetails } from '../SecrethitlerHistory';
-import { SecrethitlerRoomTracks } from '../SecrethitlerRoomTracks';
+import { buildSecrethitlerBoardStatus } from '../SecrethitlerRoomScreen';
 
 const states = buildSecrethitlerPhaseStates();
 
@@ -20,7 +21,16 @@ it('omits the recent result from the record while retaining it on room tracks', 
   const { unmount } = render(<SecrethitlerMatchDetails state={state} view={view} mySeat={null} />);
   expect(screen.queryByText(/最近结果/)).not.toBeInTheDocument();
   unmount();
-  render(<SecrethitlerRoomTracks state={state} view={view} />);
+  render(
+    <BoardStatusPreview
+      status={buildSecrethitlerBoardStatus({
+        state,
+        view,
+        actionMessage: null,
+        remainingSeconds: null,
+      })}
+    />,
+  );
   expect(screen.getByText('最近结果 · 总统同意否决')).toBeInTheDocument();
 });
 

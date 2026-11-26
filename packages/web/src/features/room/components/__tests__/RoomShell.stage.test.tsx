@@ -12,8 +12,9 @@ import {
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
 import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
+import type { RoomBoardStatusModel } from '@/features/room/model/RoomBoardStatus';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import type { RoomHandDirectory } from '@/features/room/model/RoomHand';
+import type { RoomHandDirectory, RoomSelectionMode } from '@/features/room/model/RoomHand';
 import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
 import type { RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { seatSource, seatViewModel } from '@/test-utils/roomSeat';
@@ -168,7 +169,7 @@ describe('RoomShell stage content', () => {
     }
   });
 
-  it('places hand-room status, progress and summary above the seats rather than in the hand', () => {
+  it('places hand-room status, progress and game status content above the seats rather than in the hand', () => {
     const { container } = render(
       <TestRoomShell
         model={createRoomShellModel(
@@ -183,7 +184,22 @@ describe('RoomShell stage content', () => {
         content={{
           kind: 'seats',
           contextHeader: null,
-          bottomSummary: <p>本局记录</p>,
+          boardStatus: {
+            context: '第2轮',
+            message: '等待下一阶段',
+            progress: null,
+            pendingSeats: null,
+            icon: null,
+            tracks: [
+              {
+                key: 'record',
+                heading: '本局记录',
+                accessibleLabel: '本局记录',
+                cells: [{ key: '1', state: 'current', title: '第1格', lines: [] }],
+              },
+            ],
+            footnote: null,
+          },
           beforeSeatBoard: <p>座位说明</p>,
           afterSeatBoard: null,
         }}
@@ -214,6 +230,94 @@ describe('RoomShell stage content', () => {
       within(screen.getByTestId(TESTIDS.bottomActionPanel)).queryByText('等待下一阶段'),
     ).toBeNull();
     expect(screen.getAllByText('本局记录')).toHaveLength(1);
+    expect(status.closest('.room-compact-status')).toContainElement(summary);
+  });
+
+  it('renders exactly one board status bar whatever the game, prompt and lobby state', () => {
+    const gameStatus: RoomBoardStatusModel = {
+      context: '白天 · 警长竞选',
+      message: '等待投票',
+      progress: '已投 1/2',
+      pendingSeats: { seats: [1], label: '未投票' },
+      icon: null,
+      tracks: [
+        {
+          key: 'election',
+          heading: '竞选轨道',
+          accessibleLabel: '竞选轨道',
+          cells: [{ key: '1', state: 'current', title: '第1格', lines: [] }],
+        },
+      ],
+      footnote: null,
+    };
+    const cases: readonly {
+      readonly name: string;
+      readonly input: Partial<RoomShellModelInput>;
+      readonly boardStatus: RoomBoardStatusModel | null;
+      readonly selectionMode?: RoomSelectionMode;
+      readonly lobbyAction?: { readonly label: string; readonly occupiedSeats: number };
+    }[] = [
+      { name: 'game status', input: {}, boardStatus: gameStatus },
+      { name: 'game status with audio', input: { isAudioPlaying: true }, boardStatus: gameStatus },
+      {
+        name: 'game status with selection',
+        input: {
+          playerActions: {
+            ...EMPTY_STACK,
+            message: '请选择玩家',
+            actions: [
+              {
+                key: 'cancel',
+                label: '取消',
+                audience: 'participant',
+                category: 'player',
+                state: { kind: 'ready', onPress: vi.fn() },
+              },
+            ],
+          },
+        },
+        boardStatus: gameStatus,
+        selectionMode: { kind: 'player', escapeActionKey: 'cancel' },
+      },
+      {
+        name: 'lobby',
+        input: {},
+        boardStatus: null,
+        lobbyAction: { label: '开始游戏', occupiedSeats: 1 },
+      },
+      {
+        name: 'shell status only',
+        input: { playerActions: { ...EMPTY_STACK, message: '等待下一阶段' } },
+        boardStatus: null,
+      },
+    ];
+    for (const testCase of cases) {
+      const { container, unmount } = render(
+        <TestRoomShell
+          model={createRoomShellModel(shellInput(testCase.input))}
+          content={{
+            kind: 'seats',
+            contextHeader: null,
+            boardStatus: testCase.boardStatus,
+            beforeSeatBoard: <p>座位说明</p>,
+            afterSeatBoard: null,
+          }}
+          phaseLabel="白天"
+          {...(testCase.selectionMode === undefined
+            ? {}
+            : { selectionMode: testCase.selectionMode })}
+          {...(testCase.lobbyAction === undefined ? {} : { lobbyAction: testCase.lobbyAction })}
+          leadingExtraActions={null}
+          trailingExtraActions={null}
+          gameOverlays={null}
+        />,
+      );
+      expect(container.querySelectorAll('.room-compact-status'), testCase.name).toHaveLength(1);
+      if (testCase.boardStatus !== null) {
+        expect(screen.getAllByText('竞选轨道'), testCase.name).toHaveLength(1);
+      }
+      unmount();
+    }
   });
 
   it('keeps settings in the header without adding a settings card to the hand', () => {
@@ -224,7 +328,6 @@ describe('RoomShell stage content', () => {
         content={{
           kind: 'seats',
           contextHeader: null,
-          bottomSummary: null,
           beforeSeatBoard: <p>座位说明</p>,
           afterSeatBoard: null,
         }}
@@ -250,7 +353,6 @@ describe('RoomShell stage content', () => {
         content={{
           kind: 'seats',
           contextHeader: null,
-          bottomSummary: null,
           beforeSeatBoard: <p>座位说明</p>,
           afterSeatBoard: null,
         }}
@@ -312,7 +414,6 @@ describe('RoomShell stage content', () => {
         content={{
           kind: 'seats',
           contextHeader: null,
-          bottomSummary: null,
           beforeSeatBoard: <p>角色配置</p>,
           afterSeatBoard: null,
         }}
@@ -373,7 +474,6 @@ describe('RoomShell stage content', () => {
         content={{
           kind: 'seats',
           contextHeader: null,
-          bottomSummary: null,
           beforeSeatBoard: <></>,
           afterSeatBoard: null,
         }}
@@ -420,7 +520,6 @@ describe('RoomShell stage content', () => {
           content={{
             kind: 'seats',
             contextHeader: null,
-            bottomSummary: null,
             beforeSeatBoard: <></>,
             afterSeatBoard: null,
           }}
@@ -456,7 +555,6 @@ describe('RoomShell stage content', () => {
               : {
                   kind: 'seats',
                   contextHeader: null,
-                  bottomSummary: null,
                   beforeSeatBoard: <></>,
                   afterSeatBoard: null,
                 }
@@ -679,7 +777,6 @@ describe('RoomShell stage content', () => {
         content={{
           kind: 'seats',
           contextHeader: null,
-          bottomSummary: null,
           beforeSeatBoard: <p>座位说明</p>,
           afterSeatBoard: null,
         }}

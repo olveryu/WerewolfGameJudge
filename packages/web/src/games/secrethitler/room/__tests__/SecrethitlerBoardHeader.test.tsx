@@ -10,6 +10,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 
+import { BoardStatusPreview } from '@/test-utils/boardStatus';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import {
@@ -28,13 +29,13 @@ import {
 import { secrethitlerReview } from '../../review/secrethitlerReview';
 import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
 import {
-  SecrethitlerBoardHeader,
+  buildSecrethitlerBoardStatus,
   SecrethitlerBoardInfo,
-  SecrethitlerCompactBoardHeader,
   SecrethitlerHistoryDialog,
   SecrethitlerInvestigationResult,
   SecrethitlerPublicResult,
   SecrethitlerRoomScreen,
+  shouldShowMatchSummary,
 } from '../SecrethitlerRoomScreen';
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -57,11 +58,13 @@ it('shows voting progress and keeps policy rules interactive until the result is
     phase: { ...fixture.phase, votes: { 0: 'ja', 1: 'nein' } },
   } satisfies SecrethitlerState;
   const { rerender } = render(
-    <SecrethitlerCompactBoardHeader
-      state={state}
-      view={getSecrethitlerViewModel(state, null)}
-      actionMessage={null}
-      remainingSeconds={null}
+    <BoardStatusPreview
+      status={buildSecrethitlerBoardStatus({
+        state: state,
+        view: getSecrethitlerViewModel(state, null),
+        actionMessage: null,
+        remainingSeconds: null,
+      })}
     />,
   );
   expect(screen.getByText('政府投票中')).toBeInTheDocument();
@@ -79,11 +82,13 @@ it('shows voting progress and keeps policy rules interactive until the result is
     },
   } satisfies SecrethitlerState;
   rerender(
-    <SecrethitlerCompactBoardHeader
-      state={complete}
-      view={getSecrethitlerViewModel(complete, null)}
-      actionMessage={null}
-      remainingSeconds={4}
+    <BoardStatusPreview
+      status={buildSecrethitlerBoardStatus({
+        state: complete,
+        view: getSecrethitlerViewModel(complete, null),
+        actionMessage: null,
+        remainingSeconds: 4,
+      })}
     />,
   );
   expect(screen.getByText('已全部投票，4 秒后揭晓')).toBeInTheDocument();
@@ -287,12 +292,7 @@ it('allows assigning roles when every occupied seat is a bot', () => {
 it.each(['lobby', 'viewing'] as const)('hides the match summary during %s', (phase) => {
   const state = buildSecrethitlerPhaseStates().get(phase);
   if (state === undefined) throw new Error(`Missing ${phase} fixture`);
-  const { container } = render(
-    <SecrethitlerBoardHeader
-      screen={{ state, viewModel: getSecrethitlerViewModel(state, 0), mySeat: 0 }}
-    />,
-  );
-  expect(container).toBeEmptyDOMElement();
+  expect(shouldShowMatchSummary(state)).toBe(false);
 });
 
 it('keeps the match summary hidden until first-night narration finishes', () => {
@@ -301,38 +301,25 @@ it('keeps the match summary hidden until first-night narration finishes', () => 
   const election = states.get('election');
   if (night === undefined || election === undefined)
     throw new Error('Missing first-night transition fixtures');
-  const { container, rerender } = render(
-    <SecrethitlerBoardHeader
-      screen={{ state: night, viewModel: getSecrethitlerViewModel(night, 0), mySeat: 0 }}
-    />,
-  );
-  expect(container).toBeEmptyDOMElement();
+  expect(shouldShowMatchSummary(night)).toBe(false);
   startSecrethitlerTestGame(buildSecrethitlerTestLobby(), (state) => {
     if (state.phase.kind !== 'election' || !state.isAudioPlaying) return;
-    rerender(
-      <SecrethitlerBoardHeader
-        screen={{ state, viewModel: getSecrethitlerViewModel(state, 0), mySeat: 0 }}
-      />,
-    );
-    expect(container).toBeEmptyDOMElement();
+    expect(shouldShowMatchSummary(state)).toBe(false);
   });
-  rerender(
-    <SecrethitlerBoardHeader
-      screen={{ state: election, viewModel: getSecrethitlerViewModel(election, 0), mySeat: 0 }}
-    />,
-  );
-  expect(screen.getByRole('list', { name: '自由派政策轨道' })).toBeVisible();
-  expect(screen.getByRole('list', { name: '法西斯政策轨道' })).toBeVisible();
-  expect(screen.getByRole('list', { name: '选举失败轨道' })).toBeVisible();
-  expect(screen.queryByRole('button', { name: '对局记录' })).not.toBeInTheDocument();
+  expect(shouldShowMatchSummary(election)).toBe(true);
 });
 
 it('explains policy effects without dismissing the room tracks', async () => {
   const state = buildSecrethitlerPhaseStates().get('election');
   if (state === undefined) throw new Error('Missing election fixture');
   render(
-    <SecrethitlerBoardHeader
-      screen={{ state, viewModel: getSecrethitlerViewModel(state, 0), mySeat: 0 }}
+    <BoardStatusPreview
+      status={buildSecrethitlerBoardStatus({
+        state: state,
+        view: getSecrethitlerViewModel(state, 0),
+        actionMessage: null,
+        remainingSeconds: null,
+      })}
     />,
   );
   await userEvent.click(screen.getByRole('button', { name: /法西斯政策第3张/ }));
@@ -343,23 +330,9 @@ it('explains policy effects without dismissing the room tracks', async () => {
   expect(screen.getByRole('list', { name: '选举失败轨道' })).toBeVisible();
 });
 
-it('uses electronic first-night guidance without a reading script or manual progression controls', () => {
+it('uses electronic first-night guidance without manual progression controls', () => {
   const state = buildSecrethitlerPhaseStates().get('night');
   if (state === undefined) throw new Error('Missing night fixture');
-  render(
-    <SecrethitlerBoardHeader
-      screen={{
-        state,
-        viewModel: getSecrethitlerViewModel(state, 0),
-        mySeat: 0,
-      }}
-    />,
-  );
-  expect(screen.queryByRole('button', { name: '对局记录' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-  expect(screen.queryByText(/电子主持进行中/)).not.toBeInTheDocument();
-  expect(screen.queryByText('所有玩家请闭上眼睛。')).not.toBeInTheDocument();
-  expect(screen.queryByText(/朗读/)).not.toBeInTheDocument();
   const denied = { isAllowed: false, reason: null } as const;
   const panel = createSecrethitlerHostManagement({
     state,
@@ -386,7 +359,14 @@ it('keeps terminal details behind the shared record dialog and preserves results
   const view = getSecrethitlerViewModel(state, null);
   if (view === null) throw new Error('Missing ended view');
   const { rerender } = render(
-    <SecrethitlerBoardHeader screen={{ state, viewModel: view, mySeat: 0 }} />,
+    <BoardStatusPreview
+      status={buildSecrethitlerBoardStatus({
+        state: state,
+        view: view,
+        actionMessage: null,
+        remainingSeconds: null,
+      })}
+    />,
   );
   expect(screen.getByText(/获胜/)).toBeInTheDocument();
   expect(screen.queryByText('1 号 · 房主（你）')).not.toBeInTheDocument();

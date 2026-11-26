@@ -107,7 +107,6 @@ function FibRoomContent(
       content={{
         kind: 'seats',
         contextHeader: null,
-        bottomSummary: null,
         afterSeatBoard: null,
         beforeSeatBoard: (
           <FibRoomSummary

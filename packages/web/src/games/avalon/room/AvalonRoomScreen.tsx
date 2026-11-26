@@ -34,21 +34,21 @@ import IconPause from '~icons/ion/pause';
 
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { AvalonGuide } from '../screens/AvalonGuideScreen';
+import { buildAvalonBoardStatus } from './avalonBoardStatus';
 import { formatAvalonVoteMode } from './avalonRecordCopy';
 import {
   AVALON_EARLY_STRIKE_ACTION_KEY,
   createAvalonCurrentStatus,
   createAvalonHistorySummary,
 } from './avalonRoomAdapter';
+import { buildAvalonRoomTracks } from './avalonRoomTracks';
 import { createAvalonStatusContext } from './avalonStatusContext';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
-import { AvalonHistorySummary } from './components/AvalonHistorySummary';
 import { AvalonLadyCheckConfirmModal } from './components/AvalonLadyCheckConfirmModal';
 import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
-import { AvalonRoomTracks } from './components/AvalonRoomTracks';
 import { AvalonStrikeConfirmModal } from './components/AvalonStrikeConfirmModal';
 import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
@@ -108,43 +108,42 @@ function AvalonRoomContent(
   const isVoting = isVotePending && historyPendingSeats.length > 0;
   const isQuest = phase.kind === 'quest' && historyPendingSeats !== null;
   const isQuestPending = isQuest && historyPendingSeats.length > 0;
-  const historyContent =
-    historySummary === null || currentStatus === null || viewModel === null ? null : (
-      <AvalonHistorySummary
-        tracks={<AvalonRoomTracks view={viewModel} />}
-        latestResult={
-          phase.kind !== 'ended' &&
-          (screen.state.roundHistory.some((round) => round.proposals.length > 0) ||
-            screen.state.questHistory.length > 0)
-            ? historySummary
-            : null
-        }
-        pendingSeats={historyPendingSeats}
-        pendingLabel={historyPendingLabel}
-        compact={{
-          context:
-            isVotePending && statusContext !== null
-              ? `${statusContext}投票${isVoting ? '中' : ''}`
-              : isQuest && statusContext !== null
-                ? `${statusContext} · 任务执行中`
-                : statusContext === null
-                  ? currentStatus
-                  : `${statusContext} · ${currentStatus}`,
-          // 状态句唯一来源是 avalonRoomAdapter（投票/出牌进行中给不能提交者的说明、全员提交后
-          // 的结算倒计时句）；与阶段句重复时不再显示。
-          message:
-            screen.shellModel.playerActions.message === currentStatus
-              ? null
-              : screen.shellModel.playerActions.message,
-          progress: isVoting
-            ? `已投 ${getAvalonOccupiedSeatCount(screen.state) - historyPendingSeats.length}/${getAvalonOccupiedSeatCount(screen.state)}`
-            : isQuestPending && phase.kind === 'quest'
-              ? `已出牌 ${phase.teamSeats.length - historyPendingSeats.length}/${phase.teamSeats.length}`
+  const historyStatus =
+    historySummary === null || currentStatus === null || viewModel === null
+      ? null
+      : buildAvalonBoardStatus({
+          tracks: buildAvalonRoomTracks(viewModel),
+          latestResult:
+            phase.kind !== 'ended' &&
+            (screen.state.roundHistory.some((round) => round.proposals.length > 0) ||
+              screen.state.questHistory.length > 0)
+              ? historySummary
               : null,
-          isVoting,
-        }}
-      />
-    );
+          pendingSeats: historyPendingSeats,
+          pendingLabel: historyPendingLabel,
+          compact: {
+            context:
+              isVotePending && statusContext !== null
+                ? `${statusContext}投票${isVoting ? '中' : ''}`
+                : isQuest && statusContext !== null
+                  ? `${statusContext} · 任务执行中`
+                  : statusContext === null
+                    ? currentStatus
+                    : `${statusContext} · ${currentStatus}`,
+            // 状态句唯一来源是 avalonRoomAdapter（投票/出牌进行中给不能提交者的说明、全员提交后
+            // 的结算倒计时句）；与阶段句重复时不再显示。
+            message:
+              screen.shellModel.playerActions.message === currentStatus
+                ? null
+                : screen.shellModel.playerActions.message,
+            progress: isVoting
+              ? `已投 ${getAvalonOccupiedSeatCount(screen.state) - historyPendingSeats.length}/${getAvalonOccupiedSeatCount(screen.state)}`
+              : isQuestPending && phase.kind === 'quest'
+                ? `已出牌 ${phase.teamSeats.length - historyPendingSeats.length}/${phase.teamSeats.length}`
+                : null,
+            isVoting,
+          },
+        });
   // 刺杀二次确认住在 overlays 层：阶段切换不能把它吞掉。
   // 选人模式（strikePickMode）住在 hook：底部动作区的「刺杀」入口与此处共用。
   const { strikeConfirm, setStrikeConfirm, ladyCheckTarget, setLadyCheckTarget } =
@@ -305,17 +304,14 @@ function AvalonRoomContent(
           ? {
               kind: 'seats',
               contextHeader: null,
-              bottomSummary: null,
               afterSeatBoard: null,
               beforeSeatBoard: gameConfiguration,
             }
           : {
               kind: 'seats',
-              compactStatusContent: historyContent,
+              boardStatus: historyStatus,
               contextHeader: null,
               informationLayout: historySummary !== null ? 'scroll-with-seats' : 'fixed',
-              // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
-              bottomSummary: historyContent,
               beforeSeatBoard: <>{isPreGame && gameConfiguration}</>,
               afterSeatBoard: null,
             }

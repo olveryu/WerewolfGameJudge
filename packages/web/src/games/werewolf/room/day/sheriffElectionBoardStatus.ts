@@ -1,15 +1,12 @@
-/** Compact, privacy-safe sheriff-election status shown persistently above the seat board. */
+/** Compact, privacy-safe sheriff-election status for the room's one status bar. */
 import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
-import type { ReactNode } from 'react';
 
-import { RoomCompactStatus } from '@/features/room/components/RoomCompactStatus';
 import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
+import type { RoomBoardStatusModel } from '@/features/room/model/RoomBoardStatus';
 import { getSheriffWaitingMessage } from '@/games/werewolf/room/day/sheriffElectionPlayerActions';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
-import IconCheckboxOutline from '~icons/ion/checkbox-outline';
-import IconTimeOutline from '~icons/ion/time-outline';
 
 function getResultSummary(result: SheriffElectionResult): string {
   return result.kind === 'elected' ? `${formatSeat(result.sheriffSeat)} 当选警长` : '本局没有警长';
@@ -38,17 +35,12 @@ export function getHudSummary(model: SheriffElectionPanelModel, isHost = false):
   return view.phaseDescription;
 }
 
-export function SheriffElectionHud({
-  model,
-  isHost,
-  isDay = true,
-  additionalContent,
-}: {
-  readonly model: SheriffElectionPanelModel;
-  readonly isHost: boolean;
-  readonly isDay?: boolean;
-  readonly additionalContent?: ReactNode;
-}) {
+/** The sheriff election as the room's one status bar, shown in the day and kept at the end. */
+export function buildSheriffElectionBoardStatus(
+  model: SheriffElectionPanelModel,
+  isHost: boolean,
+  phaseLabel = '白天',
+): RoomBoardStatusModel {
   const { view } = model;
   const progress = view.voteProgress;
   const isVoting = progress !== null && progress.submittedCount < progress.eligibleCount;
@@ -58,18 +50,17 @@ export function SheriffElectionHud({
       : view.phase === 'registration'
         ? getSheriffWaitingMessage(model)
         : view.phaseTitle;
-  return (
-    <RoomCompactStatus
-      context={`${isDay ? '白天 · ' : ''}警长竞选 · ${phase}${isVoting ? '中' : ''}`}
-      contextTestId={TESTIDS.sheriffElectionHudPhase}
-      message={view.finalResult !== null || isVoting ? null : getHudSummary(model, isHost)}
-      progress={isVoting ? `已投 ${progress.submittedCount}/${progress.eligibleCount}` : null}
-      pendingSeats={isVoting ? progress.pendingSeats : null}
-      icon={isVoting ? <IconCheckboxOutline aria-hidden /> : <IconTimeOutline aria-hidden />}
-      testId={TESTIDS.sheriffElectionHud}
-      pendingTestId={TESTIDS.sheriffHudPendingSeats}
-    >
-      {additionalContent}
-    </RoomCompactStatus>
-  );
+  return {
+    context: `${phaseLabel} · 警长竞选 · ${phase}${isVoting ? '中' : ''}`,
+    contextTestId: TESTIDS.sheriffElectionHudPhase,
+    message: view.finalResult !== null || isVoting ? null : getHudSummary(model, isHost),
+    progress: isVoting ? `已投 ${progress.submittedCount}/${progress.eligibleCount}` : null,
+    pendingSeats: isVoting
+      ? { seats: progress.pendingSeats, label: '未投票', testId: TESTIDS.sheriffHudPendingSeats }
+      : null,
+    icon: isVoting ? 'checkbox-outline' : 'time-outline',
+    tracks: [],
+    footnote: null,
+    testId: TESTIDS.sheriffElectionHud,
+  };
 }

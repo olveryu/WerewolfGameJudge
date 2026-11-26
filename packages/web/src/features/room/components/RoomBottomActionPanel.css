@@ -5,20 +5,6 @@
   background: transparent;
 }
 
-.bottom-action-summary {
-  margin-block-end: var(--space-small);
-  padding-block-end: var(--space-small);
-  border-block-end: var(--border-width) solid var(--color-border);
-}
-
-.bottom-action-summary > .room-status-summary {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
 .bottom-action-message {
   margin: 0 0 var(--space-small);
   padding: 0 var(--space-small);

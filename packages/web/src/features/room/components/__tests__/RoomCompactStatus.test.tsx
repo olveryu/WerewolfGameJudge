@@ -7,6 +7,14 @@ import { render } from '@testing-library/react';
 import { RoomCompactStatus } from '@/features/room/components/RoomCompactStatus';
 
 const STATUS_ID = 'status';
+const EMPTY_EXTRAS = {
+  pendingSeats: null,
+  icon: null,
+  notices: [],
+  tracks: [],
+  footnote: null,
+  inline: false,
+} as const;
 
 describe('RoomCompactStatus status line', () => {
   it('marks the message when a message is shown', () => {
@@ -16,6 +24,7 @@ describe('RoomCompactStatus status line', () => {
         message="等待队员出牌…"
         progress="已出牌 1/3"
         statusTestId={STATUS_ID}
+        {...EMPTY_EXTRAS}
       />,
     );
     const marked = getAllByTestId(STATUS_ID);
@@ -30,6 +39,7 @@ describe('RoomCompactStatus status line', () => {
         message={null}
         progress="已投 1/5"
         statusTestId={STATUS_ID}
+        {...EMPTY_EXTRAS}
       />,
     );
     const marked = getAllByTestId(STATUS_ID);
@@ -39,7 +49,13 @@ describe('RoomCompactStatus status line', () => {
 
   it('marks nothing when neither line is shown', () => {
     const { queryByTestId } = render(
-      <RoomCompactStatus context="夜晚" message={null} progress={null} statusTestId={STATUS_ID} />,
+      <RoomCompactStatus
+        context="夜晚"
+        message={null}
+        progress={null}
+        statusTestId={STATUS_ID}
+        {...EMPTY_EXTRAS}
+      />,
     );
     expect(queryByTestId(STATUS_ID)).toBeNull();
   });

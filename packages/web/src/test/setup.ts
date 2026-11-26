@@ -18,6 +18,18 @@ window.matchMedia = (query: string): MediaQueryList => ({
   dispatchEvent: () => false,
 });
 
+// The room shell owns the one status bar above the seat board; any render that stacks a second one
+// fails the test that produced it.
+function findRoomWithStackedStatusBars(): Element | undefined {
+  return Array.from(document.querySelectorAll('.room-board-column')).find(
+    (room) => room.querySelectorAll('.room-compact-status').length > 1,
+  );
+}
+
 afterEach(() => {
+  const stackedRoom = findRoomWithStackedStatusBars();
   cleanup();
+  if (stackedRoom !== undefined) {
+    throw new Error('A room rendered more than one status bar above the seat board');
+  }
 });

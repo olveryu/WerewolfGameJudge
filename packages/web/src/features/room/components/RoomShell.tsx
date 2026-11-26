@@ -10,10 +10,12 @@ import {
   AccountTicketBadge,
 } from '@/components/avatar/AccountAvatar';
 import { IconButton } from '@/components/IconButton';
+import type { IoniconName } from '@/components/icons/IonIcon';
 import { Spinner } from '@/components/Spinner';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { useRoomHandNavigation } from '@/features/room/hooks/useRoomHandNavigation';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
+import type { RoomBoardStatusModel, RoomStatusNotice } from '@/features/room/model/RoomBoardStatus';
 import {
   buildRoomHand,
   isSubmissionOwnedBy,
@@ -43,10 +45,15 @@ type RoomShellContent =
   | {
       readonly kind: 'seats';
       readonly contextHeader: ReactElement | null;
-      readonly bottomSummary: ReactElement | null;
-      readonly compactStatusContent?: ReactElement | null;
-      readonly compactStatusIcon?: ReactElement;
-      readonly statusAdditionalContent?: ReactElement | null;
+      /**
+       * The game's status for the one bar above the seats, replacing the shell's phase status.
+       * Data only: the shell renders the bar, so a game cannot add another.
+       */
+      readonly boardStatus?: RoomBoardStatusModel | null;
+      /** The shell's status icon, used when the game's status sets none. */
+      readonly statusIcon?: IoniconName;
+      /** Public text lines kept inside the one bar in every phase, rendered by the shell. */
+      readonly statusNotices?: readonly RoomStatusNotice[];
       readonly informationLayout?: 'fixed' | 'scroll-with-seats';
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
@@ -337,18 +344,17 @@ export function RoomShell({
                 <div className="room-board-status" data-testid={TESTIDS.roomBoardStatus}>
                   <RoomActionStatus
                     model={model.playerActions}
-                    summary={content.bottomSummary}
                     isAudioPlaying={model.isAudioPlaying}
                     hostManagement={hostManagement}
                     selectionMode={selectionMode}
-                    boardStatus={{
+                    board={{
                       phaseLabel,
-                      compactContent: content.compactStatusContent,
-                      compactIcon: content.compactStatusIcon,
-                      additionalContent: content.statusAdditionalContent,
-                      title: lobbyTitle,
-                      detail:
+                      lobbyTitle,
+                      lobbyDetail:
                         lobbyAction !== null && seatsMissing > 0 ? `还差 ${seatsMissing} 人` : null,
+                      icon: content.statusIcon ?? null,
+                      gameStatus: content.boardStatus ?? null,
+                      notices: content.statusNotices ?? [],
                     }}
                   />
                 </div>
@@ -374,7 +380,6 @@ export function RoomShell({
           {!statusInBoard && (
             <RoomActionStatus
               model={model.playerActions}
-              summary={content.kind === 'seats' ? content.bottomSummary : null}
               isAudioPlaying={model.isAudioPlaying}
               hostManagement={hostManagement}
               selectionMode={selectionMode}
