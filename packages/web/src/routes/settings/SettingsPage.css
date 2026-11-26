@@ -41,12 +41,18 @@
   gap: var(--space-medium);
 }
 
+/* The avatar tile's own box (its focus ring), concentric with the avatar. */
 .settings-avatar {
+  --avatar-inset: var(--border-width-avatar-tile);
+
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
   width: var(--size-avatar-xl);
-  border-radius: var(--radius-large);
+}
+
+.settings-avatar[data-framed='true'] {
+  --avatar-inset: 0px;
 }
 
 /* Above the scene layer, so the frame never covers the badge. */
@@ -104,14 +110,12 @@
 .settings-teaser-lock {
   width: var(--size-avatar-sm);
   height: var(--size-avatar-sm);
-  border-radius: var(--radius-small);
 }
 
-.settings-teaser-item {
-  object-fit: cover;
-}
-
+/* Stands where an avatar would: the avatar's own outline. */
 .settings-teaser-lock {
+  --avatar-inset: 0px;
+
   display: flex;
   align-items: center;
   justify-content: center;

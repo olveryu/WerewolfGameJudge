@@ -6,6 +6,12 @@
   text-align: left;
 }
 
+.room-track {
+  display: grid;
+  gap: var(--space-tight);
+  min-width: 0;
+}
+
 .room-track-heading {
   margin: 0;
   color: var(--color-text-secondary);

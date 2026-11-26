@@ -108,6 +108,8 @@ Nested files: `packages/web/AGENTS.md`, `packages/game-engine/AGENTS.md`, `packa
 
 Skills: `.agents/skills/<name>/SKILL.md` — read the skill before starting its workflow; skills never replace the nested area files.
 
+For a dedicated read-only audit of a werewolf role/board change, use `.agents/skills/review-werewolf-addition/SKILL.md`.
+
 Wiring: `docs/agent-config.md` — the human wiring document for this file set: layout, budgets, how to add or change a rule or skill, and how to verify loading.
 
 Deciding docs: `docs/README.md` (index), `docs/web-client-rewrite.md` (client rewrite plan and phases), `docs/room-shell-contract.md`, `docs/multigame-platform-design.md` §25 (new-game checklist), `docs/realtime-link-redesign.md` (current-system sections only; its opening tables describe the pre-redesign system), `docs/DEPLOYMENT.md`, `e2e/helpers/README.md`.

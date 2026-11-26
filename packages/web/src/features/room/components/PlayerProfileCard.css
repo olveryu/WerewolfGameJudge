@@ -69,15 +69,25 @@
   opacity: 0.15;
 }
 
-/* The avatar tile; the card's scene layer draws its frame and flair, which overflow the tile. */
+/*
+ * The avatar tile on a surface mat whose corners are concentric with the avatar (the shared
+ * .avatar-concentric rule); the card's scene layer draws its frame and flair, which overflow
+ * the tile.
+ */
 .profile-avatar {
+  --avatar-inset: calc(var(--space-tight) + var(--border-width-avatar-tile));
+
   position: relative;
   align-self: center;
   width: calc(var(--size-avatar-xl) + var(--space-tight) * 2);
   margin-top: calc(-1 * (var(--size-avatar-xl) / 2 + var(--space-tight)));
   padding: var(--space-tight);
-  border-radius: var(--radius-full);
   background: var(--color-surface);
+}
+
+/* A framed tile drops its border, so the mat's inset to the avatar is the padding alone. */
+.profile-avatar[data-framed='true'] {
+  --avatar-inset: var(--space-tight);
 }
 
 /* Above the scene layer, so the frame never covers the level. */

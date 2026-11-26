@@ -29,7 +29,7 @@ component owns the complete geometry, including the value area, not just its out
 | Count / switch / radio controls              | `src/components/GameSettings.tsx` and `GameSettings.styles.ts`                                       | Values and intent callbacks; the form supplies them from the schema                                                                                       |
 | Reading sections and notices                 | `src/components/GameGuide.tsx`                                                                       | Accurate game-owned rules and tool limitations                                                                                                            |
 | Unified game configuration card              | `src/features/room/components/RoomGameSummary.tsx`                                                   | Game name/count, required guide intent, public content, phase collapse default and available strategy/notepad intents                                     |
-| Compact stage/match summary                  | `src/features/room/components/RoomStatusSummary.tsx`                                                 | Public title/icon/phase, summary, optional detail/pending seats, and nullable game-owned detail action                                                    |
+| Board status bar                             | `src/features/room/model/RoomBoardStatus.ts`                                                         | Public context, one status line, progress, pending seats, notices, icon name, tracks and footnote as data; only the shell renders the bar                 |
 | Centered room details                        | `src/features/room/components/RoomDialog.tsx`                                                        | Title, scrollable details, close intent and fixed footer                                                                                                  |
 
 - Use the compact Werewolf settings hierarchy. Settings pages configure a game; long gameplay
@@ -252,15 +252,13 @@ After dealing, rooms can move the public board into `本局配置`, reusing
 `BoardInfoContent` and `RoomGameSettings`. Keep live status outside that dialog
 and yield the hand during temporary seat selection.
 
-Use the shared `RoomStatusSummary` in `contextHeader` for compact stage
-status and detail entry. Werewolf's sheriff HUD, Avalon and Secret Hitler
-all use this component; games supply content and decide when it appears.
-It owns layout, typography, phase badges, pending seats and the detail
-affordance, not just an outer frame. A null detail action renders a
-non-interactive summary, preserving Werewolf's wide-screen inspector.
-Detail surfaces remain game-owned: Werewolf retains its responsive sheet
-and inspector; Avalon and Secret Hitler use `RoomDialog`. Secret Hitler
-hides its summary until first-night narration finishes and the authoritative
+Seat content has exactly one status bar above the seats. Games describe their
+stage status as `boardStatus` data (`RoomBoardStatusModel`) — Werewolf's sheriff
+election, Avalon's mission state and tracks, Secret Hitler's government vote and
+policy tracks, and Undercover's winner — and decide when it appears; the shell
+renders it. Detail surfaces remain game-owned: Werewolf retains its responsive
+sheet and inspector; Avalon and Secret Hitler use `RoomDialog`. Secret Hitler
+hides its status until first-night narration finishes and the authoritative
 phase enters the election. Do not put an expanded stage
 card, terminal player list or full match history above the seats. Personal
 instructions, identity viewing and commands stay in the bottom model;
@@ -281,10 +279,21 @@ The stage menu is a separate `actionSurface: 'menu'` projection of the same dire
 authorized stage actions. Cards are ordered by category and state while preserving ties.
 
 `RoomActionStatus` is separate from the hand container. Seat content places status above the seat
-board as the shared `RoomCompactStatus` (phase context, one status line carrying
-`actionMessage`, optional progress), the only board status surface for every seats-content game;
-a game may replace it with its own `compactStatusContent` built on the same component, and
-`bottomSummary` renders beneath it. Other hand surfaces place status in the bottom panel. Stage content
+board as exactly one `RoomCompactStatus` (context, one status line carrying `actionMessage`,
+optional progress, pending seats, public notice lines, then score tracks and a footnote below a
+divider). The model holds data only: the icon is an `IoniconName`, tracks are `RoomTrack` cells
+(state, title, lines and an optional read-only rule detail) rendered by the shared `RoomTracks`,
+and no field takes React content. `resolveRoomBoardStatus` merges the inputs as a pure function.
+The game's `boardStatus` supplies its data, falling back to the shell's `statusIcon` and phase label;
+without one the shell shows the phase or lobby status. `statusNotices` are public text lines (e.g.
+dawn announcements) the shell keeps inside that same bar in every phase, with or without a
+`boardStatus`. Audio narration and seat selection replace only the message line and hide progress
+and pending seats, keeping the context, notices, tracks and footnote. Games never render the bar or its
+lines themselves: only `RoomActionStatus` imports `RoomCompactStatus` and no other source uses a
+`room-compact-status*` class, pinned by
+`packages/web/src/__tests__/roomBoardStatusOwnership.contract.test.ts`, and the shell's one-bar
+rendering is pinned in `RoomShell.stage.test.tsx`; the web test setup fails any test whose room
+renders more than one bar. Other hand surfaces place status in the bottom panel. Stage content
 keeps its status in the HUD and requires the menu action surface. Dialog and game-workspace
 controls remain game-owned and are not moved into the hand.
 
@@ -386,7 +395,7 @@ content, not another copy of those surfaces.
 
 `content` is an explicit discriminated union:
 
-- `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard` and `bottomSummary` form the shared seat-board view. The summary is rendered through the shared status component; games own its phase visibility and detail action. Optional visual content is explicitly `null`.
+- `seats`: `contextHeader`, `beforeSeatBoard` and `afterSeatBoard` form the shared seat-board view; optional `boardStatus` is the game's data for the one status bar, which only the shell renders. Optional visual content is explicitly `null`.
 - `workspace`: `element` supplies one game-owned workspace. Seat-board slots are not accepted and are not silently ignored.
 - `stage`: an in-play stage ([room-stage-layout-design.md](room-stage-layout-design.md)). `hud` (`RoomStageHudModel`) declares the information bar — game chips, the roster chip, the countdown and optional secondary chips — and `element` fills the remaining height, usually a `RoomTaskFrame` whose footer is the game's own dock. Optional `hudAction` is game-owned and rendered in the secondary information row; the shared shell does not interpret its behavior.
 

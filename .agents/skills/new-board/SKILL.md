@@ -129,6 +129,9 @@ Run the acceptance commands. If the board introduces a role
 combination no existing spec covers, report whether an E2E spec is
 proposed before writing one (see the new-e2e-spec skill).
 
+For an independent read-only drift audit, use the review-werewolf-addition
+skill; ordinary-night coverage alone does not prove every interaction.
+
 ## Acceptance commands
 
 ```sh

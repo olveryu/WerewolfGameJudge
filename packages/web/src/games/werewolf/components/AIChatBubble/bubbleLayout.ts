@@ -10,11 +10,11 @@ export const BUBBLE_HORIZONTAL_MARGIN = Math.ceil(Math.max(BUBBLE_MARGIN, BUBBLE
 const BUBBLE_TOP_INSET = BUBBLE_MARGIN + 50;
 /**
  * Height the room hand can reach above the viewport bottom, mirrored from tokens.css and
- * RoomActionHand.css: top padding (--space-medium) + visible card (--size-hand-card-visible)
- * + bottom padding (--space-small plus the fan drop), then a hovered or focused card's raise
- * (--space-medium) and the 「待行动」 badge above it (--line-caption).
+ * RoomShell.css: top padding (--space-small) + visible card (--size-hand-card-visible) + a
+ * safe-area inset, then a raised card (--space-medium), the 「待行动」 badge (--line-caption) and
+ * one extra wrapped label line (--line-secondary).
  */
-export const ROOM_HAND_REACH = 16 + 120 + 16 + 16 + 16;
+export const ROOM_HAND_REACH = 8 + 92 + 34 + 16 + 16 + 20;
 /** The default spot sits a margin above the hand so the bubble never covers or hides behind it. */
 const DEFAULT_BOTTOM_INSET = ROOM_HAND_REACH + BUBBLE_MARGIN;
 

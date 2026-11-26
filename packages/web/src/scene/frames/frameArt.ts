@@ -8,7 +8,7 @@ import { LEGENDARY_FRAME_IDS } from '@game-judge/game-engine/product/rewards';
 import type { DecorationNode, DecorationSpec, SvgArt } from '@/scene/decoration';
 
 import type { FrameColorSet } from './common/palette';
-import { FRAME_VIEWBOX, frameRx } from './frameBox';
+import { FRAME_AVATAR_RX, FRAME_VIEWBOX } from './frameBox';
 import { legendaryShimmerNodes } from './legendaryShimmer';
 
 export interface FrameArtProps {
@@ -28,7 +28,7 @@ export function frameSvg(art: FrameArt): SvgArt {
     width: size,
     height: size,
     viewBox: FRAME_VIEWBOX,
-    body: art({ rx: frameRx(size) }),
+    body: art({ rx: FRAME_AVATAR_RX }),
   });
 }
 

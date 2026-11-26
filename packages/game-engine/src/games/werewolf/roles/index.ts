@@ -1,6 +1,7 @@
 import type { RoleId } from '../domain/models';
 import { avenger } from './avenger';
 import { awakenedGargoyle } from './awakenedGargoyle';
+import { beeHunter } from './beeHunter';
 import { bloodMoon } from './bloodMoon';
 import { crow } from './crow';
 import { cupid, cupidPresence } from './cupid';
@@ -28,6 +29,7 @@ import { poisoner } from './poisoner';
 import type { PresenceDeclaration } from './presence';
 import { psychic } from './psychic';
 import { pureWhite } from './pureWhite';
+import { scarletWolfKing } from './scarletWolfKing';
 import { seedWolf } from './seedWolf';
 import { seerPresence } from './seer';
 import { seer } from './seer';
@@ -109,6 +111,7 @@ export const WEREWOLF_ROLE_DEFINITIONS = [
   poisoner,
   hunter,
   guard,
+  beeHunter,
   idiot,
   knight,
   magician,
@@ -127,6 +130,7 @@ export const WEREWOLF_ROLE_DEFINITIONS = [
   seedWolf,
   wolfQueen,
   wolfKing,
+  scarletWolfKing,
   darkWolfKing,
   nightmare,
   gargoyle,

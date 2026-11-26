@@ -21,13 +21,14 @@ import ts from 'typescript';
 
 import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
 import { toWerewolfReviewDocument } from '@/games/werewolf/review/toWerewolfReviewDocument';
-import { SheriffElectionHud } from '@/games/werewolf/room/components/SheriffElectionHud';
 import { SheriffElectionPanel } from '@/games/werewolf/room/components/SheriffElectionPanel';
+import { buildSheriffElectionBoardStatus } from '@/games/werewolf/room/day/sheriffElectionBoardStatus';
 import { createSheriffElectionPlayerActions } from '@/games/werewolf/room/day/sheriffElectionPlayerActions';
 import {
   type SheriffElectionPanelModel,
   useSheriffElection,
 } from '@/games/werewolf/room/day/useSheriffElection';
+import { BoardStatusPreview } from '@/test-utils/boardStatus';
 import { alertStore, dismissAlert } from '@/utils/alert';
 
 import { verifyCatalogue } from '../../../../../../../../scripts/lib/catalogues/verify.mjs';
@@ -349,7 +350,9 @@ function observe(state: GameState, moment: string, seat: number | null): Sightin
       moment,
       who: describeViewer(election, seat),
       personal: [
-        `顶部状态：${renderedText(<SheriffElectionHud model={model} isHost={isHost} />)}`,
+        `顶部状态：${renderedText(
+          <BoardStatusPreview status={buildSheriffElectionBoardStatus(model, isHost)} />,
+        )}`,
         `底部状态栏：${dock.message ?? '（无）'}`,
         `底部手牌：${cards.length === 0 ? '（无）' : cards.join(SEPARATOR)}`,
       ],
@@ -545,7 +548,7 @@ const ELECTION_SOURCES = [
   'day/sheriffElectionPresentation.ts',
   'day/sheriffElectionViewModel.ts',
   'day/useSheriffElection.ts',
-  'components/SheriffElectionHud.tsx',
+  'day/sheriffElectionBoardStatus.ts',
   'components/SheriffElectionPanel.tsx',
   'components/SheriffElectionReadOnly.tsx',
 ];

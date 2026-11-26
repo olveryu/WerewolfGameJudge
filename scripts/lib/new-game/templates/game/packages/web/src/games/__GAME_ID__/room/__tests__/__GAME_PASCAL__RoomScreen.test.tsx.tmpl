@@ -65,7 +65,6 @@ vi.mock('@/features/room/components/RoomShell', () => ({
     content: {
       kind: string;
       beforeSeatBoard?: ReactNode;
-      bottomSummary?: ReactNode;
       element?: ReactNode;
     };
     gameOverlays: ReactNode;
@@ -81,7 +80,6 @@ vi.mock('@/features/room/components/RoomShell', () => ({
       {phaseLabel && <span data-testid="phase-label">{phaseLabel}</span>}
       {lobbyAction && <span data-testid="lobby-action">{`${lobbyAction.label} · ${lobbyAction.occupiedSeats}`}</span>}
       {content.beforeSeatBoard}
-      {content.bottomSummary}
       {content.element}
       {directory.manual.map((entry) => <button key={entry.label} onClick={entry.state.onPress}>{entry.label}</button>)}
       {directory.openConfiguration && <button onClick={directory.openConfiguration}>本局配置</button>}

@@ -34,15 +34,25 @@ export function getHandDrawnPortraitUrl(id: HandDrawnAvatarId): string {
   return url;
 }
 
-/** Hand-drawn portrait URLs in catalog order. */
-export const HAND_DRAWN_PORTRAITS: readonly string[] =
-  HAND_DRAWN_AVATAR_IDS.map(getHandDrawnPortraitUrl);
-
 const BUILTIN_AVATAR_PREFIX = 'builtin://';
 
 /** The stored avatar URL of a builtin (hand-drawn or generated) catalog avatar. */
 export function makeBuiltinAvatarUrl(avatarId: string): string {
   return `${BUILTIN_AVATAR_PREFIX}${avatarId}`;
+}
+
+/**
+ * `count` hand-drawn avatars evenly spaced through the catalog, as builtin avatar URLs for
+ * `<Avatar>`: the collection teasers shown to guests.
+ */
+export function pickHandDrawnAvatarUrls(count: number): readonly string[] {
+  const step = Math.floor(HAND_DRAWN_AVATAR_IDS.length / count);
+  return Array.from({ length: count }, (_, index) => {
+    const id = HAND_DRAWN_AVATAR_IDS[index * step];
+    if (id === undefined)
+      throw new Error(`[FAIL-FAST] No hand-drawn avatar at index ${index * step}`);
+    return makeBuiltinAvatarUrl(id);
+  });
 }
 
 /** The catalog avatar id of a builtin avatar URL; null for an upload or no avatar. */

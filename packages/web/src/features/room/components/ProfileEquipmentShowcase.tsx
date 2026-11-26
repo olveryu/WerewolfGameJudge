@@ -8,6 +8,7 @@ import { getItemRarity, type Rarity } from '@game-judge/game-engine/product/rewa
 import { type ReactNode, use } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { parseBuiltinAvatarId } from '@/components/avatar/avatarSources';
 import { IonIcon, type IoniconName } from '@/components/icons/IonIcon';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
@@ -23,8 +24,6 @@ import {
   SEAT_ANIMATION_NAMES,
 } from '@/features/product/model/cosmeticNames';
 import { TESTIDS } from '@/testids';
-
-const SLOT_PREVIEW_SIZE = 28;
 
 interface EquipmentSlotInfo {
   readonly typeLabel: string;
@@ -59,7 +58,7 @@ function avatarSlot(
   productUi: ClientProductUi,
 ): EquipmentSlotInfo {
   if (avatarUrl === undefined) return emptySlot('头像');
-  const preview = <Avatar userId={avatarSeed} avatarUrl={avatarUrl} size={SLOT_PREVIEW_SIZE} />;
+  const preview = <Avatar userId={avatarSeed} avatarUrl={avatarUrl} size="fill" />;
   const builtinAvatarId = parseBuiltinAvatarId(avatarUrl);
   if (builtinAvatarId === null) return { typeLabel: '头像', name: '自定义', rarity: null, preview };
   return {
@@ -94,6 +93,12 @@ function revealEffectSlot(
   };
 }
 
+/**
+ * Every slot's preview box (the avatar slot's avatar fills it) takes the avatar's corners, so the
+ * six slots, filled or dashed when empty, read as one row of the same box.
+ */
+const PREVIEW_CLASS = `profile-equip-preview ${AVATAR_CONCENTRIC_CLASS}`;
+
 function EquipmentSlot({ slot }: { readonly slot: EquipmentSlotInfo }) {
   const visual = slot.rarity === null ? null : RARITY_VISUAL[slot.rarity];
   return (
@@ -102,7 +107,7 @@ function EquipmentSlot({ slot }: { readonly slot: EquipmentSlotInfo }) {
       data-rarity={slot.rarity ?? undefined}
       style={visual === null ? undefined : { '--rarity-color': visual.color }}
     >
-      <span className="profile-equip-preview" data-empty={slot.name === null} aria-hidden>
+      <span className={PREVIEW_CLASS} data-empty={slot.name === null} aria-hidden>
         {slot.preview}
       </span>
       <span className="profile-equip-name" data-empty={slot.name === null}>

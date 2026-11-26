@@ -5,6 +5,8 @@
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/public';
 
+import type { DialogType } from './RoomScreenTestHarness';
+
 // =============================================================================
 // Board Configuration
 // =============================================================================
@@ -24,9 +26,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 27) {
+  if (boards.length !== 28) {
     throw new Error(
-      `Expected exactly 27 presets, but got ${boards.length}. ` +
+      `Expected exactly 28 presets, but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -46,6 +48,7 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   狼美守卫: 'wolfQueen.12p.board.ui.test.tsx',
   狼王守卫: 'darkWolfKing.12p.board.ui.test.tsx',
   白狼王守卫: 'wolfKing.12p.board.ui.test.tsx',
+  猩红蜂舞: 'scarletBee.12p.board.ui.test.tsx',
   石像鬼守墓人: 'gargoyle.12p.board.ui.test.tsx',
   噩梦之影守卫: 'nightmare.12p.board.ui.test.tsx',
   血月猎魔: 'bloodMoon.12p.board.ui.test.tsx',
@@ -70,3 +73,12 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   种狼骑士: 'seedWolf.12p.board.ui.test.tsx',
   狼女孩: 'wolfGirl.12p.board.ui.test.tsx',
 };
+
+const ROLE_REQUIRED_UI_DIALOG_TYPES: Partial<Record<RoleId, readonly DialogType[]>> = {
+  scarletWolfKing: ['actionPrompt', 'actionConfirm'],
+};
+
+/** Dialogs and inline prompts required by the roles on a board. */
+export function getRequiredUiDialogTypes(roles: readonly RoleId[]): DialogType[] {
+  return [...new Set(roles.flatMap((role) => ROLE_REQUIRED_UI_DIALOG_TYPES[role] ?? []))];
+}

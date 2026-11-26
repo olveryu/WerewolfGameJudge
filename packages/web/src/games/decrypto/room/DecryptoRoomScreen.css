@@ -100,7 +100,7 @@
   text-align: center;
   overflow-wrap: anywhere;
 }
-.decrypto-word span {
+.decrypto-keyword-number {
   display: grid;
   place-items: center;
   width: var(--size-avatar-xs);
@@ -141,7 +141,7 @@
   padding: 0;
   font-variant-numeric: tabular-nums;
 }
-.decrypto-code-display > span {
+.decrypto-code-digit {
   display: grid;
   place-items: center;
   width: var(--size-avatar-xs);
@@ -152,7 +152,7 @@
 .decrypto-private-code .decrypto-code-display {
   gap: var(--space-small);
 }
-.decrypto-private-code .decrypto-code-display > span {
+.decrypto-private-code .decrypto-code-digit {
   width: var(--size-button-md);
   min-height: var(--size-button-lg);
   border: var(--border-width) solid var(--color-border);
@@ -338,7 +338,7 @@
   font-size: var(--font-secondary);
   font-weight: var(--weight-medium);
 }
-.decrypto-history-card h4 span {
+.decrypto-history-number {
   display: grid;
   place-items: center;
   width: var(--size-avatar-sm);

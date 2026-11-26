@@ -1,10 +1,15 @@
 .room-shell {
+  --room-hand-height: calc(
+    var(--space-small) + var(--size-hand-card-visible) + env(safe-area-inset-bottom)
+  );
   position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  overflow: hidden;
+  /* Clip, not hidden: the hand sinks below the edge, and a hidden box is still programmatically
+     scrollable, so focusing or scrolling a card into view would shift the whole room upward. */
+  overflow: clip;
   padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 
@@ -60,65 +65,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .room-user-button {
-    transition: none;
-  }
-
-  .room-user-button:active:not(:disabled) {
-    transform: none;
-  }
-
-  .room-user-button:hover:not(:disabled),
   .room-header-host-button:hover:not([aria-busy='true']) {
     transform: none;
   }
-}
-
-.room-user-button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(var(--size-avatar-sm) + var(--space-small));
-  height: calc(var(--size-avatar-sm) + var(--space-small));
-  padding: 0;
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
-  background: var(--color-primary-a8);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-soft);
-  font-size: var(--size-icon-md);
-  cursor: pointer;
-  transition:
-    box-shadow 100ms ease-out,
-    transform 100ms ease-out;
-}
-
-.room-user-button:active:not(:disabled) {
-  box-shadow: var(--surface-button-shadow-pressed);
-  transform: translateY(var(--space-micro));
-}
-
-.room-user-avatar-clip {
-  display: flex;
-  overflow: hidden;
-  border-radius: var(--radius-full);
-}
-
-.room-user-badge {
-  position: absolute;
-  top: calc(-1 * var(--space-micro));
-  right: calc(-1 * var(--space-tight));
-  min-width: var(--size-icon-sm);
-  padding: 0 var(--space-tight);
-  border-radius: var(--radius-full);
-  background: var(--color-error);
-  color: var(--color-text-inverse);
-  font-size: var(--font-caption-small);
-  line-height: var(--size-icon-sm);
-  font-weight: var(--weight-bold);
-  text-align: center;
 }
 
 .room-content {
@@ -161,6 +110,34 @@
   overscroll-behavior: contain;
 }
 
+/* Seat layout: the footer is pulled up by one hand height so the hand floats over the board and
+   the room shows around the cards. The board scrolls its last row clear of the hand, and only the
+   footer's own content takes pointer input. */
+.room-shell[data-hand-layout='overlay'] .room-board-scroll {
+  padding-bottom: calc(var(--room-hand-height) + var(--space-large));
+}
+
+.room-shell[data-hand-layout='overlay'] :is(.room-board-scroll, .room-board-column) {
+  scroll-padding-bottom: var(--room-hand-height);
+}
+
+.room-shell[data-hand-layout='overlay'] .bottom-action-panel {
+  position: relative;
+  margin-block-start: calc(-1 * var(--room-hand-height));
+  padding-block-start: 0;
+  pointer-events: none;
+}
+
+.room-shell[data-hand-layout='overlay']
+  .bottom-action-panel:has(> :not(.room-action-hand, .host-task-card:empty)) {
+  padding-block-start: var(--space-small);
+}
+
+.room-shell[data-hand-layout='overlay'] .bottom-action-panel > :not(.room-action-hand),
+.room-shell[data-hand-layout='overlay'] .room-hand-card {
+  pointer-events: auto;
+}
+
 .room-board-information {
   display: grid;
   flex-shrink: 0;
@@ -170,19 +147,6 @@
 
 .room-board-information > .room-game-summary {
   margin-bottom: 0;
-}
-
-.room-board-status-summary {
-  width: 100%;
-  min-width: 0;
-}
-
-.room-board-status-summary > .room-status-summary {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
 }
 
 .room-workspace {
@@ -231,7 +195,6 @@
 }
 
 @media (hover: hover) {
-  .room-user-button:hover:not(:disabled),
   .room-header-host-button:hover:not([aria-busy='true']) {
     transform: translateY(calc(-1 * var(--space-micro)));
   }

@@ -98,6 +98,83 @@ const SPIRIT = [
   'guard',
 ] as const;
 const QUEEN = [...VILLAGERS, ...WOLVES, 'wolfQueen', 'seer', 'witch', 'knight', 'guard'] as const;
+const SCARLET = [
+  ...VILLAGERS,
+  ...WOLVES,
+  'scarletWolfKing',
+  'seer',
+  'witch',
+  'guard',
+  'beeHunter',
+] as const;
+const SCARLET_SWAP = [
+  ...VILLAGERS,
+  ...WOLVES,
+  'scarletWolfKing',
+  'seer',
+  'witch',
+  'magician',
+  'beeHunter',
+] as const;
+const SCARLET_LOCK = [
+  ...VILLAGERS,
+  'wolf',
+  'wolf',
+  'nightmare',
+  'scarletWolfKing',
+  'seer',
+  'witch',
+  'guard',
+  'beeHunter',
+] as const;
+const SCARLET_SHELTER = [
+  ...VILLAGERS,
+  'wolf',
+  'wolf',
+  'eclipseWolfQueen',
+  'scarletWolfKing',
+  'seer',
+  'witch',
+  'guard',
+  'beeHunter',
+] as const;
+const SCARLET_MASKED = [
+  ...VILLAGERS,
+  ...WOLVES,
+  'scarletWolfKing',
+  'seer',
+  'witch',
+  'maskedMan',
+  'beeHunter',
+] as const;
+const SCARLET_COUPLE = [
+  ...VILLAGERS,
+  ...WOLVES,
+  'scarletWolfKing',
+  'seer',
+  'witch',
+  'cupid',
+  'beeHunter',
+] as const;
+const SCARLET_NO_PACK = [
+  'scarletWolfKing',
+  'seer',
+  'witch',
+  'guard',
+  'beeHunter',
+  ...VILLAGERS,
+] as const;
+const SCARLET_SEED = [
+  ...VILLAGERS,
+  'wolf',
+  'wolf',
+  'seedWolf',
+  'scarletWolfKing',
+  'seer',
+  'witch',
+  'guard',
+  'beeHunter',
+] as const;
 const ROBOT_SEER = [
   ...VILLAGERS,
   ...WOLVES,
@@ -491,6 +568,57 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
       { wolf: null, wolfQueen: 0, witch: { save: null, poison: 7 }, seer: 4 },
     ],
     ['charm and attack different', { wolf: 1, wolfQueen: 0, seer: 4 }],
+  ]),
+  ...scenarios('scarlet wolf king', SCARLET, [
+    ['marks guarded and checked target', { guard: 0, wolf: 1, scarletWolfKing: 0, seer: 0 }],
+    ['marks itself', { wolf: 7, scarletWolfKing: 7, seer: 7 }],
+    ['marked target is attacked', { wolf: 0, scarletWolfKing: 0, seer: 4 }],
+    ['dead wolf king links marked target', { wolf: 7, scarletWolfKing: 0, seer: 4 }],
+    [
+      'antidote saves wolf king',
+      { wolf: 7, scarletWolfKing: 0, witch: { save: 7, poison: null }, seer: 4 },
+    ],
+    [
+      'poison kills wolf king',
+      { wolf: null, scarletWolfKing: 0, witch: { save: null, poison: 7 }, seer: 4 },
+    ],
+    [
+      'poison kills marked target',
+      { wolf: null, scarletWolfKing: 0, witch: { save: null, poison: 0 }, seer: 4 },
+    ],
+  ]),
+  ...scenarios('scarlet wolf king with magician', SCARLET_SWAP, [
+    [
+      'marks swapped landing',
+      { magician: { targets: [0, 1] }, wolf: null, scarletWolfKing: 0, seer: 4 },
+    ],
+  ]),
+  ...scenarios('scarlet wolf king feared', SCARLET_LOCK, [
+    [
+      'fear blocks mark and link',
+      { nightmare: 7, wolf: null, witch: { save: null, poison: 7 }, seer: 4 },
+    ],
+  ]),
+  ...scenarios('scarlet wolf king with shelter', SCARLET_SHELTER, [
+    ['link bypasses shelter', { eclipseWolfQueen: 0, wolf: 7, scarletWolfKing: 0, seer: 4 }],
+  ]),
+  ...scenarios('scarlet wolf king with masked man', SCARLET_MASKED, [
+    ['link reaches delayed-death role', { wolf: 7, scarletWolfKing: 10, seer: 4 }],
+  ]),
+  ...scenarios('scarlet wolf king with cupid', SCARLET_COUPLE, [
+    [
+      'link continues through lovers',
+      { cupid: { targets: [0, 1] }, wolf: 7, scarletWolfKing: 0, seer: 4 },
+    ],
+  ]),
+  ...scenarios('scarlet wolf king without wolf pack', SCARLET_NO_PACK, [
+    ['marks without a wolf attack', { scarletWolfKing: 5, seer: 0 }],
+  ]),
+  ...scenarios('scarlet wolf king with seed wolf', SCARLET_SEED, [
+    [
+      'bee hunter is converted',
+      { wolf: 11, seedWolf: { confirmed: true }, scarletWolfKing: 0, seer: 7 },
+    ],
   ]),
   ...scenarios('wolf robot psychic disguise', PSYCHIC, [
     ['learn villager', { wolfRobot: 0, wolf: 1, psychic: 7 }],

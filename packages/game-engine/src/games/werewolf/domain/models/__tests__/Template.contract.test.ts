@@ -138,6 +138,7 @@ describe('PRESET_TEMPLATES - 角色引用完整性', () => {
 
 describe('PRESET_TEMPLATES - 模板列表完整性', () => {
   const EXPECTED_TEMPLATE_NAMES = [
+    '猩红蜂舞',
     '预女猎白',
     '狼美守卫',
     '狼王守卫',

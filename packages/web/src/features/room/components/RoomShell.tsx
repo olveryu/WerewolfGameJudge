@@ -4,12 +4,18 @@ import '@/components/HeaderSurface.css';
 
 import { type ReactElement, type ReactNode, useEffect, useRef } from 'react';
 
-import { Avatar } from '@/components/avatar/Avatar';
+import {
+  ACCOUNT_ENTRY_CLASS,
+  AccountAvatar,
+  AccountTicketBadge,
+} from '@/components/avatar/AccountAvatar';
 import { IconButton } from '@/components/IconButton';
+import type { IoniconName } from '@/components/icons/IonIcon';
 import { Spinner } from '@/components/Spinner';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { useRoomHandNavigation } from '@/features/room/hooks/useRoomHandNavigation';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
+import type { RoomBoardStatusModel, RoomStatusNotice } from '@/features/room/model/RoomBoardStatus';
 import {
   buildRoomHand,
   isSubmissionOwnedBy,
@@ -21,7 +27,6 @@ import type { RoomHeaderUserAction, RoomShellModel } from '@/features/room/model
 import { assertRoomStageShellModel, type RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
-import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 
 import type { RoomSelectionMode } from '../model/RoomHand';
 import { PlayerProfileCard } from './PlayerProfileCard';
@@ -35,15 +40,20 @@ import { RoomStageHud, type RoomStageHudRenderer } from './RoomStageHud';
 import { ConnectionStatusBar, ControlledSeatBanner, RoomSeatConfirmModal } from './RoomStatusBars';
 
 const TITLE_LONG_PRESS_MS = 1000;
-const TICKET_BADGE_MAX = 99;
 
 type RoomShellContent =
   | {
       readonly kind: 'seats';
       readonly contextHeader: ReactElement | null;
-      readonly bottomSummary: ReactElement | null;
-      readonly compactStatusContent?: ReactElement | null;
-      readonly compactStatusIcon?: ReactElement;
+      /**
+       * The game's status for the one bar above the seats, replacing the shell's phase status.
+       * Data only: the shell renders the bar, so a game cannot add another.
+       */
+      readonly boardStatus?: RoomBoardStatusModel | null;
+      /** The shell's status icon, used when the game's status sets none. */
+      readonly statusIcon?: IoniconName;
+      /** Public text lines kept inside the one bar in every phase, rendered by the shell. */
+      readonly statusNotices?: readonly RoomStatusNotice[];
       readonly informationLayout?: 'fixed' | 'scroll-with-seats';
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
@@ -102,23 +112,13 @@ function RoomUserButton({ action }: { readonly action: RoomHeaderUserAction }) {
   return (
     <button
       type="button"
-      className="room-user-button"
+      className={ACCOUNT_ENTRY_CLASS}
       onClick={action.onPress}
       aria-label="设置"
       data-testid={TESTIDS.roomUserSettingsButton}
     >
-      {user === null ? (
-        <IconPersonCircleOutline aria-hidden />
-      ) : (
-        <span className="room-user-avatar-clip">
-          <Avatar userId={user.id} avatarUrl={user.avatarUrl ?? null} size={32} />
-        </span>
-      )}
-      {ticketCount !== null && ticketCount > 0 && (
-        <span className="room-user-badge">
-          {ticketCount > TICKET_BADGE_MAX ? `${TICKET_BADGE_MAX}+` : ticketCount}
-        </span>
-      )}
+      <AccountAvatar user={user} />
+      {ticketCount !== null && <AccountTicketBadge count={ticketCount} />}
     </button>
   );
 }
@@ -279,7 +279,11 @@ export function RoomShell({
   }, [navigation]);
 
   return (
-    <div className="room-shell" data-testid={TESTIDS.roomScreenRoot}>
+    <div
+      className="room-shell"
+      data-testid={TESTIDS.roomScreenRoot}
+      data-hand-layout={content.kind === 'seats' ? 'overlay' : 'docked'}
+    >
       <header
         className="room-header page-header-surface"
         data-testid={TESTIDS.roomHeader}
@@ -337,20 +341,20 @@ export function RoomShell({
             )}
             {statusInBoard && (
               <div className="room-board-information">
-                <div className="room-board-status">
+                <div className="room-board-status" data-testid={TESTIDS.roomBoardStatus}>
                   <RoomActionStatus
                     model={model.playerActions}
-                    summary={content.bottomSummary}
                     isAudioPlaying={model.isAudioPlaying}
                     hostManagement={hostManagement}
                     selectionMode={selectionMode}
-                    boardStatus={{
+                    board={{
                       phaseLabel,
-                      compactContent: content.compactStatusContent,
-                      compactIcon: content.compactStatusIcon,
-                      title: lobbyTitle,
-                      detail:
+                      lobbyTitle,
+                      lobbyDetail:
                         lobbyAction !== null && seatsMissing > 0 ? `还差 ${seatsMissing} 人` : null,
+                      icon: content.statusIcon ?? null,
+                      gameStatus: content.boardStatus ?? null,
+                      notices: content.statusNotices ?? [],
                     }}
                   />
                 </div>
@@ -376,7 +380,6 @@ export function RoomShell({
           {!statusInBoard && (
             <RoomActionStatus
               model={model.playerActions}
-              summary={content.kind === 'seats' ? content.bottomSummary : null}
               isAudioPlaying={model.isAudioPlaying}
               hostManagement={hostManagement}
               selectionMode={selectionMode}

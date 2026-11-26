@@ -1,0 +1,12 @@
+/*
+ * A square box around an avatar, its corners concentric with the avatar's. `--avatar-inset` is
+ * how far inside the box's border edge the avatar starts (border plus padding; 0 when the box is
+ * the avatar's own outline). For a box of side S the avatar's side is S - 2i, so its corner is
+ * r(S - 2i); adding the inset back gives r * 100% + (1 - 2r) * i.
+ */
+.avatar-concentric {
+  border-radius: calc(
+    var(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *
+      var(--avatar-inset, 0px)
+  );
+}

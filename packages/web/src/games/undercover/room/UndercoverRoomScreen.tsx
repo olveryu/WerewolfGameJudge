@@ -18,7 +18,6 @@ import {
   RoomInformationDialog,
 } from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
-import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -139,13 +138,18 @@ function UndercoverRoomContent(
       content={{
         kind: 'seats',
         contextHeader: null,
-        bottomSummary:
-          state.phase === 'ended' ? (
-            <RoomStatusSummary
-              summary={`${UNDERCOVER_ROLE_NAMES[state.winner]}获胜`}
-              action={null}
-            />
-          ) : null,
+        boardStatus:
+          state.phase === 'ended'
+            ? {
+                context: null,
+                message: `${UNDERCOVER_ROLE_NAMES[state.winner]}获胜`,
+                progress: null,
+                pendingSeats: null,
+                icon: null,
+                tracks: [],
+                footnote: null,
+              }
+            : null,
         afterSeatBoard: null,
         beforeSeatBoard: (
           <>

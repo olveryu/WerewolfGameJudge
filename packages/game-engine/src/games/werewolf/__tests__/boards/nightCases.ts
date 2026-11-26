@@ -39,6 +39,39 @@ const TREASURE_MASTER_ROLES: RoleId[] = [
 const TREASURE_MASTER_WITCHER_ROLES: RoleId[] = TREASURE_MASTER_ROLES.map((roleId) =>
   roleId === 'dreamcatcher' ? 'witcher' : roleId,
 );
+const SCARLET_THIEF_ROLES: RoleId[] = [
+  'thief',
+  'scarletWolfKing',
+  'beeHunter',
+  'wolf',
+  'wolf',
+  'seer',
+  'witch',
+  'guard',
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+];
+const BEE_TREASURE_MASTER_ROLES: RoleId[] = [
+  'treasureMaster',
+  'beeHunter',
+  'wolf',
+  'wolf',
+  'seer',
+  'witch',
+  'guard',
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+];
 const BOTTOM_CARD_SEED_SEARCH_LIMIT = 64;
 
 function getPlayers(state: GameState): readonly { readonly seat: number; readonly role: RoleId }[] {
@@ -127,6 +160,9 @@ function createPresetChoices(state: GameState): NightActions {
     if (hasRole(state, roleId)) choices[roleId] = nonWolfTarget(roleId);
   }
   if (hasRole(state, 'piper')) choices.piper = { targets: [nonWolfTarget('piper')] };
+  if (hasRole(state, 'scarletWolfKing')) {
+    choices.scarletWolfKing = nonWolfTarget('scarletWolfKing');
+  }
   if (hasRole(state, 'cupid')) {
     choices.cupid = { targets: [requireSeat(villagerSeats, 1), requireSeat(villagerSeats, 2)] };
   }
@@ -264,6 +300,29 @@ const CASES: readonly NightCase[] = [
     name: `treasure master: poisoned after taking the ${card} card`,
     play: () => playPoisonedTreasureMaster(card),
   })),
+  {
+    name: 'thief: takes the scarlet wolf king card',
+    play: () => {
+      const context = createGameWithBottomCard(SCARLET_THIEF_ROLES, 'scarletWolfKing');
+      const state = context.getGameState();
+      return playScenarioNight(context, {
+        ...createPresetChoices(state),
+        thief: { cardIndex: requireBottomCard(state, 'scarletWolfKing') },
+        scarletWolfKing: findRoleSeat(state, 'villager'),
+      });
+    },
+  },
+  {
+    name: 'treasure master: borrows the bee hunter card',
+    play: () => {
+      const context = createGameWithBottomCard(BEE_TREASURE_MASTER_ROLES, 'beeHunter');
+      const state = context.getGameState();
+      return playScenarioNight(context, {
+        ...createPresetChoices(state),
+        treasureMaster: { cardIndex: requireBottomCard(state, 'beeHunter') },
+      });
+    },
+  },
   {
     name: '恶灵骑士 preset: seer checks the spirit knight',
     play: () => playPresetVariant('恶灵骑士', 'spiritKnight', (seat) => ({ seer: seat })),

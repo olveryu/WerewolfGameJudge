@@ -9,7 +9,6 @@ import { RoomHandCardButton } from './RoomHandCardButton';
 
 type HandStyle = CSSProperties & {
   '--hand-card-count': number;
-  '--hand-max-drop': string;
 };
 type CardStyle = CSSProperties & {
   '--hand-card-angle': string;
@@ -58,10 +57,7 @@ export function RoomActionHand({
   useEffect(() => {
     if (isFocusTargetAbsent) onFocusTargetSettled();
   }, [isFocusTargetAbsent, onFocusTargetSettled]);
-  const style: HandStyle = {
-    '--hand-card-count': hand.cards.length,
-    '--hand-max-drop': `${Math.max(0, (hand.cards.length - 1) / 2) * fanDropPerDistance}px`,
-  };
+  const style: HandStyle = { '--hand-card-count': hand.cards.length };
   return (
     <div
       className="room-action-hand"

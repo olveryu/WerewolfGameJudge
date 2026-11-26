@@ -2,6 +2,8 @@ import './Avatar.css';
 
 import { type CSSProperties } from 'react';
 
+import { AVATAR_CORNER_RATIO } from '@/config/avatarShape';
+
 import { resolveAvatarSource } from './avatarSources';
 import { GeneratedAvatar } from './GeneratedAvatar';
 
@@ -14,11 +16,19 @@ interface AvatarProps {
   size: number | 'fill';
 }
 
-/** A user's avatar: uploaded image, builtin portrait, generated SVG or tinted wolf paw. */
+/** The avatar's corners, relative to its own (square) box; callers never restyle them. */
+const AVATAR_CORNER_RADIUS = `${AVATAR_CORNER_RATIO * 100}%`;
+
+/**
+ * A user's avatar: uploaded image, builtin portrait, generated SVG or tinted wolf paw. It owns its
+ * shape: a rounded square with `AVATAR_CORNER_RATIO` corners at every size.
+ */
 export function Avatar({ userId, avatarUrl, size }: AvatarProps) {
   const source = resolveAvatarSource(userId, avatarUrl);
   const isFill = size === 'fill';
-  const style: CSSProperties = isFill ? {} : { width: size, height: size, borderRadius: size / 4 };
+  const style: CSSProperties = isFill
+    ? { borderRadius: AVATAR_CORNER_RADIUS }
+    : { width: size, height: size, borderRadius: AVATAR_CORNER_RADIUS };
   const svgSize = isFill ? '100%' : size;
 
   if (source.kind === 'image') {

@@ -19,7 +19,7 @@ function ClueArchive({ entries }: { readonly entries: readonly DecryptoHistoryEn
         return (
           <article className="decrypto-history-card" key={number}>
             <h4>
-              <span>{number}</span>号线索
+              <span className="decrypto-history-number">{number}</span>号线索
             </h4>
             {clues.length === 0 ? (
               <p>暂无线索</p>

@@ -7,9 +7,10 @@ import './ResidentPreview.css';
 import { type RefObject, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { RoomSeatResidents, RoomSeatSceneCanvas } from '@/features/room/components/RoomSeatScene';
 import { displaySettings } from '@/features/settings/displaySettings';
-import type { ResidentDecorations } from '@/scene/residentDecorations';
+import { type ResidentDecorations, wearsFrame } from '@/scene/residentDecorations';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 
 /**
@@ -63,8 +64,10 @@ interface ResidentAvatarTileProps {
   readonly scrollRootRef?: RefObject<HTMLElement | null>;
   /** Dims the avatar and its stage-drawn decorations (a locked item). */
   readonly opacity?: number;
-  readonly className?: string;
 }
+
+/** The tile's classes: its corners are concentric with the avatar it holds. */
+const TILE_CLASS = `resident-tile ${AVATAR_CONCENTRIC_CLASS}`;
 
 /**
  * An avatar tile with its decorations drawn by the room seat scene. Sized by its parent; the
@@ -77,7 +80,6 @@ export function ResidentAvatarTile({
   sceneHostRef,
   scrollRootRef,
   opacity = 1,
-  className,
 }: ResidentAvatarTileProps) {
   const tileRef = useRef<HTMLSpanElement>(null);
   const avatarRef = useRef<HTMLSpanElement>(null);
@@ -89,8 +91,8 @@ export function ResidentAvatarTile({
   return (
     <span
       ref={tileRef}
-      className={className === undefined ? 'resident-tile' : `resident-tile ${className}`}
-      data-framed={residents?.frameId != null}
+      className={TILE_CLASS}
+      data-framed={wearsFrame(residents)}
       style={{ opacity }}
     >
       <span className="resident-tile-stage" data-entrance={hasEntrance}>

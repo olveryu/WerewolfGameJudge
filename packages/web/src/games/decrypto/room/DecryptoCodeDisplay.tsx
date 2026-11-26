@@ -21,7 +21,7 @@ export function DecryptoCodeDisplay({
       data-testid={testId}
     >
       {code.map((number, index) => (
-        <span key={index} aria-hidden="true">
+        <span className="decrypto-code-digit" key={index} aria-hidden="true">
           {number}
         </span>
       ))}

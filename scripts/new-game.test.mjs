@@ -836,10 +836,6 @@ for (const scenario of FEATURE_SCENARIOS) {
         screenSource.includes('{isPreGame && ('),
         'public board remains visible before play',
       );
-      assert.ok(
-        screenSource.includes('bottomSummary: null'),
-        'identity games receive the shared bottom summary slot',
-      );
       assert.ok(screenSource.includes('<RoleCardDialog'), 'public board roles remain previewable');
       assert.ok(screenSource.includes('shouldPlay={screen.roleViewing.shouldPlayAnimation}'));
       assert.ok(screenSource.includes('allRoles={screen.roleCardAllRoles}'));
@@ -871,10 +867,6 @@ for (const scenario of FEATURE_SCENARIOS) {
       assert.ok(
         screenSource.includes("kind: 'workspace'"),
         'non-identity games retain their workspace',
-      );
-      assert.ok(
-        screenSource.includes('bottomSummary: null'),
-        'non-identity games receive the shared bottom summary slot',
       );
       assert.ok(
         !screenSource.includes('<BoardInfoContent'),

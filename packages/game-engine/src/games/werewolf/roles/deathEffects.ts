@@ -1,7 +1,15 @@
 export type AttackCause = 'wolfKill' | 'poison' | 'checkDeath';
 
 export type DeathCause =
-  AttackCause | 'wolfQueenLink' | 'bondedLink' | 'coupleLink' | 'dreamcatcherLink' | 'reflection';
+  | AttackCause
+  | 'wolfQueenLink'
+  | 'bondedLink'
+  | 'coupleLink'
+  | 'dreamcatcherLink'
+  | 'scarletLink'
+  | 'reflection';
+
+export type ImmunityCause = DeathCause | 'nightDamage';
 
 export type DeathReason = DeathCause;
 
@@ -30,11 +38,13 @@ export type DeathEffect =
       readonly source: number | null;
       readonly from: number;
       readonly to: number;
-      readonly cause: 'wolfQueenLink' | 'bondedLink' | 'coupleLink' | 'dreamcatcherLink';
+      readonly cause:
+        'wolfQueenLink' | 'bondedLink' | 'coupleLink' | 'dreamcatcherLink' | 'scarletLink';
       readonly isMutual: boolean;
       readonly bypassShelter?: boolean;
+      readonly bypassSurvival?: boolean;
     }
-  | { readonly kind: 'immune'; readonly seat: number; readonly against: readonly AttackCause[] }
+  | { readonly kind: 'immune'; readonly seat: number; readonly against: readonly ImmunityCause[] }
   | { readonly kind: 'reflect'; readonly seat: number; readonly against: readonly AttackCause[] }
   /** The seat survives these causes tonight and leaves the game later instead. */
   | { readonly kind: 'wound'; readonly seat: number; readonly against: readonly DeathCause[] }
@@ -56,10 +66,12 @@ export type DeathTraceEntry =
       readonly target: number;
       readonly group: string;
     }
+  | { readonly kind: 'deathBlocked'; readonly cause: DeathCause; readonly target: number }
   | { readonly kind: 'shelter'; readonly cause: DeathCause; readonly target: number }
   | {
       readonly kind: 'link';
-      readonly cause: 'wolfQueenLink' | 'bondedLink' | 'coupleLink' | 'dreamcatcherLink';
+      readonly cause:
+        'wolfQueenLink' | 'bondedLink' | 'coupleLink' | 'dreamcatcherLink' | 'scarletLink';
       readonly from: number;
       readonly to: number;
     }
@@ -85,6 +97,7 @@ const LINK_RESOLUTION_ORDER = {
   bondedLink: 1,
   coupleLink: 2,
   dreamcatcherLink: 3,
+  scarletLink: 4,
 } as const satisfies Readonly<Record<LinkEffect['cause'], number>>;
 
 export function resolveDeathEffects(effects: readonly DeathEffect[]): DeathResolution {
@@ -126,7 +139,7 @@ function resolveAttacks(
   resolution: MutableResolution,
 ): void {
   for (const attack of attacks) {
-    if (hasImmunity(attack, effects)) {
+    if (hasImmunity(attack.target, attack.cause, effects)) {
       resolution.trace.push({
         kind: 'attackBlocked',
         cause: attack.cause,
@@ -148,15 +161,12 @@ function resolveAttacks(
   }
 }
 
-function hasImmunity(
-  attack: Extract<DeathEffect, { readonly kind: 'attack' }>,
-  effects: readonly DeathEffect[],
-): boolean {
+function hasImmunity(seat: number, cause: DeathCause, effects: readonly DeathEffect[]): boolean {
   return effects.some(
     (effect) =>
       effect.kind === 'immune' &&
-      effect.seat === attack.target &&
-      effect.against.includes(attack.cause),
+      effect.seat === seat &&
+      (effect.against.includes(cause) || effect.against.includes('nightDamage')),
   );
 }
 
@@ -288,14 +298,22 @@ function resolveLinkDirection(
 ): boolean {
   if (processed.has(direction)) return false;
   processed.add(direction);
+  if (!resolution.deaths.has(to) && hasImmunity(to, link.cause, effects)) {
+    resolution.trace.push({ kind: 'deathBlocked', cause: link.cause, target: to });
+    return false;
+  }
   const shelter = shelters.find((effect) => effect.target === to);
-  if (shelter !== undefined && (link.bypassShelter !== true || shelter.bypassable === false)) {
+  if (
+    link.bypassSurvival !== true &&
+    shelter !== undefined &&
+    (link.bypassShelter !== true || shelter.bypassable === false)
+  ) {
     resolution.trace.push({ kind: 'shelter', cause: link.cause, target: to });
     return false;
   }
   const wasDead = resolution.deaths.has(to);
   if (wasDead && link.isMutual) return false;
-  if (!wasDead && isWoundedBy(effects, to, link.cause)) {
+  if (!wasDead && link.bypassSurvival !== true && isWoundedBy(effects, to, link.cause)) {
     resolution.trace.push({ kind: 'wound', cause: link.cause, target: to });
     return false;
   }
@@ -317,6 +335,14 @@ function resolveReflections(
         reflection.against.includes(attack.cause) &&
         attack.source !== null
       ) {
+        if (hasImmunity(attack.source, 'reflection', effects)) {
+          resolution.trace.push({
+            kind: 'deathBlocked',
+            cause: 'reflection',
+            target: attack.source,
+          });
+          continue;
+        }
         recordDeath(attack.source, 'reflection', resolution);
         resolution.trace.push({
           kind: 'reflection',

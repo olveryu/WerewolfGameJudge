@@ -4,7 +4,7 @@ import '@/components/HeaderSurface.css';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
-import { Avatar } from '@/components/avatar/Avatar';
+import { ACCOUNT_ENTRY_CLASS, AccountAvatar } from '@/components/avatar/AccountAvatar';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ANNOUNCEMENTS } from '@/config/announcements';
@@ -27,7 +27,6 @@ import IconCloudOfflineOutline from '~icons/ion/cloud-offline-outline';
 import IconGiftOutline from '~icons/ion/gift-outline';
 import IconLogInOutline from '~icons/ion/log-in-outline';
 import IconMegaphoneOutline from '~icons/ion/megaphone-outline';
-import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
 import { AnnouncementCardStatus } from './AnnouncementCardStatus';
@@ -159,15 +158,11 @@ export function HomePage() {
           />
           <Link
             to="/settings"
-            className="home-account"
+            className={ACCOUNT_ENTRY_CLASS}
             aria-label="设置"
             data-testid={TESTIDS.homeSettingsButton}
           >
-            {user ? (
-              <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={36} />
-            ) : (
-              <IconPersonCircleOutline className="home-account-placeholder" aria-hidden />
-            )}
+            <AccountAvatar user={user} />
             {user && (
               <Suspense fallback={null}>
                 <TicketBadge />

@@ -362,6 +362,61 @@ it('seeds an empty migrated database and preserves changed accounts, progress an
   });
 });
 
+it('preserves an existing Undercover pair when its seeded pair conflicts under another ID', () => {
+  withMigratedDatabase((database) => {
+    database.exec(`
+      INSERT INTO undercover_word_pairs
+        (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+      VALUES
+        ('custom-apple-pair', '苹果', '香蕉', 'food', 'disabled', 'preserved', 'preserved', '{}');
+    `);
+
+    expect(() => database.exec(seedSql)).not.toThrow();
+    expect(
+      database
+        .prepare(
+          "SELECT id, category, status, created_at FROM undercover_word_pairs WHERE word_a = '苹果' AND word_b = '香蕉'",
+        )
+        .all(),
+    ).toEqual([
+      {
+        id: 'custom-apple-pair',
+        category: 'food',
+        status: 'disabled',
+        created_at: 'preserved',
+      },
+    ]);
+  });
+});
+
+it('preserves an existing DrawGuess word when its seeded word conflicts under another ID', () => {
+  withMigratedDatabase((database) => {
+    database.exec(`
+      INSERT INTO drawguess_words
+        (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
+      VALUES
+        ('custom-panda-word', '大熊猫', 'dxm', 'custom', 'easy', 'disabled', 'preserved', 'preserved');
+    `);
+
+    expect(() => database.exec(seedSql)).not.toThrow();
+    expect(
+      database
+        .prepare(
+          "SELECT id, category, status, created_at, disabled_at FROM drawguess_words WHERE word = '大熊猫'",
+        )
+        .all(),
+    ).toEqual([
+      {
+        id: 'custom-panda-word',
+        category: 'custom',
+        status: 'disabled',
+        created_at: 'preserved',
+        disabled_at: 'preserved',
+      },
+    ]);
+  });
+});
+
 it('recovers an interrupted seed without resetting rows already written', () => {
   withMigratedDatabase((database) => {
     database.exec(seedSql.split(';').slice(0, 3).join(';') + ';');

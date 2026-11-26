@@ -6,9 +6,10 @@
  * - Common (`genC*`): **ring** — multicolor concentric rings
  * - Rare (`genR*`): **beam** — cartoon round face + features
  *
+ * The artwork fills its square; `Avatar` gives it the avatar shape.
+ *
  * @see https://github.com/boringdesigners/boring-avatars
  */
-import { useId } from 'react';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -169,25 +170,19 @@ interface RingAvatarProps {
 }
 
 const RingAvatar = ({ seed, size }: RingAvatarProps) => {
-  const maskId = useId();
   const ringColors = generateRingColors(seed, selectPalette(seed, RING_PALETTES));
 
   return (
     <svg viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`} width={size} height={size} aria-hidden>
-      <mask id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={RING_SIZE} height={RING_SIZE}>
-        <rect width={RING_SIZE} height={RING_SIZE} rx={RING_SIZE * 2} fill="#FFFFFF" />
-      </mask>
-      <g mask={`url(#${maskId})`}>
-        <path d="M0 0h90v45H0z" fill={ringColors[0]} />
-        <path d="M0 45h90v45H0z" fill={ringColors[1]} />
-        <path d="M83 45a38 38 0 00-76 0h76z" fill={ringColors[2]} />
-        <path d="M83 45a38 38 0 01-76 0h76z" fill={ringColors[3]} />
-        <path d="M77 45a32 32 0 10-64 0h64z" fill={ringColors[4]} />
-        <path d="M77 45a32 32 0 11-64 0h64z" fill={ringColors[5]} />
-        <path d="M71 45a26 26 0 00-52 0h52z" fill={ringColors[6]} />
-        <path d="M71 45a26 26 0 01-52 0h52z" fill={ringColors[7]} />
-        <circle cx={45} cy={45} r={23} fill={ringColors[8]} />
-      </g>
+      <path d="M0 0h90v45H0z" fill={ringColors[0]} />
+      <path d="M0 45h90v45H0z" fill={ringColors[1]} />
+      <path d="M83 45a38 38 0 00-76 0h76z" fill={ringColors[2]} />
+      <path d="M83 45a38 38 0 01-76 0h76z" fill={ringColors[3]} />
+      <path d="M77 45a32 32 0 10-64 0h64z" fill={ringColors[4]} />
+      <path d="M77 45a32 32 0 11-64 0h64z" fill={ringColors[5]} />
+      <path d="M71 45a26 26 0 00-52 0h52z" fill={ringColors[6]} />
+      <path d="M71 45a26 26 0 01-52 0h52z" fill={ringColors[7]} />
+      <circle cx={45} cy={45} r={23} fill={ringColors[8]} />
     </svg>
   );
 };
@@ -200,7 +195,6 @@ interface BeamAvatarProps {
 }
 
 const BeamAvatar = ({ seed, size }: BeamAvatarProps) => {
-  const maskId = useId();
   const data = generateBeamData(seed, selectPalette(seed, BEAM_PALETTES));
 
   const S = BEAM_SIZE;
@@ -208,62 +202,57 @@ const BeamAvatar = ({ seed, size }: BeamAvatarProps) => {
 
   return (
     <svg viewBox={`0 0 ${S} ${S}`} width={size} height={size} aria-hidden>
-      <mask id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={S} height={S}>
-        <rect width={S} height={S} rx={S * 2} fill="#FFFFFF" />
-      </mask>
-      <g mask={`url(#${maskId})`}>
-        {/* Background */}
-        <rect width={S} height={S} fill={data.backgroundColor} />
+      {/* Background */}
+      <rect width={S} height={S} fill={data.backgroundColor} />
 
-        {/* Body shape */}
+      {/* Body shape */}
+      <rect
+        x={0}
+        y={0}
+        width={S}
+        height={S}
+        transform={`translate(${data.wrapperTranslateX} ${data.wrapperTranslateY}) rotate(${data.wrapperRotate} ${half} ${half}) scale(${data.wrapperScale})`}
+        fill={data.wrapperColor}
+        rx={data.isCircle ? S : S / 6}
+      />
+
+      {/* Face */}
+      <g
+        transform={`translate(${data.faceTranslateX} ${data.faceTranslateY}) rotate(${data.faceRotate} ${half} ${half})`}
+      >
+        {/* Mouth */}
+        {data.isMouthOpen ? (
+          <path
+            d={`M15 ${19 + data.mouthSpread}c2 1 4 1 6 0`}
+            stroke={data.faceColor}
+            fill="none"
+            strokeLinecap="round"
+          />
+        ) : (
+          <path d={`M13,${19 + data.mouthSpread} a1,0.75 0 0,0 10,0`} fill={data.faceColor} />
+        )}
+
+        {/* Left eye */}
         <rect
-          x={0}
-          y={0}
-          width={S}
-          height={S}
-          transform={`translate(${data.wrapperTranslateX} ${data.wrapperTranslateY}) rotate(${data.wrapperRotate} ${half} ${half}) scale(${data.wrapperScale})`}
-          fill={data.wrapperColor}
-          rx={data.isCircle ? S : S / 6}
+          x={14 - data.eyeSpread}
+          y={14}
+          width={1.5}
+          height={2}
+          rx={1}
+          stroke="none"
+          fill={data.faceColor}
         />
 
-        {/* Face */}
-        <g
-          transform={`translate(${data.faceTranslateX} ${data.faceTranslateY}) rotate(${data.faceRotate} ${half} ${half})`}
-        >
-          {/* Mouth */}
-          {data.isMouthOpen ? (
-            <path
-              d={`M15 ${19 + data.mouthSpread}c2 1 4 1 6 0`}
-              stroke={data.faceColor}
-              fill="none"
-              strokeLinecap="round"
-            />
-          ) : (
-            <path d={`M13,${19 + data.mouthSpread} a1,0.75 0 0,0 10,0`} fill={data.faceColor} />
-          )}
-
-          {/* Left eye */}
-          <rect
-            x={14 - data.eyeSpread}
-            y={14}
-            width={1.5}
-            height={2}
-            rx={1}
-            stroke="none"
-            fill={data.faceColor}
-          />
-
-          {/* Right eye */}
-          <rect
-            x={20 + data.eyeSpread}
-            y={14}
-            width={1.5}
-            height={2}
-            rx={1}
-            stroke="none"
-            fill={data.faceColor}
-          />
-        </g>
+        {/* Right eye */}
+        <rect
+          x={20 + data.eyeSpread}
+          y={14}
+          width={1.5}
+          height={2}
+          rx={1}
+          stroke="none"
+          fill={data.faceColor}
+        />
       </g>
     </svg>
   );

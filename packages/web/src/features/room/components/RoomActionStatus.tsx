@@ -1,9 +1,11 @@
 import './RoomBottomActionPanel.css';
 
-import type { ReactNode } from 'react';
-
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
+import {
+  resolveRoomBoardStatus,
+  type RoomBoardStatusInput,
+} from '@/features/room/model/resolveRoomBoardStatus';
 import type { RoomSelectionMode } from '@/features/room/model/RoomHand';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
@@ -50,75 +52,61 @@ function resolveStatusMessage(
     : model.message;
 }
 
-/** Status shared by the room information area and the action panel. */
+/**
+ * Status shared by the room information area and the action panel. Above the seats it renders
+ * exactly one status bar: the game's status (or the shell's phase/lobby status), whose message
+ * line the audio or selection prompt replaces.
+ */
 export function RoomActionStatus({
   model,
-  summary,
   isAudioPlaying,
   hostManagement,
   selectionMode,
-  boardStatus,
+  board,
 }: {
   readonly model: RoomPlayerActionModel;
-  readonly summary: ReactNode;
   readonly isAudioPlaying: boolean;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly selectionMode?: RoomSelectionMode;
-  readonly boardStatus?: {
-    readonly phaseLabel: string | null;
-    readonly title: string | null;
-    readonly detail: string | null;
-    readonly compactContent?: ReactNode;
-    readonly compactIcon?: ReactNode;
-  };
+  readonly board?: RoomBoardStatusInput;
 }) {
   const taskBody =
     selectionMode?.kind === 'host-task' && hostManagement !== null
       ? resolveHostTaskView(hostManagement)?.body
       : null;
   const message = resolveStatusMessage(model, isAudioPlaying, selectionMode, taskBody ?? null);
-  const hasSummary = summary !== null && summary !== undefined && summary !== false;
-  const title =
-    isAudioPlaying || selectionMode !== undefined ? message : (boardStatus?.title ?? message);
-  if (boardStatus !== undefined) {
-    if (
-      boardStatus.compactContent !== null &&
-      boardStatus.compactContent !== undefined &&
-      !isAudioPlaying &&
-      selectionMode === undefined
-    ) {
-      return (
-        <>
-          {boardStatus.compactContent}
-          {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
-        </>
-      );
-    }
-    // The compact status is the board's only status surface (every seats-content game).
-    const hasStatus =
-      boardStatus.phaseLabel !== null ||
-      (title !== null && title.length > 0) ||
-      boardStatus.detail !== null;
+  if (board !== undefined) {
+    const status = resolveRoomBoardStatus(
+      board,
+      message,
+      isAudioPlaying || selectionMode !== undefined,
+    );
     return (
       <>
-        {hasStatus && (
+        {status !== null && (
           <RoomCompactStatus
-            context={boardStatus.phaseLabel}
-            message={title}
-            progress={!isAudioPlaying && selectionMode === undefined ? boardStatus.detail : null}
-            icon={boardStatus.compactIcon}
-            inline={boardStatus.title !== null && !isAudioPlaying && selectionMode === undefined}
+            context={status.context}
+            message={status.message}
+            progress={status.progress}
+            pendingSeats={status.pendingSeats?.seats ?? null}
+            {...(status.pendingSeats === null ? {} : { pendingLabel: status.pendingSeats.label })}
+            pendingTestId={status.pendingSeats?.testId}
+            icon={status.icon}
+            notices={status.notices}
+            tracks={status.tracks}
+            footnote={status.footnote}
+            inline={status.inline}
+            testId={status.testId}
+            contextTestId={status.contextTestId}
             statusTestId={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
           />
         )}
-        {hasSummary && <div className="room-board-status-summary">{summary}</div>}
         {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
       </>
     );
   }
   return (
     <>
-      {hasSummary && <div className="bottom-action-summary">{summary}</div>}
       {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
       {message !== null && message.length > 0 && (
         <p

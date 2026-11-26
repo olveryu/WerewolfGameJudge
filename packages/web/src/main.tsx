@@ -18,6 +18,7 @@ import { capturePwaInstallPrompt } from '@/boot/pwaInstallPrompt';
 import { resolveRuntimeEnvironment } from '@/boot/runtimeEnvironment';
 import { installStaleTabReload, removeLegacyServiceWorkers } from '@/boot/tabLifecycle';
 import { WechatBrowserGuide } from '@/boot/WechatBrowserGuide';
+import { applyAvatarShapeTokens } from '@/config/avatarShape';
 import { MaintenanceGate } from '@/features/maintenance/MaintenanceGate';
 import { startAdminMockWorker } from '@/mocks/adminMock/browser';
 import { applyColorTokens } from '@/theme/colors';
@@ -30,6 +31,7 @@ if (!rootElement) {
 const appRoot = rootElement;
 
 applyColorTokens(document.documentElement);
+applyAvatarShapeTokens(document.documentElement);
 installStaleTabReload();
 capturePwaInstallPrompt();
 

@@ -39,7 +39,19 @@ const seatKey = z.string().regex(/^(0|[1-9]\d*)$/);
 const roleId = z.string().refine(isValidRoleId, 'Expected a registered role');
 const stepId = z.string().refine(isNightStepId, 'Expected a registered night step');
 const attackCause = z.enum(['wolfKill', 'poison', 'checkDeath']);
-const linkCause = z.enum(['wolfQueenLink', 'bondedLink', 'coupleLink', 'dreamcatcherLink']);
+const linkCause = z.enum([
+  'wolfQueenLink',
+  'bondedLink',
+  'coupleLink',
+  'dreamcatcherLink',
+  'scarletLink',
+]);
+const immunityCause = z.union([
+  attackCause,
+  linkCause,
+  z.literal('reflection'),
+  z.literal('nightDamage'),
+]);
 const deathEffect = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('attack'),
@@ -68,8 +80,9 @@ const deathEffect = z.discriminatedUnion('kind', [
     cause: linkCause,
     isMutual: z.boolean(),
     bypassShelter: z.boolean().optional(),
+    bypassSurvival: z.boolean().optional(),
   }),
-  z.strictObject({ kind: z.literal('immune'), seat, against: z.array(attackCause) }),
+  z.strictObject({ kind: z.literal('immune'), seat, against: z.array(immunityCause) }),
   z.strictObject({ kind: z.literal('reflect'), seat, against: z.array(attackCause) }),
   z.strictObject({
     kind: z.literal('wound'),

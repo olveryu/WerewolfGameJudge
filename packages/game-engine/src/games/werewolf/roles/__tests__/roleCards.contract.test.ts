@@ -179,8 +179,8 @@ describe('structuredDescription contract', () => {
 });
 
 describe('role catalog facts', () => {
-  it('lists exactly 48 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(48);
+  it('lists exactly 50 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(50);
   });
 
   describe('wolf meeting configuration', () => {
@@ -196,7 +196,7 @@ describe('role catalog facts', () => {
       'awakenedGargoyle',
     ];
 
-    const loneWolves: RoleId[] = ['gargoyle', 'wolfRobot'];
+    const loneWolves: RoleId[] = ['gargoyle', 'wolfRobot', 'scarletWolfKing'];
 
     it('wolf pack members should see wolves and participate in vote', () => {
       for (const roleId of wolfPackMembers) {

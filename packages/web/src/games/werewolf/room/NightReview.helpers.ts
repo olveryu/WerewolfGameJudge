@@ -14,5 +14,6 @@ export const DEATH_REASON_LABELS: Record<DeathReason, string> = {
   bondedLink: '绑定连锁',
   coupleLink: '殉情',
   dreamcatcherLink: '摄梦连锁',
+  scarletLink: '猩红连带',
   reflection: '反伤',
 };

@@ -153,7 +153,6 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
           ? {
               kind: 'seats',
               contextHeader: null,
-              bottomSummary: null,
               afterSeatBoard: null,
               beforeSeatBoard: (
                 <RoomGameSummary

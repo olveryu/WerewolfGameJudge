@@ -3,8 +3,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 
 import { SheriffElectionDialog } from '@/games/werewolf/room/components/SheriffElectionDetailsSurfaces';
-import { SheriffElectionHud } from '@/games/werewolf/room/components/SheriffElectionHud';
+import { buildSheriffElectionBoardStatus } from '@/games/werewolf/room/day/sheriffElectionBoardStatus';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
+import { BoardStatusPreview } from '@/test-utils/boardStatus';
 import { TESTIDS } from '@/testids';
 
 const model: SheriffElectionPanelModel = {
@@ -40,7 +41,7 @@ const model: SheriffElectionPanelModel = {
 
 describe('sheriff-election details', () => {
   it('shows a compact privacy-safe HUD without a details control', () => {
-    render(<SheriffElectionHud model={model} isHost={false} />);
+    render(<BoardStatusPreview status={buildSheriffElectionBoardStatus(model, false)} />);
 
     expect(screen.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveTextContent('报名进行中');
     expect(screen.queryByText(/1号|2号/)).toBeNull();

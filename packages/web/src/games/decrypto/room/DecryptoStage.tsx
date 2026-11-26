@@ -135,7 +135,7 @@ function KeywordCards({
       <div className="decrypto-word-grid" aria-busy={screen.isTakeoverLoading}>
         {game.keywords[team].map((word, index) => (
           <div className="decrypto-word" key={index}>
-            <span>{index + 1}</span>
+            <span className="decrypto-keyword-number">{index + 1}</span>
             <strong data-testid={TESTIDS.decryptoKeyword(index)}>
               {screen.isTakeoverLoading ? '…' : word}
             </strong>
