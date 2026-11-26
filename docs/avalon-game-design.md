@@ -520,7 +520,7 @@ Codec 必须用 `z.strictObject` 精确验证，不变量示例：`roles` 覆盖
   - 游戏隔离：avalon 模块只能 import platform，禁 import werewolf 等其他游戏（含 UI 与数据模型，复制而非复用）。
   - 生产代码禁普通 `as` 断言，只许 `as const`；类型收窄用 zod parse。
   - 平台文件禁 `if (gameType === 'avalon')`；client room creation 所有权检查。
-- Stylelint（`stylelint.config.mjs`）：新样式禁字面量样式值（尺寸、字重、圆角、阴影、层级、时长、颜色），一律走 `tokens.css`/`colors.ts` 的 token；存量记录在 `ui-style-baseline.json`，只减不增。
+- UI gate（`pnpm run lint:ui`）：样式取值只许登记的 token 与关键字（尺寸、字重、圆角、阴影、层级、时长、颜色一律走 `tokens.css`/`colors.ts` 的 token）；存量记录在 `ui-gate-baseline.json`，只减不增。
 - state/command/event codec 一律 `z.strictObject`，拒绝未知字段。
 - engine 为纯函数：不得 import Zod（codec 除外）/ React / logger（对齐 drawguess §12.1）。
 

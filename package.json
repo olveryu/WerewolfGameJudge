@@ -12,14 +12,13 @@
     "typecheck": "pnpm run types:pages:check && tsc --noEmit && tsc -p functions/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "lint:css": "node scripts/ui-lint/lint-css.mjs",
-    "lint:css:baseline": "node scripts/ui-baseline-ratchet.mjs --write && prettier --write ui-style-baseline.json",
-    "lint:ui-baseline": "node scripts/ui-baseline-ratchet.mjs",
+    "lint:ui": "node scripts/ui-lint/gate.mjs",
+    "lint:ui:baseline": "node scripts/ui-lint/gate.mjs --write && prettier --write ui-gate-baseline.json",
     "format": "prettier . --check",
     "format:write": "prettier . --write",
     "knip": "knip",
     "fix": "pnpm run lint:fix && pnpm run format:write",
-    "quality": "turbo run build typecheck lint knip format test && pnpm run validate:agents && pnpm run lint:css && pnpm run lint:ui-baseline",
+    "quality": "turbo run build typecheck lint knip format test && pnpm run validate:agents && pnpm run lint:ui",
     "e2e:night": "playwright test --reporter=list werewolf-night-flow restart",
     "e2e:ui": "playwright test --ui",
     "dev": "node scripts/setup-local-dev.mjs && node scripts/dev.mjs",
@@ -57,8 +56,8 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ],
-    "packages/web/**/*.{css,pcss,postcss,scss,sass,less,styl,stylus,sss}": [
-      "node scripts/ui-lint/lint-css.mjs",
+    "packages/web/**/*.css": [
+      "node scripts/ui-lint/gate.mjs --styles",
       "prettier --write"
     ]
   },
@@ -83,6 +82,7 @@
     "lint-staged": "^16.4.0",
     "miniprogram-ci": "^2.1.31",
     "parse5": "8.1.1",
+    "postcss": "^8.5.32",
     "postcss-value-parser": "^4.2.0",
     "prettier": "^3.10.0",
     "serve": "^14.2.7",

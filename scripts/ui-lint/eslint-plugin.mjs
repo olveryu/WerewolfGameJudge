@@ -1,472 +1,447 @@
 /**
- * Local ESLint rules for the web client's UI gate (rule IDs refer to the UI drift lock plan).
+ * Local ESLint rules of the UI gate (UI drift lock plan v3, §2). All three are allow lists over
+ * `registry.mjs`, judged by the type checker rather than by spelling:
  *
- * - `ui/no-style-elements` (E5, first part): no stylesheet enters the page from code. A call is
- *   judged by what the type checker resolves it to, not by how it is spelled: DOM
- *   `createElement`/`createElementNS` and React `createElement`/`jsx*` — through aliases, `bind`,
- *   computed members, `call`, `apply` or `Reflect.apply` — may not create `<style>`/`<link>`; a
- *   tag the checker cannot enumerate (a wide string, a spread argument, an argument list it
- *   cannot read) is rejected too, and so is a JSX tag held in a variable whose type is a string.
- *   Any call returning a style or link element is rejected, and the HTML sinks are closed, since
- *   markup can carry a `<style>`: `innerHTML`/`outerHTML` however they are written (assignment,
- *   computed key, `Object.assign`, `Reflect.set`, `Object.defineProperty`, an object literal
- *   key), `dangerouslySetInnerHTML`, and the DOM methods `insertAdjacentHTML`, `document.write`,
- *   `createContextualFragment`, `parseFromString` and `setHTMLUnsafe` — called directly or through
- *   `call`, `apply` or `Reflect.apply` — and the descriptor of a sink property
- *   (`getOwnPropertyDescriptor`, `__lookupSetter__`), whose setter writes markup. Writes through a
- *   target whose type cannot rule a DOM node out (`object`, `{}`, `any`, `unknown`, a type
- *   parameter) count as writes to a node. React DOM's resource APIs `preinit`/`preload` (which
- *   insert `<link rel=stylesheet>`) are rejected outright, and build code may not describe a
- *   `{ tag: 'style' }` HTML tag (Vite's `transformIndexHtml`). P1 QA3 H6: one resolution of the
- *   invoked function serves the element factories, the sink methods and the resource APIs.
- * - `ui/import-scope`: module specifiers stay inside what the gate checks. A stylesheet import
- *   resolves to a `.css` file in the web source (no package CSS, no file outside it, no query
- *   such as `?inline`); production code imports no test module (`*.test.*`, `__tests__/`), where
- *   the HTML sinks are open; `import.meta.glob` patterns name one asset extension, never scripts
- *   or styles; a dynamic `import()` takes a literal specifier (P1 QA3 H1/H8).
- * - `ui/inline-style-static-keys` (E4, first part): the properties an inline style writes are
- *   enumerable from the source. Every object literal typed as `CSSProperties` — written inline,
- *   spread, behind `satisfies`, a conditional, a typed variable or a `createElement` prop — uses
- *   static keys or keys whose type is a union of string literals, and a value reaching `style`
- *   may not have an index signature (`Object.fromEntries`, `Record<string, …>`, or a pattern key
- *   such as `` `border${string}` ``). The one index signature allowed is exactly
- *   `` `--${string}` ``: custom properties, the web client's augmentation of CSSProperties.
+ * - `ui/dom-allowlist` (E5): the managed DOM surface is every member the default TypeScript
+ *   library declares on the document-tree, attribute and style interfaces (computed from the
+ *   checker: everything `Node`, `Element`, `Document`, `ShadowRoot` and the HTML/SVG/MathML element
+ *   types inherit, plus the style and parsing interfaces in `STYLE_INTERFACES`), and the static
+ *   members of their constructors. On that surface, every reference to a method and every write to
+ *   a property is in `DOM_ALLOW`, in the file's `DOM_WRITERS` entry, or is an element factory whose
+ *   product is in `SAFE_PRODUCTS`. A computed member that cannot be read statically on a managed
+ *   object is rejected, and so is reflection (`Object.assign`, `Reflect.set`, …) with a managed
+ *   argument. A DOM API that does not exist yet is unregistered, so it is rejected by default.
+ * - `ui/element-allowlist` (E11): native JSX elements (and React `createElement` string tags) are
+ *   registered elements; a tag held in a variable is judged by its type.
+ * - `ui/inline-style-keys` (E4, keys): a value reaching a native `style` or typed `CSSProperties`
+ *   has enumerable keys: no index signature other than `` `--${string}` ``, no computed key that
+ *   is not a string-literal union.
  */
-
-import fs from 'node:fs';
 import path from 'node:path';
 
 import ts from 'typescript';
 
-import { inCssGate, isTestModule, WEB_PACKAGE, WEB_SOURCE } from './scope.mjs';
+import { DOM_ALLOW, DOM_WRITERS, ELEMENTS, SAFE_PRODUCTS } from './registry.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
 
-const ELEMENT_FACTORIES = new Map([
-  // name → index of the tag argument
-  ['createElement', 0],
-  ['createElementNS', 1],
-  ['jsx', 0],
-  ['jsxs', 0],
-  ['jsxDEV', 0],
+/** Interfaces outside the node hierarchy whose members also write markup, styles or nodes. */
+const STYLE_INTERFACES = [
+  'CSSStyleDeclaration',
+  'CSSStyleProperties',
+  'CSSRule',
+  'CSSRuleList',
+  'CSSStyleSheet',
+  'StyleSheet',
+  'StyleSheetList',
+  'MediaList',
+  'StylePropertyMap',
+  'StylePropertyMapReadOnly',
+  'DOMTokenList',
+  'DOMStringMap',
+  'NamedNodeMap',
+  'Range',
+  'AbstractRange',
+  'Selection',
+  'DOMParser',
+  'XMLSerializer',
+  'FontFaceSet',
+  'CustomElementRegistry',
+  'ElementInternals',
+  'Animation',
+  'KeyframeEffect',
+  'AnimationEffect',
+  'CSS',
+];
+const ROOT_INTERFACES = [
+  'Node',
+  'Element',
+  'HTMLElement',
+  'SVGElement',
+  'MathMLElement',
+  'Document',
+  'DocumentFragment',
+  'ShadowRoot',
+  'Text',
+  'Comment',
+  'Attr',
+  'CharacterData',
+];
+const TAG_MAPS = ['HTMLElementTagNameMap', 'SVGElementTagNameMap', 'MathMLElementTagNameMap'];
+/** Event dispatch is shared with non-DOM objects and writes nothing. */
+const UNMANAGED = new Set(['EventTarget']);
+const FACTORIES = new Set(['createElement', 'createElementNS']);
+const NAMED_WRITERS = new Set([
+  'setAttribute',
+  'removeAttribute',
+  'toggleAttribute',
+  'setAttributeNS',
+  'setProperty',
+  'removeProperty',
 ]);
-const BANNED_TAGS = new Set(['style', 'link']);
-const BANNED_ELEMENT_TYPES = new Set(['HTMLStyleElement', 'HTMLLinkElement', 'SVGStyleElement']);
-const HTML_SINK_PROPERTIES = new Set(['innerHTML', 'outerHTML', 'dangerouslySetInnerHTML']);
-const HTML_SINK_METHODS = new Set([
-  'insertAdjacentHTML',
-  'write',
-  'writeln',
-  'createContextualFragment',
-  'parseFromString',
-  'setHTMLUnsafe',
-]);
-const DESCRIPTOR_READERS = new Set(['__lookupSetter__', '__lookupGetter__', '__defineSetter__']);
-/** React DOM resource APIs: `preinit(href, { as: 'style' })` inserts a stylesheet link. */
-const REACT_DOM_RESOURCES = new Set(['preinit', 'preload']);
-const UNENUMERABLE = ts.TypeFlags.StringLike | ts.TypeFlags.Any | ts.TypeFlags.Unknown;
-const WIDE_TARGET =
-  ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.NonPrimitive | ts.TypeFlags.TypeParameter;
+const REFLECTION = {
+  ObjectConstructor: new Set(['assign', 'defineProperty', 'defineProperties', 'setPrototypeOf']),
+  Reflect: new Set(['set', 'defineProperty', 'apply', 'construct', 'setPrototypeOf']),
+};
 
 function typedServices(context) {
   const services = context.sourceCode.parserServices;
-  if (services?.program == null) {
-    throw new Error(`${context.id} needs type information (parserOptions.projectService).`);
-  }
-  return { services, checker: services.program.getTypeChecker() };
+  if (services?.program == null) throw new Error(`${context.id} needs type information.`);
+  return { services, program: services.program, checker: services.program.getTypeChecker() };
 }
 
-function memberName(node) {
-  if (node.type !== 'MemberExpression') return undefined;
-  if (!node.computed && node.property.type === 'Identifier') return node.property.name;
-  if (node.property.type === 'Literal' && typeof node.property.value === 'string')
-    return node.property.value;
+const managedCache = new WeakMap();
+
+/** The managed interface names for one program (computed once per program). */
+function managedInterfaces(program, checker) {
+  let managed = managedCache.get(program);
+  if (managed) return managed;
+  managed = new Set(STYLE_INTERFACES);
+  const lib = program.getSourceFiles().find((file) => /[\\/]lib\.dom\.d\.ts$/.test(file.fileName));
+  // A program without the DOM library (the game engine) cannot type a DOM access at all.
+  if (lib === undefined) {
+    managedCache.set(program, managed);
+    return managed;
+  }
+  const resolve = (name) => checker.resolveName(name, lib, ts.SymbolFlags.Type, false);
+  const contributors = (type) => {
+    for (const property of checker.getPropertiesOfType(type)) {
+      for (const declaration of property.declarations ?? []) {
+        // Only DOM library owners: `FontFaceSet extends Set` must not manage the ES `Set`.
+        if (!/[\\/]lib\.dom(\.[a-z]+)?\.d\.ts$/.test(declaration.getSourceFile().fileName))
+          continue;
+        const owner = declaration.parent?.name?.text;
+        if (owner) managed.add(owner);
+      }
+    }
+  };
+  for (const name of [...ROOT_INTERFACES, ...STYLE_INTERFACES]) {
+    managed.add(name);
+    const symbol = resolve(name);
+    if (symbol) contributors(checker.getDeclaredTypeOfSymbol(symbol));
+  }
+  for (const map of TAG_MAPS) {
+    const symbol = resolve(map);
+    if (!symbol) continue;
+    for (const property of checker.getPropertiesOfType(checker.getDeclaredTypeOfSymbol(symbol))) {
+      const type = checker.getTypeOfSymbol(property);
+      const name = type.getSymbol()?.getName();
+      if (name) managed.add(name);
+      contributors(type);
+    }
+  }
+  for (const name of UNMANAGED) managed.delete(name);
+  managedCache.set(program, managed);
+  return managed;
+}
+
+/** Where a library declaration lives: `{ owner, isStatic, isMethod }`, or undefined. */
+function describe(declaration, program) {
+  if (!declaration || !program.isSourceFileDefaultLibrary(declaration.getSourceFile()))
+    return undefined;
+  const parent = declaration.parent;
+  const isMethod =
+    ts.isMethodSignature(declaration) ||
+    ts.isMethodDeclaration(declaration) ||
+    ts.isFunctionDeclaration(declaration);
+  if (ts.isInterfaceDeclaration(parent) || ts.isClassDeclaration(parent)) {
+    return { owner: parent.name.text, isStatic: false, isMethod };
+  }
+  if (
+    ts.isTypeLiteralNode(parent) &&
+    ts.isVariableDeclaration(parent.parent) &&
+    ts.isIdentifier(parent.parent.name)
+  ) {
+    return { owner: parent.parent.name.text, isStatic: true, isMethod };
+  }
+  if (ts.isModuleBlock(parent) && ts.isModuleDeclaration(parent.parent)) {
+    return { owner: parent.parent.name.text, isStatic: true, isMethod };
+  }
   return undefined;
 }
 
-/**
- * The string values `node` can take, `undefined` when it is not a string at all (a component
- * reference), or `null` for a string the checker cannot enumerate.
- */
+/** Is a value of this type a managed DOM object? (Any part of a union or intersection.) */
+function isManagedType(type, managed, program) {
+  const parts = type.isUnionOrIntersection() ? type.types : [type];
+  return parts.some((part) => {
+    const symbol = part.getSymbol() ?? part.aliasSymbol;
+    const declaration = symbol?.declarations?.[0];
+    if (
+      declaration &&
+      program.isSourceFileDefaultLibrary(declaration.getSourceFile()) &&
+      managed.has(symbol.getName())
+    ) {
+      return true;
+    }
+    return (part.getBaseTypes?.() ?? []).some((base) => isManagedType(base, managed, program));
+  });
+}
+
+function fileKey(filename) {
+  return path.relative(REPO_ROOT, filename).split(path.sep).join('/');
+}
+
+/** The string values `node` can take, or null when the checker cannot enumerate them. */
 function possibleStrings(node, services) {
-  if (node.type === 'Literal') return typeof node.value === 'string' ? [node.value] : undefined;
+  if (node.type === 'Literal') return typeof node.value === 'string' ? [node.value] : null;
   if (node.type === 'TemplateLiteral' && node.expressions.length === 0)
-    return [node.quasis.map((quasi) => quasi.value.cooked).join('')];
+    return [node.quasis[0].value.cooked];
   const type = services.getTypeAtLocation(node);
   const parts = type.isUnion() ? type.types : [type];
-  const names = [];
-  for (const part of parts) {
-    if (part.isStringLiteral()) {
-      names.push(part.value);
-      continue;
-    }
-    const pieces = part.isIntersection() ? part.types : [part];
-    if (pieces.some((piece) => piece.flags & UNENUMERABLE)) return null;
+  if (!parts.every((part) => part.isStringLiteral())) return null;
+  return parts.map((part) => part.value);
+}
+
+function isWriteTarget(node) {
+  const parent = node.parent;
+  switch (parent.type) {
+    case 'AssignmentExpression':
+      return parent.left === node;
+    case 'UpdateExpression':
+      return true;
+    case 'UnaryExpression':
+      return parent.operator === 'delete';
+    case 'ForInStatement':
+    case 'ForOfStatement':
+      return parent.left === node;
+    case 'ArrayPattern':
+    case 'RestElement':
+      return true;
+    case 'AssignmentPattern':
+      return parent.left === node;
+    case 'Property':
+      return parent.value === node && parent.parent.type === 'ObjectPattern';
+    default:
+      return false;
   }
-  return names.length > 0 ? names : undefined;
 }
 
-/** What a function declaration is: its name, and whether the DOM library or React DOM declares it. */
-function describeDeclaration(declaration) {
-  const id = declaration && ts.getNameOfDeclaration(declaration);
-  const fileName = declaration?.getSourceFile().fileName ?? '';
-  return {
-    name: id && ts.isIdentifier(id) ? id.text : undefined,
-    fromDom: /lib\.dom\.d\.ts$/.test(fileName),
-    fromReactDom: /[\\/]@types[\\/]react-dom[\\/]/.test(fileName),
-    fromLib: /[\\/]typescript[\\/]lib[\\/]lib\.[^\\/]*\.d\.ts$/.test(fileName),
-  };
-}
-
-/** The function a call resolves to (through aliases, bind, members). */
-function resolvedCallee(call, services, checker) {
-  const tsNode = services.esTreeNodeToTSNodeMap.get(call);
-  return describeDeclaration(checker.getResolvedSignature(tsNode)?.getDeclaration());
-}
-
-/** The functions a value can be, by its call signatures; `null` when its type is any/unknown. */
-function functionsOf(node, services) {
-  if (node === undefined || node.type === 'SpreadElement') return null;
-  const type = services.getTypeAtLocation(node);
-  if (type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return null;
-  return type
-    .getCallSignatures()
-    .map((signature) => describeDeclaration(signature.getDeclaration()));
-}
-
-/** Name of the type or of any union/intersection member, via its symbol or alias. */
-function typeNames(type) {
-  const parts = type.isUnionOrIntersection() ? type.types : [type];
-  return parts.flatMap((part) =>
-    [part.aliasSymbol?.getName(), part.getSymbol()?.getName()].filter(Boolean),
-  );
-}
-
-const noStyleElements = {
+const domAllowlist = {
   meta: {
     type: 'problem',
-    docs: { description: 'Disallow creating stylesheets from code (UI gate E5).' },
+    docs: { description: 'Allow only registered DOM write entry points (UI gate E5).' },
+    // `writers` replaces DOM_WRITERS in rule tests only; the gate configuration passes nothing.
     schema: [
-      {
-        type: 'object',
-        properties: { htmlSinks: { type: 'boolean' }, htmlTagDescriptors: { type: 'boolean' } },
-        additionalProperties: false,
-      },
+      { type: 'object', properties: { writers: { type: 'object' } }, additionalProperties: false },
     ],
     messages: {
+      member:
+        '`{{member}}` is not a registered DOM write entry point for this file (UI gate E5, scripts/ui-lint/registry.mjs).',
+      computed: 'A computed member on a DOM object hides which entry point it uses (UI gate E5).',
+      reflection: '`{{name}}` with a DOM object writes past the registry (UI gate E5).',
+      product:
+        '`{{factory}}` creates `{{product}}`, which is not a registered product for this file (UI gate E5).',
+      name: '`{{member}}` writes a name the checker cannot enumerate (UI gate E5).',
+    },
+  },
+  create(context) {
+    const { services, program, checker } = typedServices(context);
+    const managed = managedInterfaces(program, checker);
+    const writers = context.options[0]?.writers ?? DOM_WRITERS;
+    const own = new Set(writers[fileKey(context.filename)] ?? []);
+    const allowed = (owner, member) =>
+      DOM_ALLOW.has(member) ||
+      DOM_ALLOW.has(`${owner}.${member}`) ||
+      own.has(member) ||
+      own.has(`${owner}.${member}`);
+
+    const productOf = (node) => {
+      const type = services.getTypeAtLocation(node);
+      return checker.typeToString(type);
+    };
+
+    const checkNamedWriter = (node, member) => {
+      const call =
+        node.parent.type === 'CallExpression' && node.parent.callee === node
+          ? node.parent
+          : undefined;
+      if (!call || call.arguments.length === 0)
+        return context.report({ node, messageId: 'member', data: { member } });
+      const nameArgument = member === 'setAttributeNS' ? call.arguments[1] : call.arguments[0];
+      const names = nameArgument && possibleStrings(nameArgument, services);
+      if (names === null || names === undefined) {
+        if (!own.has(`${member}:*`)) context.report({ node, messageId: 'name', data: { member } });
+        return;
+      }
+      for (const name of names) {
+        if (!own.has(`${member}:${name}`) && !own.has(`${member}:*`)) {
+          context.report({ node, messageId: 'member', data: { member: `${member}:${name}` } });
+        }
+      }
+    };
+
+    /** A reference to a library member `symbol` at `node` (member expression or pattern key). */
+    const checkMember = (node, symbol, isCall) => {
+      const info = describe(symbol?.declarations?.[0], program);
+      if (!info || !managed.has(info.owner)) return;
+      const member = symbol.getName();
+      const write = node.type === 'MemberExpression' && isWriteTarget(node);
+      if (!info.isMethod && !info.isStatic && !write) return;
+      if (
+        info.isMethod &&
+        !info.isStatic &&
+        NAMED_WRITERS.has(member) &&
+        !allowed(info.owner, member)
+      ) {
+        return checkNamedWriter(node, member);
+      }
+      if (info.isMethod && FACTORIES.has(member) && isCall && !allowed(info.owner, member)) {
+        const product = productOf(node.parent);
+        if (SAFE_PRODUCTS.has(product)) return;
+        const tag = node.parent.arguments[member === 'createElementNS' ? 1 : 0];
+        const tags = tag && possibleStrings(tag, services);
+        if (tags && tags.every((name) => own.has(`${member}:${name}`))) return;
+        return context.report({ node, messageId: 'product', data: { factory: member, product } });
+      }
+      if (!allowed(info.owner, member))
+        context.report({ node, messageId: 'member', data: { member: `${info.owner}.${member}` } });
+    };
+
+    return {
+      MemberExpression(node) {
+        const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+        const isCall = node.parent.type === 'CallExpression' && node.parent.callee === node;
+        const nameNode = ts.isPropertyAccessExpression(tsNode)
+          ? tsNode.name
+          : tsNode.argumentExpression;
+        const symbol = checker.getSymbolAtLocation(nameNode);
+        if (symbol && describe(symbol.declarations?.[0], program))
+          return checkMember(node, symbol, isCall);
+        if (!node.computed) return;
+        if (!isManagedType(services.getTypeAtLocation(node.object), managed, program)) return;
+        const names = possibleStrings(node.property, services);
+        if (names === null) {
+          if (isCall || isWriteTarget(node)) context.report({ node, messageId: 'computed' });
+          return;
+        }
+        const objectType = services.getTypeAtLocation(node.object);
+        for (const name of names) {
+          const property = checker.getPropertyOfType(checker.getApparentType(objectType), name);
+          if (property) checkMember(node, property, isCall);
+        }
+      },
+      // const { insertAdjacentHTML } = el
+      'ObjectPattern > Property'(node) {
+        if (node.computed) return;
+        const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+        const nameNode = tsNode.propertyName ?? tsNode.name;
+        if (!nameNode || !ts.isIdentifier(nameNode)) return;
+        const source = checker.getApparentType(checker.getTypeAtLocation(tsNode.parent));
+        const symbol = checker.getPropertyOfType(source, nameNode.text);
+        if (symbol) checkMember(node, symbol, false);
+      },
+      NewExpression(node) {
+        const symbol = checker.getSymbolAtLocation(services.esTreeNodeToTSNodeMap.get(node.callee));
+        const declaration = symbol?.declarations?.[0];
+        if (!declaration || !program.isSourceFileDefaultLibrary(declaration.getSourceFile()))
+          return;
+        const product = productOf(node);
+        const type = services.getTypeAtLocation(node);
+        if (!isManagedType(type, managed, program) || SAFE_PRODUCTS.has(product)) return;
+        if (own.has(`new ${symbol.getName()}`)) return;
+        context.report({
+          node,
+          messageId: 'product',
+          data: { factory: `new ${symbol.getName()}`, product },
+        });
+      },
+      CallExpression(node) {
+        const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+        const declaration = checker.getResolvedSignature(tsNode)?.getDeclaration();
+        const info = describe(declaration, program);
+        const name =
+          declaration?.name && ts.isIdentifier(declaration.name)
+            ? declaration.name.text
+            : undefined;
+        if (!info || !REFLECTION[info.owner]?.has(name)) return;
+        if (
+          node.arguments.some((argument) =>
+            isManagedType(services.getTypeAtLocation(argument), managed, program),
+          )
+        ) {
+          context.report({
+            node,
+            messageId: 'reflection',
+            data: { name: `${info.owner === 'Reflect' ? 'Reflect' : 'Object'}.${name}` },
+          });
+        }
+      },
+    };
+  },
+};
+
+/**
+ * The string tags a value denotes: undefined for a component (no string part), null when a
+ * string part cannot be enumerated.
+ */
+function tagNames(node, services) {
+  if (node.type === 'Literal' && typeof node.value === 'string') return [node.value];
+  const type = services.getTypeAtLocation(node);
+  const parts = type.isUnion() ? type.types : [type];
+  const strings = parts.filter(
+    (part) => part.flags & (ts.TypeFlags.StringLike | ts.TypeFlags.Any | ts.TypeFlags.Unknown),
+  );
+  if (strings.length === 0) return undefined;
+  if (!strings.every((part) => part.isStringLiteral())) return null;
+  return strings.map((part) => part.value);
+}
+
+const elementAllowlist = {
+  meta: {
+    type: 'problem',
+    docs: { description: 'Allow only registered native elements (UI gate E11).' },
+    schema: [],
+    messages: {
       element:
-        '<{{tag}}> elements are not created from code; styles live in bundled CSS (UI gate E5).',
-      dynamic:
-        'The element tag here cannot be proven not to be <style>/<link>; use a literal tag (UI gate E5).',
-      sink: '{{name}} writes markup, which can carry a stylesheet; render through React (UI gate E5).',
-      resource:
-        'react-dom {{name}}() can insert a stylesheet link; styles live in bundled CSS (UI gate E5).',
+        '`<{{tag}}>` is not a registered native element (UI gate E11, scripts/ui-lint/registry.mjs).',
+      dynamic: 'This element tag cannot be enumerated (UI gate E11).',
     },
   },
   create(context) {
     const { services, checker } = typedServices(context);
-    const htmlSinks = context.options[0]?.htmlSinks ?? true;
-    // Build code (Vite plugins) describes injected HTML tags as { tag, attrs, children }.
-    const htmlTagDescriptors = context.options[0]?.htmlTagDescriptors ?? false;
-
-    /** Reports a banned or unenumerable tag; returns whether it reported. */
-    function checkTag(node, reportNode = node) {
-      if (node === undefined) return false;
-      if (node.type === 'SpreadElement') {
-        context.report({ node: reportNode, messageId: 'dynamic' });
-        return true;
-      }
-      const names = possibleStrings(node, services);
-      if (names === undefined) return false;
-      if (names === null) {
-        context.report({ node: reportNode, messageId: 'dynamic' });
-        return true;
-      }
-      const banned = names.filter((tag) => BANNED_TAGS.has(tag.toLowerCase()));
-      for (const tag of banned) {
-        context.report({ node: reportNode, messageId: 'element', data: { tag } });
-      }
-      return banned.length > 0;
-    }
-
-    /**
-     * The tag argument at `index` of an argument list: a spread at or before it makes the position
-     * unknowable, so the spread itself is returned (and reported as dynamic).
-     */
-    function tagArgument(args, index) {
-      for (let i = 0; i <= index && i < args.length; i += 1) {
-        if (args[i].type === 'SpreadElement') return args[i];
-      }
-      return args[index];
-    }
-
-    /** The argument list a call hands the invoked function; `null` when it cannot be read. */
-    function listOf(node) {
-      return node?.type === 'ArrayExpression' ? node.elements : null;
-    }
-
-    /**
-     * The function a call invokes and the arguments it receives, seen through `fn.call`,
-     * `fn.apply`, `Reflect.apply` and `Reflect.construct`. `functions` is `null` when the invoked
-     * value's type is any/unknown, `args` is `null` when the argument list cannot be read.
-     */
-    function invocation(node, callee, member) {
-      const reflect =
-        callee.type === 'MemberExpression' &&
-        callee.object.type === 'Identifier' &&
-        callee.object.name === 'Reflect';
-      if (reflect && (member === 'apply' || member === 'construct')) {
-        const args = listOf(node.arguments[member === 'apply' ? 2 : 1]);
-        return { indirect: true, functions: functionsOf(node.arguments[0], services), args };
-      }
-      const direct = resolvedCallee(node, services, checker);
-      if (
-        direct.fromLib &&
-        (direct.name === 'call' || direct.name === 'apply') &&
-        callee.type === 'MemberExpression'
-      ) {
-        const args = direct.name === 'call' ? node.arguments.slice(1) : listOf(node.arguments[1]);
-        return { indirect: true, functions: functionsOf(callee.object, services), args };
-      }
-      return { indirect: false, functions: [direct], args: node.arguments };
-    }
-
-    function reportSink(node, name) {
-      if (htmlSinks) context.report({ node, messageId: 'sink', data: { name } });
-    }
-
-    /** Whether a key expression can name an HTML sink property; `null` when unenumerable. */
-    function sinkKey(key) {
-      const names = possibleStrings(key, services);
-      if (names === null) return null;
-      return names?.find((name) => HTML_SINK_PROPERTIES.has(name));
-    }
-
-    /**
-     * Whether a write target may be a DOM node with an HTML sink: its type has innerHTML or
-     * outerHTML, or is too wide to rule a node out (`object`, `{}`, any, unknown, a type parameter).
-     */
-    function mayHaveSink(node) {
-      const type = services.getTypeAtLocation(node);
-      const parts = type.isUnion() ? type.types : [type];
-      return parts.some(
-        (part) =>
-          Boolean(part.flags & WIDE_TARGET) ||
-          ['innerHTML', 'outerHTML'].some((name) => part.getProperty(name) !== undefined) ||
-          (Boolean(part.flags & ts.TypeFlags.Object) &&
-            part.getProperties().length === 0 &&
-            checker.getIndexInfosOfType(part).length === 0 &&
-            part.getCallSignatures().length === 0),
-      );
-    }
-
-    /** Reports when `key` written on `target` can be a sink property (or cannot be enumerated). */
-    function checkKeyedWrite(node, target, key) {
-      if (!target || !key || target.type === 'SpreadElement' || key.type === 'SpreadElement')
-        return;
-      if (!mayHaveSink(target)) return;
-      const sink = sinkKey(key);
-      if (sink !== undefined) reportSink(node, sink ?? 'a computed key');
-    }
-
-    /** `Object.assign(el, …sources)` / `Object.defineProperties(el, props)`. */
-    function checkPropertySources(node, sources) {
-      for (const source of sources) {
-        const value = source.type === 'SpreadElement' ? source.argument : source;
-        if (value.type === 'ObjectExpression') {
-          // Literal sink keys are reported by Property; a key it cannot enumerate is a sink here.
-          for (const property of value.properties) {
-            if (property.type === 'SpreadElement') checkPropertySources(node, [property.argument]);
-            else if (property.computed && sinkKey(property.key) === null) {
-              reportSink(property, 'a computed key');
-            }
-          }
-          continue;
-        }
-        const type = services.getTypeAtLocation(value);
-        if (mayHaveSink(value) || hasIndexSignature(type, checker))
-          reportSink(source, 'a source object');
-      }
-    }
-
-    /** Whether a value may hold the `stylesheet` link type (or cannot be read). */
-    function mayBeStylesheet(node) {
-      if (!node || node.type === 'SpreadElement') return true;
-      const values = possibleStrings(node, services);
-      if (values === undefined) return false;
-      return values === null || values.some((value) => /(?:^|\s)stylesheet(?:\s|$)/i.test(value));
-    }
-
-    /** Turning an existing element (a clone, a queried node) into a stylesheet link. */
-    function reportStylesheetLink(node) {
-      context.report({ node, messageId: 'element', data: { tag: 'link rel="stylesheet"' } });
-    }
-
+    const check = (node, tags) => {
+      if (tags === undefined) return;
+      if (tags === null) return context.report({ node, messageId: 'dynamic' });
+      for (const tag of tags)
+        if (!ELEMENTS.has(tag)) context.report({ node, messageId: 'element', data: { tag } });
+    };
     return {
       JSXOpeningElement(node) {
         const { name } = node;
-        // Intrinsic JSX tags are lowercase identifiers; `<Link>` is a component reference.
-        if (name.type === 'JSXIdentifier' && /^[a-z]/.test(name.name)) {
-          if (BANNED_TAGS.has(name.name)) {
-            context.report({ node, messageId: 'element', data: { tag: name.name } });
-          }
-          return;
-        }
-        // `<Tag>` with `const Tag = 'style'` compiles to jsx('style'): judge the tag's type.
-        if (name.type === 'JSXIdentifier' || name.type === 'JSXMemberExpression') {
-          checkTag(name, node);
-        }
-      },
-      JSXAttribute(node) {
-        if (node.name.type === 'JSXIdentifier' && node.name.name === 'dangerouslySetInnerHTML') {
-          reportSink(node, 'dangerouslySetInnerHTML');
-        }
+        // A lower-case JSX name is an intrinsic element by JSX semantics; others are judged by type.
+        if (name.type === 'JSXIdentifier' && /^[a-z]/.test(name.name))
+          return check(node, [name.name]);
+        if (name.type === 'JSXNamespacedName')
+          return check(node, [`${name.namespace.name}:${name.name.name}`]);
+        return check(node, tagNames(name, services));
       },
       CallExpression(node) {
-        const callee =
-          node.callee.type === 'ChainExpression' ? node.callee.expression : node.callee;
-        const member = memberName(callee);
-        const { indirect, functions, args } = invocation(node, callee, member);
-        let reported = false;
-        if (functions === null) {
-          // fn.call(…) / Reflect.apply(fn, …) with an any/unknown fn: the function is unknown.
-          context.report({ node, messageId: 'dynamic' });
-          reported = true;
-        } else {
-          const names = functions.map((fn) => fn.name);
-          if (!indirect && member !== undefined) names.push(member);
-          const factory = names.find((fnName) => ELEMENT_FACTORIES.has(fnName));
-          if (factory !== undefined) {
-            if (args === null) {
-              context.report({ node, messageId: 'dynamic' });
-              reported = true;
-            } else {
-              reported = checkTag(tagArgument(args, ELEMENT_FACTORIES.get(factory)), node);
-            }
-          }
-          for (const fn of functions) {
-            if (fn.fromDom && HTML_SINK_METHODS.has(fn.name)) reportSink(node, fn.name);
-            if (fn.fromReactDom && REACT_DOM_RESOURCES.has(fn.name)) {
-              context.report({ node, messageId: 'resource', data: { name: fn.name } });
-              reported = true;
-            }
-          }
-        }
-        const objectCall = (owner) =>
-          callee.type === 'MemberExpression' &&
-          callee.object.type === 'Identifier' &&
-          callee.object.name === owner;
-        const [first, second] = node.arguments;
-        // Reflect.set(el, 'innerHTML', …) / Object.defineProperty(el, key, …).
+        const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+        const declaration = checker.getResolvedSignature(tsNode)?.getDeclaration();
+        const file = declaration?.getSourceFile().fileName ?? '';
+        const name =
+          declaration?.name && ts.isIdentifier(declaration.name)
+            ? declaration.name.text
+            : undefined;
         if (
-          (objectCall('Reflect') && member === 'set') ||
-          (objectCall('Object') && member === 'defineProperty')
-        ) {
-          checkKeyedWrite(node, first, second);
-        }
-        // A sink property's descriptor: its setter writes markup.
-        if (
-          (objectCall('Object') || objectCall('Reflect')) &&
-          member === 'getOwnPropertyDescriptor'
-        ) {
-          checkKeyedWrite(node, first, second);
-        }
-        if (
-          objectCall('Object') &&
-          member === 'getOwnPropertyDescriptors' &&
-          first &&
-          mayHaveSink(first)
-        ) {
-          reportSink(node, 'getOwnPropertyDescriptors');
-        }
-        // x.__lookupSetter__('innerHTML'): whatever x is typed as, the key decides.
-        if (DESCRIPTOR_READERS.has(member) && first && first.type !== 'SpreadElement') {
-          const sink = sinkKey(first);
-          if (sink !== undefined) reportSink(node, sink ?? 'a computed key');
-        }
-        if (
-          objectCall('Object') &&
-          (member === 'assign' || member === 'defineProperties') &&
-          first &&
-          first.type !== 'SpreadElement' &&
-          mayHaveSink(first)
-        ) {
-          checkPropertySources(node, node.arguments.slice(1));
-        }
-        // el.setAttribute('rel', 'stylesheet') / el.relList.add('stylesheet'): an existing element
-        // (a clone of a <link>, a queried node) becomes a stylesheet link (P1 QA3 H6 a7).
-        if (member === 'setAttribute' || member === 'setAttributeNS') {
-          const [nameArg, valueArg] =
-            member === 'setAttribute' ? [first, second] : node.arguments.slice(1);
-          const names =
-            nameArg && nameArg.type !== 'SpreadElement' ? possibleStrings(nameArg, services) : null;
-          const rel = names === null || names?.some((attr) => attr.toLowerCase() === 'rel');
-          if (rel && mayBeStylesheet(valueArg)) {
-            reportStylesheetLink(node);
-            reported = true;
-          }
-        }
-        if (
-          ['add', 'replace', 'toggle'].includes(member) &&
-          callee.type === 'MemberExpression' &&
-          memberName(callee.object) === 'relList' &&
-          node.arguments.some((arg) => mayBeStylesheet(arg))
-        ) {
-          reportStylesheetLink(node);
-          reported = true;
-        }
-        if (reported) return;
-        // Backstop for any other route to a style or link element.
-        const returned = services.getTypeAtLocation(node);
-        const banned = typeNames(returned).find((typeName) => BANNED_ELEMENT_TYPES.has(typeName));
-        if (banned) context.report({ node, messageId: 'element', data: { tag: banned } });
-      },
-      // { innerHTML: … } anywhere (Object.assign, defineProperties, props objects), and a Vite
-      // HTML tag descriptor { tag: 'style' } in build code.
-      Property(node) {
-        if (node.parent.type !== 'ObjectExpression') return;
-        const key =
-          !node.computed && node.key.type === 'Identifier'
-            ? [node.key.name]
-            : possibleStrings(node.key, services);
-        const sink = key?.find?.((name) => HTML_SINK_PROPERTIES.has(name));
-        if (sink) reportSink(node, sink);
-        if (
-          htmlTagDescriptors &&
-          key?.includes?.('tag') &&
-          node.value.type !== 'AssignmentPattern'
-        ) {
-          checkTag(node.value, node);
-        }
-      },
-      AssignmentExpression(node) {
-        const left = node.left;
-        if (left.type !== 'MemberExpression') return;
-        const name = memberName(left);
-        if (name !== undefined) {
-          if (HTML_SINK_PROPERTIES.has(name)) reportSink(node, name);
-          if (name === 'rel' && mayBeStylesheet(node.right)) reportStylesheetLink(node);
-          if (
-            name === 'value' &&
-            memberName(left.object) === 'relList' &&
-            mayBeStylesheet(node.right)
-          ) {
-            reportStylesheetLink(node);
-          }
+          !/[\\/]@types[\\/]react[\\/]/.test(file) ||
+          (name !== 'createElement' && name !== 'cloneElement')
+        )
           return;
-        }
-        // el[key] = …: a key that can be, or cannot be shown not to be, innerHTML/outerHTML.
-        if (left.computed) checkKeyedWrite(node, left.object, left.property);
+        const [tag] = node.arguments;
+        if (tag && name === 'createElement') check(node, tagNames(tag, services));
       },
     };
   },
 };
 
 function isCssProperties(type) {
-  return typeNames(type).includes('CSSProperties');
+  const parts = type.isUnionOrIntersection() ? type.types : [type];
+  return parts.some((part) =>
+    [part.aliasSymbol?.getName(), part.getSymbol()?.getName()].includes('CSSProperties'),
+  );
 }
 
-/** True for exactly the key type `` `--${string}` `` (custom properties). */
 function isCustomPropertyKey(keyType) {
   return (
     Boolean(keyType.flags & ts.TypeFlags.TemplateLiteral) &&
@@ -477,12 +452,6 @@ function isCustomPropertyKey(keyType) {
   );
 }
 
-/**
- * True when an object type (or a union/intersection member) has an index signature other than
- * `` `--${string}` `` (the web client's custom-property augmentation of CSSProperties): a
- * `string`, `number` or pattern key (`` `border${string}` ``) leaves the written properties
- * unenumerable.
- */
 function hasIndexSignature(type, checker) {
   const parts = type.isUnionOrIntersection() ? type.types : [type];
   return parts.some(
@@ -492,14 +461,13 @@ function hasIndexSignature(type, checker) {
   );
 }
 
-const inlineStyleStaticKeys = {
+const inlineStyleKeys = {
   meta: {
     type: 'problem',
     docs: { description: 'Require enumerable keys in inline style objects (UI gate E4).' },
     schema: [],
     messages: {
-      computed:
-        'Style object keys are static names or string-literal unions; this key hides which property is written (UI gate E4).',
+      computed: 'This style key hides which property is written (UI gate E4).',
       indexed:
         'This style value has an index signature, so the properties it writes are not enumerable (UI gate E4).',
     },
@@ -507,218 +475,60 @@ const inlineStyleStaticKeys = {
   create(context) {
     const { services, checker } = typedServices(context);
     const checked = new Set();
-
-    function dynamicKeys(object) {
-      return object.properties.filter((property) => {
-        if (property.type !== 'Property' || !property.computed) return false;
-        const key = property.key;
-        if (key.type === 'Literal' && typeof key.value === 'string') return false;
-        if (key.type === 'TemplateLiteral' && key.expressions.length === 0) return false;
-        return !Array.isArray(possibleStrings(key, services));
-      });
-    }
-
-    function checkObject(object) {
+    const checkObject = (object) => {
       if (checked.has(object)) return;
       checked.add(object);
-      for (const property of dynamicKeys(object)) {
-        context.report({ node: property.key, messageId: 'computed' });
-      }
       for (const property of object.properties) {
-        if (property.type === 'SpreadElement') checkStyleValue(property.argument);
+        if (property.type === 'SpreadElement') checkValue(property.argument);
+        else if (property.computed && possibleStrings(property.key, services) === null) {
+          context.report({ node: property.key, messageId: 'computed' });
+        }
       }
-    }
-
-    /** A value that reaches `style`: literals are checked key by key, others by their type. */
-    function checkStyleValue(node) {
+    };
+    const checkValue = (node) => {
       switch (node.type) {
         case 'ObjectExpression':
-          checkObject(node);
-          return;
+          return checkObject(node);
         case 'ConditionalExpression':
-          checkStyleValue(node.consequent);
-          checkStyleValue(node.alternate);
-          return;
+          checkValue(node.consequent);
+          return checkValue(node.alternate);
         case 'LogicalExpression':
-          checkStyleValue(node.left);
-          checkStyleValue(node.right);
-          return;
+          checkValue(node.left);
+          return checkValue(node.right);
         case 'TSSatisfiesExpression':
         case 'TSAsExpression':
         case 'TSNonNullExpression':
-          checkStyleValue(node.expression);
-          return;
+          return checkValue(node.expression);
         default:
-          if (hasIndexSignature(services.getTypeAtLocation(node), checker)) {
+          if (hasIndexSignature(services.getTypeAtLocation(node), checker))
             context.report({ node, messageId: 'indexed' });
-          }
       }
-    }
-
+    };
     return {
-      // Any object literal typed as CSSProperties (a typed variable, a return value, …).
       ObjectExpression(node) {
         const contextual = checker.getContextualType(services.esTreeNodeToTSNodeMap.get(node));
         if (contextual !== undefined && isCssProperties(contextual)) checkObject(node);
       },
-      // <el style={…}>
       JSXAttribute(node) {
         if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'style') return;
-        if (node.value?.type !== 'JSXExpressionContainer') return;
-        if (node.value.expression.type === 'JSXEmptyExpression') return;
-        checkStyleValue(node.value.expression);
-      },
-      // createElement(tag, { style: … }) and other props objects, however the key is spelled
-      // ('style', ['style'], a constant): a key that cannot be enumerated may be `style` too.
-      Property(node) {
-        if (node.parent.type !== 'ObjectExpression') return;
-        const names =
-          !node.computed && node.key.type === 'Identifier'
-            ? [node.key.name]
-            : possibleStrings(node.key, services);
-        if (names === null || names?.includes('style')) checkStyleValue(node.value);
-      },
-      // <el {...props}>: the spread object's `style` member reaches the element.
-      JSXSpreadAttribute(node) {
-        if (node.argument.type === 'ObjectExpression') return; // its keys are checked by Property
-        const tsNode = services.esTreeNodeToTSNodeMap.get(node.argument);
-        const type = services.getTypeAtLocation(node.argument);
-        const style = type.getProperty('style');
-        const styleType = style && checker.getTypeOfSymbolAtLocation(style, tsNode);
-        if (styleType !== undefined && hasIndexSignature(styleType, checker)) {
-          context.report({ node, messageId: 'indexed' });
-        }
-      },
-    };
-  },
-};
-
-/** Style languages Vite bundles (only plain `.css` is allowed). */
-const STYLE_SPECIFIER = /\.(?:css|pcss|postcss|scss|sass|less|styl|stylus|sss)$/i;
-const SCRIPT_OR_STYLE_EXTENSION =
-  /^(?:[cm]?[jt]sx?|json|css|pcss|postcss|scss|sass|less|styl|stylus|sss|html?|vue|svelte)$/i;
-
-/** The file a relative or `@/` specifier names (no query), or undefined for a package import. */
-function specifierPath(specifier, filename) {
-  const bare = specifier.replace(/[?#].*$/, '');
-  if (/^\.\.?\//.test(bare)) return path.resolve(path.dirname(filename), bare);
-  if (bare.startsWith('@/')) return path.join(REPO_ROOT, WEB_SOURCE, bare.slice(2));
-  if (bare.startsWith('@game-judge/game-engine/')) {
-    return path.join(
-      REPO_ROOT,
-      'packages/game-engine/src',
-      bare.slice('@game-judge/game-engine/'.length),
-    );
-  }
-  return undefined;
-}
-
-/** Repo paths an extensionless specifier may resolve to, as the bundler would try them. */
-function moduleCandidates(target) {
-  const file = repoRelative(target);
-  if (/\.[cm]?[jt]sx?$/.test(file)) return [file];
-  return ['', '.ts', '.tsx', '/index.ts', '/index.tsx'].map((suffix) => `${file}${suffix}`);
-}
-
-function repoRelative(file) {
-  return path.relative(REPO_ROOT, file).split(path.sep).join('/');
-}
-
-const importScope = {
-  meta: {
-    type: 'problem',
-    docs: { description: 'Keep imports inside what the UI gate checks.' },
-    schema: [],
-    messages: {
-      style:
-        'Stylesheet import {{specifier}} {{why}}; import a .css file inside {{root}}, which the CSS gate checks (UI gate).',
-      test: 'Production code imports no test module ({{specifier}}): the HTML sinks are open there (UI gate E5).',
-      glob: 'import.meta.glob patterns name one asset extension, never scripts or styles ({{pattern}}) (UI gate).',
-      dynamic: 'import() takes a literal specifier, so what it loads is checked (UI gate).',
-    },
-  },
-  create(context) {
-    const filename = context.filename;
-    const inTest = isTestModule(repoRelative(filename));
-
-    function checkSpecifier(node, specifier) {
-      const target = specifierPath(specifier, filename);
-      if (STYLE_SPECIFIER.test(specifier.replace(/[?#].*$/, '')) || /\.css[?#]/i.test(specifier)) {
-        let why;
-        if (/[?#]/.test(specifier)) why = 'carries a query';
-        else if (!specifier.toLowerCase().endsWith('.css')) why = 'is not plain .css';
-        else if (target === undefined) why = 'comes from a package';
-        else if (!fs.existsSync(target)) why = 'does not exist';
-        else {
-          if (!inCssGate(repoRelative(fs.realpathSync(target))))
-            why = `resolves outside what the CSS gate lints (${WEB_PACKAGE})`;
-        }
-        if (why)
-          context.report({ node, messageId: 'style', data: { specifier, why, root: WEB_PACKAGE } });
-      }
-      if (!inTest && target !== undefined && moduleCandidates(target).some(isTestModule)) {
-        context.report({ node, messageId: 'test', data: { specifier } });
-      }
-    }
-
-    function checkSource(source) {
-      if (source == null) return;
-      if (source.type === 'Literal' && typeof source.value === 'string') {
-        checkSpecifier(source, source.value);
-      } else if (source.type === 'TemplateLiteral' && source.expressions.length === 0) {
-        checkSpecifier(source, source.quasis[0].value.cooked);
-      } else {
-        context.report({ node: source, messageId: 'dynamic' });
-      }
-    }
-
-    function checkGlobPattern(node) {
-      if (node.type === 'ArrayExpression') {
-        node.elements.forEach((element) => element && checkGlobPattern(element));
-        return;
-      }
-      const pattern =
-        node.type === 'Literal' && typeof node.value === 'string'
-          ? node.value
-          : node.type === 'TemplateLiteral' && node.expressions.length === 0
-            ? node.quasis[0].value.cooked
-            : undefined;
-      if (pattern?.startsWith('!')) return;
-      const extension = pattern === undefined ? undefined : /\.([A-Za-z0-9]+)$/.exec(pattern)?.[1];
-      if (extension === undefined || SCRIPT_OR_STYLE_EXTENSION.test(extension)) {
-        context.report({
-          node,
-          messageId: 'glob',
-          data: { pattern: pattern ?? '(not a literal)' },
-        });
-      }
-    }
-
-    return {
-      ImportDeclaration: (node) => checkSource(node.source),
-      ExportNamedDeclaration: (node) => checkSource(node.source),
-      ExportAllDeclaration: (node) => checkSource(node.source),
-      ImportExpression: (node) => checkSource(node.source),
-      CallExpression(node) {
-        const callee = node.callee;
+        if (!(node.parent.name.type === 'JSXIdentifier' && /^[a-z]/.test(node.parent.name.name)))
+          return;
         if (
-          callee.type === 'MemberExpression' &&
-          callee.object.type === 'MetaProperty' &&
-          memberName(callee)?.startsWith('glob') &&
-          node.arguments[0]
-        ) {
-          checkGlobPattern(node.arguments[0]);
-        }
+          node.value?.type !== 'JSXExpressionContainer' ||
+          node.value.expression.type === 'JSXEmptyExpression'
+        )
+          return;
+        checkValue(node.value.expression);
       },
     };
   },
 };
 
 export default {
-  meta: { name: 'ui-lint' },
+  meta: { name: 'ui-gate' },
   rules: {
-    'no-style-elements': noStyleElements,
-    'inline-style-static-keys': inlineStyleStaticKeys,
-    'import-scope': importScope,
+    'dom-allowlist': domAllowlist,
+    'element-allowlist': elementAllowlist,
+    'inline-style-keys': inlineStyleKeys,
   },
 };

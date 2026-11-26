@@ -263,8 +263,9 @@ framing, and the blue-grey background stays clean and nearly untextured.
 ## Shapes
 
 Controls and surfaces use the shared radius scale. Full-radius shapes remain appropriate for small
-badges and progress tracks. Stylelint rule `ui/strict-value` rejects a radius written as a literal
-outside `packages/web/src/theme/tokens.css`, including vendor-prefixed and math-function spellings.
+badges and progress tracks. The UI gate (`ui/value-allowlist`) accepts a radius only as a radius
+token (`var(--radius-*)`) or a registered keyword; tokens are defined in
+`packages/web/src/theme/tokens.css`.
 
 Avatars are rounded squares at every size: `Avatar` alone sets their corners from
 `AVATAR_CORNER_RATIO` in `packages/web/src/config/avatarShape.ts`, the scene draws avatar frames
@@ -289,23 +290,22 @@ over every avatar site its census finds; the frame geometry tests
   empty, disabled, selected and submitting states.
 - Keyboard focus is visible through the global focus treatment; input focus retains its
   component-specific treatment.
-- Component styles live in bundled CSS: ESLint rule `ui/no-style-elements` rejects creating
-  `<style>`/`<link>` elements or writing markup from code, `ui/import-scope` keeps stylesheet
-  imports to `.css` files the CSS gate lints (inside `packages/web`) and the test files whose HTML
-  sinks are open out of production code, and
-  `ui/inline-style-static-keys` keeps the properties an inline `style` writes enumerable. What
-  the gate covers (the web package and the engine source the web build bundles) is defined once
-  in `scripts/ui-lint/scope.mjs`.
+- Component styles live in bundled CSS. In TSX the UI gate allows only registered native elements
+  (`ui/element-allowlist`; no `<style>`, `<link>` or `<script>`), inline `style` keys the checker
+  can enumerate (`ui/inline-style-keys`), and DOM members that write markup, styles, attributes or
+  nodes only where `DOM_WRITERS` in `scripts/ui-lint/registry.mjs` registers them for that file
+  (`ui/dom-allowlist`). What the gate covers is the web build's bundle graph
+  (`scripts/ui-lint/bundle.mjs`).
 
 ## Do's and Don'ts
 
-- Use the semantic color and size tokens instead of copying values into component styles. Stylelint
-  enforces this (`pnpm run lint:css`: `ui/strict-value` for sizes, type, shape, depth and timing,
-  `color-no-hex`/`color-named`/`function-disallowed-list`/`ui/no-system-color` for colors,
-  `ui/no-local-literal-custom-property` for local variables and `@property`, `ui/no-css-escapes`
-  for escapes, `ui/import-scope` for `@import`; `tokens.css` holds only custom property
-  definitions and each registered art stylesheet is exempt only for its own class prefix); existing
-  exceptions are recorded in `ui-style-baseline.json` and may only shrink.
+- Use the semantic color and size tokens instead of copying values into component styles. The UI
+  gate (`pnpm run lint:ui`) allows only what `scripts/ui-lint/registry.mjs` registers: each
+  property's value domain (tokens of that domain plus a few keywords), the registered functions
+  and at-rules, and system colors only under `forced-colors`. `tokens.css` holds only custom
+  property definitions; each registered art stylesheet is exempt from the value rules only for
+  its own class prefix. Existing exceptions are recorded in `ui-gate-baseline.json` and may only
+  shrink.
 - Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
 - Do not replace meaningful game art or faction semantics with decorative styling.
 - Do not reintroduce gradients or colored side stripes merely as decoration.

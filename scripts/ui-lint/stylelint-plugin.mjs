@@ -1,622 +1,248 @@
 /**
- * Local Stylelint rules for the web client's UI gate (rule IDs refer to the UI drift lock plan).
+ * Local Stylelint rules of the UI gate (UI drift lock plan v3, §2). Both are allow lists over
+ * `registry.mjs`:
  *
- * - `ui/strict-value` (S1): size, type, shape, depth and timing properties take only `var()`.
- * - `ui/no-local-literal-custom-property` (S4): outside the token stylesheet, a custom property
- *   is never defined as a literal S1 would reject (a length, time, or named size, weight, border
- *   width or system font) and `@property` registers nothing, so no local variable or registered
- *   initial value carries such a literal past S1. Unitless local numbers stay legal; which
- *   variables a value may reference at all is S3's job. S1 and S4 read tokens through the same
- *   `literalKind()`, so "what counts as a literal" is defined once.
- * - `ui/no-system-color` (S2): system colors (`Canvas`, `ButtonText`, …) are color literals that
- *   `color-named` does not know. They are the required values inside exactly
- *   `@media (forced-colors: active)`, where the browser replaces every author color, and are
- *   rejected everywhere else.
- * - `ui/no-css-escapes` (S7): property names, selectors, values and at-rule parameters carry no
- *   CSS escapes, so no escaped spelling can hide a property, class or unit from the other rules.
- * - `ui/import-scope`: `@import` takes only a relative path to a `.css` file inside the web
- *   source, which the CSS gate checks; no URL, data URL or file outside it (P1 QA3 H1).
- * - `ui/token-stylesheet-shape` (token stylesheet only): every declaration defines a custom
- *   property, so the stylesheet exempt from the value rules holds tokens and nothing else (H2).
- * - `ui/art-layer-scope` (registered art stylesheets only, with the sheet's class prefix): every
- *   selector carries the art's own class, so the value-rule exemption covers the art and not UI
- *   rules written into an art stylesheet (H3).
- *
- * Each violation is reported at the literal's own position, so a fingerprint
- * (`styleGate.mjs`) records the line that holds it (H5).
- *
- * Every check fails closed: a function is unpacked unless it is known to hold no S1 value, a
- * number inside a math function is a picked value (only the sign flip `-1` is arithmetic), and
- * vendor-prefixed property and function names are read without their prefix. Other color
- * literals are checked by `color-no-hex`, `color-named` and `function-disallowed-list` on every
- * property (S2, `stylelint.config.mjs`).
+ * - `ui/value-allowlist` (S1, S2, S4, S7): every property is registered (by its lower-case name
+ *   without a vendor prefix; an escaped name is never registered). A property in a token domain
+ *   takes only that domain's atoms: `var()` (fallback read in the same domain), a global keyword,
+ *   zero, a domain keyword, or `calc`/`min`/`max`/`clamp` over atoms where the only number is the
+ *   sign flip `-1`. Every function anywhere is a registered function. System colors are atoms only
+ *   inside exactly `@media (forced-colors: active)`. A custom property definition is the `custom`
+ *   domain. Each problem is reported at the offending word, so the baseline fingerprint is the
+ *   line holding it.
+ * - `ui/sheet-scope` (S10): the token sheet holds only custom property definitions under its
+ *   registered selectors; an art sheet's selectors use only classes with the sheet's prefix.
  */
-import fs from 'node:fs';
-import path from 'node:path';
-
 import stylelint from 'stylelint';
 import valueParser from 'postcss-value-parser';
 
-import { inCssGate, WEB_PACKAGE } from './scope.mjs';
+import {
+  DOMAIN_COMMON,
+  DOMAINS,
+  FORCED_COLORS_MEDIA,
+  FUNCTIONS,
+  PROPERTIES,
+  SYSTEM_COLORS,
+} from './registry.mjs';
 
 const {
   createPlugin,
   utils: { report, ruleMessages },
 } = stylelint;
 
-/** Keywords that pick no value of their own: they reset, inherit, or defer to layout. */
-const NEUTRAL_KEYWORDS = new Set([
-  'auto',
-  'none',
-  'normal',
-  'inherit',
-  'initial',
-  'unset',
-  'revert',
-  'revert-layer',
-]);
-
-const REFERENCE_FUNCTIONS = new Set(['var', 'env']);
-/**
- * Functions that hold no S1 value: colors (S2's domain), images and easing curves. Every other
- * function — calc(), min(), round(), abs(), clamp() and any future math function — is unpacked.
- */
-const OPAQUE_FUNCTIONS = new Set([
-  'rgb',
-  'rgba',
-  'hsl',
-  'hsla',
-  'hwb',
-  'lab',
-  'lch',
-  'oklab',
-  'oklch',
-  'color',
-  'color-mix',
-  'light-dark',
-  'url',
-  'image-set',
-  'linear-gradient',
-  'radial-gradient',
-  'conic-gradient',
-  'repeating-linear-gradient',
-  'repeating-radial-gradient',
-  'repeating-conic-gradient',
-  'cubic-bezier',
-  'steps',
-  'linear',
-]);
-/** Functions whose value comes from the document at run time, past every static check. */
-const DYNAMIC_FUNCTIONS = new Set(['attr']);
-/** Basic shapes whose `round` clause draws corners: a clip-path radius is a border radius. */
-const ROUNDED_SHAPES = new Set(['inset', 'rect', 'xywh']);
-const TIME_UNITS = new Set(['s', 'ms']);
 const VENDOR_PREFIX = /^-(?:webkit|moz|ms|o)-/;
+const MATH = new Set(['calc', 'min', 'max', 'clamp']);
+const OPERATORS = new Set(['+', '-', '*', '/']);
+const IDENT = /^-?[a-z_][\w-]*$/i;
+/** Color atoms besides `var()`: every domain that holds a color accepts them. */
+const COLOR_KEYWORDS = new Set(['transparent', 'currentcolor']);
 
-/** Named values by kind; `medium` names both a font size and a border width. */
-const KEYWORD_KINDS = new Map([
-  ...['thin', 'thick'].map((word) => [word, 'border-width']),
-  ...['bold', 'bolder', 'lighter'].map((word) => [word, 'weight']),
-  ...[
-    'xx-small',
-    'x-small',
-    'small',
-    'medium',
-    'large',
-    'x-large',
-    'xx-large',
-    'xxx-large',
-    'smaller',
-    'larger',
-  ].map((word) => [word, 'size']),
-  // System fonts set size and weight at once (`font: caption`).
-  ...['caption', 'icon', 'menu', 'message-box', 'small-caption', 'status-bar'].map((word) => [
-    word,
-    'system-font',
-  ]),
-]);
-
-/**
- * What kind of literal a word is: `number` (unitless), `time`, `dimension` (any other unit, or
- * %), a keyword kind from KEYWORD_KINDS, or `undefined` for a neutral keyword, zero, a hex color
- * (S2's domain) or an identifier that names no value. The single definition S1 and S4 share.
- */
-export function literalKind(word) {
-  const lower = word.toLowerCase();
-  if (NEUTRAL_KEYWORDS.has(lower) || word.startsWith('#')) return undefined;
-  const number = valueParser.unit(word);
-  if (number) {
-    if (Number(number.number) === 0) return undefined;
-    const unit = number.unit.toLowerCase();
-    if (unit === '') return 'number';
-    return TIME_UNITS.has(unit) ? 'time' : 'dimension';
-  }
-  return KEYWORD_KINDS.get(lower);
-}
-
-/**
- * How each checked property reads its value — which literal kinds are picked values there:
- * - `scalar`: every literal and every other identifier (lengths, radii, spacing, named sizes);
- * - `unitless`: the same, for properties whose values are plain numbers (z-index, line height);
- * - `weight`: numbers and weight keywords;
- * - `font`: the `font` shorthand — numbers, dimensions, size, weight and system-font keywords;
- *   family names are structure;
- * - `shadow`: numbers and dimensions; colors belong to S2; `inset` is structure;
- * - `border`: numbers, dimensions and width keywords; styles are structure;
- * - `motion`: times only; property names, easings, names and iteration counts are structure;
- * - `variation`: anything but `var()` and neutral keywords (`font-variation-settings: 'wght' 650`
- *   is a font weight).
- * Inside a math function every number is a picked value in every mode except the sign flip `-1`:
- * `calc(var(--radius-small) * 1.625)` picks 13px as surely as `13px` does.
- */
-const SIDES = '(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?';
-const MODES = [
-  [/^font-size$/, 'scalar'],
-  [/^line-height$/, 'unitless'],
-  [/^font-weight$/, 'weight'],
-  [/^font$/, 'font'],
-  [/^font-variation-settings$/, 'variation'],
-  [/^letter-spacing$/, 'scalar'],
-  [/^border(?:-(?:top|bottom|start|end)-(?:left|right|start|end))?-radius$/, 'scalar'],
-  [/^z-index$/, 'unitless'],
-  [new RegExp(`^(?:padding|margin)${SIDES}$`), 'scalar'],
-  [/^(?:grid-)?(?:gap|row-gap|column-gap)$/, 'scalar'],
-  [new RegExp(`^border${SIDES}-width$`), 'scalar'],
-  [new RegExp(`^border${SIDES}$`), 'border'],
-  [/^outline-width$/, 'scalar'],
-  [/^outline-offset$/, 'scalar'],
-  [/^outline$/, 'border'],
-  [/^(?:box|text)-shadow$/, 'shadow'],
-  [/^(?:transition|animation)(?:-(?:duration|delay))?$/, 'motion'],
-  [/^(?:clip-path|shape-outside)$/, 'shape'],
-];
-
-/** Literal kinds each mode rejects outside math functions (scalar/unitless: every identifier). */
-const PICKED_KINDS = {
-  weight: new Set(['number', 'weight']),
-  font: new Set(['number', 'dimension', 'time', 'size', 'weight', 'system-font']),
-  shadow: new Set(['number', 'dimension', 'time']),
-  border: new Set(['number', 'dimension', 'time', 'border-width', 'size']),
-  motion: new Set(['time']),
-};
-/** The one number a math function may hold: a sign flip picks no magnitude. */
-const ARITHMETIC_NUMBERS = new Set([-1]);
-
-function unprefixed(name) {
-  return name.toLowerCase().replace(VENDOR_PREFIX, '');
-}
-
-function modeOf(prop) {
-  const name = unprefixed(prop);
-  for (const [pattern, mode] of MODES) if (pattern.test(name)) return mode;
-  return undefined;
-}
-
-/** The nodes after the first comma of var()/env(): the fallback, a value like any other. */
-function fallbackOf(node) {
-  const comma = node.nodes.findIndex((child) => child.type === 'div' && child.value === ',');
-  return comma === -1 ? [] : node.nodes.slice(comma + 1);
-}
-
-/** A literal found in a value: its text and its offset in the parsed value string. */
-function token(node) {
-  return { value: valueParser.stringify(node), sourceIndex: node.sourceIndex };
-}
-
-/** `round` radii of rounded basic shapes, read as scalars; the rest of a shape is geometry. */
-function shapeTokens(nodes) {
-  const found = [];
-  for (const node of nodes) {
-    if (node.type !== 'function') continue;
-    const name = unprefixed(node.value);
-    if (DYNAMIC_FUNCTIONS.has(name)) found.push(token(node));
-    else if (REFERENCE_FUNCTIONS.has(name)) found.push(...shapeTokens(fallbackOf(node)));
-    else if (ROUNDED_SHAPES.has(name)) {
-      const round = node.nodes.findIndex(
-        (child) => child.type === 'word' && child.value.toLowerCase() === 'round',
-      );
-      if (round !== -1) found.push(...literalTokens(node.nodes.slice(round + 1), 'scalar', false));
-    }
-  }
-  return found;
-}
-
-/** Returns the literal tokens in `nodes` that a property in `mode` may not carry. */
-function literalTokens(nodes, mode, inMath) {
-  if (mode === 'shape') return shapeTokens(nodes);
-  const found = [];
-  for (const node of nodes) {
-    if (node.type === 'function') {
-      const name = unprefixed(node.value);
-      if (DYNAMIC_FUNCTIONS.has(name)) {
-        found.push(token(node));
-      } else if (REFERENCE_FUNCTIONS.has(name)) {
-        found.push(...literalTokens(fallbackOf(node), mode, inMath));
-      } else if (!OPAQUE_FUNCTIONS.has(name)) {
-        found.push(...literalTokens(node.nodes, mode, true));
-      } else if (mode === 'variation') {
-        found.push(token(node));
-      }
-      continue;
-    }
-    if (mode === 'variation') {
-      if (node.type === 'string') found.push(token(node));
-      else if (node.type === 'word' && !NEUTRAL_KEYWORDS.has(node.value.toLowerCase()))
-        found.push(token(node));
-      continue;
-    }
-    if (node.type !== 'word') continue;
-    const word = node.value;
-    const kind = literalKind(word);
-    if (inMath) {
-      // Identifiers inside functions are keywords of the function (round(up, …)).
-      if (kind === 'number' && ARITHMETIC_NUMBERS.has(Number(word))) continue;
-      if (kind === 'number' || kind === 'dimension' || kind === 'time') {
-        if (mode !== 'motion' || kind !== 'dimension') found.push(token(node));
-      }
-      continue;
-    }
-    if (mode === 'scalar' || mode === 'unitless') {
-      // Named sizes (small, larger, thin…) pick a value; any other identifier here does too.
-      const zero = kind === undefined && Number(valueParser.unit(word)?.number) === 0;
-      if (!NEUTRAL_KEYWORDS.has(word.toLowerCase()) && !word.startsWith('#') && !zero) {
-        found.push(token(node));
-      }
-      continue;
-    }
-    if (kind !== undefined && PICKED_KINDS[mode].has(kind)) found.push(token(node));
-  }
-  return found;
-}
-
-/** The value as written (comments included), which report positions are measured against. */
-function rawValue(decl) {
-  return decl.raws.value?.raw ?? decl.value;
-}
-
-/** Reports each token at its own place in `decl` (prop, separator, then the raw value). */
-function reportTokens(decl, tokens, ruleName, result, message) {
-  const offset = decl.prop.length + (decl.raws.between ?? ':').length;
-  for (const { value, sourceIndex } of tokens) {
-    report({
-      ruleName,
-      result,
-      node: decl,
-      index: offset + sourceIndex,
-      endIndex: offset + sourceIndex + value.length,
-      message: message(value),
-    });
-  }
-}
-
-const strictValueName = 'ui/strict-value';
-const strictValueMessages = ruleMessages(strictValueName, {
-  rejected: (prop, token) =>
-    `Use a token var() for "${prop}" instead of the literal "${token}" (UI gate S1).`,
+const VALUE = 'ui/value-allowlist';
+const valueMessages = ruleMessages(VALUE, {
+  property: (prop) => `\`${prop}\` is not a registered property (UI gate S1).`,
+  func: (name) => `\`${name}()\` is not a registered CSS function (UI gate S2).`,
+  atom: (word, prop, domain) =>
+    `\`${word}\` is not allowed in \`${prop}\`: the ${domain} domain takes var(--token) and registered keywords (UI gate S1).`,
 });
 
-const strictValue = createPlugin(strictValueName, (enabled) => (root, result) => {
-  if (!enabled) return;
-  root.walkDecls((decl) => {
-    if (decl.prop.startsWith('--')) return;
-    const mode = modeOf(decl.prop);
-    if (mode === undefined) return;
-    const tokens = literalTokens(valueParser(rawValue(decl)).nodes, mode, false);
-    reportTokens(decl, tokens, strictValueName, result, (value) =>
-      strictValueMessages.rejected(decl.prop, value),
-    );
-  });
-});
-strictValue.ruleName = strictValueName;
-strictValue.messages = strictValueMessages;
-
-const localLiteralName = 'ui/no-local-literal-custom-property';
-const localLiteralMessages = ruleMessages(localLiteralName, {
-  rejected: (prop, token) =>
-    `Custom property "${prop}" defines the literal "${token}"; style values live in theme/tokens.css (UI gate S4).`,
-  registered: (params) =>
-    `@property ${params} registers a local initial value; style values live in theme/tokens.css (UI gate S4).`,
-});
-
-/** Literals in a custom property value: every kind S1 rejects except unitless numbers. */
-function customPropertyLiterals(nodes) {
-  const found = [];
-  for (const node of nodes) {
-    if (node.type === 'function') {
-      const name = unprefixed(node.value);
-      if (DYNAMIC_FUNCTIONS.has(name)) found.push(token(node));
-      else if (REFERENCE_FUNCTIONS.has(name))
-        found.push(...customPropertyLiterals(fallbackOf(node)));
-      else if (!OPAQUE_FUNCTIONS.has(name)) found.push(...customPropertyLiterals(node.nodes));
-      continue;
-    }
-    if (node.type !== 'word') continue;
-    const kind = literalKind(node.value);
-    if (kind !== undefined && kind !== 'number') found.push(token(node));
-  }
-  return found;
-}
-
-const localLiteral = createPlugin(localLiteralName, (enabled) => (root, result) => {
-  if (!enabled) return;
-  root.walkDecls((decl) => {
-    if (!decl.prop.startsWith('--')) return;
-    const tokens = customPropertyLiterals(valueParser(rawValue(decl)).nodes);
-    reportTokens(decl, tokens, localLiteralName, result, (value) =>
-      localLiteralMessages.rejected(decl.prop, value),
-    );
-  });
-  // A registered property's initial-value is a local literal by another name.
-  root.walkAtRules((atRule) => {
-    if (unprefixed(atRule.name) !== 'property') return;
-    report({
-      ruleName: localLiteralName,
-      result,
-      node: atRule,
-      message: localLiteralMessages.registered(atRule.params),
-    });
-  });
-});
-localLiteral.ruleName = localLiteralName;
-localLiteral.messages = localLiteralMessages;
-
-const systemColorName = 'ui/no-system-color';
-const systemColorMessages = ruleMessages(systemColorName, {
-  rejected: (prop, token) =>
-    `"${token}" in "${prop}" is a system color literal; use a --color-* token (UI gate S2).`,
-});
-
-/** CSS Color 4 system colors and the deprecated CSS2 ones browsers still render. */
-const SYSTEM_COLORS = new Set(
-  [
-    'AccentColor',
-    'AccentColorText',
-    'ActiveText',
-    'ButtonBorder',
-    'ButtonFace',
-    'ButtonText',
-    'Canvas',
-    'CanvasText',
-    'Field',
-    'FieldText',
-    'GrayText',
-    'Highlight',
-    'HighlightText',
-    'LinkText',
-    'Mark',
-    'MarkText',
-    'SelectedItem',
-    'SelectedItemText',
-    'VisitedText',
-    'ActiveBorder',
-    'ActiveCaption',
-    'AppWorkspace',
-    'Background',
-    'ButtonHighlight',
-    'ButtonShadow',
-    'CaptionText',
-    'InactiveBorder',
-    'InactiveCaption',
-    'InactiveCaptionText',
-    'InfoBackground',
-    'InfoText',
-    'Menu',
-    'MenuText',
-    'Scrollbar',
-    'ThreeDDarkShadow',
-    'ThreeDFace',
-    'ThreeDHighlight',
-    'ThreeDLightShadow',
-    'ThreeDShadow',
-    'Window',
-    'WindowFrame',
-    'WindowText',
-  ].map((name) => name.toLowerCase()),
-);
-/**
- * Properties whose identifiers can be colors. Names elsewhere (grid areas, animation names,
- * font families) are structure that may legitimately spell `Menu` or `Field`.
- */
-const COLOR_PROPERTY =
-  /(?:^|-)color$|^(?:background|border(?:-.+)?|outline|fill|stroke|(?:box|text)-shadow|text-decoration|text-emphasis|column-rule|scrollbar-color|--.+)$/;
-
-/** System color words in `nodes`, unpacking every function (a color can hide in any of them). */
-function systemColors(nodes) {
-  const found = [];
-  for (const node of nodes) {
-    if (node.type === 'function') {
-      const name = unprefixed(node.value);
-      found.push(...systemColors(REFERENCE_FUNCTIONS.has(name) ? fallbackOf(node) : node.nodes));
-    } else if (node.type === 'word' && SYSTEM_COLORS.has(node.value.toLowerCase())) {
-      found.push(token(node));
-    }
-  }
-  return found;
-}
-
-/**
- * True inside `@media (forced-colors: active)` written exactly so (any case and spacing): a query
- * list or `or`/`not` condition could also match outside forced-colors mode.
- */
 function inForcedColors(node) {
-  for (let parent = node.parent; parent !== undefined; parent = parent.parent) {
+  for (let parent = node.parent; parent; parent = parent.parent) {
     if (parent.type === 'atrule' && parent.name.toLowerCase() === 'media') {
-      return parent.params.replace(/\s+/g, '').toLowerCase() === '(forced-colors:active)';
+      if (parent.params.replace(/\s+/g, '').toLowerCase() === FORCED_COLORS_MEDIA) return true;
     }
   }
   return false;
 }
 
-const noSystemColor = createPlugin(systemColorName, (enabled) => (root, result) => {
-  if (!enabled) return;
-  root.walkDecls((decl) => {
-    if (inForcedColors(decl)) return;
-    const prop = decl.prop.startsWith('--') ? decl.prop : unprefixed(decl.prop);
-    if (!COLOR_PROPERTY.test(prop)) return;
-    const tokens = systemColors(valueParser(rawValue(decl)).nodes);
-    reportTokens(decl, tokens, systemColorName, result, (value) =>
-      systemColorMessages.rejected(decl.prop, value),
-    );
-  });
-});
-noSystemColor.ruleName = systemColorName;
-noSystemColor.messages = systemColorMessages;
-
-const escapesName = 'ui/no-css-escapes';
-const escapesMessages = ruleMessages(escapesName, {
-  rejected: (where) => `CSS escapes are not allowed in ${where} (UI gate S7).`,
-});
-
-/** True when a value has a backslash outside quoted strings (strings may escape characters). */
-function valueHasEscape(value) {
-  let escaped = false;
-  valueParser(value).walk((node) => {
-    if (node.type !== 'string' && node.value.includes('\\')) escaped = true;
-  });
-  return escaped;
+function isZero(word) {
+  const number = valueParser.unit(word);
+  return Boolean(number) && Number(number.number) === 0;
 }
 
-const noCssEscapes = createPlugin(escapesName, (enabled) => (root, result) => {
-  if (!enabled) return;
-  const reject = (node, where) =>
-    report({ ruleName: escapesName, result, node, message: escapesMessages.rejected(where) });
-  root.walkDecls((decl) => {
-    if (decl.prop.includes('\\')) reject(decl, 'a property name');
-    else if (valueHasEscape(decl.value)) reject(decl, 'a value');
-  });
-  root.walkRules((rule) => {
-    if (rule.selector.includes('\\')) reject(rule, 'a selector');
-  });
-  root.walkAtRules((atRule) => {
-    if (valueHasEscape(atRule.params)) reject(atRule, 'at-rule parameters');
-  });
-});
-noCssEscapes.ruleName = escapesName;
-noCssEscapes.messages = escapesMessages;
-
-const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
-
-const importScopeName = 'ui/import-scope';
-const importScopeMessages = ruleMessages(importScopeName, {
-  rejected: (target, why) =>
-    `@import ${target} ${why}; import a relative .css file inside ${WEB_PACKAGE}, which the CSS gate checks.`,
-});
-
-/** The `@import` target: the first string, or the string or word inside a leading url(). */
-function importTarget(params) {
-  const [first] = valueParser(params).nodes.filter((node) => node.type !== 'space');
-  if (first?.type === 'string') return first.value;
-  if (first?.type === 'function' && first.value.toLowerCase() === 'url') {
-    const [inner] = first.nodes;
-    return inner?.value;
+/** The top-level comma-separated arguments of a function node. */
+function argumentsOf(node) {
+  const groups = [[]];
+  for (const child of node.nodes) {
+    if (child.type === 'div' && child.value === ',') groups.push([]);
+    else groups.at(-1).push(child);
   }
-  return undefined;
+  return groups;
 }
 
-/** Why `target` imported from `file` escapes the gate, or undefined when it is checked CSS. */
-function importEscape(target, file) {
-  if (target === undefined) return 'has no readable target';
-  if (!/^\.\.?\//.test(target)) return 'is not a relative path';
-  if (!target.toLowerCase().endsWith('.css')) return 'is not a .css file';
-  const resolved = path.resolve(path.dirname(file), target);
-  if (!fs.existsSync(resolved)) return 'does not exist';
-  const real = path.relative(REPO_ROOT, fs.realpathSync(resolved)).split(path.sep).join('/');
-  if (!inCssGate(real)) return `resolves outside what the CSS gate lints (${WEB_PACKAGE})`;
-  return undefined;
-}
-
-const importScope = createPlugin(importScopeName, (enabled) => (root, result) => {
-  if (!enabled) return;
-  const file = root.source?.input.file;
-  root.walkAtRules((atRule) => {
-    if (unprefixed(atRule.name) !== 'import') return;
-    const target = importTarget(atRule.params);
-    const why = file === undefined ? 'cannot be resolved (no file)' : importEscape(target, file);
-    if (why === undefined) return;
+function checkValue(decl, prop, domainName, result) {
+  const forced = inForcedColors(decl);
+  const valueStart = decl.toString().indexOf(decl.value, decl.prop.length);
+  const problem = (node, message) =>
     report({
-      ruleName: importScopeName,
       result,
-      node: atRule,
-      message: importScopeMessages.rejected(target ?? atRule.params, why),
-    });
-  });
-});
-importScope.ruleName = importScopeName;
-importScope.messages = importScopeMessages;
-
-const tokenShapeName = 'ui/token-stylesheet-shape';
-const tokenShapeMessages = ruleMessages(tokenShapeName, {
-  rejected: (prop) =>
-    `The token stylesheet defines custom properties only; "${prop}" styles the page (UI gate S1/S2).`,
-});
-
-const tokenShape = createPlugin(tokenShapeName, (enabled) => (root, result) => {
-  if (!enabled) return;
-  root.walkDecls((decl) => {
-    if (decl.prop.startsWith('--')) return;
-    report({
-      ruleName: tokenShapeName,
-      result,
+      ruleName: VALUE,
       node: decl,
-      message: tokenShapeMessages.rejected(decl.prop),
+      message,
+      index: valueStart + node.sourceIndex,
+      endIndex: valueStart + node.sourceEndIndex,
     });
-  });
-});
-tokenShape.ruleName = tokenShapeName;
-tokenShape.messages = tokenShapeMessages;
 
-const artScopeName = 'ui/art-layer-scope';
-const artScopeMessages = ruleMessages(artScopeName, {
-  rejected: (selector, prefix) =>
-    `"${selector}" carries no .${prefix}* class; an art stylesheet styles its own art only (UI gate D7).`,
-});
+  /** Is one word an atom of `domain`? */
+  const atom = (node, domain, name, inMath) => {
+    const text = node.value;
+    const lower = text.toLowerCase();
+    if (isZero(text)) return true;
+    if (inMath && (OPERATORS.has(text) || text === '-1')) return true;
+    if (DOMAIN_COMMON.keywords.includes(lower) || domain.keywords?.includes(lower)) return true;
+    if (domain.colors && COLOR_KEYWORDS.has(lower)) return true;
+    if (forced && domain.colors && SYSTEM_COLORS.has(lower)) return true;
+    const number = valueParser.unit(text);
+    if (number) {
+      if (number.unit === '')
+        return Boolean(domain.unitless) && (!inMath || Boolean(domain.mathNumbers));
+      return !inMath && Boolean(domain.units?.includes(number.unit.toLowerCase()));
+    }
+    return Boolean(domain.idents) && !text.startsWith('#') && IDENT.test(text);
+  };
 
-/** The selector with strings, attribute selectors and functional pseudo-class arguments removed. */
-function selectorOutline(selector) {
-  let outline = selector.replace(/"[^"]*"|'[^']*'/g, '').replace(/\[[^\]]*\]/g, '');
-  for (let previous = ''; previous !== outline;) {
-    previous = outline;
-    outline = outline.replace(/\([^()]*\)/g, '');
-  }
-  return outline;
+  /** Every function in `nodes` (at any depth) is registered; nothing else is checked. */
+  const registeredOnly = (nodes) => {
+    for (const node of nodes) {
+      if (node.type !== 'function') continue;
+      if (node.value !== '' && !FUNCTIONS.has(node.value))
+        problem(node, valueMessages.func(node.value));
+      else registeredOnly(node.nodes);
+    }
+  };
+
+  /** clip-path: shapes are free, except the corner radius after `round` (radius domain). */
+  const shape = (nodes) => {
+    let afterRound = false;
+    for (const node of nodes) {
+      if (afterRound && node.type !== 'space') {
+        walk([node], DOMAINS.radius, 'radius');
+      } else if (node.type === 'word' && node.value.toLowerCase() === 'round') {
+        afterRound = true;
+      } else if (node.type === 'function') {
+        if (node.value !== '' && !FUNCTIONS.has(node.value))
+          problem(node, valueMessages.func(node.value));
+        else shape(node.nodes);
+      }
+    }
+  };
+
+  /** Walk value nodes in a token domain: every word is an atom of it. */
+  const walk = (nodes, domain, name, inMath = false) => {
+    for (const node of nodes) {
+      if (node.type === 'space' || node.type === 'comment' || node.type === 'div') continue;
+      if (node.type === 'string') {
+        problem(node, valueMessages.atom(`"${node.value}"`, prop, name));
+        continue;
+      }
+      if (node.type === 'word') {
+        if (!atom(node, domain, name, inMath))
+          problem(node, valueMessages.atom(node.value, prop, name));
+        continue;
+      }
+      const lower = node.value.toLowerCase();
+      if (lower === '') {
+        walk(node.nodes, domain, name, inMath);
+        continue;
+      }
+      if (!FUNCTIONS.has(node.value)) {
+        problem(node, valueMessages.func(node.value));
+        continue;
+      }
+      if (!DOMAIN_COMMON.functions.includes(lower) && !domain.functions?.includes(lower)) {
+        problem(node, valueMessages.atom(`${node.value}()`, prop, name));
+        continue;
+      }
+      if (lower === 'var') {
+        const [reference, ...fallback] = argumentsOf(node);
+        const first = reference.find((child) => child.type !== 'space');
+        if (first?.type !== 'word' || !first.value.startsWith('--')) {
+          problem(node, valueMessages.atom('var()', prop, name));
+        }
+        walk(fallback.flat(), domain, name, inMath);
+        continue;
+      }
+      if (lower === 'env') continue;
+      // Math reads its operands as atoms; a domain function (gradient, filter, easing) its arguments.
+      walk(node.nodes, domain, name, inMath || MATH.has(lower));
+    }
+  };
+
+  const nodes = valueParser(decl.value).nodes;
+  if (domainName === 'free') registeredOnly(nodes);
+  else if (DOMAINS[domainName].shape) shape(nodes);
+  else walk(nodes, DOMAINS[domainName], domainName);
 }
 
-function isInKeyframes(node) {
-  for (let parent = node.parent; parent !== undefined; parent = parent.parent) {
+const valueAllowlist = createPlugin(VALUE, (enabled) => (root, result) => {
+  if (!enabled) return;
+  root.walkDecls((decl) => {
+    const raw = decl.prop;
+    const custom = raw.startsWith('--');
+    let domain;
+    if (!raw.includes('\\'))
+      domain = custom ? 'custom' : PROPERTIES.get(raw.toLowerCase().replace(VENDOR_PREFIX, ''));
+    if (domain === undefined) {
+      report({
+        result,
+        ruleName: VALUE,
+        node: decl,
+        message: valueMessages.property(raw),
+        word: raw,
+      });
+      return;
+    }
+    checkValue(decl, custom ? 'custom property' : raw.toLowerCase(), domain, result);
+  });
+});
+
+const SCOPE = 'ui/sheet-scope';
+const scopeMessages = ruleMessages(SCOPE, {
+  tokenDecl: (prop) =>
+    `The token sheet holds only custom property definitions; \`${prop}\` is not one (UI gate S10).`,
+  tokenSelector: (selector) =>
+    `\`${selector}\` is not a registered token-sheet selector (UI gate S10).`,
+  escaped: 'Selectors in the token and art sheets are not escaped (UI gate S10).',
+  artClass: (name, prefix) =>
+    `\`.${name}\` is not an art class of this sheet (prefix \`${prefix}\`; UI gate S10).`,
+  artBare: (selector, prefix) => `\`${selector}\` selects no \`${prefix}\` class (UI gate S10).`,
+  artAttribute: 'Art sheets select by class, not by `class`/`id` attributes (UI gate S10).',
+});
+
+function inKeyframes(rule) {
+  for (let parent = rule.parent; parent; parent = parent.parent) {
     if (parent.type === 'atrule' && /keyframes$/i.test(parent.name)) return true;
   }
   return false;
 }
 
-const artScope = createPlugin(artScopeName, (prefix) => (root, result) => {
-  if (typeof prefix !== 'string' || prefix === '') {
-    throw new Error(`${artScopeName} needs the art stylesheet's class prefix`);
+const sheetScope = createPlugin(SCOPE, (options) => (root, result) => {
+  if (!options) return;
+  const flag = (node, message) => report({ result, ruleName: SCOPE, node, message });
+  if (options.kind === 'tokens') {
+    root.walkDecls((decl) => {
+      if (!decl.prop.startsWith('--')) flag(decl, scopeMessages.tokenDecl(decl.prop));
+    });
+    root.walkRules((rule) => {
+      if (rule.selector.includes('\\')) return flag(rule, scopeMessages.escaped);
+      for (const part of rule.selectors) {
+        if (!options.selectors.includes(part.trim())) flag(rule, scopeMessages.tokenSelector(part));
+      }
+    });
+    return;
   }
-  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const ownClass = new RegExp(`\\.${escaped}(?:[-_][\\w-]*)?(?![\\w-])`);
+  const { prefix } = options;
+  const own = (name) =>
+    name === prefix || name.startsWith(`${prefix}-`) || name.startsWith(`${prefix}__`);
   root.walkRules((rule) => {
-    // Nested rules sit inside a checked parent; keyframe steps are not selectors.
-    if (rule.parent?.type === 'rule' || isInKeyframes(rule)) return;
-    for (const selector of rule.selectors) {
-      if (ownClass.test(selectorOutline(selector))) continue;
-      report({
-        ruleName: artScopeName,
-        result,
-        node: rule,
-        message: artScopeMessages.rejected(selector, prefix),
-      });
+    if (inKeyframes(rule)) return;
+    if (rule.selector.includes('\\')) return flag(rule, scopeMessages.escaped);
+    if (/\[\s*(?:class|id)\b/i.test(rule.selector)) flag(rule, scopeMessages.artAttribute);
+    for (const part of rule.selectors) {
+      const classes = [...part.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map((match) => match[1]);
+      if (classes.length === 0) flag(rule, scopeMessages.artBare(part.trim(), prefix));
+      for (const name of classes) if (!own(name)) flag(rule, scopeMessages.artClass(name, prefix));
     }
   });
 });
-artScope.ruleName = artScopeName;
-artScope.messages = artScopeMessages;
 
-export default [
-  strictValue,
-  localLiteral,
-  noSystemColor,
-  noCssEscapes,
-  importScope,
-  tokenShape,
-  artScope,
-];
+export default [valueAllowlist, sheetScope];

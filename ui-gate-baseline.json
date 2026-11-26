@@ -1,0 +1,493 @@
+{
+  "rules": [
+    "@typescript-eslint/no-implied-eval",
+    "@typescript-eslint/no-unsafe-argument",
+    "@typescript-eslint/no-unsafe-assignment",
+    "@typescript-eslint/no-unsafe-call",
+    "@typescript-eslint/no-unsafe-member-access",
+    "at-rule-allowed-list",
+    "no-eval",
+    "no-new-func",
+    "no-restricted-imports",
+    "react/no-danger",
+    "ui/dom-allowlist",
+    "ui/element-allowlist",
+    "ui/inline-style-keys",
+    "ui/sheet-scope",
+    "ui/value-allowlist"
+  ],
+  "files": {
+    "packages/web/preview/preview.css": [
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;"
+    ],
+    "packages/web/src/boot/WechatBrowserGuide.css": [
+      "ui/value-allowlist\t`1.5s` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: wechat-guide-bounce 1.5s ease-in-out infinite;",
+      "ui/value-allowlist\t`2` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 2;"
+    ],
+    "packages/web/src/components/BottomSheet.css": [
+      "ui/value-allowlist\t`180ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: bottom-sheet-fade 180ms ease-out;",
+      "ui/value-allowlist\t`220ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: bottom-sheet-slide 220ms cubic-bezier(0.2, 0.8, 0.2, 1);"
+    ],
+    "packages/web/src/components/Button.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tcolor 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,"
+    ],
+    "packages/web/src/components/CenterDialog.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: center-dialog-fade 120ms ease-in reverse;",
+      "ui/value-allowlist\t`120ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: center-dialog-pop 120ms ease-in reverse;",
+      "ui/value-allowlist\t`150ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: center-dialog-fade 150ms ease-out;",
+      "ui/value-allowlist\t`150ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: center-dialog-pop 150ms ease-out;"
+    ],
+    "packages/web/src/components/ChoiceCard.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 120ms ease-out;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 120ms ease-out,"
+    ],
+    "packages/web/src/components/GameGuide.css": [
+      "ui/value-allowlist\t`1.45` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1.45;",
+      "ui/value-allowlist\t`1.65` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1.65;",
+      "ui/value-allowlist\t`1.6` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1.6;",
+      "ui/value-allowlist\t`1.6` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1.6;"
+    ],
+    "packages/web/src/components/GameStatsPanel.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/components/IndeterminateProgressBar.css": [
+      "ui/value-allowlist\t`1.5s` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: indeterminate-progress-sweep 1.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;"
+    ],
+    "packages/web/src/components/LoadingScreen.css": [
+      "ui/value-allowlist\t`1s` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: loading-screen-pulse 1s ease-in-out infinite alternate;"
+    ],
+    "packages/web/src/components/NumPad.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,"
+    ],
+    "packages/web/src/components/ScreenHeader.css": [
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;"
+    ],
+    "packages/web/src/components/Spinner.css": [
+      "ui/value-allowlist\t`800ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: spinner-rotate 800ms linear infinite;"
+    ],
+    "packages/web/src/components/Switch.css": [
+      "ui/value-allowlist\t`150ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: background-color 150ms ease-out;",
+      "ui/value-allowlist\t`150ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 150ms ease-out;"
+    ],
+    "packages/web/src/components/avatar/avatarConcentric.css": [
+      "ui/value-allowlist\t`100%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *",
+      "ui/value-allowlist\t`1` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *",
+      "ui/value-allowlist\t`2` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *"
+    ],
+    "packages/web/src/features/drawing/components/DrawingToolbar.css": [
+      "ui/value-allowlist\t`320px` is not allowed in `custom property`: the custom domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\t--drawing-color-popover-width: 320px;"
+    ],
+    "packages/web/src/features/encyclopedia/Encyclopedia.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/features/feedback/components/FeedbackTab.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tcolor 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/features/product/components/CosmeticTabs.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/features/room/components/PlayerProfileCard.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: color 100ms ease-out;",
+      "ui/value-allowlist\t`2` is not allowed in `margin-top`: the spacing domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tmargin-top: calc(-1 * (var(--size-avatar-xl) / 2 + var(--space-tight)));",
+      "ui/value-allowlist\t`2` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 2;",
+      "ui/value-allowlist\t`3` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 3;"
+    ],
+    "packages/web/src/features/room/components/ProfileEquipmentShowcase.css": [
+      "ui/value-allowlist\t`color-mix()` is not a registered CSS function (UI gate S2). (ui/value-allowlist)\tborder-color: color-mix(in srgb, var(--rarity-color) 25%, var(--color-border-light));"
+    ],
+    "packages/web/src/features/room/components/RoleCard.css": [
+      "ui/value-allowlist\t`0.4` is not allowed in `font-size`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-size: calc(38cqi * 0.4);",
+      "ui/value-allowlist\t`100%` is not allowed in `mask-image`: the paint domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tmask-image: linear-gradient(to bottom, black calc(100% - var(--space-medium)), transparent);",
+      "ui/value-allowlist\t`150ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: center-dialog-pop 150ms ease-out;",
+      "ui/value-allowlist\t`38cqi` is not allowed in `font-size`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-size: calc(38cqi * 0.4);",
+      "ui/value-allowlist\t`black` is not allowed in `mask-image`: the paint domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tmask-image: linear-gradient(to bottom, black calc(100% - var(--space-medium)), transparent);",
+      "ui/value-allowlist\t`color-mix()` is not a registered CSS function (UI gate S2). (ui/value-allowlist)\tcolor-mix(in srgb, var(--field-accent) 30%, transparent);"
+    ],
+    "packages/web/src/features/room/components/RoomActionHand.css": [
+      "ui/value-allowlist\t`160ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\trotate 160ms ease-out,",
+      "ui/value-allowlist\t`160ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttranslate 160ms ease-out;",
+      "ui/value-allowlist\t`1px` is not allowed in `box-shadow`: the shadow domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\t0 1px 0 var(--hand-ink);"
+    ],
+    "packages/web/src/features/room/components/RoomBottomActionPanel.css": [
+      "ui/value-allowlist\t`150ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: bottom-message-in 150ms ease-out;",
+      "ui/value-allowlist\t`200ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: width 200ms ease-out;"
+    ],
+    "packages/web/src/features/room/components/RoomDialog.css": [
+      "ui/value-allowlist\t`150ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: center-dialog-pop 150ms ease-out;"
+    ],
+    "packages/web/src/features/room/components/RoomGameSummary.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/features/room/components/RoomPlayerPickModal.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 120ms ease-out;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 120ms ease-out,"
+    ],
+    "packages/web/src/features/room/components/RoomRecord.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/features/room/components/RoomSeatBoard.css": [
+      "ui/value-allowlist\t`10` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 10;",
+      "ui/value-allowlist\t`10px` is not allowed in `box-shadow`: the shadow domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow: 0 0 10px var(--seat-ring-glow);",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 120ms ease-out;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`1px` is not allowed in `padding`: the spacing domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tpadding: 1px calc(var(--space-tight) + var(--space-micro));",
+      "ui/value-allowlist\t`220ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: seat-badge-pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1);",
+      "ui/value-allowlist\t`220ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: seat-select-pop 220ms ease-out;",
+      "ui/value-allowlist\t`260ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: seat-join 260ms cubic-bezier(0.34, 1.56, 0.64, 1);",
+      "ui/value-allowlist\t`2` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 2;",
+      "ui/value-allowlist\t`6px` is not allowed in `box-shadow`: the shadow domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow: 0 0 6px var(--color-success-a40);",
+      "ui/value-allowlist\t`8px` is not allowed in `box-shadow`: the shadow domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow: 0 0 8px var(--seat-ring-glow);"
+    ],
+    "packages/web/src/features/room/components/RoomShareDialog.css": [
+      "ui/value-allowlist\t`2` is not allowed in `font-size`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-size: calc(var(--size-icon-xl) * 2);"
+    ],
+    "packages/web/src/features/room/components/RoomShell.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;"
+    ],
+    "packages/web/src/features/room/components/RoomStageHud.css": [
+      "ui/value-allowlist\t`250ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: width 250ms linear;",
+      "ui/value-allowlist\t`600ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: room-stage-alert-pulse 600ms ease-in-out infinite alternate;"
+    ],
+    "packages/web/src/features/room/review/components/review.css": [
+      "ui/value-allowlist\t`800ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: review-spin 800ms linear infinite;"
+    ],
+    "packages/web/src/features/room/steps/StepCardPicker.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/games/avalon/room/components/AvalonRecord.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/games/avalon/room/components/AvalonResultPanel.css": [
+      "ui/value-allowlist\t`0.1em` is not allowed in `letter-spacing`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tletter-spacing: 0.1em;"
+    ],
+    "packages/web/src/games/decrypto/room/DecryptoRoomScreen.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `animation-delay`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-delay: 120ms;",
+      "ui/value-allowlist\t`1px` is not allowed in `box-shadow`: the shadow domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow: inset 0 0 0 1px var(--team-accent);",
+      "ui/value-allowlist\t`240ms` is not allowed in `animation-delay`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-delay: 240ms;",
+      "ui/value-allowlist\t`240ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\topacity 240ms ease-out,",
+      "ui/value-allowlist\t`240ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttranslate 240ms ease-out;",
+      "ui/value-allowlist\t`360ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: decrypto-digit-reveal 360ms ease-out both;"
+    ],
+    "packages/web/src/games/drawguess/room/components/DrawGuessStage.css": [
+      "ui/value-allowlist\t`0.25s` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: drawguess-toast-in 0.25s ease-out;",
+      "ui/value-allowlist\t`0.32s` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: drawguess-shake 0.32s ease-in-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,",
+      "ui/value-allowlist\t`2` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 2;"
+    ],
+    "packages/web/src/games/pictionary/room/components/PictionaryStage.css": [
+      "ui/value-allowlist\t`1000` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1000;",
+      "ui/value-allowlist\t`1000` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1000;"
+    ],
+    "packages/web/src/games/spotmatch/room/SpotmatchRoomScreen.css": [
+      "ui/value-allowlist\t`180ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: spotmatch-wrong-nudge 180ms ease-out;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`280ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: spotmatch-poster-pop 280ms cubic-bezier(0.16, 1, 0.3, 1);",
+      "ui/value-allowlist\t`300ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: spotmatch-match-pop 300ms cubic-bezier(0.16, 1, 0.3, 1);",
+      "ui/value-allowlist\t`3` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 3;",
+      "ui/value-allowlist\t`4` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 4;"
+    ],
+    "packages/web/src/games/storyrelay/room/components/StoryRelayStage.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/games/toolbox/room/ToolboxDiceCup.css": [
+      "ui/value-allowlist\t`0.16em` is not allowed in `letter-spacing`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tletter-spacing: 0.16em;",
+      "ui/value-allowlist\t`1.4s` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: toolbox-dice-shake 1.4s ease-in-out both;",
+      "ui/value-allowlist\t`10%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "ui/value-allowlist\t`10%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "ui/value-allowlist\t`12%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "ui/value-allowlist\t`12%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`22%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "ui/value-allowlist\t`22%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "ui/value-allowlist\t`320ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 320ms ease-out;",
+      "ui/value-allowlist\t`50%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 0 0 50% 50%;",
+      "ui/value-allowlist\t`50%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 0 0 50% 50%;",
+      "ui/value-allowlist\t`50%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 50%;",
+      "ui/value-allowlist\t`50%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 50%;",
+      "ui/value-allowlist\t`50%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 50%;",
+      "ui/value-allowlist\t`50%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 50%;",
+      "ui/value-allowlist\t`8%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "ui/value-allowlist\t`8%` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;"
+    ],
+    "packages/web/src/games/toolbox/room/ToolboxIdentityPanel.css": [
+      "ui/value-allowlist\t`0.6rem` is not allowed in `background`: the paint domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransparent 0 0.6rem,",
+      "ui/value-allowlist\t`0.6rem` is not allowed in `background`: the paint domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tvar(--color-text-inverse-a20) 0.6rem 0.7rem",
+      "ui/value-allowlist\t`0.7rem` is not allowed in `background`: the paint domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tvar(--color-text-inverse-a20) 0.6rem 0.7rem"
+    ],
+    "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 100ms ease-out;",
+      "ui/value-allowlist\t`150ms` is not allowed in `animation-delay`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-delay: 150ms;",
+      "ui/value-allowlist\t`150ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: ai-chat-fade 150ms ease-out;",
+      "ui/value-allowlist\t`150ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: ai-chat-fade 150ms ease-out;",
+      "ui/value-allowlist\t`1s` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: ai-chat-pulse 1s ease-out 3;",
+      "ui/value-allowlist\t`300ms` is not allowed in `animation-delay`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-delay: 300ms;",
+      "ui/value-allowlist\t`800ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: ai-chat-blink 800ms step-end infinite;",
+      "ui/value-allowlist\t`800ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: ai-chat-typing 800ms ease-in-out infinite;",
+      "ui/value-allowlist\t`Menlo` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-family: ui-monospace, Menlo, monospace;",
+      "ui/value-allowlist\t`monospace` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-family: ui-monospace, Menlo, monospace;",
+      "ui/value-allowlist\t`ui-monospace` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-family: ui-monospace, Menlo, monospace;"
+    ],
+    "packages/web/src/games/werewolf/components/BoardStrategy/BoardStrategy.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,"
+    ],
+    "packages/web/src/games/werewolf/components/NotepadPanel.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`1px` is not allowed in `padding`: the spacing domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tpadding: 1px var(--space-micro);"
+    ],
+    "packages/web/src/games/werewolf/components/WerewolfBoardAnnouncementTab.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 100ms ease-out;"
+    ],
+    "packages/web/src/games/werewolf/components/WerewolfHomeSpotlight.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tcolor 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`300ms` is not allowed in `transition-duration`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition-duration: 300ms;",
+      "ui/value-allowlist\t`600ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 600ms ease-in-out;"
+    ],
+    "packages/web/src/games/werewolf/room/components/BoardNominationList.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/games/werewolf/room/components/MvpSelectionModal.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 120ms ease-out;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 120ms ease-out,"
+    ],
+    "packages/web/src/games/werewolf/room/components/ShareReviewModal.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/games/werewolf/room/components/SheriffElection.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 120ms ease-out;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 120ms ease-out,",
+      "ui/value-allowlist\t`3` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: calc(var(--border-width) * 3) solid var(--color-primary);"
+    ],
+    "packages/web/src/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,"
+    ],
+    "packages/web/src/games/werewolf/screens/ConfigScreen/ConfigScreen.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 120ms ease-out;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 120ms ease-out,",
+      "ui/value-allowlist\t`1` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1;",
+      "ui/value-allowlist\t`1` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;"
+    ],
+    "packages/web/src/games/werewolf/screens/NotepadScreen/NotepadScreen.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/global.css": [
+      "ui/value-allowlist\t`\"Microsoft YaHei\"` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\t'Microsoft YaHei',",
+      "ui/value-allowlist\t`\"PingFang SC\"` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\t'PingFang SC',",
+      "ui/value-allowlist\t`-1px` is not allowed in `margin`: the spacing domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tmargin: -1px;",
+      "ui/value-allowlist\t`-apple-system` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\t-apple-system,",
+      "ui/value-allowlist\t`0.01ms` is not allowed in `animation-duration`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-duration: 0.01ms !important;",
+      "ui/value-allowlist\t`0.01ms` is not allowed in `transition-duration`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition-duration: 0.01ms !important;",
+      "ui/value-allowlist\t`800ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: spinner-turn 800ms linear infinite;",
+      "ui/value-allowlist\t`sans-serif` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tsans-serif;",
+      "ui/value-allowlist\t`system-ui` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tsystem-ui,"
+    ],
+    "packages/web/src/routes/admin/admin.css": [
+      "ui/value-allowlist\t`-1px` is not allowed in `margin`: the spacing domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tmargin: -1px;",
+      "ui/value-allowlist\t`-2px` is not allowed in `outline-offset`: the line-width domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\toutline-offset: -2px;",
+      "ui/value-allowlist\t`-2px` is not allowed in `outline-offset`: the line-width domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\toutline-offset: -2px;",
+      "ui/value-allowlist\t`1.5s` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: admin-pulse 1.5s ease-in-out infinite alternate;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground 120ms,",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-color 120ms;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 120ms;",
+      "ui/value-allowlist\t`120px` is not allowed in `scroll-margin-top`: the spacing domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tscroll-margin-top: 120px;",
+      "ui/value-allowlist\t`1` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 1;",
+      "ui/value-allowlist\t`1px` is not allowed in `border-bottom`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-bottom`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-bottom`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-bottom`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-bottom`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-bottom`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-bottom`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-inline-start`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-inline-start: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-left`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-left: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-top`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-top: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-top`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-top: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-top`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-top: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-top`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-top: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-top`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-top: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid transparent;",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid transparent;",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border-strong);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border-strong);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-danger);",
+      "ui/value-allowlist\t`1px` is not allowed in `outline`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\toutline: 1px solid var(--admin-accent);",
+      "ui/value-allowlist\t`200ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: admin-slide 200ms ease-out;",
+      "ui/value-allowlist\t`200ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: admin-slide-up 200ms ease-out;",
+      "ui/value-allowlist\t`200ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: admin-slide-up 200ms ease-out;",
+      "ui/value-allowlist\t`3px` is not allowed in `outline-offset`: the line-width domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\toutline-offset: 3px;",
+      "ui/value-allowlist\t`4` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 4;",
+      "ui/value-allowlist\t`4` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 4;",
+      "ui/value-allowlist\t`50` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 50;",
+      "ui/value-allowlist\t`51` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 51;",
+      "ui/value-allowlist\t`5` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 5;",
+      "ui/value-allowlist\t`Menlo` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-family: ui-monospace, SFMono-Regular, Menlo, monospace;",
+      "ui/value-allowlist\t`SFMono-Regular` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-family: ui-monospace, SFMono-Regular, Menlo, monospace;",
+      "ui/value-allowlist\t`monospace` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-family: ui-monospace, SFMono-Regular, Menlo, monospace;",
+      "ui/value-allowlist\t`ui-monospace` is not allowed in `font-family`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-family: ui-monospace, SFMono-Regular, Menlo, monospace;"
+    ],
+    "packages/web/src/routes/admin/words/wordSubmissions.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 120ms ease-out,",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-color 120ms ease-out;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 120ms ease-out;",
+      "ui/value-allowlist\t`1px` is not allowed in `border-bottom`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-top`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-top: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border-top`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-top: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`1px` is not allowed in `border`: the border domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t`2` is not allowed in `border-radius`: the radius domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tborder-radius: calc(var(--radius-small) / 2);"
+    ],
+    "packages/web/src/routes/appearance/AppearancePage.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 120ms ease-out;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 120ms ease-out,",
+      "ui/value-allowlist\t`2` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 2;"
+    ],
+    "packages/web/src/routes/gacha/GachaPage.css": [
+      "ui/value-allowlist\t`1.04` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1.04;",
+      "ui/value-allowlist\t`1.3` is not allowed in `font-size`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-size: calc(var(--font-display) * 1.3);",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,"
+    ],
+    "packages/web/src/routes/gacha/components/DrawButton.css": [
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 120ms ease-out;",
+      "ui/value-allowlist\t`120ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 120ms ease-out,",
+      "ui/value-allowlist\t`2200ms` is not allowed in `animation-duration`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-duration: 2200ms;",
+      "ui/value-allowlist\t`3000ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: draw-button-shimmer 3000ms linear infinite;"
+    ],
+    "packages/web/src/routes/gacha/components/PityProgressBar.css": [
+      "ui/value-allowlist\t`300ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: width 300ms ease-out;",
+      "ui/value-allowlist\t`800ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: pity-bar-pulse 800ms ease-in-out infinite alternate;"
+    ],
+    "packages/web/src/routes/gacha/components/RewardPreview.css": [
+      "ui/value-allowlist\t`1` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1;",
+      "ui/value-allowlist\t`2` is not allowed in `font-size`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tfont-size: calc(var(--reward-preview-size) / 2);"
+    ],
+    "packages/web/src/routes/gacha/components/SingleResultReveal.css": [
+      "ui/value-allowlist\t`1000ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: single-reveal-breathe 1000ms ease-in-out infinite alternate;",
+      "ui/value-allowlist\t`1200ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: single-reveal-breathe 1200ms ease-in-out infinite alternate;",
+      "ui/value-allowlist\t`200ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: single-reveal-drop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms both;",
+      "ui/value-allowlist\t`200ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: single-reveal-fade 200ms ease-out both;",
+      "ui/value-allowlist\t`2` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 2;",
+      "ui/value-allowlist\t`300ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: single-reveal-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;",
+      "ui/value-allowlist\t`500ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: single-reveal-rise 500ms ease-out both;",
+      "ui/value-allowlist\t`600ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: single-reveal-drop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms both;"
+    ],
+    "packages/web/src/routes/gacha/components/TenResultOverlay.css": [
+      "ui/value-allowlist\t`2` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 2;",
+      "ui/value-allowlist\t`300ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: ten-result-cell-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--cell-delay) both;",
+      "ui/value-allowlist\t`500ms` is not allowed in `animation-duration`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-duration: 500ms;"
+    ],
+    "packages/web/src/routes/gacha/components/TicketTabBar.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tcolor 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`300ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 300ms ease-out;",
+      "ui/value-allowlist\t`300ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 300ms ease-out,"
+    ],
+    "packages/web/src/routes/games/GamePickerPage.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/routes/home/HomePage.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 100ms ease-out;"
+    ],
+    "packages/web/src/routes/home/InstallMenuItem.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,"
+    ],
+    "packages/web/src/routes/settings/MusicSettingsPage.css": [
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbackground-color 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out,",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransform 100ms ease-out;",
+      "ui/value-allowlist\t`100ms` is not allowed in `transition`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\ttransition: transform 100ms ease-out;",
+      "ui/value-allowlist\t`350ms` is not allowed in `animation-duration`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-duration: 350ms;",
+      "ui/value-allowlist\t`400ms` is not allowed in `animation`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation: music-equalizer-bar 400ms ease-in-out infinite alternate;",
+      "ui/value-allowlist\t`550ms` is not allowed in `animation-duration`: the motion domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tanimation-duration: 550ms;"
+    ],
+    "packages/web/src/routes/settings/SettingsPage.css": [
+      "ui/value-allowlist\t`1` is not allowed in `line-height`: the font domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tline-height: 1;",
+      "ui/value-allowlist\t`2` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 2;"
+    ],
+    "packages/web/src/routes/unlocks/UnlocksPage.css": [
+      "ui/value-allowlist\t`2` is not allowed in `z-index`: the layer domain takes var(--token) and registered keywords (UI gate S1). (ui/value-allowlist)\tz-index: 2;"
+    ]
+  }
+}

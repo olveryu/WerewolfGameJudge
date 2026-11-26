@@ -2,7 +2,7 @@
  * Generator tests: run the real generator against a fixture repository
  * assembled from the real shared files it edits, across representative feature
  * profiles. A real-tree copy validates representative selections with the
- * generated output's formatting, lint (including Stylelint), types and package tests. Run with
+ * generated output's formatting, lint (including the UI gate's rules), types and package tests. Run with
  * `corepack pnpm run test scripts/new-game.test.mjs`.
  */
 
@@ -1669,8 +1669,31 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
         },
       });
 
-      // Generated stylesheets meet the UI gate with no recorded debt. The root config is passed
-      // explicitly, as `lint:css` does: Stylelint would otherwise take the nearest config file.
+      // Generated files meet the UI gate with no recorded debt: its own configurations, inline
+      // disables ignored, as `lint:ui` runs them (Stylelint would otherwise take the nearest
+      // config file).
+      execFileSync(
+        process.execPath,
+        [
+          eslintBin,
+          '--config',
+          path.join(root, 'scripts/ui-lint/eslint.gate.mjs'),
+          '--no-inline-config',
+          '--max-warnings',
+          '0',
+          ...lintTargets,
+        ],
+        {
+          cwd: root,
+          stdio: 'pipe',
+          env: {
+            ...process.env,
+            NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
+              .filter(Boolean)
+              .join(' '),
+          },
+        },
+      );
       const styleTargets = createdFiles.filter((file) => file.endsWith('.css'));
       assert.ok(styleTargets.length > 0, 'the generator emits stylesheets');
       execFileSync(
@@ -1682,7 +1705,8 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
             'stylelint.mjs',
           ),
           '--config',
-          path.join(root, 'stylelint.config.mjs'),
+          path.join(root, 'scripts/ui-lint/stylelint.gate.mjs'),
+          '--ignore-disables',
           '--disable-default-ignores',
           ...styleTargets,
         ],

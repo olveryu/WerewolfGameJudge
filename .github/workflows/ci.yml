@@ -40,7 +40,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      # Depth 2: the UI baseline ratchet compares with HEAD^1 (main, for a PR's merge commit).
+      # Depth 2: the UI gate compares its baseline with HEAD^1 (main, for a PR's merge commit).
       - uses: actions/checkout@v6
         with:
           fetch-depth: 2
@@ -60,11 +60,8 @@ jobs:
       - name: Format check
         run: pnpm run format
 
-      - name: Stylelint
-        run: pnpm run lint:css
-
-      - name: UI baseline ratchet
-        run: pnpm run lint:ui-baseline
+      - name: UI gate
+        run: pnpm run lint:ui
 
   # Root contracts + game-engine and web Vitest suites, sharded across 2
   # runners (mirrors the test-api-worker sharding below). As its own job it
