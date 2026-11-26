@@ -18,7 +18,7 @@ import {
   type RoomSeatIndicators,
   type RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
-import type { ResidentDecorations } from '@/scene/residentDecorations';
+import { type ResidentDecorations, wearsFrame } from '@/scene/residentDecorations';
 import { TESTIDS } from '@/testids';
 import IconChatbubbleEllipsesOutline from '~icons/ion/chatbubble-ellipses-outline';
 import IconCheckmarkCircle from '~icons/ion/checkmark-circle';
@@ -118,7 +118,7 @@ function RoomSeatTileComponent({
         className={`seat-tile-button ${AVATAR_CONCENTRIC_CLASS}`}
         data-testid={TESTIDS.seatTilePressable(seat)}
         data-empty={player === null}
-        data-framed={residents !== null && residents.frameId !== null}
+        data-framed={wearsFrame(residents)}
         data-highlight={model.highlight}
         data-inert={isBoardDisabled || model.disabledReason !== undefined}
         aria-label={describeSeat(model)}
