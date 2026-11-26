@@ -406,6 +406,7 @@ export function createSecrethitlerRoomShellModel(
       : buildViewIdentityButton(identityAction, {
           key: 'view-identity',
           audience: 'participant',
+          testID: TESTIDS.roomViewIdentityButton,
           isSubmitting: input.isSubmitting,
           isPending:
             state.phase.kind === 'viewing' &&
@@ -418,6 +419,7 @@ export function createSecrethitlerRoomShellModel(
       : {
           key: SECRETHITLER_GAME_ACTION_KEY,
           label: input.isSelecting ? '取消选座' : instruction.action,
+          testID: TESTIDS.secrethitlerGameAction,
           audience: 'participant',
           category: 'player',
           isPending: state.phase.kind !== 'voting' || view.myVote === null,
