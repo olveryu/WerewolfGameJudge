@@ -5,9 +5,10 @@ import { type RefObject, Suspense, use, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { makeBuiltinAvatarUrl } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
-import { IonIcon } from '@/components/icons/IonIcon';
+import { IonIcon, type IoniconName } from '@/components/icons/IonIcon';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
@@ -30,7 +31,11 @@ import {
 import { loadClientProductUi } from '@/features/product/loadClientProductUi';
 import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
 import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
-import { type ResidentDecorations, resolveResidentDecorations } from '@/scene/residentDecorations';
+import {
+  type ResidentDecorations,
+  resolveResidentDecorations,
+  wearsFrame,
+} from '@/scene/residentDecorations';
 import { TESTIDS } from '@/testids';
 import IconCheckmark from '~icons/ion/checkmark';
 import IconLockClosed from '~icons/ion/lock-closed';
@@ -71,60 +76,93 @@ function residentsOf(tab: CosmeticTab, id: string): ResidentDecorations | null {
   }
 }
 
-function UnlockThumb({ item, tab, productUi, sceneHostRef, scrollRootRef }: ThumbProps) {
-  const thumbOpacity = item.unlocked ? 1 : LOCKED_THUMB_OPACITY;
-  const residentTile = (residents: ResidentDecorations | null) => (
-    <ResidentAvatarTile
-      userId={PREVIEW_USER_ID}
-      avatarUrl={null}
-      residents={residents}
-      sceneHostRef={sceneHostRef}
-      scrollRootRef={scrollRootRef}
-      opacity={thumbOpacity}
-    />
-  );
+/** What a cell previews: an avatar, a resident tile (an avatar wearing the item), or neither. */
+type ThumbContent =
+  | { readonly kind: 'avatar' }
+  | { readonly kind: 'tile'; readonly residents: ResidentDecorations | null }
+  | { readonly kind: 'text' }
+  | { readonly kind: 'icon'; readonly icon: IoniconName };
+
+function thumbContentOf(
+  item: UnlockItem,
+  tab: CosmeticTab,
+  productUi: ClientProductUi,
+): ThumbContent {
   switch (tab) {
+    case 'avatar':
+      return { kind: 'avatar' };
+    case 'nameStyle':
+      return { kind: 'text' };
+    case 'effect': {
+      const presentation = productUi.getRevealEffectPresentation(item.id);
+      return presentation.petName !== null
+        ? { kind: 'tile', residents: resolveResidentDecorations({ seatPetId: item.id }) }
+        : { kind: 'icon', icon: presentation.icon };
+    }
+    case 'frame':
+    case 'flair':
+    case 'seatAnimation':
+      return { kind: 'tile', residents: residentsOf(tab, item.id) };
+  }
+}
+
+function UnlockThumb({
+  item,
+  content,
+  sceneHostRef,
+  scrollRootRef,
+}: ThumbProps & { readonly content: ThumbContent }) {
+  const thumbOpacity = item.unlocked ? 1 : LOCKED_THUMB_OPACITY;
+  switch (content.kind) {
     case 'avatar':
       return (
         <span className="unlocks-thumb" style={{ opacity: thumbOpacity }}>
           <Avatar userId={item.id} avatarUrl={makeBuiltinAvatarUrl(item.id)} size="fill" />
         </span>
       );
-    case 'nameStyle':
+    case 'text':
       return (
         <span className="unlocks-thumb unlocks-thumb-text" style={{ opacity: thumbOpacity }}>
           <NameStyleText styleId={item.id}>{item.displayName}</NameStyleText>
         </span>
       );
-    case 'effect': {
-      const presentation = productUi.getRevealEffectPresentation(item.id);
-      if (presentation.petName !== null) {
-        return residentTile(resolveResidentDecorations({ seatPetId: item.id }));
-      }
+    case 'icon':
       return (
         <span className="unlocks-thumb unlocks-thumb-icon" data-locked={!item.unlocked}>
-          <IonIcon name={presentation.icon} />
+          <IonIcon name={content.icon} />
         </span>
       );
-    }
-    case 'frame':
-    case 'flair':
-    case 'seatAnimation':
-      return residentTile(residentsOf(tab, item.id));
+    case 'tile':
+      return (
+        <ResidentAvatarTile
+          userId={PREVIEW_USER_ID}
+          avatarUrl={null}
+          residents={content.residents}
+          sceneHostRef={sceneHostRef}
+          scrollRootRef={scrollRootRef}
+          opacity={thumbOpacity}
+        />
+      );
   }
 }
 
+/** A cell previewing an avatar (bare or in a tile): its corners are concentric with it. */
+const AVATAR_CELL_FRAME_CLASS = `unlocks-cell-frame ${AVATAR_CONCENTRIC_CLASS}`;
+
 function UnlockCell(props: ThumbProps) {
-  const { item, tab } = props;
+  const { item, tab, productUi } = props;
+  const content = thumbContentOf(item, tab, productUi);
+  const holdsAvatar = content.kind === 'avatar' || content.kind === 'tile';
   return (
     <li className="unlocks-cell" aria-label={item.unlocked ? item.displayName : '未解锁'}>
       <span
-        className="unlocks-cell-frame"
+        className={holdsAvatar ? AVATAR_CELL_FRAME_CLASS : 'unlocks-cell-frame'}
+        data-tile-border={content.kind === 'tile' && !wearsFrame(content.residents)}
         data-locked={!item.unlocked}
         style={item.unlocked ? getRarityCellStyle(item.rarity) : undefined}
       >
         {item.unlocked && <RarityCellBg rarity={item.rarity} />}
-        <UnlockThumb {...props} />
+        <UnlockThumb {...props} content={content} />
         <span className="unlocks-cell-badge" data-locked={!item.unlocked} aria-hidden>
           {item.unlocked ? <IconCheckmark /> : <IconLockClosed />}
         </span>

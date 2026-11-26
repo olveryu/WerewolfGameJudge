@@ -16,7 +16,9 @@
  * concentric with it: it carries `AVATAR_CONCENTRIC_CLASS`, whose one rule derives its corners
  * from the published ratio and the box's own `--avatar-inset`, and sets no radius of its own.
  * Every host names the box drawn around its avatar, so a new bordered box cannot slip in with a
- * fixed radius.
+ * fixed radius; a host that is not itself such a box, and the entrance stages between a box and
+ * its avatar, set no corners at all. The ratio is declared nowhere in CSS (it is published from
+ * `config/avatarShape.ts`), and a box reads whether its tile wears a frame only via `wearsFrame`.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -61,21 +63,22 @@ const AVATAR_HOSTS: readonly string[] = [
 ];
 
 /**
- * The box drawn around each host's avatar: a concentric box class, or `null` when no border,
- * background or ring hugs the avatar (it sits inside a padded card, a dialog or a bare link).
+ * The box drawn around each host's avatar: a concentric box class (the host's own, when the host
+ * is that box), or `null` when the avatar sits bare in a padded card, a dialog or a link. Either
+ * way the host itself sets no corners unless it is the concentric box (pinned below).
  */
 const HOST_BOXES: Readonly<Record<string, string | null>> = {
   'account-entry': null,
   'appearance-avatar-preview': null,
   'appearance-cell-thumb': 'appearance-cell',
   'login-strip-portrait': null,
-  'profile-equip-preview': null,
+  'profile-equip-preview': 'profile-equip-preview',
   'resident-tile-avatar': 'resident-tile',
   'reward-preview': null,
   'seat-avatar': 'seat-tile-button',
   'settings-teaser-item': null,
   'undercover-reveal-identity': null,
-  'unlocks-thumb': null,
+  'unlocks-thumb': 'unlocks-cell-frame',
 };
 
 /**
@@ -87,12 +90,22 @@ const CONCENTRIC_BOXES: Readonly<Record<string, string>> = {
   'appearance-cell': 'routes/appearance/AppearancePickers.tsx',
   'appearance-cell-upload': 'routes/appearance/AppearancePickers.tsx',
   'profile-avatar': 'features/room/components/PlayerProfileCard.tsx',
+  'profile-equip-preview': 'features/room/components/ProfileEquipmentShowcase.tsx',
   'resident-tile': 'features/product/components/ResidentPreview.tsx',
   'seat-status-emphasis': 'features/room/components/RoomSeatTile.tsx',
   'seat-tile-button': 'features/room/components/RoomSeatTile.tsx',
   'settings-avatar': 'routes/settings/SettingsPage.tsx',
   'settings-teaser-lock': 'routes/settings/SettingsPage.tsx',
+  'unlocks-cell-frame': 'routes/unlocks/UnlocksPage.tsx',
 };
+
+/** The wrappers between a box and its avatar that entrances animate (and ghost copies sit in). */
+const AVATAR_STAGES: readonly string[] = [
+  'resident-tile-ghosts',
+  'resident-tile-stage',
+  'seat-avatar-ghosts',
+  'seat-avatar-stage',
+];
 
 /** Production `<Avatar>` sites per file. Adding one? Register its host in `AVATAR_HOSTS`. */
 const AVATAR_SITES: Readonly<Record<string, number>> = {
@@ -261,8 +274,9 @@ describe('Avatar shape', () => {
     expect(bareImages).toEqual([]);
   });
 
-  it('is not re-shaped by inline styles where it is hosted', () => {
-    const inlineShapes = Object.keys(AVATAR_SITES).flatMap((file) =>
+  it('is not re-shaped by inline styles where it is hosted or boxed', () => {
+    const files = new Set([...Object.keys(AVATAR_SITES), ...Object.values(CONCENTRIC_BOXES)]);
+    const inlineShapes = [...files].flatMap((file) =>
       [...readFileSync(join(SRC_DIR, file), 'utf8').matchAll(INLINE_STYLE)]
         .map(([, body]) => body ?? '')
         .filter((body) => INLINE_SHAPE.test(body))
@@ -279,8 +293,12 @@ describe('Avatar shape', () => {
 
   it('gives every concentric box the shared class wherever it is drawn', () => {
     // The class joins the box's own in one template literal: `<box> ${AVATAR_CONCENTRIC_CLASS}`.
-    // Only the captioned appearance cell (a card, not a box around the avatar) goes without it.
-    const bareAllowed: Readonly<Record<string, number>> = { 'appearance-cell': 1 };
+    // Only cards that hold no avatar go without it: the captioned appearance cell, and the unlock
+    // cell previewing a name style or an icon.
+    const bareAllowed: Readonly<Record<string, number>> = {
+      'appearance-cell': 1,
+      'unlocks-cell-frame': 1,
+    };
     const wrong = Object.entries(CONCENTRIC_BOXES).flatMap(([box, file]) => {
       const source = readFileSync(join(SRC_DIR, file), 'utf8');
       const joined = '`' + box + ' ${AVATAR_CONCENTRIC_CLASS}`';
@@ -313,6 +331,46 @@ describe('Avatar shape', () => {
     }
     expect(ownRadius).toEqual([]);
     expect(withoutInset).toEqual([]);
+  });
+
+  it('gives hosts that are not boxes, and the stages inside a box, no corners', () => {
+    const wrappers = [
+      ...AVATAR_HOSTS.filter((host) => !(host in CONCENTRIC_BOXES)),
+      ...AVATAR_STAGES,
+    ];
+    const cornered = otherCssFiles().flatMap((file) =>
+      rules(readFileSync(file, 'utf8'))
+        .filter(
+          ({ selector, body }) =>
+            RADIUS.test(body) &&
+            selector
+              .split(',')
+              .some((part) => wrappers.some((name) => styles(subjectOf(part), name))),
+        )
+        .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
+    );
+    expect(cornered).toEqual([]);
+  });
+
+  it('declares the ratio in no stylesheet', () => {
+    const declared = cssFiles(SRC_DIR)
+      .filter((file) =>
+        new RegExp(`${AVATAR_CORNER_RATIO_PROPERTY}\\s*:`).test(readFileSync(file, 'utf8')),
+      )
+      .map((file) => relative(SRC_DIR, file));
+    expect(declared).toEqual([]);
+  });
+
+  it('reads whether a tile wears a frame only through wearsFrame', () => {
+    const handWritten = sourceFiles(SRC_DIR)
+      .filter((file) => file.endsWith('.tsx'))
+      .flatMap((file) =>
+        [...readFileSync(file, 'utf8').matchAll(/\bdata-(?:framed|tile-border)=\{([^}]*)\}/g)]
+          .map(([, expression]) => expression ?? '')
+          .filter((expression) => !/\bwearsFrame\(/.test(expression) || /frameId/.test(expression))
+          .map((expression) => `${relative(SRC_DIR, file)}: {${expression.trim()}}`),
+      );
+    expect(handWritten).toEqual([]);
   });
 
   it('derives concentric corners from the published ratio alone', () => {
