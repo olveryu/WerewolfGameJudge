@@ -111,11 +111,11 @@ export function SecrethitlerActionSheet({
   };
   const confirm = (label: string, command: SecrethitlerCommand) =>
     confirmAction({ label, onConfirm: () => send(label, command) });
-  const button = (label: string, command: SecrethitlerCommand, key = label) => (
+  const button = (label: string, command: SecrethitlerCommand, testId?: string) => (
     <Button
-      key={key}
       variant="secondary"
       disabled={screen.isSubmitting}
+      data-testid={testId}
       onClick={() => void send(label, command)}
     >
       {label}
@@ -248,10 +248,15 @@ export function SecrethitlerActionSheet({
                   alt={policy === 'liberal' ? '自由派' : '法西斯'}
                   decoding="async"
                   className="secrethitler-policy-peek-image"
+                  data-testid={TESTIDS.secrethitlerPolicyPeekCard(index)}
                 />
               ))}
             </div>
-            {button('知道了', { type: 'secrethitler.action.acknowledgePolicyPeek' })}
+            {button(
+              '知道了',
+              { type: 'secrethitler.action.acknowledgePolicyPeek' },
+              TESTIDS.secrethitlerPolicyPeekAcknowledge,
+            )}
           </>
         ) : null;
       break;
@@ -284,6 +289,7 @@ export function SecrethitlerActionSheet({
       title={instruction.action}
       onClose={screen.closeAction}
       requireConfirmation={requireConfirmation}
+      testId={mustAcknowledgeInformation ? TESTIDS.secrethitlerPolicyPeekModal : undefined}
     >
       <div className="secrethitler-action-content">
         <h2>{instruction.action}</h2>

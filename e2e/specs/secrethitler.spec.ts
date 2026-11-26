@@ -4,8 +4,10 @@ import { expect, type Page, test } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { pressAlertButton } from '../helpers/alerts';
+import { anySeatTestId } from '../helpers/ui';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
+import { SecrethitlerRoomPage } from '../pages/SecrethitlerRoomPage';
 
 const PLAYER_COUNT = 10;
 const VIEWPORT = { width: 1280, height: 900 };
@@ -13,9 +15,7 @@ const VIEWPORT = { width: 1280, height: 900 };
 type RoleName = '自由派' | '法西斯' | '希特勒';
 
 async function waitForPhase(page: Page, phase: string, timeout = 60_000): Promise<void> {
-  await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-phase', phase, {
-    timeout,
-  });
+  await new SecrethitlerRoomPage(page).waitForPhase(phase, timeout);
 }
 
 async function viewAndCaptureRole(room: RoomPage): Promise<RoleName> {
@@ -58,8 +58,8 @@ async function findSeatWithMarker(
     .poll(
       async () => {
         markerSeat = null;
-        for (let seat = 0; seat < PLAYER_COUNT; seat += 1) {
-          if ((await pages[seat]!.getByTestId(TESTIDS.seatMarker(seat, marker)).count()) > 0) {
+        for (let seat = 0; seat < pages.length; seat += 1) {
+          if ((await pages[0]!.getByTestId(TESTIDS.seatMarker(seat, marker)).count()) > 0) {
             markerSeat = seat;
             break;
           }
@@ -74,56 +74,33 @@ async function findSeatWithMarker(
 }
 
 async function openGameAction(page: Page, label: string): Promise<void> {
-  const action = page.getByTestId(TESTIDS.secrethitlerGameAction);
-  await expect(action).toBeVisible({ timeout: 30_000 });
-  await expect(action).toHaveAttribute('aria-label', label);
-  await action.click();
-}
-
-async function nominate(
-  page: Page,
-  presidentSeat: number,
-  preferredSeats: readonly number[],
-): Promise<void> {
-  await openGameAction(page, '预选总理');
-  const preselectModal = page.getByTestId(TESTIDS.secrethitlerNominationModal);
-  await expect(preselectModal).toBeVisible();
-  await expect(page.getByTestId(TESTIDS.secrethitlerNominationCount)).toHaveText('已选 0/1');
-  const targetSeat = await findEnabledSeat(page, preferredSeats);
-  await page.getByTestId(TESTIDS.secrethitlerNominationRow(targetSeat)).click();
-  await expect(page.getByTestId(TESTIDS.secrethitlerNominationCount)).toHaveText('已选 1/1');
-  await page.getByTestId(TESTIDS.secrethitlerNominationConfirm).click();
-  await expect(preselectModal).toBeHidden();
-
-  await openGameAction(page, '最终提名');
-  await expect(preselectModal).toBeVisible();
-  await expect(page.getByTestId(TESTIDS.secrethitlerNominationRow(targetSeat))).toHaveAttribute(
-    'aria-checked',
-    'true',
-  );
-  await page.getByTestId(TESTIDS.secrethitlerNominationConfirm).click();
-  await expect(preselectModal).toBeHidden();
-  await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-phase', 'voting');
-  expect(targetSeat).not.toBe(presidentSeat);
-}
-
-async function findEnabledSeat(page: Page, preferredSeats: readonly number[]): Promise<number> {
-  for (const seat of preferredSeats) {
-    if (await page.getByTestId(TESTIDS.secrethitlerNominationRow(seat)).isEnabled()) return seat;
-  }
-  throw new Error('Secret Hitler nomination modal has no eligible preferred candidate');
+  await new SecrethitlerRoomPage(page).openGameAction(label);
 }
 
 async function voteAll(
   pages: Page[],
   eliminatedSeats: ReadonlySet<number>,
-  vote: 'ja' | 'nein',
+  votes: readonly ('ja' | 'nein')[],
   voteMode: 'public' | 'secret',
+  changeFirstVote = false,
 ): Promise<void> {
-  const voteTestId = vote === 'ja' ? TESTIDS.secrethitlerVoteYes : TESTIDS.secrethitlerVoteNo;
+  expect(votes).toHaveLength(pages.length);
+  const livingVotes = votes.filter((_, seat) => !eliminatedSeats.has(seat));
+  const yesCount = livingVotes.filter((vote) => vote === 'ja').length;
+  const noCount = livingVotes.length - yesCount;
+  if (changeFirstVote) {
+    const firstPage = pages[0]!;
+    const initialVote =
+      votes[0] === 'ja' ? TESTIDS.secrethitlerVoteNo : TESTIDS.secrethitlerVoteYes;
+    await expect(firstPage.getByTestId(TESTIDS.secrethitlerActionModal)).toBeVisible();
+    await firstPage.getByTestId(initialVote).click();
+    await openGameAction(firstPage, '修改选票');
+  }
   await Promise.all(
     pages.map(async (page, seat) => {
       if (eliminatedSeats.has(seat)) return;
+      const voteTestId =
+        votes[seat] === 'ja' ? TESTIDS.secrethitlerVoteYes : TESTIDS.secrethitlerVoteNo;
       await expect(page.getByTestId(TESTIDS.secrethitlerActionModal)).toHaveAttribute(
         'role',
         'dialog',
@@ -139,81 +116,27 @@ async function voteAll(
       }),
     ),
   );
-  const summary = pages[0]!.getByTestId(TESTIDS.secrethitlerVoteResultSummary);
-  await expect(summary).toContainText(vote === 'ja' ? '政府通过' : '政府未通过');
-  for (let seat = 0; seat < PLAYER_COUNT; seat += 1) {
-    const resultRow = pages[0]!.getByTestId(TESTIDS.secrethitlerVoteResultRow(seat));
-    if (eliminatedSeats.has(seat) || voteMode === 'secret') {
-      await expect(resultRow).toHaveCount(0);
-    } else {
-      await expect(resultRow).toContainText(vote === 'ja' ? '赞成' : '反对');
-    }
+  const expectedSummary = `政府${yesCount > noCount ? '通过' : '未通过'}：赞成 ${yesCount}，反对 ${noCount}`;
+  await Promise.all(
+    pages.map((page) =>
+      expect(page.getByTestId(TESTIDS.secrethitlerVoteResultSummary)).toHaveText(expectedSummary),
+    ),
+  );
+  if (voteMode === 'secret') {
+    const anyResultRow = anySeatTestId(TESTIDS.secrethitlerVoteResultRow);
+    await Promise.all(pages.map((page) => expect(page.getByTestId(anyResultRow)).toHaveCount(0)));
+  } else {
+    await Promise.all(
+      votes.map(async (vote, seat) => {
+        const resultRow = pages[0]!.getByTestId(TESTIDS.secrethitlerVoteResultRow(seat));
+        if (eliminatedSeats.has(seat)) {
+          await expect(resultRow).toHaveCount(0);
+        } else {
+          await expect(resultRow).toContainText(vote === 'ja' ? '赞成' : '反对');
+        }
+      }),
+    );
   }
-}
-
-async function findPolicyCard(
-  page: Page,
-  action: 'discard' | 'enact',
-  policy: 'liberal' | 'fascist',
-  maxIndex: number,
-): Promise<number | null> {
-  for (let index = 0; index < maxIndex; index += 1) {
-    const card = page.getByTestId(TESTIDS.secrethitlerPolicyCard(action, policy, index));
-    if ((await card.count()) > 0) return index;
-  }
-  return null;
-}
-
-async function handlePresidentLegislation(page: Page): Promise<void> {
-  await waitForPhase(page, 'legislativePresident');
-  await expect(page.getByTestId(TESTIDS.secrethitlerActionModal)).toHaveAttribute('role', 'dialog');
-  for (const policy of ['liberal', 'fascist'] as const) {
-    const index = await findPolicyCard(page, 'discard', policy, 3);
-    if (index === null) continue;
-    const card = page.getByTestId(TESTIDS.secrethitlerPolicyCard('discard', policy, index));
-    await expect(card).toBeVisible();
-    await card.click();
-    await pressAlertButton(page, {
-      title: `弃置${policy === 'fascist' ? '法西斯' : '自由派'}政策？`,
-      buttonIndex: 1,
-      buttonLabel: '确定',
-    });
-    return;
-  }
-  throw new Error('Secret Hitler president has no policy discard card');
-}
-
-async function handleChancellorLegislation(
-  page: Page,
-  requestVeto: boolean,
-): Promise<{ kind: 'policy'; policy: 'liberal' | 'fascist' } | { kind: 'veto' }> {
-  await waitForPhase(page, 'legislativeChancellor');
-  await expect(page.getByTestId(TESTIDS.secrethitlerActionModal)).toHaveAttribute('role', 'dialog');
-  if (requestVeto) {
-    const vetoButton = page.getByTestId(TESTIDS.secrethitlerVetoRequest);
-    await expect(vetoButton).toBeVisible();
-    await vetoButton.click();
-    await pressAlertButton(page, {
-      title: '请求否决？',
-      buttonIndex: 1,
-      buttonLabel: '确定',
-    });
-    return { kind: 'veto' };
-  }
-  for (const policy of ['fascist', 'liberal'] as const) {
-    const index = await findPolicyCard(page, 'enact', policy, 2);
-    if (index === null) continue;
-    const card = page.getByTestId(TESTIDS.secrethitlerPolicyCard('enact', policy, index));
-    await expect(card).toBeVisible();
-    await card.click();
-    await pressAlertButton(page, {
-      title: `施行${policy === 'fascist' ? '法西斯' : '自由派'}政策？`,
-      buttonIndex: 1,
-      buttonLabel: '确定',
-    });
-    return { kind: 'policy', policy };
-  }
-  throw new Error('Secret Hitler chancellor has no policy enact card');
 }
 
 async function handleInvestigation(
@@ -243,6 +166,10 @@ async function handleInvestigation(
   await expect(page.getByTestId(TESTIDS.secrethitlerInvestigationResultFaction)).toContainText(
     '自由派',
   );
+  const otherPage = pages.find((_, seat) => seat !== presidentSeat);
+  if (otherPage === undefined) throw new Error('Missing observer for investigation privacy check');
+  await waitForPhase(otherPage, 'investigationResult');
+  await expect(otherPage.getByTestId(TESTIDS.secrethitlerInvestigationResultDialog)).toHaveCount(0);
   await page.getByTestId(TESTIDS.secrethitlerInvestigationAcknowledge).click();
   await expect(resultDialog).toBeHidden();
   investigatedSeats.add(targetSeat);
@@ -252,7 +179,7 @@ async function handleSpecialElection(
   pages: Page[],
   presidentSeat: number,
   liberalSeats: readonly number[],
-): Promise<void> {
+): Promise<number> {
   const page = pages[presidentSeat]!;
   await waitForPhase(page, 'executive');
   await openGameAction(page, '特别选举');
@@ -264,6 +191,7 @@ async function handleSpecialElection(
     buttonIndex: 1,
     buttonLabel: '确定',
   });
+  return targetSeat;
 }
 
 async function handleExecution(
@@ -301,25 +229,28 @@ async function handleVetoResponse(page: Page): Promise<void> {
   });
 }
 
-async function createTenPlayerRoom(
+async function createPlayerRoom(
   pages: Page[],
   rooms: RoomPage[],
   voteMode: 'public' | 'secret',
+  playerCount: 5 | 10,
 ): Promise<RoleName[]> {
   const hostPage = pages[0]!;
-  await test.step(`create a 10-player ${voteMode}-vote room`, async () => {
+  expect(pages).toHaveLength(playerCount);
+  await test.step(`create a ${playerCount}-player ${voteMode}-vote room`, async () => {
     await new HomePage(hostPage).clickCreateRoom('secrethitler');
     await expect(hostPage.getByTestId(TESTIDS.gameConfigScreenRoot('secrethitler'))).toBeVisible({
       timeout: 15_000,
     });
     const count = hostPage.getByTestId(TESTIDS.gameConfigField('secrethitler', 'numberOfPlayers'));
     await expect(count).toHaveValue('8');
-    const increment = hostPage.getByTestId(
-      TESTIDS.gameConfigFieldIncrement('secrethitler', 'numberOfPlayers'),
+    const changeCount = hostPage.getByTestId(
+      playerCount > 8
+        ? TESTIDS.gameConfigFieldIncrement('secrethitler', 'numberOfPlayers')
+        : TESTIDS.gameConfigFieldDecrement('secrethitler', 'numberOfPlayers'),
     );
-    await increment.click();
-    await increment.click();
-    await expect(count).toHaveValue('10');
+    for (let change = 0; change < Math.abs(playerCount - 8); change += 1) await changeCount.click();
+    await expect(count).toHaveValue(String(playerCount));
     await hostPage
       .getByTestId(TESTIDS.gameConfigFieldOption('secrethitler', 'voteMode', voteMode))
       .click();
@@ -327,10 +258,10 @@ async function createTenPlayerRoom(
     await rooms[0]!.waitForReady('host');
   });
 
-  await test.step('seat all 10 real players', async () => {
+  await test.step(`seat all ${playerCount} real players`, async () => {
     const code = await rooms[0]!.getRoomCode();
     await rooms[0]!.seatAt(0);
-    for (let seat = 1; seat < PLAYER_COUNT; seat += 1) {
+    for (let seat = 1; seat < playerCount; seat += 1) {
       await rooms[seat]!.joinViaCode(code);
       await rooms[seat]!.seatAt(seat);
     }
@@ -341,8 +272,8 @@ async function createTenPlayerRoom(
     await rooms[0]!.prepareRoles();
     const roles: RoleName[] = [];
     for (const room of rooms) roles.push(await viewAndCaptureRole(room));
-    expect(roles.filter((role) => role === '自由派')).toHaveLength(6);
-    expect(roles.filter((role) => role === '法西斯')).toHaveLength(3);
+    expect(roles.filter((role) => role === '自由派')).toHaveLength(playerCount === 5 ? 3 : 6);
+    expect(roles.filter((role) => role === '法西斯')).toHaveLength(playerCount === 5 ? 1 : 3);
     expect(roles.filter((role) => role === '希特勒')).toHaveLength(1);
     await rooms[0]!.expectHostManagementAction(TESTIDS.startGameButton, '开始游戏');
     return roles;
@@ -369,6 +300,7 @@ async function startMatchAndConfirmNight(
         [...fascistSeats, hitlerSeat].filter((seat) => seat !== fascistSeat),
       );
     }
+    if (pages.length <= 6) await confirmNightInfo(pages[hitlerSeat]!, fascistSeats);
     await waitForPhase(hostPage, 'election', 120_000);
   });
 }
@@ -380,42 +312,31 @@ async function playFullMatch(pages: Page[], roles: readonly RoleName[]): Promise
     .map((role, seat) => (role === '自由派' ? seat : -1))
     .filter((seat) => seat >= 0);
   let fascistPolicies = 0;
+  let liberalPolicies = 0;
   let vetoUsed = false;
-  let castRejectionVote = true;
   const investigatedSeats = new Set<number>();
   const executedSeats = new Set<number>();
 
-  await test.step('elect governments, enact policies and complete the match', async () => {
-    for (let government = 0; government < 20; government += 1) {
-      if ((await hostPage.getByTestId(TESTIDS.roomHeader).getAttribute('data-phase')) === 'ended')
-        break;
-
+  for (let government = 0; government < 20; government += 1) {
+    const finished = await test.step(`government ${government + 1}`, async () => {
       await waitForPhase(hostPage, 'election');
       const presidentSeat = await findSeatWithMarker(pages, 'president');
-      await nominate(pages[presidentSeat]!, presidentSeat, liberalSeats);
-      await voteAll(pages, executedSeats, castRejectionVote ? 'nein' : 'ja', 'public');
-
-      await expect
-        .poll(async () => hostPage.getByTestId(TESTIDS.roomHeader).getAttribute('data-phase'), {
-          timeout: 15_000,
-        })
-        .not.toBe('publicResult');
-      let nextPhase = await hostPage.getByTestId(TESTIDS.roomHeader).getAttribute('data-phase');
-      if (nextPhase === 'ended') break;
-      if (castRejectionVote) {
-        expect(nextPhase).toBe('election');
-        castRejectionVote = false;
-        continue;
+      await new SecrethitlerRoomPage(pages[presidentSeat]!).nominate(presidentSeat, liberalSeats);
+      const votes = pages.map((_, seat) =>
+        government === 0 && seat >= 4 ? ('nein' as const) : ('ja' as const),
+      );
+      await voteAll(pages, executedSeats, votes, 'public', government === 0);
+      if (government === 0) {
+        await waitForPhase(hostPage, 'election', 15_000);
+        return false;
       }
-      if (nextPhase === 'election') continue;
 
-      await waitForPhase(hostPage, 'legislativePresident');
+      await waitForPhase(hostPage, 'legislativePresident', 15_000);
       const legislativePresident = await findSeatWithMarker(pages, 'president');
-      await handlePresidentLegislation(pages[legislativePresident]!);
+      await new SecrethitlerRoomPage(pages[legislativePresident]!).discardPolicy();
       await waitForPhase(hostPage, 'legislativeChancellor');
       const chancellorSeat = await findSeatWithMarker(pages, 'chancellor');
-      const enacted = await handleChancellorLegislation(
-        pages[chancellorSeat]!,
+      const enacted = await new SecrethitlerRoomPage(pages[chancellorSeat]!).enactOrRequestVeto(
         fascistPolicies >= 5 && !vetoUsed,
       );
       if (enacted.kind === 'veto') {
@@ -423,37 +344,48 @@ async function playFullMatch(pages: Page[], roles: readonly RoleName[]): Promise
         const vetoPresident = await findSeatWithMarker(pages, 'president');
         await handleVetoResponse(pages[vetoPresident]!);
         await waitForPhase(hostPage, 'election');
-        continue;
+        return false;
       }
-      if (enacted.policy === 'fascist') fascistPolicies += 1;
+      if (enacted.policy === 'fascist') {
+        fascistPolicies += 1;
+      } else {
+        liberalPolicies += 1;
+      }
 
       await expect(hostPage.getByTestId(TESTIDS.secrethitlerPolicyResultImage)).toBeVisible();
-      await expect
-        .poll(async () => hostPage.getByTestId(TESTIDS.roomHeader).getAttribute('data-phase'), {
-          timeout: 15_000,
-        })
-        .not.toBe('publicResult');
-      nextPhase = await hostPage.getByTestId(TESTIDS.roomHeader).getAttribute('data-phase');
-      if (nextPhase === 'ended') break;
-      if (nextPhase !== 'executive') continue;
+      if (fascistPolicies === 6 || liberalPolicies === 5) {
+        await waitForPhase(hostPage, 'ended', 15_000);
+        return true;
+      }
+      if (enacted.policy === 'liberal') {
+        await waitForPhase(hostPage, 'election', 15_000);
+        return false;
+      }
 
+      await waitForPhase(hostPage, 'executive', 15_000);
       const executivePresident = await findSeatWithMarker(pages, 'president');
-      const executiveAction = pages[executivePresident]!.getByTestId(
-        TESTIDS.secrethitlerGameAction,
-      );
-      const label = await executiveAction.getAttribute('aria-label');
-      if (label === '调查') {
+      if (fascistPolicies <= 2) {
         await handleInvestigation(pages, executivePresident, liberalSeats, investigatedSeats);
-      } else if (label === '特别选举') {
-        await handleSpecialElection(pages, executivePresident, liberalSeats);
-      } else if (label === '处决') {
-        await handleExecution(pages, executivePresident, hitlerSeat, liberalSeats, executedSeats);
+      } else if (fascistPolicies === 3) {
+        const selectedPresident = await handleSpecialElection(
+          pages,
+          executivePresident,
+          liberalSeats,
+        );
+        await waitForPhase(hostPage, 'election');
+        expect(await findSeatWithMarker(pages, 'president')).toBe(selectedPresident);
+        return false;
       } else {
-        throw new Error(`Unexpected 10-player presidential power: ${label}`);
+        await handleExecution(pages, executivePresident, hitlerSeat, liberalSeats, executedSeats);
       }
       await waitForPhase(hostPage, 'election');
-    }
-  });
+      return false;
+    });
+    if (finished) return;
+  }
+  throw new Error(
+    `Secret Hitler did not finish after 20 governments: ${liberalPolicies} liberal policies, ${fascistPolicies} fascist policies, veto used: ${vetoUsed}`,
+  );
 }
 
 async function reviewAndRestart(
@@ -482,7 +414,7 @@ async function reviewAndRestart(
   });
 }
 
-test.describe.configure({ mode: 'serial' });
+test.describe.configure({ mode: 'default' });
 test.setTimeout(1_200_000);
 
 test.describe('Secret Hitler', () => {
@@ -497,7 +429,7 @@ test.describe('Secret Hitler', () => {
     try {
       await Promise.all(pages.map((page) => page.setViewportSize(VIEWPORT)));
 
-      const roles = await createTenPlayerRoom(pages, rooms, 'public');
+      const roles = await createPlayerRoom(pages, rooms, 'public', 10);
 
       const hitlerSeat = roles.indexOf('希特勒');
       await startMatchAndConfirmNight(pages, rooms, roles);
@@ -513,23 +445,169 @@ test.describe('Secret Hitler', () => {
     }
   });
 
-  test('10 real players see aggregate votes in secret-vote mode', async ({ browser }) => {
+  test('10 real players see aggregate secret votes and chaos after three rejections', async ({
+    browser,
+  }) => {
     const fixture = await createPlayerContexts(browser, PLAYER_COUNT);
     const pages = fixture.pages;
     const rooms = pages.map((page) => new RoomPage(page));
 
     try {
       await Promise.all(pages.map((page) => page.setViewportSize(VIEWPORT)));
-      const roles = await createTenPlayerRoom(pages, rooms, 'secret');
+      const roles = await createPlayerRoom(pages, rooms, 'secret', 10);
       await startMatchAndConfirmNight(pages, rooms, roles);
 
-      await test.step('show only aggregate vote counts', async () => {
-        const presidentSeat = await findSeatWithMarker(pages, 'president');
-        const liberalSeats = roles
-          .map((role, seat) => (role === '自由派' ? seat : -1))
-          .filter((seat) => seat >= 0);
-        await nominate(pages[presidentSeat]!, presidentSeat, liberalSeats);
-        await voteAll(pages, new Set<number>(), 'ja', 'secret');
+      const liberalSeats = roles
+        .map((role, seat) => (role === '自由派' ? seat : -1))
+        .filter((seat) => seat >= 0);
+      for (let rejection = 0; rejection < 3; rejection += 1) {
+        await test.step(`secret rejection ${rejection + 1}`, async () => {
+          await waitForPhase(pages[0], 'election');
+          const presidentSeat = await findSeatWithMarker(pages, 'president');
+          await new SecrethitlerRoomPage(pages[presidentSeat]!).nominate(
+            presidentSeat,
+            liberalSeats,
+          );
+          const votes = pages.map((_, seat) => (seat < 4 ? ('ja' as const) : ('nein' as const)));
+          await voteAll(pages, new Set<number>(), votes, 'secret');
+          if (rejection === 2) {
+            await Promise.all(
+              pages.map((page) =>
+                expect(page.getByTestId(TESTIDS.secrethitlerPolicyResultImage)).toBeVisible(),
+              ),
+            );
+          }
+          await waitForPhase(pages[0], 'election', 15_000);
+        });
+      }
+    } finally {
+      await closeAll(fixture);
+    }
+  });
+
+  test('5 real players privately inspect policies and elect Hitler', async ({ browser }) => {
+    const fixture = await createPlayerContexts(browser, 5);
+    const pages = fixture.pages;
+    const rooms = pages.map((page) => new RoomPage(page));
+
+    try {
+      await Promise.all(pages.map((page) => page.setViewportSize(VIEWPORT)));
+      const roles = await createPlayerRoom(pages, rooms, 'public', 5);
+      await startMatchAndConfirmNight(pages, rooms, roles);
+      const liberalSeats = roles
+        .map((role, seat) => (role === '自由派' ? seat : -1))
+        .filter((seat) => seat >= 0);
+      const hitlerSeat = roles.indexOf('希特勒');
+      let fascistPolicies = 0;
+      let policyPreviewed = false;
+      for (let government = 0; government < 5; government += 1) {
+        const previewed =
+          await test.step(`government ${government + 1} toward policy preview`, async () => {
+            await waitForPhase(pages[0], 'election');
+            const presidentSeat = await findSeatWithMarker(pages, 'president');
+            await new SecrethitlerRoomPage(pages[presidentSeat]!).nominate(
+              presidentSeat,
+              liberalSeats,
+            );
+            await voteAll(
+              pages,
+              new Set<number>(),
+              pages.map(() => 'ja' as const),
+              'public',
+            );
+            await waitForPhase(pages[0], 'legislativePresident', 15_000);
+            await new SecrethitlerRoomPage(pages[presidentSeat]!).discardPolicy();
+            await waitForPhase(pages[0], 'legislativeChancellor');
+            const chancellorSeat = await findSeatWithMarker(pages, 'chancellor');
+            const result = await new SecrethitlerRoomPage(
+              pages[chancellorSeat]!,
+            ).enactOrRequestVeto(false);
+            if (result.kind !== 'policy')
+              throw new Error('Unexpected veto in policy preview setup');
+            if (result.policy === 'fascist') fascistPolicies += 1;
+            await expect(pages[0].getByTestId(TESTIDS.secrethitlerPolicyResultImage)).toBeVisible();
+            if (fascistPolicies < 3) {
+              await waitForPhase(pages[0], 'election', 15_000);
+              return false;
+            }
+
+            await waitForPhase(pages[0], 'executive', 15_000);
+            const presidentPage = pages[presidentSeat]!;
+            await openGameAction(presidentPage, '政策预览');
+            await pressAlertButton(presidentPage, {
+              title: '查看政策预览？',
+              buttonIndex: 1,
+              buttonLabel: '查看',
+            });
+            await expect(
+              presidentPage.getByTestId(TESTIDS.secrethitlerPolicyPeekModal),
+            ).toBeVisible();
+            for (let index = 0; index < 3; index += 1) {
+              await expect(
+                presidentPage.getByTestId(TESTIDS.secrethitlerPolicyPeekCard(index)),
+              ).toHaveAttribute('alt', /^(自由派|法西斯)$/);
+            }
+            const observer = pages.find((_, seat) => seat !== presidentSeat);
+            if (observer === undefined) throw new Error('Missing policy preview observer');
+            await waitForPhase(observer, 'executive');
+            await expect(observer.getByTestId(TESTIDS.secrethitlerPolicyPeekModal)).toHaveCount(0);
+            await presidentPage.getByTestId(TESTIDS.secrethitlerPolicyPeekAcknowledge).click();
+            await waitForPhase(pages[0], 'election');
+            return true;
+          });
+        if (previewed) {
+          policyPreviewed = true;
+          break;
+        }
+      }
+      if (!policyPreviewed)
+        throw new Error(
+          `Policy preview not reached after five governments: ${fascistPolicies} fascist policies`,
+        );
+
+      await test.step('elect Hitler after three fascist policies', async () => {
+        const eliminatedSeats = new Set<number>();
+        let presidentSeat = await findSeatWithMarker(pages, 'president');
+        if (presidentSeat === hitlerSeat) {
+          await new SecrethitlerRoomPage(pages[presidentSeat]!).nominate(
+            presidentSeat,
+            liberalSeats,
+          );
+          await voteAll(
+            pages,
+            new Set<number>(),
+            pages.map(() => 'ja' as const),
+            'public',
+          );
+          await waitForPhase(pages[0], 'legislativePresident', 15_000);
+          await new SecrethitlerRoomPage(pages[presidentSeat]!).discardPolicy();
+          await waitForPhase(pages[0], 'legislativeChancellor');
+          const chancellorSeat = await findSeatWithMarker(pages, 'chancellor');
+          const result = await new SecrethitlerRoomPage(pages[chancellorSeat]!).enactOrRequestVeto(
+            false,
+          );
+          if (result.kind !== 'policy') throw new Error('Unexpected veto before Hitler election');
+          await expect(pages[0].getByTestId(TESTIDS.secrethitlerPolicyResultImage)).toBeVisible();
+          if (result.policy === 'fascist') {
+            await waitForPhase(pages[0], 'executive', 15_000);
+            await handleExecution(pages, presidentSeat, hitlerSeat, liberalSeats, eliminatedSeats);
+          }
+          await waitForPhase(pages[0], 'election', 15_000);
+          presidentSeat = await findSeatWithMarker(pages, 'president');
+        }
+        await new SecrethitlerRoomPage(pages[presidentSeat]!).nominate(presidentSeat, [hitlerSeat]);
+        await voteAll(
+          pages,
+          eliminatedSeats,
+          pages.map(() => 'ja' as const),
+          'public',
+        );
+        await waitForPhase(pages[0], 'ended', 15_000);
+        const panel = await rooms[0]!.openHostManagement();
+        await panel.getByTestId(TESTIDS.roomReviewHostAction).click();
+        await expect(pages[0].getByTestId(TESTIDS.roomReviewDialog)).toContainText(
+          '法西斯政策达到三张后，希特勒当选总理',
+        );
       });
     } finally {
       await closeAll(fixture);
