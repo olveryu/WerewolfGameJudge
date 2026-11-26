@@ -14,6 +14,16 @@
  *   rejected everywhere else.
  * - `ui/no-css-escapes` (S7): property names, selectors, values and at-rule parameters carry no
  *   CSS escapes, so no escaped spelling can hide a property, class or unit from the other rules.
+ * - `ui/import-scope`: `@import` takes only a relative path to a `.css` file inside the web
+ *   source, which the CSS gate checks; no URL, data URL or file outside it (P1 QA3 H1).
+ * - `ui/token-stylesheet-shape` (token stylesheet only): every declaration defines a custom
+ *   property, so the stylesheet exempt from the value rules holds tokens and nothing else (H2).
+ * - `ui/art-layer-scope` (registered art stylesheets only, with the sheet's class prefix): every
+ *   selector carries the art's own class, so the value-rule exemption covers the art and not UI
+ *   rules written into an art stylesheet (H3).
+ *
+ * Each violation is reported at the literal's own position, so a fingerprint
+ * (`styleGate.mjs`) records the line that holds it (H5).
  *
  * Every check fails closed: a function is unpacked unless it is known to hold no S1 value, a
  * number inside a math function is a picked value (only the sign flip `-1` is arithmetic), and
@@ -21,8 +31,13 @@
  * literals are checked by `color-no-hex`, `color-named` and `function-disallowed-list` on every
  * property (S2, `stylelint.config.mjs`).
  */
+import fs from 'node:fs';
+import path from 'node:path';
+
 import stylelint from 'stylelint';
 import valueParser from 'postcss-value-parser';
+
+import { inCssGate, WEB_PACKAGE } from './scope.mjs';
 
 const {
   createPlugin,
@@ -71,6 +86,10 @@ const OPAQUE_FUNCTIONS = new Set([
   'steps',
   'linear',
 ]);
+/** Functions whose value comes from the document at run time, past every static check. */
+const DYNAMIC_FUNCTIONS = new Set(['attr']);
+/** Basic shapes whose `round` clause draws corners: a clip-path radius is a border radius. */
+const ROUNDED_SHAPES = new Set(['inset', 'rect', 'xywh']);
 const TIME_UNITS = new Set(['s', 'ms']);
 const VENDOR_PREFIX = /^-(?:webkit|moz|ms|o)-/;
 
@@ -149,6 +168,7 @@ const MODES = [
   [/^outline$/, 'border'],
   [/^(?:box|text)-shadow$/, 'shadow'],
   [/^(?:transition|animation)(?:-(?:duration|delay))?$/, 'motion'],
+  [/^(?:clip-path|shape-outside)$/, 'shape'],
 ];
 
 /** Literal kinds each mode rejects outside math functions (scalar/unitless: every identifier). */
@@ -178,25 +198,51 @@ function fallbackOf(node) {
   return comma === -1 ? [] : node.nodes.slice(comma + 1);
 }
 
+/** A literal found in a value: its text and its offset in the parsed value string. */
+function token(node) {
+  return { value: valueParser.stringify(node), sourceIndex: node.sourceIndex };
+}
+
+/** `round` radii of rounded basic shapes, read as scalars; the rest of a shape is geometry. */
+function shapeTokens(nodes) {
+  const found = [];
+  for (const node of nodes) {
+    if (node.type !== 'function') continue;
+    const name = unprefixed(node.value);
+    if (DYNAMIC_FUNCTIONS.has(name)) found.push(token(node));
+    else if (REFERENCE_FUNCTIONS.has(name)) found.push(...shapeTokens(fallbackOf(node)));
+    else if (ROUNDED_SHAPES.has(name)) {
+      const round = node.nodes.findIndex(
+        (child) => child.type === 'word' && child.value.toLowerCase() === 'round',
+      );
+      if (round !== -1) found.push(...literalTokens(node.nodes.slice(round + 1), 'scalar', false));
+    }
+  }
+  return found;
+}
+
 /** Returns the literal tokens in `nodes` that a property in `mode` may not carry. */
 function literalTokens(nodes, mode, inMath) {
+  if (mode === 'shape') return shapeTokens(nodes);
   const found = [];
   for (const node of nodes) {
     if (node.type === 'function') {
       const name = unprefixed(node.value);
-      if (REFERENCE_FUNCTIONS.has(name)) {
+      if (DYNAMIC_FUNCTIONS.has(name)) {
+        found.push(token(node));
+      } else if (REFERENCE_FUNCTIONS.has(name)) {
         found.push(...literalTokens(fallbackOf(node), mode, inMath));
       } else if (!OPAQUE_FUNCTIONS.has(name)) {
         found.push(...literalTokens(node.nodes, mode, true));
       } else if (mode === 'variation') {
-        found.push(valueParser.stringify(node));
+        found.push(token(node));
       }
       continue;
     }
     if (mode === 'variation') {
-      if (node.type === 'string') found.push(valueParser.stringify(node));
+      if (node.type === 'string') found.push(token(node));
       else if (node.type === 'word' && !NEUTRAL_KEYWORDS.has(node.value.toLowerCase()))
-        found.push(node.value);
+        found.push(token(node));
       continue;
     }
     if (node.type !== 'word') continue;
@@ -206,7 +252,7 @@ function literalTokens(nodes, mode, inMath) {
       // Identifiers inside functions are keywords of the function (round(up, …)).
       if (kind === 'number' && ARITHMETIC_NUMBERS.has(Number(word))) continue;
       if (kind === 'number' || kind === 'dimension' || kind === 'time') {
-        if (mode !== 'motion' || kind !== 'dimension') found.push(word);
+        if (mode !== 'motion' || kind !== 'dimension') found.push(token(node));
       }
       continue;
     }
@@ -214,13 +260,33 @@ function literalTokens(nodes, mode, inMath) {
       // Named sizes (small, larger, thin…) pick a value; any other identifier here does too.
       const zero = kind === undefined && Number(valueParser.unit(word)?.number) === 0;
       if (!NEUTRAL_KEYWORDS.has(word.toLowerCase()) && !word.startsWith('#') && !zero) {
-        found.push(word);
+        found.push(token(node));
       }
       continue;
     }
-    if (kind !== undefined && PICKED_KINDS[mode].has(kind)) found.push(word);
+    if (kind !== undefined && PICKED_KINDS[mode].has(kind)) found.push(token(node));
   }
   return found;
+}
+
+/** The value as written (comments included), which report positions are measured against. */
+function rawValue(decl) {
+  return decl.raws.value?.raw ?? decl.value;
+}
+
+/** Reports each token at its own place in `decl` (prop, separator, then the raw value). */
+function reportTokens(decl, tokens, ruleName, result, message) {
+  const offset = decl.prop.length + (decl.raws.between ?? ':').length;
+  for (const { value, sourceIndex } of tokens) {
+    report({
+      ruleName,
+      result,
+      node: decl,
+      index: offset + sourceIndex,
+      endIndex: offset + sourceIndex + value.length,
+      message: message(value),
+    });
+  }
 }
 
 const strictValueName = 'ui/strict-value';
@@ -235,15 +301,10 @@ const strictValue = createPlugin(strictValueName, (enabled) => (root, result) =>
     if (decl.prop.startsWith('--')) return;
     const mode = modeOf(decl.prop);
     if (mode === undefined) return;
-    for (const token of literalTokens(valueParser(decl.value).nodes, mode, false)) {
-      report({
-        ruleName: strictValueName,
-        result,
-        node: decl,
-        word: token,
-        message: strictValueMessages.rejected(decl.prop, token),
-      });
-    }
+    const tokens = literalTokens(valueParser(rawValue(decl)).nodes, mode, false);
+    reportTokens(decl, tokens, strictValueName, result, (value) =>
+      strictValueMessages.rejected(decl.prop, value),
+    );
   });
 });
 strictValue.ruleName = strictValueName;
@@ -263,13 +324,15 @@ function customPropertyLiterals(nodes) {
   for (const node of nodes) {
     if (node.type === 'function') {
       const name = unprefixed(node.value);
-      if (REFERENCE_FUNCTIONS.has(name)) found.push(...customPropertyLiterals(fallbackOf(node)));
+      if (DYNAMIC_FUNCTIONS.has(name)) found.push(token(node));
+      else if (REFERENCE_FUNCTIONS.has(name))
+        found.push(...customPropertyLiterals(fallbackOf(node)));
       else if (!OPAQUE_FUNCTIONS.has(name)) found.push(...customPropertyLiterals(node.nodes));
       continue;
     }
     if (node.type !== 'word') continue;
     const kind = literalKind(node.value);
-    if (kind !== undefined && kind !== 'number') found.push(node.value);
+    if (kind !== undefined && kind !== 'number') found.push(token(node));
   }
   return found;
 }
@@ -278,15 +341,10 @@ const localLiteral = createPlugin(localLiteralName, (enabled) => (root, result) 
   if (!enabled) return;
   root.walkDecls((decl) => {
     if (!decl.prop.startsWith('--')) return;
-    for (const token of customPropertyLiterals(valueParser(decl.value).nodes)) {
-      report({
-        ruleName: localLiteralName,
-        result,
-        node: decl,
-        word: token,
-        message: localLiteralMessages.rejected(decl.prop, token),
-      });
-    }
+    const tokens = customPropertyLiterals(valueParser(rawValue(decl)).nodes);
+    reportTokens(decl, tokens, localLiteralName, result, (value) =>
+      localLiteralMessages.rejected(decl.prop, value),
+    );
   });
   // A registered property's initial-value is a local literal by another name.
   root.walkAtRules((atRule) => {
@@ -370,7 +428,7 @@ function systemColors(nodes) {
       const name = unprefixed(node.value);
       found.push(...systemColors(REFERENCE_FUNCTIONS.has(name) ? fallbackOf(node) : node.nodes));
     } else if (node.type === 'word' && SYSTEM_COLORS.has(node.value.toLowerCase())) {
-      found.push(node.value);
+      found.push(token(node));
     }
   }
   return found;
@@ -395,15 +453,10 @@ const noSystemColor = createPlugin(systemColorName, (enabled) => (root, result) 
     if (inForcedColors(decl)) return;
     const prop = decl.prop.startsWith('--') ? decl.prop : unprefixed(decl.prop);
     if (!COLOR_PROPERTY.test(prop)) return;
-    for (const token of systemColors(valueParser(decl.value).nodes)) {
-      report({
-        ruleName: systemColorName,
-        result,
-        node: decl,
-        word: token,
-        message: systemColorMessages.rejected(decl.prop, token),
-      });
-    }
+    const tokens = systemColors(valueParser(rawValue(decl)).nodes);
+    reportTokens(decl, tokens, systemColorName, result, (value) =>
+      systemColorMessages.rejected(decl.prop, value),
+    );
   });
 });
 noSystemColor.ruleName = systemColorName;
@@ -441,4 +494,129 @@ const noCssEscapes = createPlugin(escapesName, (enabled) => (root, result) => {
 noCssEscapes.ruleName = escapesName;
 noCssEscapes.messages = escapesMessages;
 
-export default [strictValue, localLiteral, noSystemColor, noCssEscapes];
+const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
+
+const importScopeName = 'ui/import-scope';
+const importScopeMessages = ruleMessages(importScopeName, {
+  rejected: (target, why) =>
+    `@import ${target} ${why}; import a relative .css file inside ${WEB_PACKAGE}, which the CSS gate checks.`,
+});
+
+/** The `@import` target: the first string, or the string or word inside a leading url(). */
+function importTarget(params) {
+  const [first] = valueParser(params).nodes.filter((node) => node.type !== 'space');
+  if (first?.type === 'string') return first.value;
+  if (first?.type === 'function' && first.value.toLowerCase() === 'url') {
+    const [inner] = first.nodes;
+    return inner?.value;
+  }
+  return undefined;
+}
+
+/** Why `target` imported from `file` escapes the gate, or undefined when it is checked CSS. */
+function importEscape(target, file) {
+  if (target === undefined) return 'has no readable target';
+  if (!/^\.\.?\//.test(target)) return 'is not a relative path';
+  if (!target.toLowerCase().endsWith('.css')) return 'is not a .css file';
+  const resolved = path.resolve(path.dirname(file), target);
+  if (!fs.existsSync(resolved)) return 'does not exist';
+  const real = path.relative(REPO_ROOT, fs.realpathSync(resolved)).split(path.sep).join('/');
+  if (!inCssGate(real)) return `resolves outside what the CSS gate lints (${WEB_PACKAGE})`;
+  return undefined;
+}
+
+const importScope = createPlugin(importScopeName, (enabled) => (root, result) => {
+  if (!enabled) return;
+  const file = root.source?.input.file;
+  root.walkAtRules((atRule) => {
+    if (unprefixed(atRule.name) !== 'import') return;
+    const target = importTarget(atRule.params);
+    const why = file === undefined ? 'cannot be resolved (no file)' : importEscape(target, file);
+    if (why === undefined) return;
+    report({
+      ruleName: importScopeName,
+      result,
+      node: atRule,
+      message: importScopeMessages.rejected(target ?? atRule.params, why),
+    });
+  });
+});
+importScope.ruleName = importScopeName;
+importScope.messages = importScopeMessages;
+
+const tokenShapeName = 'ui/token-stylesheet-shape';
+const tokenShapeMessages = ruleMessages(tokenShapeName, {
+  rejected: (prop) =>
+    `The token stylesheet defines custom properties only; "${prop}" styles the page (UI gate S1/S2).`,
+});
+
+const tokenShape = createPlugin(tokenShapeName, (enabled) => (root, result) => {
+  if (!enabled) return;
+  root.walkDecls((decl) => {
+    if (decl.prop.startsWith('--')) return;
+    report({
+      ruleName: tokenShapeName,
+      result,
+      node: decl,
+      message: tokenShapeMessages.rejected(decl.prop),
+    });
+  });
+});
+tokenShape.ruleName = tokenShapeName;
+tokenShape.messages = tokenShapeMessages;
+
+const artScopeName = 'ui/art-layer-scope';
+const artScopeMessages = ruleMessages(artScopeName, {
+  rejected: (selector, prefix) =>
+    `"${selector}" carries no .${prefix}* class; an art stylesheet styles its own art only (UI gate D7).`,
+});
+
+/** The selector with strings, attribute selectors and functional pseudo-class arguments removed. */
+function selectorOutline(selector) {
+  let outline = selector.replace(/"[^"]*"|'[^']*'/g, '').replace(/\[[^\]]*\]/g, '');
+  for (let previous = ''; previous !== outline;) {
+    previous = outline;
+    outline = outline.replace(/\([^()]*\)/g, '');
+  }
+  return outline;
+}
+
+function isInKeyframes(node) {
+  for (let parent = node.parent; parent !== undefined; parent = parent.parent) {
+    if (parent.type === 'atrule' && /keyframes$/i.test(parent.name)) return true;
+  }
+  return false;
+}
+
+const artScope = createPlugin(artScopeName, (prefix) => (root, result) => {
+  if (typeof prefix !== 'string' || prefix === '') {
+    throw new Error(`${artScopeName} needs the art stylesheet's class prefix`);
+  }
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const ownClass = new RegExp(`\\.${escaped}(?:[-_][\\w-]*)?(?![\\w-])`);
+  root.walkRules((rule) => {
+    // Nested rules sit inside a checked parent; keyframe steps are not selectors.
+    if (rule.parent?.type === 'rule' || isInKeyframes(rule)) return;
+    for (const selector of rule.selectors) {
+      if (ownClass.test(selectorOutline(selector))) continue;
+      report({
+        ruleName: artScopeName,
+        result,
+        node: rule,
+        message: artScopeMessages.rejected(selector, prefix),
+      });
+    }
+  });
+});
+artScope.ruleName = artScopeName;
+artScope.messages = artScopeMessages;
+
+export default [
+  strictValue,
+  localLiteral,
+  noSystemColor,
+  noCssEscapes,
+  importScope,
+  tokenShape,
+  artScope,
+];

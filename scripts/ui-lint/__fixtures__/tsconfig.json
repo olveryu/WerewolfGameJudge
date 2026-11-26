@@ -16,6 +16,7 @@
     ]
   },
   "include": [
-    "probe.tsx"
+    "probe.tsx",
+    "__tests__/probe.tsx"
   ]
 }

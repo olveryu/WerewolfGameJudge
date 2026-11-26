@@ -11,14 +11,20 @@ import { describe, expect, it } from 'vitest';
 const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
 const CONFIG_FILE = path.join(REPO_ROOT, 'stylelint.config.mjs');
 
-async function problems(code, file = 'packages/web/src/features/probe/Probe.css') {
+const PROBE = 'packages/web/src/features/probe/Probe.css';
+
+async function warnings(code, file = PROBE) {
   const { results } = await stylelint.lint({
     code,
     codeFilename: path.join(REPO_ROOT, file),
     configFile: CONFIG_FILE,
     cwd: REPO_ROOT,
   });
-  return results.flatMap((result) => result.warnings.map((warning) => warning.rule));
+  return results.flatMap((result) => result.warnings);
+}
+
+async function problems(code, file = PROBE) {
+  return (await warnings(code, file)).map((warning) => warning.rule);
 }
 
 const rejected = [
@@ -129,10 +135,36 @@ const rejected = [
     'a { animation-duration: calc(var(--duration-fast) * 30); }',
     'ui/strict-value',
   ],
+  // P1 QA3: spellings that got past the third version.
+  ['H9 rounded inset clip', 'a { clip-path: inset(0 round 13px); }', 'ui/strict-value'],
+  [
+    'H9 rounded rect shape',
+    'a { shape-outside: rect(0 1px 2px 3px round 4px); }',
+    'ui/strict-value',
+  ],
+  ['H9 attr() value', 'a { border-radius: attr(data-r type(<length>)); }', 'ui/strict-value'],
+  [
+    'H9 attr() in a local variable',
+    'a { --r: attr(data-r px); }',
+    'ui/no-local-literal-custom-property',
+  ],
+  ['H1 package stylesheet', "@import 'normalize.css';", 'ui/import-scope'],
+  ['H1 url() import', "@import url('./a.css');", 'ui/import-scope'],
+  ['H1 data: import', "@import 'data:text/css,a{color:red}';", 'ui/import-scope'],
+  ['H1 remote import', "@import 'https://example.test/a.css';", 'ui/import-scope'],
+  ['H1 missing import', "@import './missing.css';", 'ui/import-scope'],
+  [
+    'H1 import outside the web source',
+    "@import '../../../../game-engine/x.css';",
+    'ui/import-scope',
+  ],
+  ['H1 non-css import', "@import '../../theme/x.scss';", 'ui/import-scope'],
 ];
 
 const accepted = [
   ['token z-index', 'a { z-index: var(--z-overlay); }'],
+  // The CSS gate lints the whole web package, the local preview page included.
+  ['import of a checked sheet outside src', "@import '../../../preview/preview.css';"],
   ['font shorthand reset', 'a { font: inherit; }'],
   [
     'font shorthand token',
@@ -169,6 +201,9 @@ const accepted = [
   ['color-ish names outside color properties', 'a { grid-area: menu; animation-name: mark; }'],
   ['token variation settings', 'a { font-variation-settings: var(--font-variation); }'],
   ['iteration count is structure', 'a { animation: k var(--motion-slow) 2 alternate; }'],
+  ['clip-path geometry is layout', 'a { clip-path: inset(0 12px round var(--radius-md)); }'],
+  ['polygon clip-path is layout', 'a { clip-path: polygon(0 0, 100% 0, 50% 12px); }'],
+  ['import inside the web source', "@import '../../theme/tokens.css';"],
 ];
 
 describe('UI gate: Stylelint rules', () => {
@@ -180,22 +215,71 @@ describe('UI gate: Stylelint rules', () => {
     expect(await problems(code)).toEqual([]);
   });
 
-  it('exempts the token stylesheet and the art layer from value rules only', async () => {
-    const valueOnly = 'a { color: #000; padding: 13px; --x: 4px; }';
-    expect(await problems(valueOnly, 'packages/web/src/theme/tokens.css')).toEqual([]);
-    expect(await problems(valueOnly, 'packages/web/src/scene/scene.css')).toEqual([]);
-    expect(await problems(valueOnly, 'packages/web/src/theme/nightArt.css')).toEqual([]);
-    // An art area is not exempt as a whole: a stylesheet that is not registered is ordinary UI.
-    expect(await problems(valueOnly, 'packages/web/src/scene/qaButton.css')).toEqual(
-      expect.arrayContaining(['color-no-hex', 'ui/strict-value']),
-    );
-    // Only the boot splash is art; the rest of boot/ is ordinary UI and stays checked.
-    expect(await problems(valueOnly, 'packages/web/src/boot/WechatBrowserGuide.css')).toEqual(
-      expect.arrayContaining(['color-no-hex', 'ui/strict-value']),
-    );
-    const escaped = '.a\\:b { color: #000; }';
-    expect(await problems(escaped, 'packages/web/src/theme/tokens.css')).toEqual([
-      'ui/no-css-escapes',
+  it('holds the token stylesheet to custom property definitions (P1 QA3 H2)', async () => {
+    const tokens = 'packages/web/src/theme/tokens.css';
+    expect(await problems(':root { --x: 4px; --c: #000; --f: 700; }', tokens)).toEqual([]);
+    expect(await problems(':root { padding: 13px; }', tokens)).toEqual([
+      'ui/token-stylesheet-shape',
     ]);
+    expect(await problems('.avatar { border-radius: 50%; }', tokens)).toEqual([
+      'ui/token-stylesheet-shape',
+    ]);
+    expect(await problems('.a\\:b { --x: #000; }', tokens)).toEqual(['ui/no-css-escapes']);
+  });
+
+  it('exempts each art stylesheet from value rules for its own classes only (P1 QA3 H3)', async () => {
+    const art = (selector) => `${selector} { color: #000; padding: 13px; --x: 4px; }`;
+    expect(await problems(art('.scene-canvas'), 'packages/web/src/scene/scene.css')).toEqual([]);
+    expect(await problems(art('.night-art-moon'), 'packages/web/src/theme/nightArt.css')).toEqual(
+      [],
+    );
+    expect(
+      await problems(art(':root .boot-splash > img'), 'packages/web/src/boot/bootSplash.css'),
+    ).toEqual([]);
+    expect(await problems(art('.avatar'), 'packages/web/src/scene/scene.css')).toEqual([
+      'ui/art-layer-scope',
+    ]);
+    // A class that only starts with the prefix is another class.
+    expect(
+      await problems(art('.scene-canvasx, .scene-canvas'), 'packages/web/src/scene/scene.css'),
+    ).toEqual(['ui/art-layer-scope']);
+    expect(await problems(art('.bootstrap'), 'packages/web/src/boot/bootSplash.css')).toEqual([
+      'ui/art-layer-scope',
+    ]);
+    // A class inside :not() does not scope the rule.
+    expect(
+      await problems(art('div:not(.night-art)'), 'packages/web/src/theme/nightArt.css'),
+    ).toEqual(['ui/art-layer-scope']);
+    // Nested rules inherit their parent's scope.
+    expect(
+      await problems(
+        '.name-style { &[data-animated] { padding: 13px; } }',
+        'packages/web/src/components/nameStyles/nameStyles.css',
+      ),
+    ).toEqual([]);
+    // An art area is not exempt as a whole: a stylesheet that is not registered is ordinary UI.
+    expect(await problems(art('.scene-canvas'), 'packages/web/src/scene/qaButton.css')).toEqual(
+      expect.arrayContaining(['color-no-hex', 'ui/strict-value']),
+    );
+    expect(await problems(art('.boot-x'), 'packages/web/src/boot/WechatBrowserGuide.css')).toEqual(
+      expect.arrayContaining(['color-no-hex', 'ui/strict-value']),
+    );
+  });
+
+  it('reports each literal at its own position (P1 QA3 H5)', async () => {
+    const code = 'a {\n  transition:\n    opacity 100ms,\n    transform 200ms;\n}\n';
+    const found = (await warnings(code)).filter((warning) => warning.rule === 'ui/strict-value');
+    expect(
+      found.map((warning) => [warning.line, warning.column, warning.endLine, warning.endColumn]),
+    ).toEqual([
+      [3, 13, 3, 18],
+      [4, 15, 4, 20],
+    ]);
+    // A comment before the value does not shift the position.
+    const commented = 'a { padding: /* x */ 13px; }';
+    const [one] = (await warnings(commented)).filter(
+      (warning) => warning.rule === 'ui/strict-value',
+    );
+    expect([one.line, one.column]).toEqual([1, 22]);
   });
 });

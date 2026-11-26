@@ -17,6 +17,7 @@ RuleTester.describe = describe;
 RuleTester.it = it;
 RuleTester.itOnly = it.only;
 
+const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
 const FIXTURES = path.join(import.meta.dirname, '__fixtures__');
 const filename = path.join(FIXTURES, 'probe.tsx');
 
@@ -55,6 +56,13 @@ tester.run('ui/no-style-elements', uiLint.rules['no-style-elements'], {
     'const ui = { Card: () => null }; export const a = <ui.Card />;',
     "Object.assign(document.body.style, { color: 'red' });",
     'declare const o: { a: number }; Object.assign(o, { a: 1 });',
+    // P1 QA3 H6: the widened checks leave ordinary code alone.
+    'declare const avatar: HTMLElement; const copy = avatar.cloneNode(true); document.body.append(copy);',
+    "declare const a: HTMLAnchorElement; a.rel = 'noopener'; a.setAttribute('rel', 'noreferrer');",
+    "declare const el: HTMLElement; el.setAttribute('data-x', 'stylesheet');",
+    'declare const o: { a: number }; declare const k: "a"; Reflect.set(o, k, 1);',
+    "declare const el: HTMLElement; Object.getOwnPropertyDescriptor(el, 'title');",
+    "declare const el: HTMLElement; el.insertAdjacentElement('beforeend', document.createElement('div'));",
   ].map((code) => ({ filename, code })),
   invalid: [
     ...cases(
@@ -80,6 +88,13 @@ tester.run('ui/no-style-elements', uiLint.rules['no-style-elements'], {
         "const tags = { S: 'style' } as const; export const s = <tags.S />;",
         "const ce = document.createElement.bind(document); Reflect.apply(ce, undefined, ['style']);",
         "Reflect.apply(document.createElement, document, ['style']);",
+        // P1 QA3 H6 a7: an existing element turned into a stylesheet link.
+        "declare const el: Element; const l = el.cloneNode(true) as Element; l.setAttribute('rel', 'stylesheet');",
+        "declare const el: Element; el.setAttribute('REL', 'icon stylesheet');",
+        "declare const link: HTMLLinkElement; link.rel = 'stylesheet';",
+        "declare const el: { relList: DOMTokenList }; el.relList.add('stylesheet');",
+        'declare const el: { relList: DOMTokenList }; declare const v: string; el.relList.value = v;',
+        "declare const el: Element; declare const k: string; el.setAttribute(k, 'stylesheet');",
       ],
       'element',
     ),
@@ -113,9 +128,54 @@ tester.run('ui/no-style-elements', uiLint.rules['no-style-elements'], {
         "declare const el: HTMLElement; el['inner' + 'HTML'] = '<style></style>';",
         'declare const el: HTMLElement; declare const src: Record<string, string>; Object.assign(el, src);',
         "export const a = <div dangerouslySetInnerHTML={{ __html: '<style></style>' }} />;",
+        // P1 QA3 H6 a2–a6: wide targets, unenumerable keys, indirect calls, descriptors.
+        "declare const t: object; Reflect.set(t, 'innerHTML', '<style></style>');",
+        "declare const t: unknown; Reflect.set(t as object, 'outerHTML', '');",
+        "declare const el: HTMLElement; declare const k: string; Object.assign(el, { [k]: '' });",
+        "declare const el: HTMLElement; HTMLElement.prototype.insertAdjacentHTML.call(el, 'beforeend', '');",
+        "declare const el: HTMLElement; Reflect.apply(el.insertAdjacentHTML, el, ['beforeend', '']);",
+        "declare const el: HTMLElement; el.insertAdjacentHTML.apply(el, ['beforeend', '']);",
+        "declare const el: HTMLElement; Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML')?.set?.call(el, '');",
+        "declare const el: HTMLElement; Reflect.getOwnPropertyDescriptor(el, 'outerHTML');",
+        'declare const el: HTMLElement; Object.getOwnPropertyDescriptors(el);',
+        "declare const el: HTMLElement; (el as unknown as { __lookupSetter__(k: string): unknown }).__lookupSetter__('innerHTML');",
       ],
       'sink',
     ),
+  ],
+});
+
+tester.run(
+  'ui/no-style-elements: React DOM resources (P1 QA3 H6 a1)',
+  uiLint.rules['no-style-elements'],
+  {
+    valid: [
+      { filename, code: "import { preconnect } from 'react-dom'; preconnect('https://x.test');" },
+    ],
+    invalid: [
+      "import { preinit } from 'react-dom'; preinit('/x.css', { as: 'style' });",
+      "import * as ReactDOM from 'react-dom'; ReactDOM.preload('/x.css', { as: 'style' });",
+      "import { preinit } from 'react-dom'; const p = preinit; p('/x.css', { as: 'style' });",
+    ].map((code) => ({ filename, code, errors: [{ messageId: 'resource' }] })),
+  },
+);
+
+tester.run('ui/no-style-elements: Vite HTML tag descriptors', uiLint.rules['no-style-elements'], {
+  valid: [
+    {
+      filename,
+      code: "export const t = { tag: 'script', children: '' };",
+      options: [{ htmlTagDescriptors: true }],
+    },
+    { filename, code: "export const t = { tag: 'style' };" },
+  ],
+  invalid: [
+    {
+      filename,
+      code: "export const t = { tag: 'style', children: '.a{}' };",
+      options: [{ htmlTagDescriptors: true }],
+      errors: [{ messageId: 'element' }],
+    },
   ],
 });
 
@@ -161,6 +221,10 @@ tester.run('ui/inline-style-static-keys', uiLint.rules['inline-style-static-keys
         'declare const k: string; declare const c: boolean; export const a = <div style={c ? { [k]: 1 } : {}} />;',
         `${REACT}declare const k: string; const dyn: CSSProperties = { [k]: 1 }; export const a = <div style={dyn} />;`,
         `${REACT}declare const k: string; createElement('div', { style: { [k]: 1 } });`,
+        // P1 QA3 H10: the style key spelled as a string or a computed constant.
+        `declare const k: string; export const a = <div {...{ 'style': { [k]: 1 } }} />;`,
+        `declare const k: string; export const a = <div {...{ ['style']: { [k]: 1 } }} />;`,
+        `declare const k: string; const S = 'style'; export const a = <div {...{ [S]: { [k]: 1 } }} />;`,
       ],
       'computed',
     ),
@@ -171,8 +235,74 @@ tester.run('ui/inline-style-static-keys', uiLint.rules['inline-style-static-keys
         // P1 QA2 G6: a pattern key other than `--${string}`.
         'declare const side: string; const s8: Record<`border${string}`, string> = { [`border${side}Radius`]: "13px" }; export const a = <div style={s8} />;',
         `${REACT}declare const k: string; createElement('div', { style: Object.fromEntries([[k, 1]]) });`,
+        // P1 QA3 H10: style reaching the element through a spread props object.
+        "declare const rec: Record<string, string>; export const a = <div {...{ 'style': rec }} />;",
+        'declare const props: { style: Record<string, string> }; export const a = <div {...props} />;',
       ],
       'indexed',
     ),
+  ],
+});
+
+const inRepo = (code, extra = {}) => ({ filename, code, ...extra });
+/** A file inside the web package, where the sink-open test modules live (H8). */
+const inWeb = (code, extra = {}) => ({
+  filename: path.join(REPO_ROOT, 'packages/web/src/features/qaprobe/Probe.tsx'),
+  code,
+  // import-scope needs no type information; the fixture tsconfig only covers __fixtures__.
+  languageOptions: { parserOptions: { project: null } },
+  ...extra,
+});
+
+tester.run('ui/import-scope (P1 QA3 H1, H8)', uiLint.rules['import-scope'], {
+  valid: [
+    inRepo("import '@/theme/tokens.css';"),
+    inRepo("import '../../../packages/web/src/theme/tokens.css';"),
+    // The CSS gate covers the whole web package, the local preview page included.
+    inRepo("import '../../../packages/web/preview/preview.css';"),
+    inRepo("import { a } from './probe';"),
+    inRepo("const icons = import.meta.glob('./icons/*.svg', { eager: true });"),
+    inRepo("const art = import.meta.glob(['./a/*.webp', '!./a/x.webp']);"),
+    inRepo("export const lazy = () => import('./probe');"),
+    // Helpers outside the sink-open test files carry the full gate, so anything may import them.
+    inRepo("import { fixture } from './__tests__/fixture';"),
+    inRepo("import { renderRoom } from '@/test-utils/renderRoom';"),
+    {
+      filename: path.join(FIXTURES, '__tests__/probe.tsx'),
+      code: "import { fixture } from './__tests__/fixture';",
+    },
+    // Test files may import each other.
+    inWeb("import { setup } from './other.test';", {
+      filename: path.join(REPO_ROOT, 'packages/web/src/features/qaprobe/Probe.test.tsx'),
+    }),
+  ],
+  invalid: [
+    ...[
+      "import 'normalize.css';",
+      "import './missing.css';",
+      "import '@/theme/tokens.css?inline';",
+      "import css from '@/theme/tokens.css?raw';",
+      "import './theme.scss';",
+      "import '../../../node_modules/x/y.css';",
+      "import '../../../packages/web/node_modules/x/y.css';",
+      "import '../../../packages/game-engine/src/x.css';",
+      "export * from './a.css';",
+    ].map((code) => inRepo(code, { errors: [{ messageId: 'style' }] })),
+    ...[
+      "import { setup } from './probe.test';",
+      "import { setup } from './probe.test.tsx';",
+      "import { setup } from '../qaprobe/helpers.test';",
+      "import '@/scene/__tests__/exerciseDecoration';",
+    ].map((code) => inWeb(code, { errors: [{ messageId: 'test' }] })),
+    ...[
+      "const styles = import.meta.glob('./*.css');",
+      "const mods = import.meta.glob('./*');",
+      "const mods = import.meta.glob('./**/*.{ts,css}');",
+      'declare const p: string; const mods = import.meta.glob(p);',
+    ].map((code) => inRepo(code, { errors: [{ messageId: 'glob' }] })),
+    ...[
+      'declare const p: string; export const lazy = () => import(p);',
+      'declare const p: string; export const lazy = () => import(`./${p}.css`);',
+    ].map((code) => inRepo(code, { errors: [{ messageId: 'dynamic' }] })),
   ],
 });

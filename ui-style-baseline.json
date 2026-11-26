@@ -1,4 +1,9 @@
 {
+  "packages/web/preview/preview.css": {
+    "ui/strict-value": [
+      "Use a token var() for \"z-index\" instead of the literal \"1\" (UI gate S1). @ z-index: 1;"
+    ]
+  },
   "packages/web/src/boot/WechatBrowserGuide.css": {
     "ui/strict-value": [
       "Use a token var() for \"animation\" instead of the literal \"1.5s\" (UI gate S1). @ animation: wechat-guide-bounce 1.5s ease-in-out infinite;",
@@ -13,11 +18,11 @@
   },
   "packages/web/src/components/Button.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ color 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,"
     ]
@@ -32,7 +37,7 @@
   },
   "packages/web/src/components/ChoiceCard.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ box-shadow 120ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,"
     ]
   },
@@ -47,7 +52,7 @@
   "packages/web/src/components/GameStatsPanel.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/components/IndeterminateProgressBar.css": {
@@ -62,7 +67,7 @@
   },
   "packages/web/src/components/NumPad.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,"
     ]
   },
@@ -99,43 +104,43 @@
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/features/feedback/components/FeedbackTab.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ color 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/features/product/components/CosmeticTabs.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/features/room/components/PlayerProfileCard.css": {
@@ -160,7 +165,7 @@
     "ui/strict-value": [
       "Use a token var() for \"box-shadow\" instead of the literal \"1px\" (UI gate S1). @ 0 1px 0 var(--hand-ink);",
       "Use a token var() for \"transition\" instead of the literal \"160ms\" (UI gate S1). @ rotate 160ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"160ms\" (UI gate S1). @ rotate 160ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"160ms\" (UI gate S1). @ translate 160ms ease-out;"
     ]
   },
   "packages/web/src/features/room/components/RoomBottomActionPanel.css": {
@@ -177,19 +182,19 @@
   "packages/web/src/features/room/components/RoomGameSummary.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/features/room/components/RoomPlayerPickModal.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ box-shadow 120ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,"
     ]
   },
   "packages/web/src/features/room/components/RoomRecord.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/features/room/components/RoomSeatBoard.css": {
@@ -218,7 +223,7 @@
   "packages/web/src/features/room/components/RoomShell.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
       "Use a token var() for \"z-index\" instead of the literal \"1\" (UI gate S1). @ z-index: 1;",
       "Use a token var() for \"z-index\" instead of the literal \"1\" (UI gate S1). @ z-index: 1;"
     ]
@@ -237,13 +242,13 @@
   "packages/web/src/features/room/steps/StepCardPicker.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/games/avalon/room/components/AvalonRecord.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/games/avalon/room/components/AvalonResultPanel.css": {
@@ -258,14 +263,14 @@
       "Use a token var() for \"animation-delay\" instead of the literal \"240ms\" (UI gate S1). @ animation-delay: 240ms;",
       "Use a token var() for \"box-shadow\" instead of the literal \"1px\" (UI gate S1). @ box-shadow: inset 0 0 0 1px var(--team-accent);",
       "Use a token var() for \"transition\" instead of the literal \"240ms\" (UI gate S1). @ opacity 240ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"240ms\" (UI gate S1). @ opacity 240ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"240ms\" (UI gate S1). @ translate 240ms ease-out;"
     ]
   },
   "packages/web/src/games/drawguess/room/components/DrawGuessStage.css": {
     "ui/strict-value": [
       "Use a token var() for \"animation\" instead of the literal \"0.25s\" (UI gate S1). @ animation: drawguess-toast-in 0.25s ease-out;",
       "Use a token var() for \"animation\" instead of the literal \"0.32s\" (UI gate S1). @ animation: drawguess-shake 0.32s ease-in-out;",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
       "Use a token var() for \"z-index\" instead of the literal \"2\" (UI gate S1). @ z-index: 2;"
     ]
@@ -289,7 +294,31 @@
   "packages/web/src/games/storyrelay/room/components/StoryRelayStage.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
+    ]
+  },
+  "packages/web/src/games/toolbox/room/ToolboxDiceCup.css": {
+    "ui/strict-value": [
+      "Use a token var() for \"animation\" instead of the literal \"1.4s\" (UI gate S1). @ animation: toolbox-dice-shake 1.4s ease-in-out both;",
+      "Use a token var() for \"border-radius\" instead of the literal \"10%\" (UI gate S1). @ border-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"10%\" (UI gate S1). @ border-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"12%\" (UI gate S1). @ border-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"12%\" (UI gate S1). @ border-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"22%\" (UI gate S1). @ border-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"22%\" (UI gate S1). @ border-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"50%\" (UI gate S1). @ border-radius: 0 0 50% 50%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"50%\" (UI gate S1). @ border-radius: 0 0 50% 50%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"50%\" (UI gate S1). @ border-radius: 50%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"50%\" (UI gate S1). @ border-radius: 50%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"50%\" (UI gate S1). @ border-radius: 50%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"50%\" (UI gate S1). @ border-radius: 50%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"8%\" (UI gate S1). @ border-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "Use a token var() for \"border-radius\" instead of the literal \"8%\" (UI gate S1). @ border-radius: 22% 22% 12% 12% / 10% 10% 8% 8%;",
+      "Use a token var() for \"letter-spacing\" instead of the literal \"0.16em\" (UI gate S1). @ letter-spacing: 0.16em;",
+      "Use a token var() for \"transition\" instead of the literal \"320ms\" (UI gate S1). @ transition: transform 320ms ease-out;",
+      "Use a token var() for \"z-index\" instead of the literal \"1\" (UI gate S1). @ z-index: 1;",
+      "Use a token var() for \"z-index\" instead of the literal \"1\" (UI gate S1). @ z-index: 1;",
+      "Use a token var() for \"z-index\" instead of the literal \"1\" (UI gate S1). @ z-index: 1;"
     ]
   },
   "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.css": {
@@ -306,7 +335,7 @@
   },
   "packages/web/src/games/werewolf/components/BoardStrategy/BoardStrategy.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,"
     ]
   },
@@ -314,8 +343,8 @@
     "ui/strict-value": [
       "Use a token var() for \"padding\" instead of the literal \"1px\" (UI gate S1). @ padding: 1px var(--space-micro);",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/games/werewolf/components/WerewolfBoardAnnouncementTab.css": {
@@ -326,7 +355,7 @@
   "packages/web/src/games/werewolf/components/WerewolfHomeSpotlight.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ color 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"600ms\" (UI gate S1). @ transition: transform 600ms ease-in-out;",
       "Use a token var() for \"transition-duration\" instead of the literal \"300ms\" (UI gate S1). @ transition-duration: 300ms;"
     ]
@@ -334,34 +363,34 @@
   "packages/web/src/games/werewolf/room/components/BoardNominationList.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/games/werewolf/room/components/MvpSelectionModal.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ box-shadow 120ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,"
     ]
   },
   "packages/web/src/games/werewolf/room/components/ShareReviewModal.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/games/werewolf/room/components/SheriffElection.css": {
     "ui/strict-value": [
       "Use a token var() for \"border\" instead of the literal \"3\" (UI gate S1). @ border: calc(var(--border-width) * 3) solid var(--color-primary);",
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ box-shadow 120ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,"
     ]
   },
   "packages/web/src/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,"
     ]
   },
@@ -369,7 +398,7 @@
     "ui/strict-value": [
       "Use a token var() for \"line-height\" instead of the literal \"1\" (UI gate S1). @ line-height: 1;",
       "Use a token var() for \"line-height\" instead of the literal \"1\" (UI gate S1). @ line-height: 1;",
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ box-shadow 120ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
       "Use a token var() for \"z-index\" instead of the literal \"1\" (UI gate S1). @ z-index: 1;"
     ]
@@ -377,7 +406,7 @@
   "packages/web/src/games/werewolf/screens/NotepadScreen/NotepadScreen.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/global.css": {
@@ -425,10 +454,10 @@
       "Use a token var() for \"outline-offset\" instead of the literal \"-2px\" (UI gate S1). @ outline-offset: -2px;",
       "Use a token var() for \"outline-offset\" instead of the literal \"-2px\" (UI gate S1). @ outline-offset: -2px;",
       "Use a token var() for \"outline-offset\" instead of the literal \"3px\" (UI gate S1). @ outline-offset: 3px;",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ background 120ms,",
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ background 120ms,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ border-color 120ms;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transition: transform 120ms;",
       "Use a token var() for \"z-index\" instead of the literal \"1\" (UI gate S1). @ z-index: 1;",
       "Use a token var() for \"z-index\" instead of the literal \"4\" (UI gate S1). @ z-index: 4;",
@@ -446,13 +475,13 @@
       "Use a token var() for \"border-top\" instead of the literal \"1px\" (UI gate S1). @ border-top: 1px solid var(--admin-border);",
       "Use a token var() for \"border-top\" instead of the literal \"1px\" (UI gate S1). @ border-top: 1px solid var(--admin-border);",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ background-color 120ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ background-color 120ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ border-color 120ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transition: transform 120ms ease-out;"
     ]
   },
   "packages/web/src/routes/appearance/AppearancePage.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ box-shadow 120ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
       "Use a token var() for \"z-index\" instead of the literal \"2\" (UI gate S1). @ z-index: 2;"
     ]
@@ -461,7 +490,7 @@
     "ui/strict-value": [
       "Use a token var() for \"font-size\" instead of the literal \"1.3\" (UI gate S1). @ font-size: calc(var(--font-display) * 1.3);",
       "Use a token var() for \"line-height\" instead of the literal \"1.04\" (UI gate S1). @ line-height: 1.04;",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,"
     ]
   },
@@ -469,7 +498,7 @@
     "ui/strict-value": [
       "Use a token var() for \"animation\" instead of the literal \"3000ms\" (UI gate S1). @ animation: draw-button-shimmer 3000ms linear infinite;",
       "Use a token var() for \"animation-duration\" instead of the literal \"2200ms\" (UI gate S1). @ animation-duration: 2200ms;",
-      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ box-shadow 120ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"120ms\" (UI gate S1). @ transform 120ms ease-out,"
     ]
   },
@@ -507,21 +536,21 @@
   "packages/web/src/routes/gacha/components/TicketTabBar.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"300ms\" (UI gate S1). @ transform 300ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"300ms\" (UI gate S1). @ background-color 300ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"300ms\" (UI gate S1). @ transform 300ms ease-out,"
     ]
   },
   "packages/web/src/routes/games/GamePickerPage.css": {
     "ui/strict-value": [
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,"
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;"
     ]
   },
   "packages/web/src/routes/home/HomePage.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transition: transform 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transition: transform 100ms ease-out;"
@@ -529,7 +558,7 @@
   },
   "packages/web/src/routes/home/InstallMenuItem.css": {
     "ui/strict-value": [
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,"
     ]
   },
@@ -540,13 +569,13 @@
       "Use a token var() for \"animation-duration\" instead of the literal \"550ms\" (UI gate S1). @ animation-duration: 550ms;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ background-color 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ box-shadow 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
-      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out,",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
+      "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transform 100ms ease-out;",
       "Use a token var() for \"transition\" instead of the literal \"100ms\" (UI gate S1). @ transition: transform 100ms ease-out;"
     ]
   },

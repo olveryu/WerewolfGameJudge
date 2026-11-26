@@ -70,6 +70,9 @@ importers:
       miniprogram-ci:
         specifier: ^2.1.31
         version: 2.1.31(@swc/helpers@0.5.24)(eslint@9.39.4(jiti@2.7.0))
+      parse5:
+        specifier: 8.1.1
+        version: 8.1.1
       postcss-value-parser:
         specifier: ^4.2.0
         version: 4.2.0

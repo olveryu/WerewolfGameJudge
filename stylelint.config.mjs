@@ -26,6 +26,12 @@ const VALUE_RULES = {
 
 const valueRulesOff = Object.fromEntries(Object.keys(VALUE_RULES).map((rule) => [rule, null]));
 
+/** The art layer's value exemption: each registered stylesheet, held to its own classes. */
+const artOverrides = Object.entries(ART_LAYER_STYLESHEETS).map(([file, prefix]) => ({
+  files: [file],
+  rules: { ...valueRulesOff, 'ui/art-layer-scope': prefix },
+}));
+
 export default {
   plugins: uiPlugins,
   // A disable comment would switch the gate off for a line or a file and hide the debt from the
@@ -34,11 +40,12 @@ export default {
   rules: {
     ...VALUE_RULES,
     'ui/no-css-escapes': true,
+    'ui/import-scope': true,
   },
+  // The only overrides (pinned by scripts/ui-lint/registry.test.mjs): exemptions come from the
+  // registry, never from a pattern written here.
   overrides: [
-    {
-      files: [TOKEN_STYLESHEET, ...ART_LAYER_STYLESHEETS],
-      rules: valueRulesOff,
-    },
+    { files: [TOKEN_STYLESHEET], rules: { ...valueRulesOff, 'ui/token-stylesheet-shape': true } },
+    ...artOverrides,
   ],
 };

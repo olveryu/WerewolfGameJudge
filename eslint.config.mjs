@@ -7,6 +7,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 import uiLint from './scripts/ui-lint/eslint-plugin.mjs';
+import { UI_GATE_SCRIPT_GLOBS, UI_GATE_TEST_GLOBS } from './scripts/ui-lint/scope.mjs';
 
 /** Deprecated identifiers — prevent regression after bulk renames. */
 const RENAMED_IDENTIFIER_SELECTORS = [
@@ -55,8 +56,10 @@ export default tseslint.config(
       'build/',
       'playwright-report/',
       'test-results/',
-      '**/*.config.js',
-      '**/*.config.mjs',
+      // Tool configuration at the root and package roots only: a `*.config.mjs` deeper down is
+      // linted like any other file (bundled source holds TypeScript only, see scope.mjs).
+      '*.config.{js,mjs}',
+      'packages/*/*.config.{js,mjs}',
       'miniapp/',
       'scripts/',
       'functions/',
@@ -277,31 +280,40 @@ export default tseslint.config(
   // =========================================================================
   // Web client (packages/web) — React DOM
   // =========================================================================
+  // Untrusted strings render only through React's default escaping (docs/web-client-rewrite.md §5.11).
   {
     files: ['packages/web/**/*.{ts,tsx}'],
+    rules: {
+      'react/no-danger': 'error',
+    },
+  },
+  // UI gate (scripts/ui-lint/eslint-plugin.mjs) on everything Vite can bundle and the web build
+  // code (scope in scripts/ui-lint/scope.mjs): styles enter the page only as bundled CSS (E5),
+  // imports stay inside what the gate checks, inline style objects name their properties
+  // statically (E4), and no code path is built from strings the checker cannot read (E9).
+  {
+    files: [...UI_GATE_SCRIPT_GLOBS],
     plugins: { ui: uiLint },
     rules: {
-      // Untrusted strings render only through React's default escaping (docs/web-client-rewrite.md §5.11).
-      'react/no-danger': 'error',
-      // UI gate (scripts/ui-lint/eslint-plugin.mjs): styles enter the page only as bundled CSS (E5),
-      // inline style objects name their properties statically (E4), and no code path is built from
-      // strings the checker cannot read (E9).
       'ui/no-style-elements': 'error',
+      'ui/import-scope': 'error',
       'ui/inline-style-static-keys': 'error',
       'no-eval': 'error',
       'no-new-func': 'error',
     },
   },
-  // Web test files mount jsdom fixtures through innerHTML; they never reach a user's page, so only
-  // the markup sinks are open there — creating <style>/<link> stays an error. Only `*.test.*`
-  // files: helpers under __tests__/ can be imported by anything, so they stay fully checked unless
-  // listed here by name. `exerciseDecoration.ts` parses rasterised SVG markup to validate it
-  // (DOMParser, never inserted) for the decoration registry contract tests.
+  // Vite plugins describe injected HTML as { tag, attrs, children }: no <style>/<link> there.
   {
-    files: [
-      'packages/web/**/*.test.{ts,tsx}',
-      'packages/web/src/scene/__tests__/exerciseDecoration.ts',
-    ],
+    files: ['packages/web/build-plugins/**/*.ts', 'packages/web/vite.config.ts'],
+    rules: {
+      'ui/no-style-elements': ['error', { htmlTagDescriptors: true }],
+    },
+  },
+  // Test files mount jsdom fixtures through innerHTML; they never reach a user's page, so only
+  // the markup sinks are open there — creating <style>/<link> stays an error. Production code
+  // may not import them (ui/import-scope). The list is UI_GATE_TEST_GLOBS in scope.mjs.
+  {
+    files: [...UI_GATE_TEST_GLOBS],
     rules: {
       'ui/no-style-elements': ['error', { htmlSinks: false }],
     },

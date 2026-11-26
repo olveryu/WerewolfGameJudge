@@ -35,7 +35,7 @@ npm run --silent lint:css
 npm run --silent lint:ui-baseline
 ```
 
-All four run; the hook stops at the first failure. `lint:css` (`scripts/ui-lint/lint-css.mjs`) is Stylelint with the root config over every stylesheet git knows in `packages/web`, failing on any violation not recorded in `ui-style-baseline.json` and on any other Stylelint config, ignore file or style language; `lint:ui-baseline` (`scripts/ui-baseline-ratchet.mjs`) checks that the recorded fingerprints are exact and have not grown since the base revision, and that no inline comment disables or configures a UI gate rule.
+All four run; the hook stops at the first failure. `lint:css` (`scripts/ui-lint/lint-css.mjs`) is Stylelint with the root config over every stylesheet git knows in `packages/web`, failing on any violation not recorded in `ui-style-baseline.json`, on any other Stylelint config, ignore file or style language, and on bundle-scope problems (symlinks, stylesheets outside `packages/web`, non-TypeScript scripts in bundled source, HTML outside its allow-list); `lint:ui-baseline` (`scripts/ui-baseline-ratchet.mjs`) checks that the recorded fingerprints are exact and have not grown since the base revision, and that no inline comment disables or configures a UI gate rule.
 
 The check files are installed by the `prepare` script (`husky`) in `package.json`.
 

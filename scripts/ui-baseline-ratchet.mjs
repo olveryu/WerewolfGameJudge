@@ -47,11 +47,10 @@ import {
   readBaseline,
   STYLE_BASELINE,
   STYLELINT_CONFIG,
-  WEB_PACKAGE,
 } from './ui-lint/styleGate.mjs';
+import { BUNDLED_SOURCE_ROOTS, SCRIPT_FILE, WEB_PACKAGE } from './ui-lint/scope.mjs';
 
 export const ESLINT_SUPPRESSIONS = 'eslint-suppressions.json';
-const SCRIPT_FILE = /\.(?:[cm]?[jt]sx?)$/;
 /** What a base revision's lint configuration needs in order to load outside the work tree. */
 const CONFIG_PATHS = ['package.json', 'stylelint.config.mjs', 'eslint.config.mjs', 'scripts'];
 
@@ -227,11 +226,16 @@ async function baseRuleLookup(cwd, base, scratch) {
   };
 }
 
-/** Gate directive comments in every web client source ESLint lints. */
+/** Gate directive comments in every script ESLint lints where the UI gate applies. */
 export async function disableDirectiveProblems(cwd) {
   const eslint = new ESLint({ cwd });
   const problems = [];
-  for (const file of knownFiles(cwd, WEB_PACKAGE).filter((name) => SCRIPT_FILE.test(name))) {
+  const roots = [
+    WEB_PACKAGE,
+    ...BUNDLED_SOURCE_ROOTS.filter((root) => !root.startsWith(`${WEB_PACKAGE}/`)),
+  ];
+  const files = roots.flatMap((root) => knownFiles(cwd, root));
+  for (const file of files.filter((name) => SCRIPT_FILE.test(name))) {
     if (await eslint.isPathIgnored(file)) continue;
     const source = fs.readFileSync(path.join(cwd, file), 'utf8');
     // Every directive comment spells `eslint` literally (comments carry no escapes), so a file

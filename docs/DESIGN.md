@@ -290,8 +290,12 @@ over every avatar site its census finds; the frame geometry tests
 - Keyboard focus is visible through the global focus treatment; input focus retains its
   component-specific treatment.
 - Component styles live in bundled CSS: ESLint rule `ui/no-style-elements` rejects creating
-  `<style>`/`<link>` elements or writing markup from code, and `ui/inline-style-static-keys`
-  keeps the properties an inline `style` writes enumerable.
+  `<style>`/`<link>` elements or writing markup from code, `ui/import-scope` keeps stylesheet
+  imports to `.css` files the CSS gate lints (inside `packages/web`) and the test files whose HTML
+  sinks are open out of production code, and
+  `ui/inline-style-static-keys` keeps the properties an inline `style` writes enumerable. What
+  the gate covers (the web package and the engine source the web build bundles) is defined once
+  in `scripts/ui-lint/scope.mjs`.
 
 ## Do's and Don'ts
 
@@ -299,7 +303,9 @@ over every avatar site its census finds; the frame geometry tests
   enforces this (`pnpm run lint:css`: `ui/strict-value` for sizes, type, shape, depth and timing,
   `color-no-hex`/`color-named`/`function-disallowed-list`/`ui/no-system-color` for colors,
   `ui/no-local-literal-custom-property` for local variables and `@property`, `ui/no-css-escapes`
-  for escapes); existing exceptions are recorded in `ui-style-baseline.json` and may only shrink.
+  for escapes, `ui/import-scope` for `@import`; `tokens.css` holds only custom property
+  definitions and each registered art stylesheet is exempt only for its own class prefix); existing
+  exceptions are recorded in `ui-style-baseline.json` and may only shrink.
 - Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
 - Do not replace meaningful game art or faction semantics with decorative styling.
 - Do not reintroduce gradients or colored side stripes merely as decoration.
