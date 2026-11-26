@@ -1,9 +1,10 @@
 import './RoomBottomActionPanel.css';
 
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
+import type { RoomBoardStatusModel } from '@/features/room/model/RoomBoardStatus';
 import type { RoomSelectionMode } from '@/features/room/model/RoomHand';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
@@ -50,26 +51,29 @@ function resolveStatusMessage(
     : model.message;
 }
 
-/** Status shared by the room information area and the action panel. */
+/**
+ * Status shared by the room information area and the action panel. Above the seats it renders
+ * exactly one status bar: the game's status (or the shell's phase/lobby status), whose message
+ * line the audio or selection prompt replaces.
+ */
 export function RoomActionStatus({
   model,
-  summary,
   isAudioPlaying,
   hostManagement,
   selectionMode,
-  boardStatus,
+  board,
 }: {
   readonly model: RoomPlayerActionModel;
-  readonly summary: ReactNode;
   readonly isAudioPlaying: boolean;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly selectionMode?: RoomSelectionMode;
-  readonly boardStatus?: {
+  readonly board?: {
     readonly phaseLabel: string | null;
-    readonly title: string | null;
-    readonly detail: string | null;
-    readonly compactContent?: ReactNode;
-    readonly compactIcon?: ReactNode;
+    readonly lobbyTitle: string | null;
+    readonly lobbyDetail: string | null;
+    readonly icon: ReactElement | null;
+    readonly gameStatus: RoomBoardStatusModel | null;
+    /** Extra lines (e.g. public announcements) kept inside the one bar in every phase. */
     readonly additionalContent?: ReactNode;
   };
 }) {
@@ -78,50 +82,63 @@ export function RoomActionStatus({
       ? resolveHostTaskView(hostManagement)?.body
       : null;
   const message = resolveStatusMessage(model, isAudioPlaying, selectionMode, taskBody ?? null);
-  const hasSummary = summary !== null && summary !== undefined && summary !== false;
-  const title =
-    isAudioPlaying || selectionMode !== undefined ? message : (boardStatus?.title ?? message);
-  if (boardStatus !== undefined) {
-    if (
-      boardStatus.compactContent !== null &&
-      boardStatus.compactContent !== undefined &&
-      !isAudioPlaying &&
-      selectionMode === undefined
-    ) {
-      return (
-        <>
-          {boardStatus.compactContent}
-          {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
-        </>
-      );
-    }
-    // The compact status is the board's only status surface (every seats-content game).
+  if (board !== undefined) {
+    const isPromptOverride = isAudioPlaying || selectionMode !== undefined;
+    const gameStatus = board.gameStatus;
+    const status =
+      gameStatus === null
+        ? {
+            context: board.phaseLabel,
+            message: isPromptOverride ? message : (board.lobbyTitle ?? message),
+            progress: isPromptOverride ? null : board.lobbyDetail,
+            pendingSeats: null,
+            icon: board.icon,
+            attachment: null,
+            inline: board.lobbyTitle !== null && !isPromptOverride,
+          }
+        : {
+            ...gameStatus,
+            context: gameStatus.context ?? board.phaseLabel,
+            icon: gameStatus.icon ?? board.icon,
+            message: isPromptOverride ? message : gameStatus.message,
+            progress: isPromptOverride ? null : gameStatus.progress,
+            pendingSeats: isPromptOverride ? null : gameStatus.pendingSeats,
+            inline: false,
+          };
+    const hasAdditionalContent =
+      board.additionalContent !== null && board.additionalContent !== undefined;
     const hasStatus =
-      boardStatus.phaseLabel !== null ||
-      (title !== null && title.length > 0) ||
-      boardStatus.detail !== null;
+      status.context !== null ||
+      (status.message !== null && status.message.length > 0) ||
+      status.progress !== null ||
+      status.attachment !== null ||
+      hasAdditionalContent;
     return (
       <>
         {hasStatus && (
           <RoomCompactStatus
-            context={boardStatus.phaseLabel}
-            message={title}
-            progress={!isAudioPlaying && selectionMode === undefined ? boardStatus.detail : null}
-            icon={boardStatus.compactIcon}
-            inline={boardStatus.title !== null && !isAudioPlaying && selectionMode === undefined}
+            context={status.context}
+            message={status.message}
+            progress={status.progress}
+            pendingSeats={status.pendingSeats?.seats ?? null}
+            {...(status.pendingSeats === null ? {} : { pendingLabel: status.pendingSeats.label })}
+            pendingTestId={status.pendingSeats?.testId}
+            icon={status.icon}
+            attachment={status.attachment}
+            inline={status.inline}
+            testId={gameStatus?.testId}
+            contextTestId={gameStatus?.contextTestId}
             statusTestId={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
           >
-            {boardStatus.additionalContent}
+            {board.additionalContent}
           </RoomCompactStatus>
         )}
-        {hasSummary && <div className="room-board-status-summary">{summary}</div>}
         {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
       </>
     );
   }
   return (
     <>
-      {hasSummary && <div className="bottom-action-summary">{summary}</div>}
       {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
       {message !== null && message.length > 0 && (
         <p

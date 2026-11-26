@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { formatPendingSeats } from './PendingSeatsRow';
 
 /**
- * A read-only, compact room status with optional submission progress.
+ * The room's one status bar above the seat board, rendered only by `RoomActionStatus`.
  *
  * `statusTestId` marks the one status line: the message when there is one, otherwise the
  * progress. Callers never choose which element carries it.
@@ -17,6 +17,7 @@ export function RoomCompactStatus({
   pendingSeats,
   pendingLabel = '未投票',
   icon,
+  attachment,
   inline = false,
   testId,
   statusTestId,
@@ -30,6 +31,7 @@ export function RoomCompactStatus({
   readonly pendingSeats?: readonly number[] | null;
   readonly pendingLabel?: string;
   readonly icon?: ReactNode;
+  readonly attachment?: ReactNode;
   readonly inline?: boolean;
   readonly testId?: string;
   readonly statusTestId?: string;
@@ -71,6 +73,9 @@ export function RoomCompactStatus({
         <p className="room-compact-status-message" data-testid={pendingTestId}>
           {pending}
         </p>
+      )}
+      {attachment !== null && attachment !== undefined && (
+        <div className="room-compact-status-attachment">{attachment}</div>
       )}
       {children}
     </div>

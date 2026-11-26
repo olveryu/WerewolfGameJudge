@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 
+import type { RoomBoardStatusModel } from '@/features/room/model/RoomBoardStatus';
 import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
 import { TESTIDS } from '@/testids';
 
@@ -12,27 +13,46 @@ const EMPTY_ACTIONS: RoomPlayerActionModel = {
   group: null,
 };
 
-it('renders every board status as the compact status, the summary below it', () => {
+const SHELL_BOARD = {
+  phaseLabel: '第1轮',
+  lobbyTitle: null,
+  lobbyDetail: null,
+  icon: null,
+  gameStatus: null,
+};
+
+const GAME_STATUS: RoomBoardStatusModel = {
+  context: '任务二 · 投票中',
+  message: null,
+  progress: '已投 1/5',
+  pendingSeats: { seats: [1, 2], label: '未投票', testId: 'pending' },
+  icon: null,
+  attachment: <p>任务轨道</p>,
+  testId: 'game-status',
+};
+
+it('renders the shell phase status as the one compact status', () => {
   const props = {
     model: { ...EMPTY_ACTIONS, message: '轮到你描述' },
-    summary: <p>卧底获胜</p>,
     isAudioPlaying: false,
     hostManagement: null,
-    boardStatus: { phaseLabel: '第1轮', title: null, detail: null },
+    board: SHELL_BOARD,
   };
   const { container, rerender } = render(<RoomActionStatus {...props} />);
-  const status = container.querySelector('.room-compact-status');
-  expect(status).toHaveTextContent('第1轮');
+  expect(container.querySelectorAll('.room-compact-status')).toHaveLength(1);
+  expect(container.querySelector('.room-compact-status')).toHaveTextContent('第1轮');
   expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('轮到你描述');
-  expect(container.querySelector('.room-board-status-card')).toBeNull();
-  expect(container.querySelector('.room-board-status-summary')).toHaveTextContent('卧底获胜');
 
   // A lobby title takes over the message line, with the seat shortfall as progress.
   rerender(
     <RoomActionStatus
       {...props}
-      summary={null}
-      boardStatus={{ phaseLabel: '待开局', title: '等待玩家入座', detail: '还差 2 人' }}
+      board={{
+        ...SHELL_BOARD,
+        phaseLabel: '待开局',
+        lobbyTitle: '等待玩家入座',
+        lobbyDetail: '还差 2 人',
+      }}
     />,
   );
   expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('等待玩家入座');
@@ -43,7 +63,7 @@ it('renders every board status as the compact status, the summary below it', () 
   expect(screen.getByTestId(TESTIDS.audioWaitingMessage)).toHaveTextContent('语音播报中…');
 });
 
-it('shows a status message and progress when the summary is not the status', () => {
+it('shows a status message and progress outside the board', () => {
   render(
     <RoomActionStatus
       model={{
@@ -51,7 +71,6 @@ it('shows a status message and progress when the summary is not the status', () 
         message: '等待下一阶段',
         progress: { current: 1, total: 3, label: '夜晚' },
       }}
-      summary={null}
       isAudioPlaying={false}
       hostManagement={null}
     />,
@@ -60,36 +79,59 @@ it('shows a status message and progress when the summary is not the status', () 
   expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
 });
 
-it('gives audio and selection messages priority over compact game content', () => {
+it('falls back to the shell phase label and icon when the game status leaves them empty', () => {
+  const { container } = render(
+    <RoomActionStatus
+      model={EMPTY_ACTIONS}
+      isAudioPlaying={false}
+      hostManagement={null}
+      board={{
+        ...SHELL_BOARD,
+        phaseLabel: '本局结束',
+        icon: <svg data-testid="shell-icon" />,
+        gameStatus: { ...GAME_STATUS, context: null, icon: null, message: '卧底获胜' },
+      }}
+    />,
+  );
+  expect(container.querySelectorAll('.room-compact-status')).toHaveLength(1);
+  expect(screen.getByText('本局结束')).toBeInTheDocument();
+  expect(screen.getByTestId('shell-icon')).toBeInTheDocument();
+  expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('卧底获胜');
+});
+
+it('replaces only the game message line during audio and selection, keeping context and attachment', () => {
   const props = {
     model: {
       ...EMPTY_ACTIONS,
       message: '请选择玩家，如不使用请点击「不用技能」',
       progress: { current: 1, total: 3, label: '夜晚' },
     },
-    summary: null,
     isAudioPlaying: false,
     hostManagement: null,
-    boardStatus: {
-      phaseLabel: '夜晚',
-      title: null,
-      detail: null,
-      compactContent: <p>游戏状态</p>,
-    },
+    board: { ...SHELL_BOARD, gameStatus: GAME_STATUS },
   };
-  const { rerender } = render(<RoomActionStatus {...props} />);
-  expect(screen.getByText('游戏状态')).toBeInTheDocument();
+  const { container, rerender } = render(<RoomActionStatus {...props} />);
+  expect(container.querySelectorAll('.room-compact-status')).toHaveLength(1);
+  expect(screen.getByTestId('game-status')).toHaveTextContent('任务二 · 投票中');
+  expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('已投 1/5');
+  expect(screen.getByTestId('pending')).toHaveTextContent('未投票：2号 3号');
   expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
 
   rerender(
     <RoomActionStatus {...props} selectionMode={{ kind: 'player', escapeActionKey: 'cancel' }} />,
   );
-  expect(screen.queryByText('游戏状态')).not.toBeInTheDocument();
+  expect(container.querySelectorAll('.room-compact-status')).toHaveLength(1);
   expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(
     '请选择玩家，如不使用请点击「不用技能」',
   );
+  expect(screen.getByText('任务二 · 投票中')).toBeInTheDocument();
+  expect(screen.getByText('任务轨道')).toBeInTheDocument();
+  expect(screen.queryByText('已投 1/5')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('pending')).not.toBeInTheDocument();
 
   rerender(<RoomActionStatus {...props} isAudioPlaying />);
-  expect(screen.queryByText('游戏状态')).not.toBeInTheDocument();
+  expect(container.querySelectorAll('.room-compact-status')).toHaveLength(1);
   expect(screen.getByTestId(TESTIDS.audioWaitingMessage)).toHaveTextContent('语音播报中…');
+  expect(screen.getByText('任务二 · 投票中')).toBeInTheDocument();
+  expect(screen.getByText('任务轨道')).toBeInTheDocument();
 });

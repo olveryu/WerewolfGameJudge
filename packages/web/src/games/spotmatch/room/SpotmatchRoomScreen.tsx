@@ -128,7 +128,6 @@ function SpotmatchRoomContent(
           ? {
               kind: 'seats',
               contextHeader: null,
-              bottomSummary: null,
               afterSeatBoard: null,
               beforeSeatBoard: (
                 <RoomGameSummary

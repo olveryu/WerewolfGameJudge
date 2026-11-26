@@ -1,17 +1,18 @@
-/** Unit tests for the sheriff-election HUD summary copy. */
+/** Unit tests for the sheriff-election board status copy. */
 
 import { type GameState, GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { render, screen } from '@testing-library/react';
 
 import {
+  buildSheriffElectionBoardStatus,
   getHudSummary,
-  SheriffElectionHud,
-} from '@/games/werewolf/room/components/SheriffElectionHud';
+} from '@/games/werewolf/room/day/sheriffElectionBoardStatus';
 import {
   createSheriffElectionViewModel,
   type SheriffElectionViewModel,
 } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
+import { BoardStatusPreview } from '@/test-utils/boardStatus';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
 
@@ -107,12 +108,12 @@ describe('getHudSummary', () => {
   });
 });
 
-describe('SheriffElectionHud pending row', () => {
+describe('sheriff election board status pending row', () => {
   it('keeps the summary read-only when details are elsewhere', () => {
     const model = createModel({
       voteProgress: { submittedCount: 2, eligibleCount: 4, pendingSeats: [1, 3] },
     });
-    render(<SheriffElectionHud model={model} isHost={false} />);
+    render(<BoardStatusPreview status={buildSheriffElectionBoardStatus(model, false)} />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByTestId(TESTIDS.sheriffDetailsButton)).not.toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveTextContent('首轮投票');
@@ -127,14 +128,14 @@ describe('SheriffElectionHud pending row', () => {
       },
       5,
     );
-    render(<SheriffElectionHud model={model} isHost={false} />);
+    render(<BoardStatusPreview status={buildSheriffElectionBoardStatus(model, false)} />);
 
     expect(screen.queryByTestId(TESTIDS.sheriffHudPendingSeats)).toBeNull();
     expect(screen.getByText('已全部投票，5 秒后揭晓')).toBeInTheDocument();
   });
 });
 
-describe('SheriffElectionHud registration secrecy', () => {
+describe('sheriff election board status registration secrecy', () => {
   function registrationState(): GameState {
     const players: GameState['players'] = {};
     for (let seat = 0; seat < 8; seat += 1) players[seat] = { seat, role: 'villager' };
@@ -163,7 +164,11 @@ describe('SheriffElectionHud registration secrecy', () => {
       isHost,
     });
     if (view === null) throw new Error('expected a view model');
-    render(<SheriffElectionHud model={{ ...createModel({}), view }} isHost={isHost} />);
+    render(
+      <BoardStatusPreview
+        status={buildSheriffElectionBoardStatus({ ...createModel({}), view }, isHost)}
+      />,
+    );
 
     const hud = screen.getByTestId(TESTIDS.sheriffElectionHud);
     expect(screen.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveTextContent('报名进行中');
