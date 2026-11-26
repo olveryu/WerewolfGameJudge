@@ -9,11 +9,12 @@
  * hide it.
  *
  * Every element that hosts an `<Avatar>` is registered in `AVATAR_HOSTS`, whatever its class is
- * called. A census parses the TSX files that name a carrier (`<Avatar>`, `<ResidentAvatarTile>`,
+ * called. A census parses the source files that name a carrier (`<Avatar>`, `<ResidentAvatarTile>`,
  * aliases, components returning one) and records the elements from each site out to its box;
  * adding a site or wrapping one in a new element changes it and fails, and each class on the way
  * must be a registered host, stage or box, so the stylesheet checks below reach it. A class the
- * census cannot read fails too. Where a held site finally lands is stated beside its entry.
+ * census cannot read fails too; what it can and cannot follow is listed in `avatarCensus.ts`.
+ * Where a held site finally lands is stated beside its entry.
  * Avatar artwork reaches the page only through `<Avatar>`: no bare `<img>` of a portrait or an
  * uploaded avatar URL. Files hosting an `<Avatar>` set no inline corner, clip or overflow either.
  *
@@ -28,14 +29,14 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import ts from 'typescript';
-
 import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import {
   applyAvatarShapeTokens,
   AVATAR_CORNER_RATIO,
   AVATAR_CORNER_RATIO_PROPERTY,
 } from '@/config/avatarShape';
+
+import { avatarCensus, type DeclarationRef } from './avatarCensus';
 
 const SRC_DIR = join(import.meta.dirname, '..');
 const AVATAR_CSS = 'components/avatar/Avatar.css';
@@ -117,26 +118,32 @@ const AVATAR_STAGES: readonly string[] = [
 ];
 
 /**
- * The census: per file, each avatar site as `<Carrier> in <chain>`, the enclosing elements from the
- * site out to the box drawn around it (`a < b < box`). An element reads as its classes (`{prop}`
- * for a class passed in, `?` for one the census cannot read), or `<Tag>` when it has none; a
- * component ends the chain. A site a function does not wrap ends in `returned by <Fn>` (a returning
- * component is a carrier too, listed where it is rendered) or `held by <variable>`.
+ * The census (`avatarCensus.ts`): per file, each avatar site as `<Carrier> in <chain>`, the
+ * elements from the site out to the box drawn around it (`a < b < box`). An element reads as its
+ * classes, or `<Tag>` when it has none; a component (`<Tag>`, with its classes) ends the chain. A
+ * site a function returns ends in `returned by <Fn>` (the function is then a carrier, listed where
+ * it is rendered); one stored in a `const` or an object property ends in `held by <name>` and is
+ * traced again from each read (`via <name>`, `via .<prop>`), and one passed to a component of
+ * this app is traced again from where the component reads that prop (`via <Tag>.<prop>`).
  */
 const AVATAR_SITES: Readonly<Record<string, readonly string[]>> = {
   // Its callers wrap it in `account-entry` (ACCOUNT_ENTRY_CLASS), listed where they render it.
   'components/avatar/AccountAvatar.tsx': ['Avatar in returned by AccountAvatar'],
   'features/auth/LoginDialog.tsx': ['Avatar in login-strip-portrait'],
-  // `{className}`: a caller's extra class (none pass one today).
   'features/product/components/ResidentPreview.tsx': [
-    'Avatar in resident-tile-avatar < resident-tile-stage < resident-tile avatar-concentric {className}',
+    'Avatar in resident-tile-avatar < resident-tile-stage < resident-tile avatar-concentric',
   ],
   'features/room/components/PlayerProfileCard.tsx': [
     'ResidentAvatarTile in profile-avatar avatar-concentric',
     'ResidentAvatarTile in profile-avatar avatar-concentric',
   ],
-  // The slot's preview, drawn in the slot's `profile-equip-preview` box.
-  'features/room/components/ProfileEquipmentShowcase.tsx': ['Avatar in held by preview'],
+  // The avatar slot's preview, read back as `slot.preview` into the slot's box.
+  'features/room/components/ProfileEquipmentShowcase.tsx': [
+    'Avatar in held by preview',
+    'via preview in held by .preview',
+    'via preview in held by .preview',
+    'via .preview in profile-equip-preview avatar-concentric',
+  ],
   'features/room/components/RoomSeatTile.tsx': [
     'Avatar in seat-avatar < seat-avatar-stage < seat-tile-button avatar-concentric',
   ],
@@ -153,20 +160,21 @@ const AVATAR_SITES: Readonly<Record<string, readonly string[]>> = {
   // PickerCell draws `appearance-cell` > `appearance-cell-thumb`; the bare span is that thumb's
   // custom-upload preview.
   'routes/appearance/AppearancePickers.tsx': [
+    'via PickerCell.children in appearance-cell-thumb < appearance-cell avatar-concentric',
     'Avatar in <PickerCell>',
     'Avatar in <PickerCell>',
     'Avatar in <span> < <PickerCell>',
     'ResidentAvatarTile in <PickerCell>',
   ],
-  // Both land in RewardPreview's `reward-preview` box.
   'routes/gacha/components/RewardPreview.tsx': [
-    'ResidentAvatarTile in returned by (anonymous)',
-    'Avatar in returned by (anonymous)',
+    'ResidentAvatarTile in held by body',
+    'Avatar in held by body',
+    'via body in reward-preview',
   ],
-  'routes/home/HomePage.tsx': ['AccountAvatar in account-entry'],
+  'routes/home/HomePage.tsx': ['AccountAvatar in <Link> account-entry'],
   'routes/settings/SettingsPage.tsx': [
     'Avatar in settings-teaser-item',
-    'ResidentAvatarTile in settings-avatar avatar-concentric',
+    'ResidentAvatarTile in <Link> settings-avatar avatar-concentric',
   ],
   'routes/unlocks/UnlocksPage.tsx': [
     'Avatar in unlocks-thumb < returned by UnlockThumb',
@@ -176,7 +184,10 @@ const AVATAR_SITES: Readonly<Record<string, readonly string[]>> = {
 };
 
 /** The elements that carry an avatar into the page wherever they are rendered. */
-const AVATAR_CARRIERS: readonly string[] = ['Avatar', 'ResidentAvatarTile'];
+const AVATAR_CARRIERS: readonly DeclarationRef[] = [
+  { file: 'components/avatar/Avatar.tsx', name: 'Avatar' },
+  { file: 'features/product/components/ResidentPreview.tsx', name: 'ResidentAvatarTile' },
+];
 
 /** Role cards reuse the avatar art as role portraits; they are not user avatars. */
 const ROLE_ART = /^games\/[\w-]+\/assets\/roleAvatars\.ts$/;
@@ -253,172 +264,6 @@ function styles(compound: string, name: string): boolean {
   return new RegExp(`\\.${name}(?![-\\w])`).test(compound);
 }
 
-interface FileScope {
-  /** Local constants to their initializer. */
-  readonly constants: Map<string, ts.Expression>;
-  /** Imported names to the source module and export they come from (resolved when read). */
-  readonly imports: Map<string, { readonly path: string; readonly name: string }>;
-  /** Local names of imported carriers (`import { Avatar as Face }`) to the carrier's name. */
-  readonly aliases: Map<string, string>;
-}
-
-const moduleScopes = new Map<string, FileScope>();
-
-/** The source file an import specifier names (`@/…` or relative), if it is in `src`. */
-function resolveImport(from: string, specifier: string): string | undefined {
-  let base: string;
-  if (specifier.startsWith('@/')) base = join(SRC_DIR, specifier.slice(2));
-  else if (specifier.startsWith('.')) base = join(from, '..', specifier);
-  else return undefined;
-  return ['.ts', '.tsx', '/index.ts', '/index.tsx']
-    .map((extension) => base + extension)
-    .find((path) => {
-      try {
-        return statSync(path).isFile();
-      } catch {
-        return false;
-      }
-    });
-}
-
-function parseSource(path: string, text: string = readFileSync(path, 'utf8')): ts.SourceFile {
-  const kind = path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  return ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind);
-}
-
-function scopeOf(path: string, source: ts.SourceFile = parseSource(path)): FileScope {
-  const cached = moduleScopes.get(path);
-  if (cached !== undefined) return cached;
-  const scope: FileScope = { constants: new Map(), imports: new Map(), aliases: new Map() };
-  moduleScopes.set(path, scope);
-  const visit = (node: ts.Node) => {
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
-      scope.constants.set(node.name.text, node.initializer);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  for (const statement of source.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
-      continue;
-    }
-    const bindings = statement.importClause?.namedBindings;
-    if (bindings === undefined || !ts.isNamedImports(bindings)) continue;
-    const target = resolveImport(path, statement.moduleSpecifier.text);
-    for (const element of bindings.elements) {
-      const imported = (element.propertyName ?? element.name).text;
-      if (imported !== element.name.text) scope.aliases.set(element.name.text, imported);
-      if (target !== undefined)
-        scope.imports.set(element.name.text, { path: target, name: imported });
-    }
-  }
-  return scope;
-}
-
-/** Is this identifier a parameter (or destructured prop) of an enclosing function? */
-function isParameter(identifier: ts.Identifier): boolean {
-  for (let node: ts.Node | undefined = identifier; node !== undefined; node = node.parent) {
-    if (!ts.isFunctionLike(node)) continue;
-    const names = node.parameters.flatMap((parameter) =>
-      ts.isIdentifier(parameter.name)
-        ? [parameter.name.text]
-        : ts.isObjectBindingPattern(parameter.name)
-          ? parameter.name.elements.map((element) => element.name.getText())
-          : [],
-    );
-    if (names.includes(identifier.text)) return true;
-  }
-  return false;
-}
-/** The classes a className can produce: names, `{prop}` for a prop passed in, `?` if unread. */
-/** The classes a className expression can produce (see `ClassValue`). */
-function classNamesOf(
-  expression: ts.Node | undefined,
-  scope: FileScope,
-  seen: Set<string> = new Set(),
-): string[] {
-  if (expression === undefined) return [];
-  const words = (text: string) => text.split(/\s+/).filter((word) => word !== '');
-  if (ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) {
-    return words(expression.text);
-  }
-  if (ts.isTemplateExpression(expression)) {
-    return [
-      ...words(expression.head.text),
-      ...expression.templateSpans.flatMap((span) => [
-        ...classNamesOf(span.expression, scope, seen),
-        ...words(span.literal.text),
-      ]),
-    ];
-  }
-  if (ts.isIdentifier(expression)) {
-    if (seen.has(expression.text)) return [];
-    seen.add(expression.text);
-    const value = scope.constants.get(expression.text);
-    if (value !== undefined) return classNamesOf(value, scope, seen);
-    const imported = scope.imports.get(expression.text);
-    if (imported !== undefined) {
-      const module = scopeOf(imported.path);
-      const exported = module.constants.get(imported.name);
-      return exported === undefined ? ['?'] : classNamesOf(exported, module);
-    }
-    return isParameter(expression) ? [`{${expression.text}}`] : ['?'];
-  }
-  if (ts.isConditionalExpression(expression)) {
-    return [
-      ...classNamesOf(expression.whenTrue, scope, seen),
-      ...classNamesOf(expression.whenFalse, scope, seen),
-    ];
-  }
-  if (ts.isParenthesizedExpression(expression) || ts.isJsxExpression(expression)) {
-    return classNamesOf(expression.expression, scope, seen);
-  }
-  return ['?'];
-}
-
-function openingOf(element: ts.JsxElement | ts.JsxSelfClosingElement) {
-  return ts.isJsxElement(element) ? element.openingElement : element;
-}
-
-/** The element's (or component's) classes, else `<Tag>`. */
-function wrapperOf(element: ts.JsxElement, scope: FileScope): string {
-  const opening = element.openingElement;
-  const tag = opening.tagName.getText();
-  const className = opening.attributes.properties.find(
-    (attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText() === 'className',
-  );
-  if (className === undefined || !ts.isJsxAttribute(className)) return `<${tag}>`;
-  const names = [...new Set(classNamesOf(className.initializer, scope))];
-  return names.length === 0 ? `<${tag}>` : names.join(' ');
-}
-
-/** An arrow or function expression passed inline in JSX (`list.map(…)`, a render prop). */
-function isInlineCallback(node: ts.Node): boolean {
-  if (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node)) return false;
-  let up: ts.Node = node.parent;
-  while (
-    ts.isCallExpression(up) ||
-    ts.isParenthesizedExpression(up) ||
-    ts.isPropertyAccessExpression(up)
-  ) {
-    up = up.parent;
-  }
-  return ts.isJsxExpression(up) || ts.isJsxAttribute(up);
-}
-
-/** How a function lets go of a site it does not wrap: returns it, or holds it in a variable. */
-function releaseOf(site: ts.Node, fn: ts.SignatureDeclaration): { label: string; name?: string } {
-  const name =
-    fn.name?.getText() ?? (ts.isVariableDeclaration(fn.parent) ? fn.parent.name.getText() : '');
-  for (let node: ts.Node = site.parent; node !== fn; node = node.parent) {
-    if (ts.isReturnStatement(node) || node === (fn as ts.ArrowFunction).body) {
-      return { label: `returned by ${name || '(anonymous)'}`, name: name || undefined };
-    }
-    if (ts.isVariableDeclaration(node)) return { label: `held by ${node.name.getText()}` };
-  }
-  return { label: `held in ${name || '(anonymous)'}` };
-}
-
 /** Classes that end a chain: the box drawn around the avatar, or a host with no box. */
 function endsChain(names: readonly string[]): boolean {
   return names.some(
@@ -427,78 +272,25 @@ function endsChain(names: readonly string[]): boolean {
   );
 }
 
-/**
- * Every avatar site per file, as `<Carrier> in <chain>`: the enclosing elements from the site out
- * to the box drawn around it (`a < b < box`), or to where the function returns or holds it.
- */
-function avatarCensus(): Record<string, string[]> {
-  const texts = sourceFiles(SRC_DIR)
-    .filter((file) => file.endsWith('.tsx'))
-    .map((file) => ({ file, text: readFileSync(file, 'utf8') }));
-  // Parse only files naming a carrier (parsing every TSX file is slow); each is parsed once.
-  const parsed = new Map<string, { source: ts.SourceFile; scope: FileScope }>();
-  const parse = (file: string, text: string) => {
-    let entry = parsed.get(file);
-    if (entry === undefined) {
-      const source = parseSource(file, text);
-      entry = { source, scope: scopeOf(file, source) };
-      parsed.set(file, entry);
-    }
-    return entry;
-  };
-  const carriers = new Set(AVATAR_CARRIERS);
-  // Lowercase helpers returning a site, as `file#name`: their calls in that file are sites too.
-  const helpers = new Set<string>();
-  for (;;) {
-    const census: Record<string, string[]> = {};
-    const before = carriers.size + helpers.size;
-    const names = new RegExp(`\\b(?:${[...carriers].join('|')})\\b`);
-    for (const { file: path, text } of texts.filter(({ text }) => names.test(text))) {
-      const file = relative(SRC_DIR, path);
-      const { source, scope } = parse(path, text);
-      const visit = (node: ts.Node) => {
-        let carrier: string | undefined;
-        if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
-          const tag = openingOf(node).tagName.getText();
-          carrier = scope.aliases.get(tag) ?? tag;
-          if (!carriers.has(carrier)) carrier = undefined;
-        } else if (
-          ts.isCallExpression(node) &&
-          ts.isIdentifier(node.expression) &&
-          helpers.has(`${file}#${node.expression.text}`)
-        ) {
-          carrier = `${node.expression.text}()`;
-        }
-        if (carrier !== undefined) {
-          const chain: string[] = [];
-          let parent: ts.Node | undefined = node.parent;
-          for (; parent !== undefined; parent = parent.parent) {
-            if (ts.isJsxElement(parent)) {
-              const wrapper = wrapperOf(parent, scope);
-              chain.push(wrapper);
-              if (
-                wrapper.startsWith('<') ? /^<[A-Z]/.test(wrapper) : endsChain(wrapper.split(' '))
-              ) {
-                break;
-              }
-            } else if (ts.isFunctionLike(parent) && !isInlineCallback(parent)) {
-              const release = releaseOf(node, parent);
-              chain.push(release.label);
-              if (release.name !== undefined) {
-                if (/^[A-Z]/.test(release.name)) carriers.add(release.name);
-                else helpers.add(`${file}#${release.name}`);
-              }
-              break;
-            }
-          }
-          (census[file] ??= []).push(`${carrier} in ${chain.join(' < ')}`);
-        }
-        ts.forEachChild(node, visit);
-      };
-      visit(source);
-    }
-    if (carriers.size + helpers.size === before) return census;
+const words = (text: string) => text.split(/\s+/).filter((word) => word !== '');
+
+function readSource(path: string): string | undefined {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    return undefined;
   }
+}
+
+/** The census of the app's sources (`avatarCensus.ts`). */
+function appCensus(): Record<string, string[]> {
+  return avatarCensus({
+    srcDir: SRC_DIR,
+    files: sourceFiles(SRC_DIR).filter((file) => /\.tsx?$/.test(file) && !file.endsWith('.d.ts')),
+    read: readSource,
+    carriers: AVATAR_CARRIERS.map(({ file, name }) => ({ file: join(SRC_DIR, file), name })),
+    endsChain,
+  });
 }
 
 describe('Avatar shape', () => {
@@ -548,10 +340,10 @@ describe('Avatar shape', () => {
   });
 
   it('has every site registered with the elements around it', () => {
-    const census = avatarCensus();
+    const census = appCensus();
     expect(census).toEqual(AVATAR_SITES);
     // Each class around a site is a host, a stage or a concentric box, so the stylesheet checks
-    // reach it; a class the census cannot read (`?`) fails rather than passing unseen.
+    // reach it; anything the census cannot read (`?`) is no such class, so it fails too.
     const registered = new Set([
       ...AVATAR_HOSTS,
       ...AVATAR_STAGES,
@@ -560,10 +352,10 @@ describe('Avatar shape', () => {
     ]);
     const unregistered = Object.values(census)
       .flat()
-      .flatMap((site) => site.replace(/^\S+ in /, '').split(' < '))
-      .filter((link) => !/^(?:<|returned by |held )/.test(link))
-      .flatMap((link) => link.split(' '))
-      .filter((name) => !/^\{\w+\}$/.test(name) && !registered.has(name));
+      .flatMap((site) => site.slice(site.indexOf(' in ') + ' in '.length).split(' < '))
+      .filter((link) => !/^(?:returned|held) by /.test(link))
+      .flatMap((link) => words(link.replace(/^own /, '').replace(/^<[^>]*>/, '')))
+      .filter((name) => !registered.has(name));
     expect(unregistered).toEqual([]);
   });
 
