@@ -1,12 +1,15 @@
 /**
  * Contract test: one avatar shape.
  *
- * `Avatar` owns its corners (`AVATAR_CORNER_RATIO`, at every size) and the scene draws avatar
- * frames along the same corner. No stylesheet but `Avatar.css` (pinned below) may restyle the
- * avatar element's corners, nor clip an avatar wrapper (an `*avatar*` class with `overflow:
- * hidden|clip` plus a radius, or any clip-path/mask), so the shape cannot drift per page again.
- * Declarations are merged per selector within a file, so splitting a clip across two rules does not
- * hide it.
+ * `Avatar` owns its corners (`AVATAR_CORNER_RATIO`, at every size; `Avatar.test.tsx` pins the
+ * value) and the scene draws avatar frames along the same corner. Stylesheets are parsed with
+ * PostCSS: nested rules resolve against their parents, `@scope` prefixes its root, other at-rules
+ * are transparent, `-webkit-` prefixes are dropped and a selector's rules are merged. No
+ * stylesheet may restyle the avatar's corners (`Avatar.css` may style its own elements, with no
+ * shape, and is checked like any other beyond them), no rule on an `<img>`, a `<span>` or any
+ * element without a class may shape what could be the avatar, and no avatar wrapper (an
+ * `*avatar*` class with `overflow: hidden|clip` plus a radius, or any clip-path/mask) may clip
+ * it. From script, only the seat entrance's wipe clips an element.
  *
  * Every element that hosts an `<Avatar>` is registered in `AVATAR_HOSTS`, whatever its class is
  * called. A census parses the source files that name a carrier (`<Avatar>`, `<ResidentAvatarTile>`,
@@ -16,9 +19,10 @@
  * census cannot read fails too; what it can and cannot follow is listed in `avatarCensus.ts`.
  * Where a held site finally lands is stated beside its entry.
  * Avatar artwork reaches the page only through `<Avatar>`: no bare `<img>` of a portrait or an
- * uploaded avatar URL (an `<img>`'s `src` is followed through the names it uses that the file
- * declares, not through props from another component). Files hosting an `<Avatar>` set no inline
- * corner, clip or overflow either.
+ * uploaded avatar URL. Files hosting an `<Avatar>` set no inline corner, clip or overflow either.
+ * An `<img>`'s `src` and an element's `style` are read with the TypeScript parser and followed
+ * through the names they use that the file declares (a `.map` callback's parameter through its
+ * receiver), not through props from another component.
  *
  * A square box around an avatar (a seat, a tile, a mat, an avatar-sized placeholder) is
  * concentric with it: it carries `AVATAR_CONCENTRIC_CLASS`, whose one rule (in its own
@@ -26,15 +30,19 @@
  * ratio and the box's own `--avatar-inset`; the box sets no radius, clip-path or mask of its own
  * (`inherit` on a pseudo element lining it is fine). Every host names the box drawn around its
  * avatar; a host that is not itself such a box, and the entrance stages between a box and its
- * avatar, set no corners or cut at all. The ratio is declared nowhere in CSS and its property is
- * named in no source but `config/avatarShape.ts`, which publishes it, and a box reads whether its
- * tile wears a frame only via `wearsFrame`. Not checked: an element of its own drawn over an
- * avatar inside its host (an overlay or a badge is not told apart by its class), and selectors
- * that reach a host or box by tag or attribute rather than by its class.
+ * avatar, set no corners or cut at all. No stylesheet but the concentric rule's names the ratio,
+ * and that one only reads it; no source but `config/avatarShape.ts`, which publishes it, names
+ * its property. A box reads whether its tile wears a frame only via `wearsFrame`.
+ *
+ * Not checked: an element of its own drawn over an avatar inside its host (an overlay or a badge
+ * is not told apart by its class), a selector reaching a host or box itself by tag or attribute
+ * rather than by its class, a wrapper outside a host with no box, and a wrong `--avatar-inset`
+ * value.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
+import postcss, { type Container, list } from 'postcss';
 import ts from 'typescript';
 
 import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
@@ -55,8 +63,8 @@ const TARGETS_AVATAR = /\.avatar(?![-\w])[^\s>+~]*$/;
 /** A declaration of one of `properties` in a rule body, on its own line or after a `;`. */
 const declares = (properties: string, value = '') =>
   new RegExp(`(?:^|;)\\s*(?:${properties})\\s*:${value}`, 'm');
-const RADIUS_PROPERTY = 'border(?:-[a-z]+)*-radius';
-const CLIP_PROPERTY = 'clip-path|-webkit-clip-path|mask(?:-[a-z]+)*|-webkit-mask(?:-[a-z]+)*';
+const RADIUS_PROPERTY = 'border(?:-[a-z]+)*-radius|corner-shape';
+const CLIP_PROPERTY = 'clip-path|mask(?:-[a-z]+)*';
 const SHAPE_PROPERTY = declares(`${RADIUS_PROPERTY}|${CLIP_PROPERTY}`);
 /** Any compound in the selector names an avatar-ish class (`.seat-avatar`, `.room-user-avatar-clip`). */
 const NAMES_AVATAR = /\.[\w-]*avatar[\w-]*/;
@@ -216,11 +224,13 @@ const AVATAR_IMAGE_SOURCE =
   /assets\/avatars\/|\b(?:getHandDrawnPortraitUrl|resolveAvatarSource|HAND_DRAWN_PORTRAITS)\b/;
 
 /**
- * The `src` of every `<img>` in a TSX source, as the text it is computed from: the expression,
- * and, for each name in it declared in the file, that declaration (a `const`'s initializer, a
- * destructured property with its source, a parameter), followed on through the names they use.
+ * The value of every `attribute` on a `tag` element (any tag when undefined) in a TSX source,
+ * with what it is computed from: for each name it uses that the file declares, that declaration
+ * (a `const`'s initializer, a destructured property with its source, a parameter, and, for a
+ * parameter of a callback such as `.map`, the receiver it is called on), followed on through the
+ * names they use. Names are matched across the file, so a reuse of a name only adds text.
  */
-function imgSources(path: string): string[] {
+function attributeValues(path: string, attribute: string, tag?: string): ts.Node[][] {
   const source = ts.createSourceFile(
     path,
     readFileSync(path, 'utf8'),
@@ -229,7 +239,7 @@ function imgSources(path: string): string[] {
     ts.ScriptKind.TSX,
   );
   const declarations = new Map<string, ts.Node[]>();
-  const sources: ts.Node[] = [];
+  const values: ts.Node[] = [];
   const collect = (node: ts.Node) => {
     if (
       (ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isParameter(node)) &&
@@ -239,65 +249,115 @@ function imgSources(path: string): string[] {
     }
     if (
       (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
-      node.tagName.getText() === 'img'
+      (tag === undefined || node.tagName.getText() === tag)
     ) {
-      for (const attribute of node.attributes.properties) {
-        if (ts.isJsxAttribute(attribute) && attribute.name.getText() === 'src') {
-          if (attribute.initializer !== undefined) sources.push(attribute.initializer);
+      for (const property of node.attributes.properties) {
+        if (ts.isJsxAttribute(property) && property.name.getText() === attribute) {
+          if (property.initializer !== undefined) values.push(property.initializer);
         }
       }
     }
     ts.forEachChild(node, collect);
   };
   collect(source);
-  return sources.map((src) => {
-    const texts: string[] = [];
+  return values.map((value) => {
+    const reached: ts.Node[] = [];
     const seen = new Set<ts.Node>();
     const expand = (node: ts.Node) => {
       if (seen.has(node)) return;
       seen.add(node);
-      texts.push(node.getText());
+      reached.push(node);
       const visit = (child: ts.Node) => {
         if (ts.isIdentifier(child)) {
           for (const declaration of declarations.get(child.text) ?? []) {
             // A destructured name carries the object it is taken from.
-            const owner = ts.isBindingElement(declaration)
-              ? declaration.parent.parent
-              : declaration;
-            expand(owner);
-            if (ts.isBindingElement(declaration)) texts.push(declaration.getText());
+            expand(ts.isBindingElement(declaration) ? declaration.parent.parent : declaration);
+            const fn = declaration.parent;
+            const call = ts.isParameter(declaration) ? fn.parent : undefined;
+            if (
+              call !== undefined &&
+              ts.isCallExpression(call) &&
+              ts.isPropertyAccessExpression(call.expression)
+            ) {
+              expand(call.expression.expression);
+            }
           }
         }
         ts.forEachChild(child, visit);
       };
-      ts.forEachChild(node, visit);
       if (ts.isIdentifier(node)) visit(node);
+      else ts.forEachChild(node, visit);
     };
-    expand(src);
-    return texts.join(' ');
+    expand(value);
+    return reached;
   });
 }
-/** An inline style key that could cut or re-shape a hosted avatar. */
+
+/** A style key, normalized (`border-radius`, `WebkitBorderRadius` → `borderradius`). */
+const styleKey = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[-_]/g, '')
+    .replace(/^webkit/, '');
+/** A style key that could cut or re-shape a hosted avatar. */
 const INLINE_SHAPE =
-  /\b(?:borderRadius|border\w*Radius|clipPath|WebkitClipPath|mask\w*|WebkitMask\w*|overflow[XY]?)\s*:/;
-/** The body of every inline `style={{ … }}` object in a TSX source. */
-const INLINE_STYLE = /\bstyle=\{\{([^}]*)\}\}/g;
+  /^(?:border\w*radius|clippath|mask\w*|overflow[xy]?|cornershape|avatarcornerratio)$/;
+
+/** The keys an inline style may set: those of every object literal it reaches (`?` if computed). */
+function styleKeys(reached: readonly ts.Node[]): string[] {
+  const keys: string[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isObjectLiteralElementLike(node) && node.name !== undefined) {
+      const name = node.name;
+      keys.push(
+        ts.isIdentifier(name) ||
+          ts.isStringLiteral(name) ||
+          ts.isNoSubstitutionTemplateLiteral(name)
+          ? name.text
+          : '?',
+      );
+    }
+    ts.forEachChild(node, visit);
+  };
+  reached.forEach(visit);
+  return keys;
+}
+
+/** The compounds of a selector part, split at combinators outside brackets and parentheses. */
+function compoundsOf(part: string): string[] {
+  const compounds = [''];
+  let depth = 0;
+  for (const char of part.trim()) {
+    if (char === '(' || char === '[') depth += 1;
+    if (char === ')' || char === ']') depth -= 1;
+    if (depth === 0 && /[\s>+~]/.test(char)) {
+      if (compounds.at(-1) !== '') compounds.push('');
+    } else {
+      compounds[compounds.length - 1] += char;
+    }
+  }
+  return compounds.filter((compound) => compound !== '');
+}
 
 /** The last compound of a selector part: the element the rule styles. */
 function subjectOf(part: string): string {
-  return (
-    part
-      .trim()
-      .split(/\s*[\s>+~]\s*/)
-      .at(-1) ?? ''
-  );
+  return compoundsOf(part).at(-1) ?? '';
 }
+
+/** A compound without its `:not(…)` negations (which never narrow what it may match to a class). */
+const stripNot = (compound: string) => compound.replace(/:not\((?:[^()]|\([^()]*\))*\)/g, '');
 
 /** Could this compound match the avatar element (no class but `.avatar`, if any)? */
 function mayBeAvatar(compound: string): boolean {
-  const withoutNegations = compound.replace(/:not\([^)]*\)/g, '');
-  return [...withoutNegations.matchAll(/\.([\w-]+)/g)].every(([, name]) => name === 'avatar');
+  return [...stripNot(compound).matchAll(/\.([\w-]+)/g)].every(([, name]) => name === 'avatar');
 }
+
+/**
+ * Does a rule with this subject give it corners or a cut of its own? A pseudo element may take
+ * its element's corners (`inherit`); the element itself may not take its parent's.
+ */
+const shapes = (subject: string, body: string) =>
+  (subject.includes('::') ? OWN_SHAPE : SHAPE_PROPERTY).test(body);
 
 function hostIn(part: string): string | undefined {
   return AVATAR_HOSTS.find((host) => new RegExp(`\\.${host}(?![-\\w])`).test(part));
@@ -319,28 +379,96 @@ function cssFiles(dir: string): string[] {
   });
 }
 
-/**
- * `selector → declarations` for every rule, comments removed; at-rule wrappers are skipped. Rules
- * repeating a selector are merged, so a split declaration is judged as one rule.
- */
-function rules(source: string): { selector: string; body: string }[] {
-  const css = source.replace(/\/\*[\s\S]*?\*\//g, '');
-  const merged = new Map<string, string>();
-  for (const match of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const selector = (match[1] ?? '').trim().replace(/\s+/g, ' ');
-    merged.set(selector, `${merged.get(selector) ?? ''}\n${match[2] ?? ''}`);
-  }
-  return [...merged].map(([selector, body]) => ({ selector, body }));
+/** A style rule: its selector parts and its declarations, one `property: value;` per line. */
+interface CssRule {
+  readonly selector: string;
+  readonly parts: readonly string[];
+  readonly body: string;
 }
 
-/** Every stylesheet except Avatar's own, whose shape is pinned separately. */
-function otherCssFiles(): string[] {
-  return cssFiles(SRC_DIR).filter((file) => relative(SRC_DIR, file) !== AVATAR_CSS);
+/** Child selectors nested in `parents` (`&` stands for the parent; otherwise a descendant). */
+function nest(parents: readonly string[] | undefined, selectors: readonly string[]): string[] {
+  if (parents === undefined) return [...selectors];
+  return parents.flatMap((parent) =>
+    selectors.map((selector) =>
+      selector.includes('&') ? selector.replaceAll('&', parent) : `${parent} ${selector}`,
+    ),
+  );
+}
+
+/**
+ * Every style rule of a stylesheet, parsed by PostCSS: nested rules are resolved against their
+ * parents, `@scope (root)` prefixes its root, and other at-rules (`@media`, `@supports`, …) are
+ * transparent. Properties are lowercased with any `-webkit-` prefix dropped. Rules repeating a
+ * selector are merged, so a split declaration is judged as one rule.
+ */
+function rules(source: string): CssRule[] {
+  const merged = new Map<string, { parts: string[]; body: string }>();
+  const walk = (container: Container, parents: string[] | undefined) => {
+    const declarations: string[] = [];
+    container.each((node) => {
+      if (node.type === 'decl') {
+        declarations.push(`${node.prop.toLowerCase().replace(/^-webkit-/, '')}: ${node.value};`);
+      } else if (node.type === 'rule') {
+        walk(node, nest(parents, node.selectors));
+      } else if (node.type === 'atrule' && node.nodes !== undefined) {
+        const root =
+          node.name.toLowerCase() === 'scope' ? /^\s*\(([^)]*)\)/.exec(node.params) : null;
+        walk(node, root?.[1] === undefined ? parents : nest(parents, list.comma(root[1])));
+      }
+    });
+    if (parents === undefined || declarations.length === 0) return;
+    const parts = parents.map((part) => part.replaceAll(':scope', '').trim() || ':scope');
+    const selector = parts.join(', ');
+    const entry = merged.get(selector) ?? { parts, body: '' };
+    merged.set(selector, { parts, body: `${entry.body}\n${declarations.join('\n')}` });
+  };
+  walk(postcss.parse(source), undefined);
+  return [...merged].map(([selector, { parts, body }]) => ({ selector, parts, body }));
+}
+
+/** The classes `Avatar` gives its own elements, read from its source. */
+const AVATAR_OWN_CLASSES = [
+  ...readFileSync(join(SRC_DIR, 'components/avatar/Avatar.tsx'), 'utf8').matchAll(
+    /className="([^"]*)"/g,
+  ),
+].flatMap(([, names]) => (names ?? '').split(/\s+/).filter((name) => name !== ''));
+
+/** Does this compound select only through the avatar's own classes (and attributes, states)? */
+function ownAvatarCompound(compound: string): boolean {
+  const classes = [...compound.matchAll(/\.([\w-]+)/g)].map(([, name]) => name ?? '');
+  const rest = compound.replace(/\.[\w-]+|\[[^\]]*\]|::?[\w-]+(?:\([^)]*\))?/g, '');
+  return (
+    classes.length > 0 && classes.every((name) => AVATAR_OWN_CLASSES.includes(name)) && rest === ''
+  );
+}
+
+/**
+ * Every stylesheet's rules. `Avatar.css` keeps only the rules that reach beyond the avatar's own
+ * elements (the classes `Avatar` renders): its rules on those are pinned separately below.
+ */
+function sheets(): { file: string; rules: CssRule[] }[] {
+  return cssFiles(SRC_DIR).map((path) => {
+    const file = relative(SRC_DIR, path);
+    const all = rules(readFileSync(path, 'utf8'));
+    return {
+      file,
+      rules:
+        file === AVATAR_CSS
+          ? all.filter(({ parts }) =>
+              parts.some((part) => !compoundsOf(part).every(ownAvatarCompound)),
+            )
+          : all,
+    };
+  });
 }
 
 /** Does this compound style the concentric box `.<name>` (not its non-concentric variant)? */
 function styles(compound: string, name: string): boolean {
-  if (compound.includes(`:not(.${AVATAR_CONCENTRIC_CLASS})`)) return false;
+  const negated = [...compound.matchAll(/:not\(((?:[^()]|\([^()]*\))*)\)/g)].map(([, inner]) =>
+    (inner ?? '').trim(),
+  );
+  if (negated.includes(`.${AVATAR_CONCENTRIC_CLASS}`)) return false;
   return new RegExp(`\\.${name}(?![-\\w])`).test(compound);
 }
 
@@ -375,36 +503,63 @@ function appCensus(): Record<string, string[]> {
 
 describe('Avatar shape', () => {
   it('is set by Avatar alone', () => {
-    const overrides = otherCssFiles().flatMap((file) =>
-      rules(readFileSync(file, 'utf8'))
+    const overrides = sheets().flatMap(({ file, rules: sheetRules }) =>
+      sheetRules
         .filter(
-          ({ selector, body }) =>
-            selector.split(',').some((part) => TARGETS_AVATAR.test(part.trim())) &&
-            SHAPE_PROPERTY.test(body),
+          ({ parts, body }) =>
+            parts.some((part) => TARGETS_AVATAR.test(part.trim())) && SHAPE_PROPERTY.test(body),
         )
-        .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
+        .map(({ selector }) => `${file}: ${selector}`),
     );
     expect(overrides).toEqual([]);
   });
 
+  it('is not re-shaped by a rule that could select it without a class', () => {
+    // The avatar is an `<img>` or a `<span>`: a rule on such a tag (or `*`, or no tag) with no class
+    // reaches it when nothing scopes it to another element, or when it is scoped inside an avatar,
+    // a host, a stage or a box; so does any rule on an element inside an avatar.
+    const around = [...AVATAR_HOSTS, ...AVATAR_STAGES, ...Object.keys(CONCENTRIC_BOXES), 'avatar'];
+    const reaching = sheets().flatMap(({ file, rules: sheetRules }) =>
+      sheetRules.flatMap(({ parts, body }) =>
+        parts
+          .filter((part) => {
+            const compounds = compoundsOf(part);
+            const subject = compounds.at(-1) ?? '';
+            const ancestors = compounds.slice(0, -1);
+            const classes = (c: string) =>
+              [...stripNot(c).matchAll(/\.([\w-]+)/g)].map(([, n]) => n ?? '');
+            const inAvatar = ancestors.some((c) => classes(c).includes('avatar'));
+            const bare =
+              /^(?:img|span|\*)?(?![\w-])/i.test(subject) && classes(subject).length === 0;
+            const scopes = ancestors.flatMap(classes);
+            const reaches =
+              inAvatar ||
+              (bare && (scopes.length === 0 || scopes.some((name) => around.includes(name))));
+            return reaches && shapes(subject, body);
+          })
+          .map((part) => `${file}: ${part.trim()}`),
+      ),
+    );
+    expect(reaching).toEqual([]);
+  });
+
   it('is not cut by an avatar wrapper', () => {
-    const clippers = otherCssFiles().flatMap((file) =>
-      rules(readFileSync(file, 'utf8'))
+    const clippers = sheets().flatMap(({ file, rules: sheetRules }) =>
+      sheetRules
         .filter(
           ({ selector, body }) =>
             NAMES_AVATAR.test(selector) &&
             ((CLIPS_CONTENT.test(body) && RADIUS.test(body)) || CLIP_SHAPE.test(body)),
         )
-        .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
+        .map(({ selector }) => `${file}: ${selector}`),
     );
     expect(clippers).toEqual([]);
   });
 
   it('is not cut by the element hosting it', () => {
-    const cutters = otherCssFiles().flatMap((file) =>
-      rules(readFileSync(file, 'utf8')).flatMap(({ selector, body }) =>
-        selector
-          .split(',')
+    const cutters = sheets().flatMap(({ file, rules: sheetRules }) =>
+      sheetRules.flatMap(({ parts, body }) =>
+        parts
           .filter((part) => {
             const host = hostIn(part);
             if (host === undefined) return false;
@@ -413,7 +568,7 @@ describe('Avatar shape', () => {
             if (hostIn(subject) === host) return CLIPS_CONTENT.test(body) && RADIUS.test(body);
             return mayBeAvatar(subject) && (RADIUS.test(body) || CLIPS_CONTENT.test(body));
           })
-          .map((part) => `${relative(SRC_DIR, file)}: ${part.trim()}`),
+          .map((part) => `${file}: ${part.trim()}`),
       ),
     );
     expect(cutters).toEqual([]);
@@ -453,9 +608,9 @@ describe('Avatar shape', () => {
       .map((file) => relative(SRC_DIR, file))
       .filter((file) => !file.startsWith('components/avatar/'))
       .flatMap((file) =>
-        imgSources(join(SRC_DIR, file))
-          .filter((src) => /avatarurl/i.test(src))
-          .map((src) => `${file}: src=${src.split(' ')[0] ?? ''}`),
+        attributeValues(join(SRC_DIR, file), 'src', 'img')
+          .filter((reached) => reached.some((node) => /avatarurl/i.test(node.getText())))
+          .map((reached) => `${file}: src=${reached[0]?.getText() ?? ''}`),
       );
     expect(bareImages).toEqual([]);
   });
@@ -463,12 +618,32 @@ describe('Avatar shape', () => {
   it('is not re-shaped by inline styles where it is hosted or boxed', () => {
     const files = new Set([...Object.keys(AVATAR_SITES), ...Object.values(CONCENTRIC_BOXES)]);
     const inlineShapes = [...files].flatMap((file) =>
-      [...readFileSync(join(SRC_DIR, file), 'utf8').matchAll(INLINE_STYLE)]
-        .map(([, body]) => body ?? '')
-        .filter((body) => INLINE_SHAPE.test(body))
-        .map((body) => `${file}: style={{${body.trim()}}}`),
+      attributeValues(join(SRC_DIR, file), 'style').flatMap((reached) =>
+        styleKeys(reached)
+          .filter((key) => key === '?' || INLINE_SHAPE.test(styleKey(key)))
+          .map((key) => `${file}: style ${reached[0]?.getText() ?? ''} sets ${key}`),
+      ),
     );
     expect(inlineShapes).toEqual([]);
+  });
+
+  it('is not re-shaped from script but by the seat entrance', () => {
+    // The seat entrance wipes the avatar in with an inset clip while it plays; nothing else sets a
+    // corner, clip or mask on an element from script.
+    const imperative = sourceFiles(SRC_DIR)
+      .map((file) => relative(SRC_DIR, file))
+      .filter((file) => file !== 'scene/SeatEntrance.tsx')
+      .flatMap((file) =>
+        [
+          ...readFileSync(join(SRC_DIR, file), 'utf8').matchAll(
+            /\.style\.(\w+)\s*=(?!=)|\.style\.setProperty\(\s*['"`]([\w-]+)/g,
+          ),
+        ]
+          .map(([, key, property]) => key ?? property ?? '')
+          .filter((key) => INLINE_SHAPE.test(styleKey(key)))
+          .map((key) => `${file}: style.${key}`),
+      );
+    expect(imperative).toEqual([]);
   });
 
   it('names the box drawn around every host', () => {
@@ -498,18 +673,17 @@ describe('Avatar shape', () => {
 
   it('lets no concentric box set its own corners or cut, and has each set its inset', () => {
     // The shared class itself is shaped in its own stylesheet alone.
-    const sheets = otherCssFiles()
-      .filter((file) => relative(SRC_DIR, file) !== CONCENTRIC_CSS)
-      .map((file) => ({ file: relative(SRC_DIR, file), rules: rules(readFileSync(file, 'utf8')) }));
+    const others = sheets().filter(({ file }) => file !== CONCENTRIC_CSS);
     const ownShape: string[] = [];
     const withoutInset: string[] = [];
     for (const box of [...Object.keys(CONCENTRIC_BOXES), AVATAR_CONCENTRIC_CLASS]) {
       let setsInset = false;
-      for (const { file, rules: sheetRules } of sheets) {
-        for (const { selector, body } of sheetRules) {
-          const subjects = selector.split(',').map((part) => subjectOf(part));
-          if (!subjects.some((subject) => styles(subject, box))) continue;
-          if (OWN_SHAPE.test(body)) ownShape.push(`${file}: ${selector}`);
+      for (const { file, rules: sheetRules } of others) {
+        for (const { selector, parts, body } of sheetRules) {
+          const subjects = parts.map((part) => subjectOf(part)).filter((s) => styles(s, box));
+          if (subjects.length === 0) continue;
+          if (subjects.some((subject) => shapes(subject, body)))
+            ownShape.push(`${file}: ${selector}`);
           if (declares('--avatar-inset').test(body)) setsInset = true;
         }
       }
@@ -524,27 +698,31 @@ describe('Avatar shape', () => {
       ...AVATAR_HOSTS.filter((host) => !(host in CONCENTRIC_BOXES)),
       ...AVATAR_STAGES,
     ];
-    const cornered = otherCssFiles().flatMap((file) =>
-      rules(readFileSync(file, 'utf8'))
-        .filter(
-          ({ selector, body }) =>
-            OWN_SHAPE.test(body) &&
-            selector
-              .split(',')
-              .some((part) => wrappers.some((name) => styles(subjectOf(part), name))),
+    const cornered = sheets().flatMap(({ file, rules: sheetRules }) =>
+      sheetRules
+        .filter(({ parts, body }) =>
+          parts.some((part) => {
+            const subject = subjectOf(part);
+            return wrappers.some((name) => styles(subject, name)) && shapes(subject, body);
+          }),
         )
-        .map(({ selector }) => `${relative(SRC_DIR, file)}: ${selector}`),
+        .map(({ selector }) => `${file}: ${selector}`),
     );
     expect(cornered).toEqual([]);
   });
 
-  it('declares the ratio in no stylesheet', () => {
-    const declared = cssFiles(SRC_DIR)
+  it('names the ratio in no stylesheet but the concentric rule, which only reads it', () => {
+    // Declaring it (or registering it with `@property`) would be a second ratio; reading it
+    // elsewhere would be a second copy of the formula.
+    const named = cssFiles(SRC_DIR)
+      .map((file) => relative(SRC_DIR, file))
+      .filter((file) => file !== CONCENTRIC_CSS)
       .filter((file) =>
-        new RegExp(`${AVATAR_CORNER_RATIO_PROPERTY}\\s*:`).test(readFileSync(file, 'utf8')),
-      )
-      .map((file) => relative(SRC_DIR, file));
-    expect(declared).toEqual([]);
+        readFileSync(join(SRC_DIR, file), 'utf8').includes(AVATAR_CORNER_RATIO_PROPERTY),
+      );
+    expect(named).toEqual([]);
+    const shared = readFileSync(join(SRC_DIR, CONCENTRIC_CSS), 'utf8');
+    expect(shared).not.toMatch(new RegExp(`${AVATAR_CORNER_RATIO_PROPERTY}\\s*:|@property`));
   });
 
   it('names the ratio property in no source but its publisher', () => {
@@ -605,6 +783,7 @@ describe('Avatar shape', () => {
       selector.split(',').some((part) => TARGETS_AVATAR.test(part.trim())),
     );
     expect(avatarRules.length).toBeGreaterThan(0);
+    expect(AVATAR_OWN_CLASSES).toEqual(expect.arrayContaining(['avatar', 'avatar-fallback']));
     expect(avatarRules.filter(({ body }) => SHAPE_PROPERTY.test(body))).toEqual([]);
   });
 });
