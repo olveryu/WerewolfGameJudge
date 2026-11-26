@@ -180,6 +180,16 @@ function WerewolfRoomContent(
         isDay={status === GameStatus.Day}
       />
     );
+  const announcementContent =
+    publicAnnouncements.length === 0 ? null : (
+      <>
+        {publicAnnouncements.map((announcement) => (
+          <p className="room-compact-status-message" key={announcement.key}>
+            {announcement.message}
+          </p>
+        ))}
+      </>
+    );
 
   return (
     <RoomShell
@@ -298,7 +308,15 @@ function WerewolfRoomContent(
         kind: 'seats',
         // 竞选面板只在白天接管底部行动（createWerewolfPlayerActions），HUD 进状态条的条件同源：
         // 白天且有竞选；夜里开的报名只走 bottomSummary。
-        compactStatusContent: status === GameStatus.Day ? sheriffHud : null,
+        compactStatusContent:
+          status === GameStatus.Day && sheriffElectionPanel !== null ? (
+            <SheriffElectionHud
+              model={sheriffElectionPanel}
+              isHost={isHost}
+              additionalContent={announcementContent}
+            />
+          ) : null,
+        statusAdditionalContent: announcementContent,
         compactStatusIcon:
           status === GameStatus.Ongoing ? (
             <IconMoonOutline aria-hidden />
@@ -321,9 +339,6 @@ function WerewolfRoomContent(
         bottomSummary: sheriffHud,
         beforeSeatBoard: (
           <>
-            {publicAnnouncements.map((announcement) => (
-              <p key={announcement.key}>{announcement.message}</p>
-            ))}
             {!useConfigurationDialog && (
               <RoomGameSummary title="狼人杀" playerCount={seatCount} guide={null}>
                 <BoardInfoContent

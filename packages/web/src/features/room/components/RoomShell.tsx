@@ -44,6 +44,7 @@ type RoomShellContent =
       readonly bottomSummary: ReactElement | null;
       readonly compactStatusContent?: ReactElement | null;
       readonly compactStatusIcon?: ReactElement;
+      readonly statusAdditionalContent?: ReactElement | null;
       readonly informationLayout?: 'fixed' | 'scroll-with-seats';
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
@@ -337,7 +338,7 @@ export function RoomShell({
             )}
             {statusInBoard && (
               <div className="room-board-information">
-                <div className="room-board-status">
+                <div className="room-board-status" data-testid={TESTIDS.roomBoardStatus}>
                   <RoomActionStatus
                     model={model.playerActions}
                     summary={content.bottomSummary}
@@ -348,6 +349,7 @@ export function RoomShell({
                       phaseLabel,
                       compactContent: content.compactStatusContent,
                       compactIcon: content.compactStatusIcon,
+                      additionalContent: content.statusAdditionalContent,
                       title: lobbyTitle,
                       detail:
                         lobbyAction !== null && seatsMissing > 0 ? `还差 ${seatsMissing} 人` : null,

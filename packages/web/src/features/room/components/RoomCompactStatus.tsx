@@ -22,6 +22,7 @@ export function RoomCompactStatus({
   statusTestId,
   contextTestId,
   pendingTestId,
+  children,
 }: {
   readonly context: string | null;
   readonly message: string | null;
@@ -34,6 +35,7 @@ export function RoomCompactStatus({
   readonly statusTestId?: string;
   readonly contextTestId?: string;
   readonly pendingTestId?: string;
+  readonly children?: ReactNode;
 }) {
   const pending =
     pendingSeats === null || pendingSeats === undefined
@@ -70,6 +72,7 @@ export function RoomCompactStatus({
           {pending}
         </p>
       )}
+      {children}
     </div>
   );
 }

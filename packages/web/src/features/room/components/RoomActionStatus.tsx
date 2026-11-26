@@ -70,6 +70,7 @@ export function RoomActionStatus({
     readonly detail: string | null;
     readonly compactContent?: ReactNode;
     readonly compactIcon?: ReactNode;
+    readonly additionalContent?: ReactNode;
   };
 }) {
   const taskBody =
@@ -109,7 +110,9 @@ export function RoomActionStatus({
             icon={boardStatus.compactIcon}
             inline={boardStatus.title !== null && !isAudioPlaying && selectionMode === undefined}
             statusTestId={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
-          />
+          >
+            {boardStatus.additionalContent}
+          </RoomCompactStatus>
         )}
         {hasSummary && <div className="room-board-status-summary">{summary}</div>}
         {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}

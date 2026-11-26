@@ -24,6 +24,7 @@
 import { shuffleArray } from '@game-judge/game-engine/platform/random';
 
 import { BGM_VOLUME } from '@/features/product/model/BgmCatalog';
+import { handleError } from '@/utils/errorPipeline';
 import { audioLog } from '@/utils/logger';
 
 import { ensureAudioContextRunning, getAudioContext } from './AudioContextOwner';
@@ -50,8 +51,8 @@ export class BgmPlayer {
   #endedHandler: (() => void) | null = null;
   #timeupdateHandler: (() => void) | null = null;
   #trackEndFired = false;
-  /** Bumped per track and on release; a play() rejection from an older track is ignored. */
-  #trackGeneration = 0;
+  /** Invalidates play() rejections after another attempt, pause, or release. */
+  #playGeneration = 0;
 
   /** Whether music is playing (or between playlist tracks); `useSyncExternalStore` snapshot. */
   readonly isPlaying = (): boolean => this.#isPlaying;
@@ -108,6 +109,7 @@ export class BgmPlayer {
 
   /** Pauses the current track (page hidden). */
   pause(): void {
+    this.#playGeneration += 1;
     this.#element?.pause();
   }
 
@@ -121,11 +123,39 @@ export class BgmPlayer {
   }
 
   #play(audio: HTMLAudioElement, attempt: string): void {
-    const generation = this.#trackGeneration;
+    const generation = ++this.#playGeneration;
+    const trackIndex = this.#currentIndex;
+    const track = this.#playlist[trackIndex];
     audio.play().catch((error: unknown) => {
-      if (generation !== this.#trackGeneration) return;
-      audioLog.warn(`BGM ${attempt} play() rejected; stopping`, error);
+      const mediaError = error instanceof Error || error instanceof DOMException ? error : null;
+      const details = {
+        attempt,
+        trackIndex,
+        track,
+        errorName: mediaError?.name ?? 'UnknownError',
+        errorMessage: mediaError?.message ?? String(error),
+        visibility: document.visibilityState,
+        audioContextState: this.#routing?.context.state ?? 'unavailable',
+      };
+      if (generation !== this.#playGeneration) {
+        if (mediaError?.name === 'AbortError') {
+          audioLog.info('BGM play request interrupted by a newer operation', details);
+        } else {
+          audioLog.warn('Superseded BGM play request failed', details);
+        }
+        return;
+      }
+      audioLog.warn('BGM play request failed; stopping', details);
       this.stop();
+      handleError(error, {
+        label: '背景音乐播放',
+        logger: audioLog,
+        feedback: 'toast',
+        alertMessage: '背景音乐播放失败，请检查音乐设置后重试。',
+        isExpected: (failure) =>
+          (failure instanceof Error || failure instanceof DOMException) &&
+          failure.name === 'NotAllowedError',
+      });
     });
   }
 
@@ -194,7 +224,6 @@ export class BgmPlayer {
       audio.src = url;
     }
     audio.loop = loop;
-    this.#trackGeneration += 1;
     this.#trackEndFired = false;
     this.#removeTrackListeners(audio);
 
@@ -235,6 +264,7 @@ export class BgmPlayer {
     this.#trackEndFired = true;
     if (!this.#isPlaying) return;
 
+    this.#playGeneration += 1;
     this.#element?.pause();
     this.#currentIndex++;
     if (this.#currentIndex >= this.#playlist.length) {
@@ -268,7 +298,7 @@ export class BgmPlayer {
   #releaseTrack(): void {
     const audio = this.#element;
     if (!audio) return;
-    this.#trackGeneration += 1;
+    this.#playGeneration += 1;
     this.#removeTrackListeners(audio);
     audio.pause();
     audio.removeAttribute('src');

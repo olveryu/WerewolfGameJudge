@@ -115,6 +115,7 @@ export const TESTIDS = {
   roomScreenRoot: 'room-screen-root',
   roomBackButton: 'room-back-button',
   roomHeader: 'room-header',
+  roomBoardStatus: 'room-board-status',
   roomSeatContentWidthProbe: 'room-seat-content-width-probe',
   roomSeatPagination: 'room-seat-pagination',
   roomSeatPreviousPage: 'room-seat-previous-page',
