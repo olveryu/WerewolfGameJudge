@@ -262,8 +262,16 @@ framing, and the blue-grey background stays clean and nearly untextured.
 
 ## Shapes
 
-Controls and surfaces use the shared radius scale. Full-radius shapes remain appropriate for
-avatars, small badges and progress tracks.
+Controls and surfaces use the shared radius scale. Full-radius shapes remain appropriate for small
+badges and progress tracks.
+
+Avatars are rounded squares at every size: `Avatar` alone sets their corners from
+`AVATAR_CORNER_RATIO` in `packages/web/src/config/avatarShape.ts`, the scene draws avatar frames
+along the same corner, and `applyAvatarShapeTokens` publishes the ratio as `--avatar-corner-ratio`.
+A square box hugging an avatar (a tile, a seat, a mat, a placeholder standing where an avatar
+would) is concentric with it through the shared `avatar-concentric` rule and its `--avatar-inset`;
+no stylesheet repeats the ratio or gives such a box a fixed radius. The avatar shape contract test
+pins this.
 
 ## Components
 

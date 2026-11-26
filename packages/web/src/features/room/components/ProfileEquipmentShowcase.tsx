@@ -25,8 +25,6 @@ import {
 } from '@/features/product/model/cosmeticNames';
 import { TESTIDS } from '@/testids';
 
-const SLOT_PREVIEW_SIZE = 28;
-
 interface EquipmentSlotInfo {
   readonly typeLabel: string;
   /** Null when the slot has nothing equipped. */
@@ -60,7 +58,7 @@ function avatarSlot(
   productUi: ClientProductUi,
 ): EquipmentSlotInfo {
   if (avatarUrl === undefined) return emptySlot('头像');
-  const preview = <Avatar userId={avatarSeed} avatarUrl={avatarUrl} size={SLOT_PREVIEW_SIZE} />;
+  const preview = <Avatar userId={avatarSeed} avatarUrl={avatarUrl} size="fill" />;
   const builtinAvatarId = parseBuiltinAvatarId(avatarUrl);
   if (builtinAvatarId === null) return { typeLabel: '头像', name: '自定义', rarity: null, preview };
   return {
@@ -95,7 +93,10 @@ function revealEffectSlot(
   };
 }
 
-/** A slot's preview box is avatar-sized and shaped like the avatar it may hold. */
+/**
+ * Every slot's preview box (the avatar slot's avatar fills it) takes the avatar's corners, so the
+ * six slots, filled or dashed when empty, read as one row of the same box.
+ */
 const PREVIEW_CLASS = `profile-equip-preview ${AVATAR_CONCENTRIC_CLASS}`;
 
 function EquipmentSlot({ slot }: { readonly slot: EquipmentSlotInfo }) {

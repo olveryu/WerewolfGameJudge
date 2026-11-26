@@ -8,20 +8,24 @@
  * are merged per selector within a file, so splitting a clip across two rules does not hide it.
  *
  * Every element that hosts an `<Avatar>` is registered in `AVATAR_HOSTS`, whatever its class is
- * called; the census of `<Avatar>` sites fails when a site is added, so its host gets registered.
+ * called. A census parses every TSX file and records, for each `<Avatar>` and `<ResidentAvatarTile>`
+ * (and each component that returns one bare), the element it sits in; adding a site or wrapping one
+ * in a new element changes the census and fails it, and every classed wrapper must be a registered
+ * host or concentric box, so the stylesheet checks below reach it.
  * Avatar artwork reaches the page only through `<Avatar>`: no bare `<img>` of a portrait or an
  * uploaded avatar URL. Files hosting an `<Avatar>` set no inline corner, clip or overflow either.
  *
  * A square box around an avatar (a seat, a tile, a mat, an avatar-sized placeholder) is
  * concentric with it: it carries `AVATAR_CONCENTRIC_CLASS`, whose one rule derives its corners
  * from the published ratio and the box's own `--avatar-inset`, and sets no radius of its own.
- * Every host names the box drawn around its avatar, so a new bordered box cannot slip in with a
- * fixed radius; a host that is not itself such a box, and the entrance stages between a box and
+ * Every host names the box drawn around its avatar; a host that is not itself such a box, and the entrance stages between a box and
  * its avatar, set no corners at all. The ratio is declared nowhere in CSS (it is published from
  * `config/avatarShape.ts`), and a box reads whether its tile wears a frame only via `wearsFrame`.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+
+import ts from 'typescript';
 
 import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import {
@@ -52,6 +56,7 @@ const AVATAR_HOSTS: readonly string[] = [
   'account-entry',
   'appearance-avatar-preview',
   'appearance-cell-thumb',
+  'appearance-hero-avatar',
   'login-strip-portrait',
   'profile-equip-preview',
   'resident-tile-avatar',
@@ -71,6 +76,7 @@ const HOST_BOXES: Readonly<Record<string, string | null>> = {
   'account-entry': null,
   'appearance-avatar-preview': null,
   'appearance-cell-thumb': 'appearance-cell',
+  'appearance-hero-avatar': null,
   'login-strip-portrait': null,
   'profile-equip-preview': 'profile-equip-preview',
   'resident-tile-avatar': 'resident-tile',
@@ -107,20 +113,61 @@ const AVATAR_STAGES: readonly string[] = [
   'seat-avatar-stage',
 ];
 
-/** Production `<Avatar>` sites per file. Adding one? Register its host in `AVATAR_HOSTS`. */
-const AVATAR_SITES: Readonly<Record<string, number>> = {
-  'components/avatar/AccountAvatar.tsx': 1,
-  'features/auth/LoginDialog.tsx': 1,
-  'features/product/components/ResidentPreview.tsx': 1,
-  'features/room/components/ProfileEquipmentShowcase.tsx': 1,
-  'features/room/components/RoomSeatTile.tsx': 1,
-  'games/undercover/room/components/UndercoverRevealModal.tsx': 1,
-  'routes/appearance/AppearancePage.tsx': 1,
-  'routes/appearance/AppearancePickers.tsx': 3,
-  'routes/gacha/components/RewardPreview.tsx': 1,
-  'routes/settings/SettingsPage.tsx': 1,
-  'routes/unlocks/UnlocksPage.tsx': 1,
+/**
+ * The census: per file, each avatar site as `<Carrier> in <wrapper>`. The wrapper is the nearest
+ * enclosing element (its static classes, or `<Tag>` for an unclassed element or a component), or
+ * `returned by <Fn>` when the function returns the site bare; a returning component is a carrier
+ * too, so its own sites are listed where it is rendered.
+ */
+const AVATAR_SITES: Readonly<Record<string, readonly string[]>> = {
+  // `account-entry`: AccountAvatar's own link/button classes come from its callers' props.
+  'components/avatar/AccountAvatar.tsx': ['Avatar in returned by AccountAvatar'],
+  'features/auth/LoginDialog.tsx': ['Avatar in login-strip-portrait'],
+  'features/product/components/ResidentPreview.tsx': ['Avatar in resident-tile-avatar'],
+  'features/room/components/PlayerProfileCard.tsx': [
+    'ResidentAvatarTile in profile-avatar',
+    'ResidentAvatarTile in profile-avatar',
+  ],
+  // Placed in the slot's `profile-equip-preview` box.
+  'features/room/components/ProfileEquipmentShowcase.tsx': ['Avatar in returned by avatarSlot'],
+  'features/room/components/RoomSeatTile.tsx': ['Avatar in seat-avatar'],
+  'features/room/components/RoomShell.tsx': ['AccountAvatar in <button>'],
+  'games/undercover/room/components/UndercoverRevealModal.tsx': [
+    'Avatar in undercover-reveal-identity',
+  ],
+  // The hero's avatar sits bare on the hero card.
+  'routes/appearance/AppearanceHero.tsx': [
+    'ResidentAvatarTile in appearance-hero-avatar',
+    'ResidentAvatarTile in appearance-hero-avatar',
+  ],
+  'routes/appearance/AppearancePage.tsx': ['Avatar in appearance-avatar-preview'],
+  // PickerCell draws `appearance-cell` > `appearance-cell-thumb`; the bare span is that thumb's
+  // custom-upload preview.
+  'routes/appearance/AppearancePickers.tsx': [
+    'Avatar in <PickerCell>',
+    'Avatar in <PickerCell>',
+    'Avatar in <span>',
+    'ResidentAvatarTile in <PickerCell>',
+  ],
+  // Both land in RewardPreview's `reward-preview` box.
+  'routes/gacha/components/RewardPreview.tsx': [
+    'ResidentAvatarTile in returned by (anonymous)',
+    'Avatar in returned by (anonymous)',
+  ],
+  'routes/home/HomePage.tsx': ['AccountAvatar in <Link>'],
+  'routes/settings/SettingsPage.tsx': [
+    'Avatar in settings-teaser-item',
+    'ResidentAvatarTile in settings-avatar',
+  ],
+  'routes/unlocks/UnlocksPage.tsx': [
+    'Avatar in unlocks-thumb',
+    'ResidentAvatarTile in returned by UnlockThumb',
+    'UnlockThumb in unlocks-cell-frame',
+  ],
 };
+
+/** The elements that carry an avatar into the page wherever they are rendered. */
+const AVATAR_CARRIERS: readonly string[] = ['Avatar', 'ResidentAvatarTile'];
 
 /** Role cards reuse the avatar art as role portraits; they are not user avatars. */
 const ROLE_ART = /^games\/[\w-]+\/assets\/roleAvatars\.ts$/;
@@ -197,6 +244,138 @@ function styles(compound: string, name: string): boolean {
   return new RegExp(`\\.${name}(?![-\\w])`).test(compound);
 }
 
+/** `const` initializers by name, so a className held in a constant resolves to its classes. */
+function constantsOf(source: ts.SourceFile): Map<string, ts.Expression> {
+  const constants = new Map<string, ts.Expression>();
+  const visit = (node: ts.Node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+      constants.set(node.name.text, node.initializer);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return constants;
+}
+
+/** The static class names a className expression can produce (imported constants drop out). */
+function classNamesOf(
+  expression: ts.Node | undefined,
+  constants: Map<string, ts.Expression>,
+  seen: Set<string> = new Set(),
+): string[] {
+  if (expression === undefined) return [];
+  const words = (text: string) => text.split(/\s+/).filter((word) => word !== '');
+  if (ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) {
+    return words(expression.text);
+  }
+  if (ts.isTemplateExpression(expression)) {
+    return [
+      ...words(expression.head.text),
+      ...expression.templateSpans.flatMap((span) => [
+        ...classNamesOf(span.expression, constants, seen),
+        ...words(span.literal.text),
+      ]),
+    ];
+  }
+  if (ts.isIdentifier(expression)) {
+    const value = constants.get(expression.text);
+    if (value === undefined || seen.has(expression.text)) return [];
+    seen.add(expression.text);
+    return classNamesOf(value, constants, seen);
+  }
+  if (ts.isConditionalExpression(expression)) {
+    return [
+      ...classNamesOf(expression.whenTrue, constants, seen),
+      ...classNamesOf(expression.whenFalse, constants, seen),
+    ];
+  }
+  if (ts.isParenthesizedExpression(expression) || ts.isJsxExpression(expression)) {
+    return classNamesOf(expression.expression, constants, seen);
+  }
+  return [];
+}
+
+function openingOf(element: ts.JsxElement | ts.JsxSelfClosingElement) {
+  return ts.isJsxElement(element) ? element.openingElement : element;
+}
+
+/** The element's (or component's) static classes, else `<Tag>`. */
+function wrapperOf(element: ts.JsxElement, constants: Map<string, ts.Expression>): string {
+  const opening = element.openingElement;
+  const tag = opening.tagName.getText();
+  const className = opening.attributes.properties.find(
+    (attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText() === 'className',
+  );
+  const classes = className && ts.isJsxAttribute(className) ? className.initializer : undefined;
+  const names = [...new Set(classNamesOf(classes, constants))];
+  return names.length === 0 ? `<${tag}>` : names.join(' ');
+}
+
+function functionName(fn: ts.SignatureDeclaration): string | undefined {
+  if (fn.name !== undefined) return fn.name.getText();
+  return ts.isVariableDeclaration(fn.parent) ? fn.parent.name.getText() : undefined;
+}
+
+/** Every avatar site per file, as `<Carrier> in <wrapper>` (see `AVATAR_SITES`). */
+function avatarCensus(): Record<string, string[]> {
+  const texts = sourceFiles(SRC_DIR)
+    .filter((file) => file.endsWith('.tsx'))
+    .map((file) => ({ file, text: readFileSync(file, 'utf8') }));
+  // Parse only files that render a carrier (parsing every TSX file is slow); parsed once each.
+  const parsed = new Map<
+    string,
+    { source: ts.SourceFile; constants: Map<string, ts.Expression> }
+  >();
+  const parse = (file: string, text: string) => {
+    let entry = parsed.get(file);
+    if (entry === undefined) {
+      const source = ts.createSourceFile(
+        file,
+        text,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX,
+      );
+      entry = { source, constants: constantsOf(source) };
+      parsed.set(file, entry);
+    }
+    return entry;
+  };
+  const carriers = new Set(AVATAR_CARRIERS);
+  for (;;) {
+    const census: Record<string, string[]> = {};
+    const before = carriers.size;
+    const renders = new RegExp(`<(?:${[...carriers].join('|')})(?![\\w.])`);
+    for (const { file: path, text } of texts.filter(({ text }) => renders.test(text))) {
+      const file = relative(SRC_DIR, path);
+      const { source, constants } = parse(path, text);
+      const visit = (node: ts.Node) => {
+        if (
+          (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) &&
+          carriers.has(openingOf(node).tagName.getText())
+        ) {
+          let parent: ts.Node | undefined = node.parent;
+          while (parent !== undefined && !ts.isJsxElement(parent) && !ts.isFunctionLike(parent)) {
+            parent = parent.parent;
+          }
+          let wrapper = '<root>';
+          if (parent !== undefined && ts.isJsxElement(parent)) {
+            wrapper = wrapperOf(parent, constants);
+          } else if (parent !== undefined) {
+            const name = functionName(parent);
+            wrapper = `returned by ${name ?? '(anonymous)'}`;
+            if (name !== undefined && /^[A-Z]/.test(name)) carriers.add(name);
+          }
+          (census[file] ??= []).push(`${openingOf(node).tagName.getText()} in ${wrapper}`);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+    }
+    if (carriers.size === before) return census;
+  }
+}
+
 describe('Avatar shape', () => {
   it('is set by Avatar alone', () => {
     const overrides = otherCssFiles().flatMap((file) =>
@@ -243,13 +422,17 @@ describe('Avatar shape', () => {
     expect(cutters).toEqual([]);
   });
 
-  it('has every site registered, so its host is checked', () => {
-    const sites: Record<string, number> = {};
-    for (const file of sourceFiles(SRC_DIR).filter((path) => path.endsWith('.tsx'))) {
-      const count = (readFileSync(file, 'utf8').match(/<Avatar(?=[\s/>])/g) ?? []).length;
-      if (count !== 0) sites[relative(SRC_DIR, file)] = count;
-    }
-    expect(sites).toEqual(AVATAR_SITES);
+  it('has every site registered with the element it sits in', () => {
+    const census = avatarCensus();
+    expect(census).toEqual(AVATAR_SITES);
+    // A classed wrapper is a host or a concentric box, so the stylesheet checks reach it.
+    const registered = new Set([...AVATAR_HOSTS, ...Object.keys(CONCENTRIC_BOXES)]);
+    const unregistered = Object.values(census)
+      .flat()
+      .map((site) => site.replace(/^\S+ in /, ''))
+      .filter((wrapper) => !wrapper.startsWith('<') && !wrapper.startsWith('returned by '))
+      .filter((wrapper) => !wrapper.split(' ').some((name) => registered.has(name)));
+    expect(unregistered).toEqual([]);
   });
 
   it('reaches the page only through Avatar', () => {
