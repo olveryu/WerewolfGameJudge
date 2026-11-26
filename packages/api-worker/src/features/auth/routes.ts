@@ -25,6 +25,10 @@ import { Hono } from 'hono';
 
 import { createDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
+import {
+  buildToolboxPresetMergeStatements,
+  isToolboxPresetNameConflict,
+} from '../../games/toolbox/presets';
 import { jsonBody } from '../../platform/http/jsonBody';
 import {
   REASON_RATE_LIMITED,
@@ -76,6 +80,9 @@ function requestGeo(request: Request) {
     lastColo: metadata.colo ?? null,
   };
 }
+
+/** Batch attempts when a concurrent toolbox preset write collides with merge renames. */
+const MERGE_PRESET_CONFLICT_ATTEMPTS = 3;
 
 /** Signup welcome bonus: 5 normal tickets + 1 golden ticket */
 const WELCOME_NORMAL_DRAWS = 5;
@@ -357,20 +364,47 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         await mergeUserStats(db, existingUserId, existing.id);
 
         // Use batch() for atomicity: clear openid → transfer → delete, all-or-nothing.
-        await env.DB.batch([
-          // Seen words of every pool move to the surviving account (union of both).
-          env.DB.prepare(
-            `INSERT INTO word_seen (user_id, pool, seen)
-            SELECT ?, pool, seen FROM word_seen WHERE user_id = ?
-            ON CONFLICT (user_id, pool) DO UPDATE SET
-              seen = word_seen.seen || substr(excluded.seen, 2)`,
-          ).bind(existing.id, existingUserId),
-          env.DB.prepare('UPDATE users SET wechat_openid = NULL WHERE id = ?').bind(existingUserId),
-          env.DB.prepare(
-            "UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?",
-          ).bind(callerRow.wechatOpenid, existing.id),
-          env.DB.prepare('DELETE FROM users WHERE id = ?').bind(existingUserId),
-        ]);
+        // Toolbox preset renames are computed before the batch; a concurrent
+        // same-name preset write fails the unique index, rolls the whole batch
+        // back (source account kept) and the names are recomputed.
+        for (let attempt = 1; ; attempt += 1) {
+          const presetStatements = await buildToolboxPresetMergeStatements(
+            env.DB,
+            existingUserId,
+            existing.id,
+          );
+          try {
+            await env.DB.batch([
+              // Seen words of every pool move to the surviving account (union of both).
+              env.DB.prepare(
+                `INSERT INTO word_seen (user_id, pool, seen)
+                SELECT ?, pool, seen FROM word_seen WHERE user_id = ?
+                ON CONFLICT (user_id, pool) DO UPDATE SET
+                  seen = word_seen.seen || substr(excluded.seen, 2)`,
+              ).bind(existing.id, existingUserId),
+              ...presetStatements,
+              env.DB.prepare('UPDATE users SET wechat_openid = NULL WHERE id = ?').bind(
+                existingUserId,
+              ),
+              env.DB.prepare(
+                "UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?",
+              ).bind(callerRow.wechatOpenid, existing.id),
+              env.DB.prepare('DELETE FROM users WHERE id = ?').bind(existingUserId),
+            ]);
+            break;
+          } catch (batchErr: unknown) {
+            if (
+              attempt >= MERGE_PRESET_CONFLICT_ATTEMPTS ||
+              !isToolboxPresetNameConflict(batchErr)
+            ) {
+              throw batchErr;
+            }
+            log.warn('account merge preset name conflict, retrying', {
+              userId: existingUserId,
+              attempt,
+            });
+          }
+        }
       } catch (dbErr: unknown) {
         const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
         log.error('account merge DB error', { userId: existingUserId, msg });

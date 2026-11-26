@@ -11,7 +11,7 @@
 import type { RoomCapabilities } from './RoomCapabilities';
 
 interface ProfileSelection {
-  readonly target: { readonly seat: number };
+  readonly target: { readonly seat: number | null };
 }
 
 export function executeProfileKick(
@@ -20,6 +20,9 @@ export function executeProfileKick(
 ): void {
   if (selection === null) {
     throw new Error('Cannot kick without an open profile');
+  }
+  if (selection.target.seat === null) {
+    throw new Error('Cannot kick a seatless profile from a numbered seat');
   }
   const capability = capabilities.canKickSeat;
   if (!capability.isAllowed) {

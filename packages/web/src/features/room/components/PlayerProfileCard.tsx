@@ -97,7 +97,7 @@ export function PlayerProfileCard({
     readonly statsUserId: string;
     readonly count: number | null;
   } | null>(null);
-  const seatName = `${target.seat + 1}号座位`;
+  const profileName = target.seat === null ? target.rosterName : `${target.seat + 1}号座位`;
   const handleGameCountChange = useCallback(
     (count: number | null) => {
       const statsUserId = model.gameDetails?.statsUserId;
@@ -185,7 +185,7 @@ export function PlayerProfileCard({
         </div>
         <p className="profile-name">
           <NameStyleText styleId={profile.nameStyle}>
-            {profile.displayName || seatName}
+            {profile.displayName || profileName}
           </NameStyleText>
         </p>
         <span className="profile-title" data-tier={tier}>
@@ -237,7 +237,7 @@ export function PlayerProfileCard({
     <CenterDialog
       open
       onClose={model.onClose}
-      title={seatName}
+      title={profileName}
       closeButtonLabel="关闭玩家资料"
       className="player-profile-dialog"
       testId={TESTIDS.playerProfileCard}

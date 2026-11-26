@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:admin-mock": "vite --mode admin-mock",
+    "dev:game-preview": "vite --mode game-preview --port 5187 --strictPort --open /preview/",
     "build": "vite build && node scripts/check-bundle-size.mjs",
     "preview": "vite preview",
     "bench:scene": "node scripts/scene-bench.mjs",

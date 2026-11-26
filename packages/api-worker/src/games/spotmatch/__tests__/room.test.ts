@@ -1,10 +1,13 @@
 import {
   DEFAULT_SPOTMATCH_CONFIG,
+  parseSpotmatchPublicStats,
   parseSpotmatchState,
   SPOTMATCH_STATE_CODEC,
   type SpotmatchCommand,
+  spotmatchEngine,
   type SpotmatchState,
 } from '@game-judge/game-engine/games/spotmatch/public';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import {
   createSyncFrame,
   parseServerFrame,
@@ -12,11 +15,91 @@ import {
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
+import {
+  defineWorkerGameModule,
+  registerWorkerGameModule,
+} from '../../../platform/gameModules/workerModule';
 import type { GameRoomRuntime } from '../../../platform/room/GameRoomRuntime';
+import { handleSpotmatchEffect, spotmatchEffectSchema } from '../effects';
+import { getSpotmatchPublicUserStats } from '../publicUserStats';
+import {
+  spotmatchCreateConfigSchema,
+  spotmatchInternalCommandSchema,
+  spotmatchPublicCommandSchema,
+} from '../schemas';
 
 afterEach(deleteCurrentRoomAlarms);
+
+it('allows a strictly validated viewer shape distinct from authoritative state', () => {
+  const viewSchema = z.strictObject({
+    gameType: z.literal('spotmatch'),
+    roomCode: z.string(),
+    hostUserId: z.string(),
+    viewer: z.string(),
+  });
+  const viewCodec = {
+    gameType: 'spotmatch' as const,
+    parse: (value: unknown) => viewSchema.parse(value),
+  };
+  const initial = spotmatchEngine.createInitialState(DEFAULT_SPOTMATCH_CONFIG, {
+    roomCode: '6721',
+    hostUserId: 'host',
+    nowMs: 1,
+    commandId: 'create',
+  });
+  const createModule = (
+    projectStateForUser: (state: SpotmatchState, userId: string) => BaseGameState<'spotmatch'>,
+  ) =>
+    registerWorkerGameModule(
+      defineWorkerGameModule({
+        gameType: 'spotmatch' as const,
+        engine: spotmatchEngine,
+        stateCodec: SPOTMATCH_STATE_CODEC,
+        viewCodec,
+        projectStateForUser,
+        createConfigSchema: spotmatchCreateConfigSchema,
+        publicCommandSchema: spotmatchPublicCommandSchema,
+        internalCommandSchema: spotmatchInternalCommandSchema,
+        effectSchema: spotmatchEffectSchema,
+        parsePublicUserStats: parseSpotmatchPublicStats,
+        getPublicUserStats: getSpotmatchPublicUserStats,
+        httpRoutes: [],
+        handleEffect: handleSpotmatchEffect,
+      }),
+    );
+  const module = createModule((state, userId) => ({
+    gameType: state.gameType,
+    roomCode: state.roomCode,
+    hostUserId: state.hostUserId,
+    viewer: userId,
+  }));
+  expect(module.projectStateForUser?.(initial, 'player')).toEqual({
+    gameType: 'spotmatch',
+    roomCode: '6721',
+    hostUserId: 'host',
+    viewer: 'player',
+  });
+  expect(module.parseState(initial)).toEqual(initial);
+  expect(() => module.parseState(module.projectStateForUser?.(initial, 'player'))).toThrow();
+
+  const invalid = createModule((state) => ({
+    gameType: state.gameType,
+    roomCode: 'other-room',
+    hostUserId: state.hostUserId,
+    viewer: 'player',
+  }));
+  expect(() => invalid.projectStateForUser?.(initial, 'player')).toThrow('mismatched view');
+
+  const malformed = createModule((state) => ({
+    gameType: state.gameType,
+    roomCode: state.roomCode,
+    hostUserId: state.hostUserId,
+  }));
+  expect(() => malformed.projectStateForUser?.(initial, 'player')).toThrow();
+});
 
 it('projects HTTP receipts and WS sync/broadcast separately; retries wrong commands exactly once', async () => {
   const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());

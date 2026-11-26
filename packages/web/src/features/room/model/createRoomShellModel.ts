@@ -14,7 +14,7 @@ import type { RoomHostManagementModel } from './RoomHostManagement';
 import type { RoomPlayerActionModel } from './RoomPlayerActions';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
 import type { RoomSeatBoardModel, RoomShellModel } from './RoomShellModel';
-import { resolveEffectiveSeat, type RoomViewer } from './RoomViewer';
+import { isEffectiveRoomParticipant, type RoomViewer } from './RoomViewer';
 
 export interface RoomShellModelInput
   extends Omit<RoomShellModel, 'header' | 'seats' | 'hostManagement'>, BuildRoomHeaderModelInput {
@@ -39,7 +39,7 @@ export interface RoomShellModelWithHeaderInput extends Omit<
 
 /**
  * Every bottom button must be addressed to this viewer: `participant`
- * buttons need an effective seat. A button that fails is a game adapter
+ * buttons need participant status. A button that fails is a game adapter
  * emitting an action its viewer may not hold — the exact bug the
  * ownership contract exists to surface.
  */
@@ -48,17 +48,17 @@ function assertPlayerActionAudiences(
   controlledSeat: number | null,
   playerActions: RoomPlayerActionModel,
 ): void {
-  const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
+  const isParticipant = isEffectiveRoomParticipant(viewer, controlledSeat);
   const actions = [...playerActions.actions, ...(playerActions.group?.actions ?? [])];
-  if (playerActions.group?.audience === 'participant' && effectiveSeat === null) {
+  if (playerActions.group?.audience === 'participant' && !isParticipant) {
     throw new Error(
-      `Player action group "${playerActions.group.key}" is a participant action but the viewer holds no seat`,
+      `Player action group "${playerActions.group.key}" is a participant action but the viewer is not a participant`,
     );
   }
   for (const action of actions) {
-    if (action.audience === 'participant' && effectiveSeat === null) {
+    if (action.audience === 'participant' && !isParticipant) {
       throw new Error(
-        `Player action "${action.key}" is a participant action but the viewer holds no seat`,
+        `Player action "${action.key}" is a participant action but the viewer is not a participant`,
       );
     }
   }

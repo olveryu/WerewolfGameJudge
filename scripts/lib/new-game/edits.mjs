@@ -502,7 +502,7 @@ export function editReviewContractRegistry(content, { gameId, camel }) {
   return replaceOnce(
     file,
     withImports,
-    /(const REVIEW_CONTRACT = \{[\s\S]*?)(\n\} as const satisfies Record<GameType, ReviewContractCase>;)/,
+    /(const REVIEW_CONTRACT = \{[\s\S]*?)(\n\} as const satisfies Record<Exclude<GameType, 'toolbox'>, ReviewContractCase>;)/,
     (_match, head, tail) => `${head}\n  ${gameId}: reviewCase(${contribution}, ${rounds}),${tail}`,
   );
 }

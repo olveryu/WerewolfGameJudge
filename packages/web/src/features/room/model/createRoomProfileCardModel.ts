@@ -10,7 +10,7 @@ export interface CreateRoomProfileCardModelInput {
   readonly capabilities: Pick<RoomCapabilities, 'canKickSeat' | 'canLeaveSeat'>;
   readonly onClose: () => void;
   /** The game's leave-seat execution, exposed only when the capability allows it. */
-  readonly onLeaveSeat: () => void;
+  readonly onLeaveSeat?: () => void;
   readonly gameDetails?: RoomProfileCardModel['gameDetails'];
 }
 
@@ -28,16 +28,22 @@ export function createRoomProfileCardModel(
 ): RoomProfileCardModel | null {
   const { selection } = input;
   if (selection === null) return null;
+  const canLeaveSeat =
+    selection.target.seat !== null && selection.isSelf && input.capabilities.canLeaveSeat.isAllowed;
+  if (canLeaveSeat && input.onLeaveSeat === undefined) {
+    throw new Error('Seat leave capability requires an onLeaveSeat handler');
+  }
   return {
     target: selection.target,
     isSelf: selection.isSelf,
     onClose: input.onClose,
     onKick:
-      !selection.isSelf && input.capabilities.canKickSeat.isAllowed
+      selection.target.seat !== null &&
+      !selection.isSelf &&
+      input.capabilities.canKickSeat.isAllowed
         ? () => executeProfileKick(input.capabilities, selection)
         : null,
-    onLeaveSeat:
-      selection.isSelf && input.capabilities.canLeaveSeat.isAllowed ? input.onLeaveSeat : null,
+    onLeaveSeat: canLeaveSeat ? (input.onLeaveSeat ?? null) : null,
     gameDetails: input.gameDetails ?? null,
   };
 }

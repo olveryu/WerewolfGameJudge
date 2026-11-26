@@ -55,6 +55,7 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
   ],
   spotmatch: ['games/spotmatch/room/hooks/useSpotmatchRoomState.ts'],
   secrethitler: ['games/secrethitler/room/hooks/useSecrethitlerRoomState.ts'],
+  toolbox: ['games/toolbox/room/useToolboxRoomState.ts'],
 };
 
 /**
@@ -66,6 +67,8 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
  *   独立导航流，持有自己的流程提交态；板子建议还要读 committed outcome 的
  *   `DEDUPLICATED` 原因做提示，布尔型平台 submit 不暴露该事实。房主命令，
  *   `controlledSeat` 恒 null。
+ * - 聚会工具设置页：与狼人杀规则页同理，经共享 `useRoomConfigSubmission` 提交，
+ *   房主命令，`controlledSeat` 恒 null。
  */
 const DIRECT_DISPATCH_ALLOW_LIST: Readonly<Record<string, readonly string[]>> = {
   'games/drawguess/room/hooks/useDrawGuessStrokeSync.ts': [
@@ -85,6 +88,7 @@ const DIRECT_DISPATCH_ALLOW_LIST: Readonly<Record<string, readonly string[]>> = 
   'games/storyrelay/room/hooks/useStoryRelayAutoSubmission.ts': ['storyrelay.task.empty.submit'],
   'games/werewolf/screens/ConfigScreen/useConfigScreenState.ts': ['werewolf.board.nominate'],
   'games/werewolf/screens/GameRulesScreen/useGameRulesSubmission.ts': ['werewolf.config.update'],
+  'games/toolbox/config/ToolboxConfigScreen.tsx': ['toolbox.config.update'],
 };
 
 function collectProductionFiles(dir: string): string[] {

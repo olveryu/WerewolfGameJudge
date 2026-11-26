@@ -12,11 +12,17 @@ export type RoomCapability<TArgs extends readonly unknown[] = readonly [], TResu
       readonly execute: (...args: TArgs) => TResult;
     };
 
-export interface RoomProfileTarget {
-  readonly seat: number;
-  readonly occupant: RoomOccupant;
-  readonly rosterName: string;
-}
+export type RoomProfileTarget =
+  | {
+      readonly seat: number;
+      readonly occupant: RoomOccupant;
+      readonly rosterName: string;
+    }
+  | {
+      readonly seat: null;
+      readonly occupant: Extract<RoomOccupant, { readonly kind: 'human' }>;
+      readonly rosterName: string;
+    };
 
 export interface RoomCapabilities {
   readonly canTakeSeat: RoomCapability<readonly [seat: number]>;

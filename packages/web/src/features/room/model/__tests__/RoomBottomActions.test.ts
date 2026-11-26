@@ -27,6 +27,15 @@ describe('buildLobbyHostStartMessage', () => {
     ).toBeNull();
   });
 
+  it('shows the hint to a participant without a numbered seat', () => {
+    expect(
+      buildLobbyHostStartMessage({
+        isLobby: true,
+        viewer: { userId: 'player', isHost: false, seat: null, participation: 'seatless' },
+      }),
+    ).toBe('等待房主开始游戏');
+  });
+
   it('hides the hint once the game has left the lobby', () => {
     expect(
       buildLobbyHostStartMessage({
@@ -50,6 +59,15 @@ describe('buildEndedWaitingMessage', () => {
 
   it('hides the hint from a spectator without a seat', () => {
     expect(buildEndedWaitingMessage({ isEnded: true, viewer: viewerFor('spectator') })).toBeNull();
+  });
+
+  it('shows the hint to a participant without a numbered seat', () => {
+    expect(
+      buildEndedWaitingMessage({
+        isEnded: true,
+        viewer: { userId: 'player', isHost: false, seat: null, participation: 'seatless' },
+      }),
+    ).toBe('等待房主操作');
   });
 
   it('hides the hint before the game has ended', () => {

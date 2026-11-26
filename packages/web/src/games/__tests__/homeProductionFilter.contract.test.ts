@@ -19,6 +19,7 @@ const PRODUCTION_GAME_TYPES = [
   'storyrelay',
   'spotmatch',
   'secrethitler',
+  'toolbox',
 ] as const;
 
 describe('client game home production filter', () => {

@@ -86,6 +86,13 @@ settlement and rewards, and game statistics and the test plan; plus the change p
 impact scope, and alternatives. The design doc enters the repo with
 the PR and stays in sync with later copy/semantics changes.
 
+When the user requests a UI mock, use the local game preview and its
+[coverage checklist](../../../docs/game-ui-mock-design.md) by default. Reuse
+production pages and shared room components, provide offline scenario data,
+and list excluded checklist items with reasons. Add only the new game's own
+UI and scenarios; explain any exception before replacing an existing component
+with a mock. Previewing a design does not implement its rules or replace tests.
+
 ### 3. Declare game features
 
 Complete every feature field explicitly using

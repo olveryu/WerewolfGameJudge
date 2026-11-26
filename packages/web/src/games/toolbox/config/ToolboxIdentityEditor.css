@@ -1,0 +1,178 @@
+.toolbox-identity-editor {
+  display: grid;
+  gap: var(--space-medium);
+  min-width: 0;
+}
+
+.toolbox-identity-list,
+.toolbox-preset-panel {
+  display: grid;
+  gap: var(--space-small);
+}
+
+.toolbox-identity-list ul,
+.toolbox-preset-list {
+  display: grid;
+  gap: var(--space-small);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toolbox-identity-item,
+.toolbox-preset-item {
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.toolbox-identity-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.toolbox-identity-item p {
+  margin: var(--space-tight) 0 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbox-identity-item strong {
+  overflow-wrap: anywhere;
+}
+
+.toolbox-identity-item-count {
+  margin-left: var(--space-small);
+  color: var(--color-primary-dark);
+  font-weight: var(--weight-bold);
+}
+
+.toolbox-identity-form {
+  display: grid;
+  gap: var(--space-small);
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-primary);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.toolbox-identity-form h3 {
+  margin: 0;
+  font-size: var(--font-subtitle);
+}
+
+.toolbox-identity-form label,
+.toolbox-preset-create label {
+  font-weight: var(--weight-medium);
+}
+
+.toolbox-identity-form input,
+.toolbox-identity-form textarea,
+.toolbox-preset-panel input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-small);
+  border: var(--border-width) solid var(--color-text-muted);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.toolbox-identity-form textarea {
+  resize: vertical;
+}
+
+.toolbox-identity-form [aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.toolbox-identity-field-error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--font-secondary);
+}
+
+.toolbox-identity-form-actions,
+.toolbox-preset-actions,
+.toolbox-preset-create > div,
+.toolbox-preset-rename {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.toolbox-preset-create > div > input,
+.toolbox-preset-rename > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.toolbox-identity-empty-state,
+.toolbox-preset-hint {
+  margin: 0;
+  padding: var(--space-medium);
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.toolbox-preset-create {
+  display: grid;
+  gap: var(--space-small);
+}
+
+.toolbox-preset-heading {
+  display: grid;
+  gap: var(--space-tight);
+  margin-bottom: var(--space-small);
+}
+
+.toolbox-preset-heading strong {
+  overflow-wrap: anywhere;
+}
+
+.toolbox-preset-heading span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+}
+
+.toolbox-identity-summary {
+  display: grid;
+  gap: var(--space-small);
+  width: 100%;
+}
+
+.toolbox-identity-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.toolbox-identity-summary-counts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-small);
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.toolbox-identity-summary-shortage {
+  margin: 0;
+  padding: var(--space-small);
+  border-radius: var(--radius-small);
+  background: var(--color-warning-a13);
+  color: var(--color-warning-text);
+  font-weight: var(--weight-semibold);
+}

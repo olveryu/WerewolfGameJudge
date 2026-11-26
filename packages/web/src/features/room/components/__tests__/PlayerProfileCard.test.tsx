@@ -64,9 +64,16 @@ function CurrentLocation() {
   return <p>{`at ${location.pathname}${location.search}`}</p>;
 }
 
-function renderCard(onClose: () => void) {
+function renderCard(
+  onClose: () => void,
+  target: RoomProfileCardModel['target'] = {
+    seat: 2,
+    occupant: { kind: 'human', userId: 'user-2' },
+    rosterName: '',
+  },
+) {
   const model: RoomProfileCardModel = {
-    target: { seat: 2, occupant: { kind: 'human', userId: 'user-2' }, rosterName: '' },
+    target,
     isSelf: false,
     onClose,
     onKick: null,
@@ -86,6 +93,16 @@ function renderCard(onClose: () => void) {
     </QueryClientProvider>,
   );
 }
+
+it('shows a seatless human profile by name without inventing a seat', () => {
+  renderCard(vi.fn(), {
+    seat: null,
+    occupant: { kind: 'human', userId: 'user-2' },
+    rosterName: '玩家',
+  });
+  expect(screen.getByRole('dialog', { name: '玩家' })).toBeInTheDocument();
+  expect(screen.queryByText(/号座位/)).not.toBeInTheDocument();
+});
 
 it('closes the card and opens the player unlocks with their name', async () => {
   const onClose = vi.fn();

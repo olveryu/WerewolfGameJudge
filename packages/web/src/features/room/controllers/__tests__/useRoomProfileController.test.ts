@@ -67,4 +67,18 @@ describe('useRoomProfileController', () => {
     expect(() => result.current.kick(2)).toThrow('does not match kick seat');
     expect(() => result.current.leaveSelf()).toThrow('is not the current user');
   });
+
+  it('opens a seatless human profile without permitting numbered-seat operations', () => {
+    const { result } = renderHook(() => useRoomProfileController({ myUserId: 'user-self' }));
+    act(() =>
+      result.current.open({
+        seat: null,
+        occupant: { kind: 'human', userId: 'user-self' },
+        rosterName: '本人',
+      }),
+    );
+    expect(result.current.selection?.isSelf).toBe(true);
+    expect(() => result.current.leaveSelf()).toThrow('Cannot leave a numbered seat');
+    expect(() => result.current.kick(0)).toThrow('does not match kick seat');
+  });
 });

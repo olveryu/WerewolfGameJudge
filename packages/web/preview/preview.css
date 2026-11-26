@@ -1,0 +1,43 @@
+.preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-small);
+  background: var(--color-surface);
+  position: relative;
+  z-index: 1;
+}
+
+.preview-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-tight);
+}
+
+.preview-controls button,
+.preview-controls select,
+.preview-controls input {
+  min-height: var(--size-min-touch-target);
+  font: inherit;
+}
+
+.preview-controls input {
+  width: 5rem;
+}
+
+.preview-screen {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: 0;
+}
+
+.preview-content {
+  height: 100%;
+  min-height: 0;
+}
+#root {
+  display: flex;
+  flex-direction: column;
+}

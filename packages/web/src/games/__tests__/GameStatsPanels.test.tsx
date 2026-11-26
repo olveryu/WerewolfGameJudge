@@ -2,6 +2,7 @@ import type { AvalonPublicStats } from '@game-judge/game-engine/games/avalon/pub
 import type { DrawGuessPublicStats } from '@game-judge/game-engine/games/drawguess/public';
 import type { FibPublicStats } from '@game-judge/game-engine/games/fibking/public';
 import type { PictionaryPublicStats } from '@game-judge/game-engine/games/pictionary/public';
+import { GAME_REGISTRY } from '@game-judge/game-engine/games/registry';
 import type { StoryRelayPublicStats } from '@game-judge/game-engine/games/storyrelay/public';
 import type { UndercoverPublicStats } from '@game-judge/game-engine/games/undercover/public';
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
@@ -67,10 +68,16 @@ function resetMocks() {
 beforeEach(resetMocks);
 
 describe('game-owned account statistics panels', () => {
-  it('registers one account panel for every game in the catalog', () => {
-    expect(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).toEqual([...GAME_TYPES]);
+  it('registers one account panel for every game that completes player games', () => {
+    // A `none` reward policy means the game never completes a player game, so it has no stats.
+    const gamesWithCompletions = GAME_TYPES.filter(
+      (gameType) => GAME_REGISTRY[gameType].rewards.policy !== 'none',
+    );
+    expect(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).toEqual(
+      gamesWithCompletions,
+    );
     expect(new Set(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).size).toBe(
-      GAME_TYPES.length,
+      gamesWithCompletions.length,
     );
     expect(GAME_ACCOUNT_STATS_SECTIONS.every((section) => section.Section !== undefined)).toBe(
       true,

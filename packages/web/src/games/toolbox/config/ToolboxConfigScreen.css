@@ -1,0 +1,98 @@
+.toolbox-config {
+  display: grid;
+  gap: var(--space-large);
+  min-width: 0;
+}
+
+.toolbox-tool-selector {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.toolbox-tool-selector legend {
+  margin-bottom: var(--space-small);
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.toolbox-tool-selector > div {
+  display: grid;
+  gap: var(--space-small);
+}
+
+.toolbox-tool-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-medium);
+  align-items: center;
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toolbox-tool-card[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-a10);
+}
+
+.toolbox-tool-card:focus-visible {
+  outline: var(--border-width-highlight) solid var(--color-primary);
+  outline-offset: var(--border-width-highlight);
+}
+
+.toolbox-tool-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.toolbox-tool-card-icon,
+.toolbox-tool-card-mark {
+  display: inline-flex;
+  font-size: var(--font-title);
+}
+
+.toolbox-tool-card-icon {
+  color: var(--color-primary);
+}
+
+.toolbox-tool-card-mark {
+  color: var(--color-text-secondary);
+}
+
+.toolbox-tool-card[aria-pressed='true'] .toolbox-tool-card-mark {
+  color: var(--color-primary);
+}
+
+.toolbox-tool-card-text {
+  display: grid;
+  gap: var(--space-tight);
+}
+
+.toolbox-tool-card-text small {
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+}
+
+.toolbox-config-identity h2 {
+  margin: 0 0 var(--space-small);
+  font-size: var(--font-subtitle);
+}
+
+.toolbox-config-footer {
+  display: grid;
+  gap: var(--space-small);
+}
+
+.toolbox-config-blocker {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--font-secondary);
+}

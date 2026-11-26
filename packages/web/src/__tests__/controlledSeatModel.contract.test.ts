@@ -61,6 +61,8 @@ describe('controlled seat model contract', () => {
     // the model as an input), so a hardcoded path list would
     // silently leave the next game uncovered.
     for (const gameType of GAME_TYPES) {
+      // 聚会工具没有编号座位与机器人，没有可接管的座位。
+      if (gameType === 'toolbox') continue;
       const callSites: { file: string; call: string }[] = [];
       for (const file of getAllTsFiles(join(GAMES_DIR, gameType))) {
         if (file.includes('__tests__') || file.endsWith('.test.ts') || file.endsWith('.test.tsx')) {

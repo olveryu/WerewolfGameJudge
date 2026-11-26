@@ -234,6 +234,60 @@ describe('POST /auth/signup', () => {
       ]);
     },
   );
+
+  it('moves toolbox presets to the target, renaming same-name ones with the WeChat suffix', async () => {
+    const { email, password, target, source } = await createMergeAccounts();
+    const config = JSON.stringify({
+      identities: [{ name: '平民', description: '', count: 1 }],
+      cardsPerPlayer: 1,
+    });
+    const long = '长'.repeat(20);
+    const rows = [
+      ['t1', target.user.id, '标准局'],
+      ['t2', target.user.id, '标准局（微信）'],
+      ['t3', target.user.id, long],
+      ['s1', source.user.id, '标准局'],
+      ['s2', source.user.id, long],
+      ['s3', source.user.id, '独有'],
+    ];
+    await env.DB.batch(
+      rows.map(([id, owner, name]) =>
+        env.DB.prepare(
+          `INSERT INTO toolbox_identity_presets
+            (id, owner_user_id, name, normalized_name, config_json, version, created_at, updated_at)
+          VALUES (?1, ?2, ?3, ?3, ?4, 3, '2026-01-01', '2026-01-02')`,
+        ).bind(id, owner, name, config),
+      ),
+    );
+
+    const response = await postJson('/auth/signup', { email, password }, source.access_token);
+
+    expect(response.status).toBe(200);
+    expect(
+      (
+        await env.DB.prepare(
+          `SELECT id, owner_user_id, name, normalized_name, version, updated_at
+          FROM toolbox_identity_presets ORDER BY id`,
+        ).all()
+      ).results,
+    ).toEqual(
+      [
+        ['s1', '标准局（微信）2'],
+        ['s2', `${'长'.repeat(16)}（微信）`],
+        ['s3', '独有'],
+        ['t1', '标准局'],
+        ['t2', '标准局（微信）'],
+        ['t3', long],
+      ].map(([id, name]) => ({
+        id,
+        owner_user_id: target.user.id,
+        name,
+        normalized_name: name,
+        version: 3,
+        updated_at: '2026-01-02',
+      })),
+    );
+  });
   it('registers new user with email and password', async () => {
     const res = await postJson('/auth/signup', {
       email: 'new@test.local',

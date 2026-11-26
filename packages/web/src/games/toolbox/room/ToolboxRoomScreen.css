@@ -1,0 +1,100 @@
+.toolbox-room {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+  min-height: 100%;
+  padding: var(--space-medium) var(--space-screen-h);
+}
+
+.toolbox-room-status {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 20rem;
+  padding: var(--space-large);
+  text-align: center;
+}
+
+.toolbox-room-phase {
+  margin: 0 0 var(--space-xlarge);
+  color: var(--color-text);
+  font-size: var(--font-hero);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-hero);
+}
+
+.toolbox-room-avatar {
+  width: calc(var(--size-avatar-xl) + var(--space-xlarge));
+  margin: var(--space-medium);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.toolbox-room-avatar:focus-visible {
+  outline: var(--border-width-highlight) solid var(--color-primary);
+  outline-offset: var(--space-medium);
+}
+
+.toolbox-room-name {
+  margin: var(--space-medium) 0 var(--space-small);
+  color: var(--color-text);
+  font-size: var(--font-title);
+  font-weight: var(--weight-semibold);
+}
+
+.toolbox-room-status-label {
+  margin: 0;
+  padding: var(--space-tight) var(--space-medium);
+  border-radius: var(--radius-full);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.toolbox-room-status[data-state='seated'] .toolbox-room-status-label {
+  background: var(--color-primary-a10);
+  color: var(--color-primary-dark);
+}
+
+.toolbox-room-status[data-state='unseated'] .toolbox-room-status-label {
+  background: var(--color-warning-a13);
+  color: var(--color-warning-text);
+}
+
+.toolbox-room-status[data-state='watching'] .toolbox-room-status-label,
+.toolbox-room-status[data-state='joining'] .toolbox-room-status-label {
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+}
+
+.toolbox-room-status-detail {
+  margin: var(--space-small) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+}
+
+.toolbox-room-counts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-small) var(--space-large);
+  margin: var(--space-large) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+}
+
+.toolbox-room-tools {
+  display: grid;
+  gap: var(--space-medium);
+  min-width: 0;
+}
+
+.toolbox-room-restart-footer {
+  display: grid;
+  gap: var(--space-medium);
+}

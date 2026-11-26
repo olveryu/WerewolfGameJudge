@@ -302,19 +302,24 @@ controls remain game-owned and are not moved into the hand.
 Who sees which action and how the host learns what to do next is a declared,
 machine-checked contract.
 
-**Viewer identity.** `RoomShellModel.viewer` (`src/features/room/model/RoomViewer.ts`) is the
-one identity declaration: `{ userId, isHost, seat }`. Bot takeover widens the effective seat
-through `resolveEffectiveSeat(viewer, controlledSeat)`; it does not change viewer identity.
-`resolveRoomViewerAudience` is the shared audience projection used by adapters and tests.
+**Viewer identity.** `RoomShellModel.viewer` (`src/features/room/model/RoomViewer.ts`) declares
+`userId`, `isHost` and the viewer's real seat, or explicitly marks a participant without a
+numbered seat using `participation: 'seatless'` and `seat: null`. Bot takeover widens the
+effective seat through `resolveEffectiveSeat(viewer, controlledSeat)`; it does not change viewer
+identity. `resolveRoomViewerAudience` is the seat-based audience projection used by existing
+adapters and tests.
 
-| Model            | Holds                                                                            | Audience                                                                       |
-| ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `playerActions`  | The viewer's own participant/spectator actions and an optional grouped sub-hand. | `participant` requires an effective seat; `anyone` is available to spectators. |
-| `hostManagement` | The host task and complete flat inventory of host actions.                       | Built lazily only for `viewer.isHost`; otherwise `null`.                       |
+| Model            | Holds                                                                            | Audience                                                                                                          |
+| ---------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `playerActions`  | The viewer's own participant/spectator actions and an optional grouped sub-hand. | `participant` requires an effective seat or explicit seatless participation; `anyone` is available to spectators. |
+| `hostManagement` | The host task and complete flat inventory of host actions.                       | Built lazily only for `viewer.isHost`; otherwise `null`.                                                          |
 
 `createRoomShellModel` validates audiences for direct and grouped player actions and rejects
 actions duplicated by the host task. The renderer does not inspect roles. Commands owned by a
 game workspace remain in that workspace; host flow commands remain in `hostManagement`.
+Profile targets can identify a human without a numbered seat; such targets cannot expose the
+shared kick-seat or leave-seat actions. A game's account-based participation actions remain
+separate from those numbered-seat commands.
 
 #### Host Task
 

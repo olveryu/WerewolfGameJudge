@@ -21,6 +21,7 @@ import { pictionaryWorkerModule } from './pictionary/module';
 import { secrethitlerWorkerModule } from './secrethitler/module';
 import { spotmatchWorkerModule } from './spotmatch/module';
 import { storyRelayWorkerModule } from './storyrelay/module';
+import { toolboxWorkerModule } from './toolbox/module';
 import { undercoverWorkerModule } from './undercover/module';
 import { undercoverSubmissionAdapter } from './undercover/wordSubmissions';
 import { aggregateWerewolfCampStats } from './werewolf/campAggregation';
@@ -52,6 +53,7 @@ export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, 
   storyrelay: registerWorkerGameModule(storyRelayWorkerModule),
   spotmatch: registerWorkerGameModule(spotmatchWorkerModule),
   secrethitler: registerWorkerGameModule(secrethitlerWorkerModule),
+  toolbox: registerWorkerGameModule(toolboxWorkerModule),
 });
 
 export type WorkerGameCatalog = typeof WORKER_GAME_CATALOG;

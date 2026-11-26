@@ -1,26 +1,28 @@
 /**
  * Room viewer identity: the one declaration of who is looking at the room.
  *
- * Two authoritative axes, kept separate because games combine them
- * differently: `isHost` (room ownership, `state.hostUserId`) and `seat`
- * (the viewer's own seat, null while unseated). A host may be unseated
- * (Avalon, Story Relay) or must be seated (Werewolf); a seated viewer
- * may or may not host. Bot takeover is not identity — it lives on the
- * shell's `controlledSeat` and only widens the effective seat.
+ * Host ownership and participation are independent. Most games identify
+ * participants by seat; a game without numbered seats may explicitly mark
+ * an account as a participant instead. Bot takeover is not identity — it
+ * lives on the shell's `controlledSeat` and widens the effective seat.
  *
- * `RoomViewerAudience` is the three-way projection every per-viewer
- * contract (guidance matrix, layout rules, tests) matches on. It is a
- * derived view of the two axes, never stored beside them.
+ * `RoomViewerAudience` is the seat-based projection used by existing
+ * guidance matrices and layout rules; it is not the participant
+ * predicate for games without numbered seats.
  */
 
 export type RoomViewerAudience = 'host' | 'seated' | 'spectator';
 
-export interface RoomViewer {
+interface RoomViewerIdentity {
   readonly userId: string;
   readonly isHost: boolean;
-  /** The viewer's own seat; null while unseated. */
-  readonly seat: number | null;
 }
+
+export type RoomViewer = RoomViewerIdentity &
+  (
+    | { readonly seat: number | null; readonly participation?: never }
+    | { readonly seat: null; readonly participation: 'seatless' }
+  );
 
 /**
  * The audience projection: host wins over seat (a seated host is a
@@ -38,11 +40,21 @@ export function resolveRoomViewerAudience(input: {
 
 /**
  * The seat the viewer currently acts as: a bot seat under takeover, or
- * the viewer's own seat. Participant-only actions key off this seat.
+ * the viewer's own seat. Seat-based actions key off this seat.
  */
 export function resolveEffectiveSeat(
   viewer: RoomViewer,
   controlledSeat: number | null,
 ): number | null {
   return controlledSeat ?? viewer.seat;
+}
+
+/** Whether this viewer may hold a participant action in the room shell. */
+export function isEffectiveRoomParticipant(
+  viewer: RoomViewer,
+  controlledSeat: number | null,
+): boolean {
+  return (
+    viewer.participation === 'seatless' || resolveEffectiveSeat(viewer, controlledSeat) !== null
+  );
 }
