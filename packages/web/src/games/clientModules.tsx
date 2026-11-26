@@ -15,6 +15,7 @@ import {
   createActiveRoomAccountSource,
 } from '@/games/activeRoomAccount';
 import { createAvalonClientModule } from '@/games/avalon/module';
+import { createDecryptoClientModule } from '@/games/decrypto/module';
 import { createDrawGuessClientModule } from '@/games/drawguess/module';
 import { createFibClientModule } from '@/games/fibking/module';
 import type {
@@ -45,6 +46,7 @@ const CLIENT_GAME_FACTORIES: ClientGameFactories = {
   avalon: createAvalonClientModule,
   spotmatch: createSpotmatchClientModule,
   secrethitler: createSecrethitlerClientModule,
+  decrypto: createDecryptoClientModule,
   toolbox: createToolboxClientModule,
 };
 
@@ -93,6 +95,7 @@ function createClientGameModules(
     avalon: cacheLoad(() => loadModule('avalon')),
     spotmatch: cacheLoad(() => loadModule('spotmatch')),
     secrethitler: cacheLoad(() => loadModule('secrethitler')),
+    decrypto: cacheLoad(() => loadModule('decrypto')),
     toolbox: cacheLoad(() => loadModule('toolbox')),
   };
   const subscribeLoaded = (listener: () => void) => {

@@ -34,19 +34,21 @@
 
 ## 2. 各游戏设计
 
-| 文档                                                         | 游戏 ID        | 说明                                           |
-| ------------------------------------------------------------ | -------------- | ---------------------------------------------- |
-| [PRESET_BOARDS.md](PRESET_BOARDS.md)                         | `werewolf`     | 全部 27 套预设板子配置一览（按分类）           |
-| [offline-sop.md](offline-sop.md)                             | `werewolf`     | 线下同桌多设备的完整操作流程（开局→夜晚→天亮） |
-| [avalon-game-design.md](avalon-game-design.md)               | `avalon`       | 阿瓦隆                                         |
-| [fibking-word-supply.md](fibking-word-supply.md)             | `fibking`      | 瞎掰王发题契约与免费供题 / 审核流程            |
-| [undercover-game-design.md](undercover-game-design.md)       | `undercover`   | 谁是卧底                                       |
-| [pictionary-game-design.md](pictionary-game-design.md)       | `pictionary`   | 你画我猜接龙                                   |
-| [drawguess-game-design.md](drawguess-game-design.md)         | `drawguess`    | 经典你画我猜                                   |
-| [story-relay-game-design.md](story-relay-game-design.md)     | `storyrelay`   | 轮流讲故事                                     |
-| [spotmatch-game-design.md](spotmatch-game-design.md)         | `spotmatch`    | 一眼成对：同时找相同，抢先出完手牌             |
-| [secrethitler-game-design.md](secrethitler-game-design.md)   | `secrethitler` | 秘密希特勒：标准 5–10 人规则、首夜私密互认     |
-| [tabletop-toolbox-proposal.md](tabletop-toolbox-proposal.md) | `toolbox`      | 聚会工具：摇骰子、抽身份；设计与实现状态       |
+| 文档                                                             | 游戏 ID        | 说明                                           |
+| ---------------------------------------------------------------- | -------------- | ---------------------------------------------- |
+| [PRESET_BOARDS.md](PRESET_BOARDS.md)                             | `werewolf`     | 全部 27 套预设板子配置一览（按分类）           |
+| [offline-sop.md](offline-sop.md)                                 | `werewolf`     | 线下同桌多设备的完整操作流程（开局→夜晚→天亮） |
+| [avalon-game-design.md](avalon-game-design.md)                   | `avalon`       | 阿瓦隆                                         |
+| [fibking-word-supply.md](fibking-word-supply.md)                 | `fibking`      | 瞎掰王发题契约与免费供题 / 审核流程            |
+| [undercover-game-design.md](undercover-game-design.md)           | `undercover`   | 谁是卧底                                       |
+| [pictionary-game-design.md](pictionary-game-design.md)           | `pictionary`   | 你画我猜接龙                                   |
+| [drawguess-game-design.md](drawguess-game-design.md)             | `drawguess`    | 经典你画我猜                                   |
+| [story-relay-game-design.md](story-relay-game-design.md)         | `storyrelay`   | 轮流讲故事                                     |
+| [spotmatch-game-design.md](spotmatch-game-design.md)             | `spotmatch`    | 一眼成对：同时找相同，抢先出完手牌             |
+| [secrethitler-game-design.md](secrethitler-game-design.md)       | `secrethitler` | 秘密希特勒：标准 5–10 人规则、首夜私密互认     |
+| [decoding-battle-game-design.md](decoding-battle-game-design.md) | `decrypto`     | 解码战：已批准规则、交互决定及验收状态         |
+| [decrypto-game-design.md](decrypto-game-design.md)               | `decrypto`     | 解码战                                         |
+| [tabletop-toolbox-proposal.md](tabletop-toolbox-proposal.md)     | `toolbox`      | 聚会工具：摇骰子、抽身份；设计与实现状态       |
 
 ## 3. 产品模块
 

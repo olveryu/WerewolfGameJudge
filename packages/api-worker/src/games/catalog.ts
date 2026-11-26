@@ -12,6 +12,8 @@ import {
 } from '../platform/gameModules/workerModule';
 import type { WordSubmissionAdapter } from '../platform/wordSupply/submissionAdapter';
 import { avalonWorkerModule } from './avalon/module';
+import { decryptoWorkerModule } from './decrypto/module';
+import { decryptoWordSubmissionAdapter } from './decrypto/wordSubmissions';
 import { drawGuessWorkerModule } from './drawguess/module';
 import { drawGuessSubmissionAdapter } from './drawguess/wordSubmissions';
 import { cleanupFibWordAudit } from './fibking/maintenance';
@@ -32,6 +34,7 @@ export const WORKER_WORD_SUBMISSION_ADAPTERS = {
   fibking: fibSubmissionAdapter,
   undercover: undercoverSubmissionAdapter,
   drawguess: drawGuessSubmissionAdapter,
+  decrypto: decryptoWordSubmissionAdapter,
 } as const satisfies Record<
   import('@game-judge/game-engine/product/wordSupply').GameWordGame,
   WordSubmissionAdapter
@@ -53,6 +56,7 @@ export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, 
   storyrelay: registerWorkerGameModule(storyRelayWorkerModule),
   spotmatch: registerWorkerGameModule(spotmatchWorkerModule),
   secrethitler: registerWorkerGameModule(secrethitlerWorkerModule),
+  decrypto: registerWorkerGameModule(decryptoWorkerModule),
   toolbox: registerWorkerGameModule(toolboxWorkerModule),
 });
 

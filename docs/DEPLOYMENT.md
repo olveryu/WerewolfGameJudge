@@ -296,7 +296,8 @@ external integrations (AI, email, WeChat, GitHub, admin); configure real credent
 only when testing those features. No fake credentials are generated for them.
 
 The initial account is `dev@test.local` / `dev123`, with level 99, all reward items
-unlocked and sample words for the three word-bank games. Later starts preserve
+unlocked and sample words for the four word-bank games, including 24 local Decrypto
+keywords. Later starts preserve
 existing account credentials, progress, rewards and word edits. Missing rows are
 inserted independently, so rerunning after an interrupted seed completes it
 without resetting rows already written. An existing account with this email keeps

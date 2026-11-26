@@ -12,6 +12,7 @@ import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/prot
 
 import type { RoomGuidanceMatrix } from '@/features/room/model/RoomGuidanceMatrix';
 import { AVALON_GUIDANCE_MATRIX } from '@/games/avalon/room/avalonGuidanceMatrix';
+import { DECRYPTO_GUIDANCE_MATRIX } from '@/games/decrypto/room/decryptoGuidanceMatrix';
 import { DRAWGUESS_GUIDANCE_MATRIX } from '@/games/drawguess/room/drawGuessGuidanceMatrix';
 import { FIBKING_GUIDANCE_MATRIX } from '@/games/fibking/room/fibGuidanceMatrix';
 import { PICTIONARY_GUIDANCE_MATRIX } from '@/games/pictionary/room/pictionaryGuidanceMatrix';
@@ -32,6 +33,7 @@ const GUIDANCE_MATRICES: Record<GameType, RoomGuidanceMatrix<string>> = {
   avalon: AVALON_GUIDANCE_MATRIX,
   spotmatch: SPOTMATCH_GUIDANCE_MATRIX,
   secrethitler: SECRETHITLER_GUIDANCE_MATRIX,
+  decrypto: DECRYPTO_GUIDANCE_MATRIX,
   toolbox: TOOLBOX_GUIDANCE_MATRIX,
 };
 

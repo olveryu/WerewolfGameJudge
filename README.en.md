@@ -168,7 +168,7 @@ pnpm -F @game-judge/api-worker db:seed:local
 ```
 
 The first start creates `dev@test.local` / `dev123` with all rewards unlocked and
-sample words for three word-bank games. Later starts only insert missing data;
+sample words for four word-bank games, including 24 local Decrypto keywords. Later starts only insert missing data;
 accounts, progress and word edits are preserved. Initialization failures prevent
 server startup. Local state lives in this worktree's
 `packages/api-worker/.wrangler/state`; no remote database is touched.

@@ -168,6 +168,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
       lateSubmission: 'gameGuard',
     },
   },
+  decrypto: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
   toolbox: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
 };
 

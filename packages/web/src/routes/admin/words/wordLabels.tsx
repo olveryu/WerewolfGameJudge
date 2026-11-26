@@ -13,6 +13,7 @@ export const WORD_GAME_LABELS = {
   fibking: '瞎掰王',
   undercover: '谁是卧底',
   drawguess: '你画我猜',
+  decrypto: '解码战',
 } as const;
 export const SUBMISSION_STATUS_LABELS = {
   pending: '待启动审核',

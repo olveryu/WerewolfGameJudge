@@ -171,6 +171,18 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     hostConfig: true,
     botBulkViewing: true,
   },
+  decrypto: {
+    nightPhase: false,
+    botsAndTakeover: true,
+    identityViewing: false,
+    revealAnimation: false,
+    stageDeadline: false,
+    audioOrchestration: false,
+    wordLibrary: true,
+    gallery: false,
+    hostConfig: true,
+    botBulkViewing: false,
+  },
   toolbox: {
     nightPhase: false,
     botsAndTakeover: false,

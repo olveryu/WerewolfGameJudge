@@ -1,6 +1,6 @@
 -- Register 聚会工具 (toolbox) in the room directory game-type constraints.
 --
--- Derived from 0090_secrethitler.sql: follows the table-copy pattern —
+-- Derived from 0091_decrypto.sql: follows the table-copy pattern —
 -- SQLite cannot ALTER a CHECK constraint, so rooms and
 -- product_game_reward_results are rebuilt with the extended game_type
 -- list, plus their foreign-key dependents. The toolbox reward policy is
@@ -13,7 +13,7 @@ PRAGMA defer_foreign_keys = true;
 CREATE TABLE rooms_next (
   id TEXT PRIMARY KEY,
   code TEXT NOT NULL UNIQUE CHECK (code GLOB '[1-9][0-9][0-9][0-9]'),
-  game_type TEXT NOT NULL CHECK (game_type IN ('werewolf', 'fibking', 'pictionary', 'undercover', 'storyrelay', 'drawguess', 'avalon', 'spotmatch', 'secrethitler', 'toolbox')),
+  game_type TEXT NOT NULL CHECK (game_type IN ('werewolf', 'fibking', 'pictionary', 'undercover', 'storyrelay', 'drawguess', 'avalon', 'spotmatch', 'secrethitler', 'decrypto', 'toolbox')),
   host_user_id TEXT NOT NULL,
   creation_id TEXT NOT NULL UNIQUE CHECK (length(creation_id) > 0),
   config_json TEXT NOT NULL CHECK (json_valid(config_json) AND json_type(config_json) = 'object'),
@@ -106,7 +106,7 @@ CREATE INDEX idx_undercover_selections_history ON undercover_round_word_selectio
 CREATE TABLE product_game_reward_results_next (
   settlement_id TEXT NOT NULL REFERENCES product_game_reward_claims(id),
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  game_type TEXT NOT NULL CHECK (game_type IN ('werewolf', 'fibking', 'pictionary', 'undercover', 'storyrelay', 'drawguess', 'avalon', 'spotmatch', 'secrethitler', 'toolbox')),
+  game_type TEXT NOT NULL CHECK (game_type IN ('werewolf', 'fibking', 'pictionary', 'undercover', 'storyrelay', 'drawguess', 'avalon', 'spotmatch', 'secrethitler', 'decrypto', 'toolbox')),
   reward_kind TEXT NOT NULL CHECK (reward_kind IN ('completion', 'mvp')),
   reward_date TEXT NOT NULL,
   previous_xp INTEGER NOT NULL CHECK (previous_xp >= 0),

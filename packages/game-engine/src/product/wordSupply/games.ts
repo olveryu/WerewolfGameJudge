@@ -5,6 +5,7 @@ export const GAME_WORD_GAMES = [
   'fibking',
   'undercover',
   'drawguess',
+  'decrypto',
 ] as const satisfies readonly GameType[];
 export type GameWordGame = (typeof GAME_WORD_GAMES)[number];
 

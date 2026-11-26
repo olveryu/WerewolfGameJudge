@@ -2,6 +2,7 @@
 
 import { defineGameEngineCatalog } from '../platform/engine';
 import { avalonEngine } from './avalon/engine';
+import { decryptoEngine } from './decrypto/engine';
 import { drawGuessEngine } from './drawguess/engine';
 import { fibEngine } from './fibking/engine';
 import { pictionaryEngine } from './pictionary/engine';
@@ -22,6 +23,7 @@ export const GAME_ENGINE_CATALOG = defineGameEngineCatalog({
   storyrelay: storyRelayEngine,
   spotmatch: spotmatchEngine,
   secrethitler: secrethitlerEngine,
+  decrypto: decryptoEngine,
   toolbox: toolboxEngine,
 });
 

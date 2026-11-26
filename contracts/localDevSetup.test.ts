@@ -342,6 +342,7 @@ it('seeds an empty migrated database and preserves changed accounts, progress an
       UPDATE fib_words SET usage_note = 'Edited locally';
       UPDATE undercover_word_pairs SET status = 'disabled';
       UPDATE drawguess_words SET status = 'disabled', disabled_at = 'preserved';
+      UPDATE decrypto_words SET status = 'disabled';
       CREATE TABLE seed_child (user_id TEXT REFERENCES users(id) ON DELETE CASCADE);
       INSERT INTO seed_child SELECT id FROM users;
     `);
@@ -352,6 +353,7 @@ it('seeds an empty migrated database and preserves changed accounts, progress an
       'fib_words',
       'undercover_word_pairs',
       'drawguess_words',
+      'decrypto_words',
       'seed_child',
     ];
     const before = tables.map((table) => database.prepare(`SELECT * FROM ${table}`).all());
@@ -429,9 +431,31 @@ it('recovers an interrupted seed without resetting rows already written', () => 
       ['fib_words', 10],
       ['undercover_word_pairs', 12],
       ['drawguess_words', 12],
+      ['decrypto_words', 56],
     ]) {
       expect(database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get()).toEqual({ count });
     }
+  });
+});
+
+it('provides eight selectable local Decrypto keywords without replacing an existing word identity', () => {
+  withMigratedDatabase((database) => {
+    database.exec(
+      "INSERT INTO decrypto_words (id, word, category, status, created_at) VALUES ('keep-apple', '苹果', 'ingredients', 'disabled', 'preserved')",
+    );
+    database.exec(seedSql);
+    expect(
+      database
+        .prepare("SELECT id, status, created_at FROM decrypto_words WHERE word = '苹果'")
+        .get(),
+    ).toEqual({ id: 'keep-apple', status: 'disabled', created_at: 'preserved' });
+    const words = database
+      .prepare(
+        "SELECT word FROM decrypto_words WHERE id LIKE 'decrypto-local-%' AND status = 'active' ORDER BY random() LIMIT 8",
+      )
+      .all();
+    expect(words).toHaveLength(8);
+    expect(new Set(words.map((row) => row.word)).size).toBe(8);
   });
 });
 

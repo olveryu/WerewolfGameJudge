@@ -34,6 +34,7 @@ import type {
   RoomReviewDocument,
 } from '@/features/room/review/types';
 import { avalonReview } from '@/games/avalon/review/avalonReview';
+import { decryptoReview } from '@/games/decrypto/review/decryptoReview';
 import { drawGuessReview } from '@/games/drawguess/review/drawGuessReview';
 import { fibReview } from '@/games/fibking/review/fibReview';
 import { pictionaryReview } from '@/games/pictionary/review/pictionaryReview';
@@ -44,6 +45,7 @@ import { toolboxReview } from '@/games/toolbox/review/toolboxReview';
 import { undercoverReview } from '@/games/undercover/review/undercoverReview';
 import { werewolfReview } from '@/games/werewolf/review/werewolfReview';
 import { AVALON_REVIEW_ROUNDS } from '@/test-utils/avalonState';
+import { DECRYPTO_REVIEW_ROUNDS } from '@/test-utils/decryptoState';
 import { DRAWGUESS_REVIEW_ROUNDS } from '@/test-utils/drawguessState';
 import { FIBKING_REVIEW_ROUNDS } from '@/test-utils/fibkingState';
 import { PICTIONARY_REVIEW_ROUNDS } from '@/test-utils/pictionaryState';
@@ -116,6 +118,7 @@ const REVIEW_CONTRACT = {
   avalon: reviewCase(avalonReview, AVALON_REVIEW_ROUNDS),
   spotmatch: reviewCase(spotmatchReview, SPOTMATCH_REVIEW_ROUNDS),
   secrethitler: reviewCase(secrethitlerReview, SECRETHITLER_REVIEW_ROUNDS),
+  decrypto: reviewCase(decryptoReview, DECRYPTO_REVIEW_ROUNDS),
 } as const satisfies Record<Exclude<GameType, 'toolbox'>, ReviewContractCase>;
 
 function documentOf(availability: RoomReviewAvailability): RoomReviewDocument {

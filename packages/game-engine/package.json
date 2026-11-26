@@ -48,6 +48,10 @@
       "types": "./src/games/secrethitler/public.ts",
       "default": "./dist/games/secrethitler/public.js"
     },
+    "./games/decrypto/public": {
+      "types": "./src/games/decrypto/public.ts",
+      "default": "./dist/games/decrypto/public.js"
+    },
     "./games/toolbox/public": {
       "types": "./src/games/toolbox/public.ts",
       "default": "./dist/games/toolbox/public.js"

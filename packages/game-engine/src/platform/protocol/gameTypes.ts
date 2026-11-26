@@ -10,6 +10,7 @@ export const GAME_TYPES = [
   'storyrelay',
   'spotmatch',
   'secrethitler',
+  'decrypto',
   'toolbox',
 ] as const;
 

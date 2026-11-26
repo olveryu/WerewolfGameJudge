@@ -472,6 +472,10 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       ['admin_reward_grants', 'packages/api-worker/src/features/admin/dbSchema.ts'],
       ['avalon_user_stats', 'packages/api-worker/src/games/avalon/dbSchema.ts'],
       ['camp_settlements', 'packages/api-worker/src/games/werewolf/dbSchema.ts'],
+      ['decrypto_round_word_selections', 'packages/api-worker/src/games/decrypto/dbSchema.ts'],
+      ['decrypto_user_stats', 'packages/api-worker/src/games/decrypto/dbSchema.ts'],
+      ['decrypto_word_packs', 'packages/api-worker/src/games/decrypto/dbSchema.ts'],
+      ['decrypto_words', 'packages/api-worker/src/games/decrypto/dbSchema.ts'],
       ['draw_history', 'packages/api-worker/src/features/gacha/dbSchema.ts'],
       ['drawguess_user_stats', 'packages/api-worker/src/games/drawguess/dbSchema.ts'],
       ['editorial_model_requests', 'packages/api-worker/src/platform/ai/dbSchema.ts'],
@@ -548,7 +552,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     expect(werewolfSchema).not.toMatch(/fib_words|fib_word_usages/);
   });
 
-  it('composes multiple concrete Worker games only in the catalog and Workflow entrypoint', () => {
+  it('composes multiple concrete Worker games only in the catalog, admin word supply, and Workflow entrypoint', () => {
     const multiGameConsumers = workerFiles.filter((filePath) => {
       const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
       const importedGames = GAME_TYPES.filter((gameType) =>
@@ -558,6 +562,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     });
 
     expect(multiGameConsumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
+      'packages/api-worker/src/features/admin/gameWords.ts',
       'packages/api-worker/src/games/catalog.ts',
       'packages/api-worker/src/index.ts',
     ]);
@@ -1401,6 +1406,7 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
     avalon: 'games/avalon/room/hooks/useAvalonRoomState.ts',
     storyrelay: 'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
     drawguess: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts',
+    decrypto: 'games/decrypto/room/hooks/useDecryptoRoomState.ts',
     pictionary: 'games/pictionary/room/hooks/usePictionaryRoomState.ts',
     spotmatch: 'games/spotmatch/room/hooks/useSpotmatchRoomState.ts',
     secrethitler: 'games/secrethitler/room/hooks/useSecrethitlerRoomState.ts',

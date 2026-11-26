@@ -19,6 +19,7 @@ const PRODUCTION_GAME_TYPES = [
   'storyrelay',
   'spotmatch',
   'secrethitler',
+  'decrypto',
   'toolbox',
 ] as const;
 

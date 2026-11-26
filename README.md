@@ -168,7 +168,7 @@ pnpm -F @game-judge/api-worker db:migrate:local
 pnpm -F @game-judge/api-worker db:seed:local
 ```
 
-首次启动创建 `dev@test.local` / `dev123`（全奖励解锁）及三款词库游戏的示例词条。
+首次启动创建 `dev@test.local` / `dev123`（全奖励解锁）及四款词库游戏的示例词条，包含 24 个解码战本地测试词。
 后续启动只补齐缺失数据，不重置账号、进度或词条；初始化失败时不启动服务器。
 本地数据库位于当前工作树的 `packages/api-worker/.wrangler/state`，不会操作远程数据库。
 端口被占用时自动选择可用端口，并将 Vite 连接到本次启动的 Worker；访问启动日志中的 Web 地址。

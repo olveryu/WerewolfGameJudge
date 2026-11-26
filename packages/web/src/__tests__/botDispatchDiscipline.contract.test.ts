@@ -55,6 +55,7 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
   ],
   spotmatch: ['games/spotmatch/room/hooks/useSpotmatchRoomState.ts'],
   secrethitler: ['games/secrethitler/room/hooks/useSecrethitlerRoomState.ts'],
+  decrypto: ['games/decrypto/room/hooks/useDecryptoRoomState.ts'],
   toolbox: ['games/toolbox/room/useToolboxRoomState.ts'],
 };
 
