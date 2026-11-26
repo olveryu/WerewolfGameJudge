@@ -1,9 +1,11 @@
 /**
  * Stylelint: the CSS half of the web client's UI gate (rule IDs S1–S7 refer to the UI drift lock
- * plan). Existing violations are recorded in `stylelint-suppressions.json`, and
- * `scripts/ui-baseline-ratchet.mjs` keeps that record exact and shrinking only.
+ * plan). This is the only Stylelint configuration: `scripts/ui-lint/styleGate.mjs` passes it
+ * explicitly and rejects any other config, ignore or suppressions file. Existing violations are
+ * recorded in `ui-style-baseline.json`, which `scripts/ui-baseline-ratchet.mjs` keeps exact and
+ * shrinking only. Run it through `pnpm run lint:css`, not the bare `stylelint` CLI.
  */
-import { ART_LAYER_PATHS, TOKEN_STYLESHEET } from './scripts/ui-lint/registry/artLayer.mjs';
+import { ART_LAYER_STYLESHEETS, TOKEN_STYLESHEET } from './scripts/ui-lint/registry/artLayer.mjs';
 import uiPlugins from './scripts/ui-lint/stylelint-plugin.mjs';
 
 /** S2: every color comes from a `--color-*` / `--report-*` custom property. */
@@ -12,6 +14,7 @@ const COLOR_LITERAL_RULES = {
   'color-named': 'never',
   // CSS function names are case-insensitive (`RGB()` renders), so the list is one /i pattern.
   'function-disallowed-list': ['/^(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)$/i'],
+  'ui/no-system-color': true,
 };
 
 /** Rules that police values. The token stylesheet and the art layer are where values live. */
@@ -34,7 +37,7 @@ export default {
   },
   overrides: [
     {
-      files: [TOKEN_STYLESHEET, ...ART_LAYER_PATHS],
+      files: [TOKEN_STYLESHEET, ...ART_LAYER_STYLESHEETS],
       rules: valueRulesOff,
     },
   ],

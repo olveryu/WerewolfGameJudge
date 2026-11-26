@@ -90,6 +90,45 @@ const rejected = [
     'a { z-index: 9999; } /* stylelint-disable-line */',
     'ui/strict-value',
   ],
+  // P1 QA2: spellings that got past the second version.
+  ['G7 font weight in calc', 'a { font: calc(700) var(--fs) sans-serif; }', 'ui/strict-value'],
+  [
+    'G7 font line height in calc',
+    'a { font: var(--fw) var(--fs) / calc(1.5) sans-serif; }',
+    'ui/strict-value',
+  ],
+  ['G7 local thick', 'a { --bw: thick; }', 'ui/no-local-literal-custom-property'],
+  ['G7 local thin', 'a { --bw: thin; }', 'ui/no-local-literal-custom-property'],
+  [
+    'G7 @property initial value',
+    "@property --r { syntax: '<length>'; inherits: false; initial-value: 13px; }",
+    'ui/no-local-literal-custom-property',
+  ],
+  ['G8 grid-gap', 'a { grid-gap: 13px; }', 'ui/strict-value'],
+  ['G8 grid-row-gap', 'a { grid-row-gap: 13px; }', 'ui/strict-value'],
+  ['G8 grid-column-gap', 'a { grid-column-gap: 13px; }', 'ui/strict-value'],
+  ['G8 system color', 'a { color: Canvas; }', 'ui/no-system-color'],
+  ['G8 system color in a shorthand', 'a { background: ButtonText; }', 'ui/no-system-color'],
+  ['G8 local system color', 'a { --c: canvastext; }', 'ui/no-system-color'],
+  [
+    'G8 system color under a widened forced-colors query',
+    '@media (forced-colors: active), all { a { color: Canvas; } }',
+    'ui/no-system-color',
+  ],
+  ['G8 system font', 'a { font: caption; }', 'ui/strict-value'],
+  ['G8 local system font', 'a { --f: menu; }', 'ui/no-local-literal-custom-property'],
+  ['G8 variation weight', "a { font-variation-settings: 'wght' 650; }", 'ui/strict-value'],
+  [
+    'G9 token times a factor',
+    'a { border-radius: calc(var(--radius-small) * 1.625); }',
+    'ui/strict-value',
+  ],
+  ['G9 token halved', 'a { padding: calc(var(--space-2) / 2); }', 'ui/strict-value'],
+  [
+    'G9 time factor',
+    'a { animation-duration: calc(var(--duration-fast) * 30); }',
+    'ui/strict-value',
+  ],
 ];
 
 const accepted = [
@@ -99,7 +138,6 @@ const accepted = [
     'font shorthand token',
     'a { font: var(--font-weight-bold) var(--font-size-md) / var(--line-height-body) system-ui; }',
   ],
-  ['unitless factor in calc', 'a { padding: calc(var(--space-2) * 2); }'],
   [
     'easing function numbers',
     'a { transition: opacity var(--motion-fast) cubic-bezier(0.2, 0, 0, 1); }',
@@ -111,7 +149,7 @@ const accepted = [
   ['zero and auto', 'a { margin: 0 auto; }'],
   ['multi-value token shadow', 'a { box-shadow: var(--shadow-tabletop-panel), var(--shadow-md); }'],
   ['inset token shadow', 'a { box-shadow: inset 0 0 0 var(--w) var(--c); }'],
-  ['token arithmetic', 'a { padding: calc(var(--a) * 2); }'],
+  ['token sum', 'a { padding: calc(var(--a) + var(--b)); }'],
   ['negated token', 'a { margin: calc(-1 * var(--space-small)); }'],
   ['token transition', 'a { transition: opacity var(--motion) ease-in-out, transform var(--m); }'],
   ['token border', 'a { border: var(--border-width) solid var(--color-border); }'],
@@ -124,6 +162,13 @@ const accepted = [
   ['ratio variable', 'a { --corner-ratio: 0.25; --x: var(--y); --w: calc(var(--y) * 2); }'],
   ['layout sizes are out of scope', 'a { width: 320px; top: 8px; inset: 0; }'],
   ['escapes inside a value', 'a::before { content: "\\201C"; }'],
+  [
+    'system colors in forced-colors mode',
+    '@media (forced-colors: active) { a { color: HighlightText; --ink: ButtonText; } }',
+  ],
+  ['color-ish names outside color properties', 'a { grid-area: menu; animation-name: mark; }'],
+  ['token variation settings', 'a { font-variation-settings: var(--font-variation); }'],
+  ['iteration count is structure', 'a { animation: k var(--motion-slow) 2 alternate; }'],
 ];
 
 describe('UI gate: Stylelint rules', () => {
@@ -140,6 +185,10 @@ describe('UI gate: Stylelint rules', () => {
     expect(await problems(valueOnly, 'packages/web/src/theme/tokens.css')).toEqual([]);
     expect(await problems(valueOnly, 'packages/web/src/scene/scene.css')).toEqual([]);
     expect(await problems(valueOnly, 'packages/web/src/theme/nightArt.css')).toEqual([]);
+    // An art area is not exempt as a whole: a stylesheet that is not registered is ordinary UI.
+    expect(await problems(valueOnly, 'packages/web/src/scene/qaButton.css')).toEqual(
+      expect.arrayContaining(['color-no-hex', 'ui/strict-value']),
+    );
     // Only the boot splash is art; the rest of boot/ is ordinary UI and stays checked.
     expect(await problems(valueOnly, 'packages/web/src/boot/WechatBrowserGuide.css')).toEqual(
       expect.arrayContaining(['color-no-hex', 'ui/strict-value']),

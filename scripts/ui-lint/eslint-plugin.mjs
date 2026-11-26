@@ -4,16 +4,21 @@
  * - `ui/no-style-elements` (E5, first part): no stylesheet enters the page from code. A call is
  *   judged by what the type checker resolves it to, not by how it is spelled: DOM
  *   `createElement`/`createElementNS` and React `createElement`/`jsx*` — through aliases, `bind`,
- *   computed members or `call` — may not create `<style>`/`<link>`, and a tag the checker cannot
- *   enumerate is rejected too. Any call returning a style or link element is rejected, and the
- *   HTML sinks (`innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`,
- *   `createContextualFragment`, `parseFromString`, `setHTMLUnsafe`) are closed, since markup can
- *   carry a `<style>`.
+ *   computed members, `call`, `apply` or `Reflect.apply` — may not create `<style>`/`<link>`; a
+ *   tag the checker cannot enumerate (a wide string, a spread argument, an argument list it
+ *   cannot read) is rejected too, and so is a JSX tag held in a variable whose type is a string.
+ *   Any call returning a style or link element is rejected, and the HTML sinks are closed, since
+ *   markup can carry a `<style>`: `innerHTML`/`outerHTML` however they are written (assignment,
+ *   computed key, `Object.assign`, `Reflect.set`, `Object.defineProperty`, an object literal
+ *   key), `dangerouslySetInnerHTML`, and the DOM methods `insertAdjacentHTML`, `document.write`,
+ *   `createContextualFragment`, `parseFromString` and `setHTMLUnsafe`.
  * - `ui/inline-style-static-keys` (E4, first part): the properties an inline style writes are
  *   enumerable from the source. Every object literal typed as `CSSProperties` — written inline,
  *   spread, behind `satisfies`, a conditional, a typed variable or a `createElement` prop — uses
  *   static keys or keys whose type is a union of string literals, and a value reaching `style`
- *   may not have an index signature (`Object.fromEntries`, `Record<string, …>`).
+ *   may not have an index signature (`Object.fromEntries`, `Record<string, …>`, or a pattern key
+ *   such as `` `border${string}` ``). The one index signature allowed is exactly
+ *   `` `--${string}` ``: custom properties, the web client's augmentation of CSSProperties.
  */
 
 import ts from 'typescript';
@@ -28,7 +33,7 @@ const ELEMENT_FACTORIES = new Map([
 ]);
 const BANNED_TAGS = new Set(['style', 'link']);
 const BANNED_ELEMENT_TYPES = new Set(['HTMLStyleElement', 'HTMLLinkElement', 'SVGStyleElement']);
-const HTML_SINK_PROPERTIES = new Set(['innerHTML', 'outerHTML']);
+const HTML_SINK_PROPERTIES = new Set(['innerHTML', 'outerHTML', 'dangerouslySetInnerHTML']);
 const HTML_SINK_METHODS = new Set([
   'insertAdjacentHTML',
   'write',
@@ -124,24 +129,92 @@ const noStyleElements = {
     const htmlSinks = context.options[0]?.htmlSinks ?? true;
 
     /** Reports a banned or unenumerable tag; returns whether it reported. */
-    function checkTag(node) {
-      if (node === undefined || node.type === 'SpreadElement') return false;
+    function checkTag(node, reportNode = node) {
+      if (node === undefined) return false;
+      if (node.type === 'SpreadElement') {
+        context.report({ node: reportNode, messageId: 'dynamic' });
+        return true;
+      }
       const names = possibleStrings(node, services);
       if (names === undefined) return false;
       if (names === null) {
-        context.report({ node, messageId: 'dynamic' });
+        context.report({ node: reportNode, messageId: 'dynamic' });
         return true;
       }
       const banned = names.filter((tag) => BANNED_TAGS.has(tag.toLowerCase()));
-      for (const tag of banned) context.report({ node, messageId: 'element', data: { tag } });
+      for (const tag of banned) {
+        context.report({ node: reportNode, messageId: 'element', data: { tag } });
+      }
       return banned.length > 0;
+    }
+
+    /**
+     * The tag argument at `index` of an argument list: a spread at or before it makes the position
+     * unknowable, so the spread itself is returned (and reported as dynamic).
+     */
+    function tagArgument(args, index) {
+      for (let i = 0; i <= index && i < args.length; i += 1) {
+        if (args[i].type === 'SpreadElement') return args[i];
+      }
+      return args[index];
+    }
+
+    /** The element factory a function value resolves to (by its call signatures), if any. */
+    function factoryOf(target) {
+      if (target === undefined || target.type === 'SpreadElement') return undefined;
+      const type = services.getTypeAtLocation(target);
+      if (type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return null;
+      const id = type
+        .getCallSignatures()
+        .map((signature) => signature.getDeclaration())
+        .map((declaration) => declaration && ts.getNameOfDeclaration(declaration))
+        .find((name) => name && ts.isIdentifier(name) && ELEMENT_FACTORIES.has(name.text));
+      return id?.text;
+    }
+
+    /** `fn.apply(this, args)` / `Reflect.apply(fn, this, args)`: the tag sits inside `args`. */
+    function checkArgumentList(call, factory, list) {
+      if (list?.type !== 'ArrayExpression') {
+        context.report({ node: call, messageId: 'dynamic' });
+        return true;
+      }
+      return checkTag(tagArgument(list.elements, ELEMENT_FACTORIES.get(factory)), call);
+    }
+
+    function reportSink(node, name) {
+      if (htmlSinks) context.report({ node, messageId: 'sink', data: { name } });
+    }
+
+    /** Whether a key expression can name an HTML sink property; `null` when unenumerable. */
+    function sinkKey(key) {
+      const names = possibleStrings(key, services);
+      if (names === null) return null;
+      return names?.find((name) => HTML_SINK_PROPERTIES.has(name));
+    }
+
+    function hasSinkProperty(node) {
+      const type = services.getTypeAtLocation(node);
+      return ['innerHTML', 'outerHTML'].some((name) => type.getProperty(name) !== undefined);
     }
 
     return {
       JSXOpeningElement(node) {
-        // Intrinsic JSX tags are lowercase; `<Link>` is a component.
-        if (node.name.type === 'JSXIdentifier' && BANNED_TAGS.has(node.name.name)) {
-          context.report({ node, messageId: 'element', data: { tag: node.name.name } });
+        const { name } = node;
+        // Intrinsic JSX tags are lowercase identifiers; `<Link>` is a component reference.
+        if (name.type === 'JSXIdentifier' && /^[a-z]/.test(name.name)) {
+          if (BANNED_TAGS.has(name.name)) {
+            context.report({ node, messageId: 'element', data: { tag: name.name } });
+          }
+          return;
+        }
+        // `<Tag>` with `const Tag = 'style'` compiles to jsx('style'): judge the tag's type.
+        if (name.type === 'JSXIdentifier' || name.type === 'JSXMemberExpression') {
+          checkTag(name, node);
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type === 'JSXIdentifier' && node.name.name === 'dangerouslySetInnerHTML') {
+          reportSink(node, 'dangerouslySetInnerHTML');
         }
       },
       CallExpression(node) {
@@ -149,31 +222,67 @@ const noStyleElements = {
         const callee =
           node.callee.type === 'ChainExpression' ? node.callee.expression : node.callee;
         const member = memberName(callee);
+        const reflect =
+          callee.type === 'MemberExpression' &&
+          callee.object.type === 'Identifier' &&
+          callee.object.name === 'Reflect';
         let reported = false;
-        if (name === 'call' || name === 'apply') {
+        if (reflect && (member === 'apply' || member === 'construct')) {
+          // Reflect.apply(fn, thisArg, args) / Reflect.construct(fn, args).
+          const factory = factoryOf(node.arguments[0]);
+          if (factory === null) {
+            context.report({ node, messageId: 'dynamic' });
+            reported = true;
+          } else if (factory !== undefined) {
+            reported = checkArgumentList(node, factory, node.arguments[member === 'apply' ? 2 : 1]);
+          }
+        } else if (name === 'call' || name === 'apply') {
           // fn.call(thisArg, …args) / fn.apply(thisArg, args) on an element factory.
-          const target = callee.type === 'MemberExpression' ? callee.object : undefined;
-          const targetType = target && services.getTypeAtLocation(target);
-          const factory = targetType
-            ?.getCallSignatures()
-            .map((signature) => signature.getDeclaration())
-            .map((declaration) => declaration && ts.getNameOfDeclaration(declaration))
-            .find((id) => id && ts.isIdentifier(id) && ELEMENT_FACTORIES.has(id.text));
+          const factory = callee.type === 'MemberExpression' ? factoryOf(callee.object) : undefined;
           if (factory) {
-            if (name === 'apply') {
-              context.report({ node, messageId: 'dynamic' });
-              reported = true;
-            } else {
-              reported = checkTag(node.arguments[ELEMENT_FACTORIES.get(factory.text) + 1]);
-            }
+            reported =
+              name === 'apply'
+                ? checkArgumentList(node, factory, node.arguments[1])
+                : checkTag(tagArgument(node.arguments, ELEMENT_FACTORIES.get(factory) + 1), node);
           }
         } else if (name !== undefined && ELEMENT_FACTORIES.has(name)) {
-          reported = checkTag(node.arguments[ELEMENT_FACTORIES.get(name)]);
+          reported = checkTag(tagArgument(node.arguments, ELEMENT_FACTORIES.get(name)), node);
         } else if (member !== undefined && ELEMENT_FACTORIES.has(member)) {
-          reported = checkTag(node.arguments[ELEMENT_FACTORIES.get(member)]);
+          reported = checkTag(tagArgument(node.arguments, ELEMENT_FACTORIES.get(member)), node);
         }
-        if (htmlSinks && fromDom && HTML_SINK_METHODS.has(name)) {
-          context.report({ node, messageId: 'sink', data: { name } });
+        if (fromDom && HTML_SINK_METHODS.has(name)) reportSink(node, name);
+        // Reflect.set(el, 'innerHTML', …) / Object.defineProperty(el, key, …) on a DOM node.
+        if (
+          (reflect && member === 'set') ||
+          (callee.type === 'MemberExpression' &&
+            callee.object.type === 'Identifier' &&
+            callee.object.name === 'Object' &&
+            member === 'defineProperty')
+        ) {
+          const [target, key] = node.arguments;
+          if (target && key && key.type !== 'SpreadElement' && hasSinkProperty(target)) {
+            const sink = sinkKey(key);
+            if (sink !== undefined) reportSink(node, sink ?? 'a computed key');
+          }
+        }
+        // Object.assign(el, source): a source that has, or may have, innerHTML/outerHTML.
+        if (
+          callee.type === 'MemberExpression' &&
+          callee.object.type === 'Identifier' &&
+          callee.object.name === 'Object' &&
+          member === 'assign' &&
+          node.arguments[0] &&
+          node.arguments[0].type !== 'SpreadElement' &&
+          hasSinkProperty(node.arguments[0])
+        ) {
+          for (const source of node.arguments.slice(1)) {
+            const value = source.type === 'SpreadElement' ? source.argument : source;
+            if (value.type === 'ObjectExpression') continue; // its keys are checked by Property
+            const type = services.getTypeAtLocation(value);
+            if (hasSinkProperty(value) || hasIndexSignature(type, checker)) {
+              reportSink(source, 'Object.assign');
+            }
+          }
         }
         if (reported) return;
         // Backstop for any other route to a style or link element.
@@ -181,10 +290,35 @@ const noStyleElements = {
         const banned = typeNames(returned).find((typeName) => BANNED_ELEMENT_TYPES.has(typeName));
         if (banned) context.report({ node, messageId: 'element', data: { tag: banned } });
       },
+      // { innerHTML: … } anywhere (Object.assign, defineProperties, props objects).
+      Property(node) {
+        if (node.parent.type !== 'ObjectExpression') return;
+        const key =
+          !node.computed && node.key.type === 'Identifier'
+            ? node.key.name
+            : node.key.type === 'Literal' && typeof node.key.value === 'string'
+              ? node.key.value
+              : undefined;
+        if (key !== undefined && HTML_SINK_PROPERTIES.has(key)) reportSink(node, key);
+        else if (node.computed && key === undefined) {
+          const sink = possibleStrings(node.key, services)?.find?.((n) =>
+            HTML_SINK_PROPERTIES.has(n),
+          );
+          if (sink) reportSink(node, sink);
+        }
+      },
       AssignmentExpression(node) {
-        const name = memberName(node.left);
-        if (htmlSinks && name !== undefined && HTML_SINK_PROPERTIES.has(name)) {
-          context.report({ node, messageId: 'sink', data: { name } });
+        const left = node.left;
+        if (left.type !== 'MemberExpression') return;
+        const name = memberName(left);
+        if (name !== undefined) {
+          if (HTML_SINK_PROPERTIES.has(name)) reportSink(node, name);
+          return;
+        }
+        // el[key] = …: a key that can be, or cannot be shown not to be, innerHTML/outerHTML.
+        if (left.computed && hasSinkProperty(left.object)) {
+          const sink = sinkKey(left.property);
+          if (sink !== undefined) reportSink(node, sink ?? 'a computed key');
         }
       },
     };
@@ -195,19 +329,29 @@ function isCssProperties(type) {
   return typeNames(type).includes('CSSProperties');
 }
 
+/** True for exactly the key type `` `--${string}` `` (custom properties). */
+function isCustomPropertyKey(keyType) {
+  return (
+    Boolean(keyType.flags & ts.TypeFlags.TemplateLiteral) &&
+    keyType.texts.length === 2 &&
+    keyType.texts[0] === '--' &&
+    keyType.texts[1] === '' &&
+    Boolean(keyType.types[0].flags & ts.TypeFlags.String)
+  );
+}
+
 /**
- * True when an object type (or a union/intersection member) has a plain `string` index signature.
- * Pattern signatures such as `[key: \`--${string}\`]` (the web client's custom-property
- * augmentation of CSSProperties) still name a property family, so they pass.
+ * True when an object type (or a union/intersection member) has an index signature other than
+ * `` `--${string}` `` (the web client's custom-property augmentation of CSSProperties): a
+ * `string`, `number` or pattern key (`` `border${string}` ``) leaves the written properties
+ * unenumerable.
  */
 function hasIndexSignature(type, checker) {
   const parts = type.isUnionOrIntersection() ? type.types : [type];
   return parts.some(
     (part) =>
       part.flags & ts.TypeFlags.Object &&
-      checker
-        .getIndexInfosOfType(part)
-        .some((info) => info.keyType.flags & (ts.TypeFlags.String | ts.TypeFlags.Number)),
+      checker.getIndexInfosOfType(part).some((info) => !isCustomPropertyKey(info.keyType)),
   );
 }
 

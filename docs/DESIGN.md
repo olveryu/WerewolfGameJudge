@@ -297,9 +297,9 @@ over every avatar site its census finds; the frame geometry tests
 
 - Use the semantic color and size tokens instead of copying values into component styles. Stylelint
   enforces this (`pnpm run lint:css`: `ui/strict-value` for sizes, type, shape, depth and timing,
-  `color-no-hex`/`color-named`/`function-disallowed-list` for colors,
-  `ui/no-local-literal-custom-property` for local variables, `ui/no-css-escapes` for escapes);
-  existing exceptions are recorded in `stylelint-suppressions.json` and may only shrink.
+  `color-no-hex`/`color-named`/`function-disallowed-list`/`ui/no-system-color` for colors,
+  `ui/no-local-literal-custom-property` for local variables and `@property`, `ui/no-css-escapes`
+  for escapes); existing exceptions are recorded in `ui-style-baseline.json` and may only shrink.
 - Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
 - Do not replace meaningful game art or faction semantics with decorative styling.
 - Do not reintroduce gradients or colored side stripes merely as decoration.

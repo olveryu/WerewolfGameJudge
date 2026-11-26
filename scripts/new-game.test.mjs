@@ -1669,7 +1669,8 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
         },
       });
 
-      // Generated stylesheets meet the UI gate with no recorded debt: no suppressions file.
+      // Generated stylesheets meet the UI gate with no recorded debt. The root config is passed
+      // explicitly, as `lint:css` does: Stylelint would otherwise take the nearest config file.
       const styleTargets = createdFiles.filter((file) => file.endsWith('.css'));
       assert.ok(styleTargets.length > 0, 'the generator emits stylesheets');
       execFileSync(
@@ -1680,6 +1681,9 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
             'bin',
             'stylelint.mjs',
           ),
+          '--config',
+          path.join(root, 'stylelint.config.mjs'),
+          '--disable-default-ignores',
           ...styleTargets,
         ],
         { cwd: root, stdio: 'pipe' },

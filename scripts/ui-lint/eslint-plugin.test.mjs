@@ -27,6 +27,10 @@ const tester = new RuleTester({
       project: './tsconfig.json',
       tsconfigRootDir: FIXTURES,
       ecmaFeatures: { jsx: true },
+      // With CI=true typescript-eslint infers a single run and builds its program once from the
+      // fixture files on disk, so each case's own source would get the placeholder's types
+      // (P1 QA2 G10). RuleTester feeds sources that exist only in memory.
+      disallowAutomaticSingleRunInference: true,
     },
   },
 });
@@ -47,6 +51,10 @@ tester.run('ui/no-style-elements', uiLint.rules['no-style-elements'], {
     "document.createElementNS('http://www.w3.org/2000/svg', 'circle');",
     'declare const el: HTMLElement; el.textContent = "x";',
     'declare const storage: { write(s: string): void }; storage.write("<style>");',
+    'const Card = () => null; export const a = <Card />;',
+    'const ui = { Card: () => null }; export const a = <ui.Card />;',
+    "Object.assign(document.body.style, { color: 'red' });",
+    'declare const o: { a: number }; Object.assign(o, { a: 1 });',
   ].map((code) => ({ filename, code })),
   invalid: [
     ...cases(
@@ -64,6 +72,14 @@ tester.run('ui/no-style-elements', uiLint.rules['no-style-elements'], {
         'declare const tag: "style" | "div"; document.createElement(tag);',
         `${REACT}createElement('style');`,
         "import { jsx as _jsx } from 'react/jsx-runtime'; _jsx('style', {});",
+        "document.createElement.apply(document, ['style']);",
+        // P1 QA2 G5: a tag held in a variable, Reflect.apply.
+        "const Tag = 'style' as const; export const s = <Tag>{'.a{}'}</Tag>;",
+        'const Tag = \'link\' as const; export const l = <Tag rel="stylesheet" href="/x.css" />;',
+        "declare const Tag: 'style' | 'div'; export const s = <Tag />;",
+        "const tags = { S: 'style' } as const; export const s = <tags.S />;",
+        "const ce = document.createElement.bind(document); Reflect.apply(ce, undefined, ['style']);",
+        "Reflect.apply(document.createElement, document, ['style']);",
       ],
       'element',
     ),
@@ -72,7 +88,12 @@ tester.run('ui/no-style-elements', uiLint.rules['no-style-elements'], {
         'declare const tagName: string; document.createElement(tagName);',
         'declare const tagName: `s${string}`; document.createElement(tagName);',
         "document.createElement('st' + 'yle');",
-        "document.createElement.apply(document, ['style']);",
+        'declare const args: [string]; document.createElement.apply(document, args);',
+        // P1 QA2 G5: spread arguments, an unreadable Reflect.apply list, a wide JSX tag.
+        "const args: [string] = ['style']; document.createElement(...args);",
+        'declare const args: [string]; Reflect.apply(document.createElement, document, args);',
+        'declare const fn: any; Reflect.apply(fn, undefined, ["style"]);',
+        'declare const Tag: string; export const s = <Tag />;',
       ],
       'dynamic',
     ),
@@ -84,6 +105,14 @@ tester.run('ui/no-style-elements', uiLint.rules['no-style-elements'], {
         "document.write('<style>.a{}</style>');",
         "new Range().createContextualFragment('<style>.a{}</style>');",
         "new DOMParser().parseFromString('<style></style>', 'text/html');",
+        // P1 QA2 G5 and G4: sinks written another way.
+        "declare const el: HTMLElement; Object.assign(el, { innerHTML: '<style></style>' });",
+        "declare const el: HTMLElement; Reflect.set(el, 'innerHTML', '<style></style>');",
+        "declare const el: HTMLElement; Object.defineProperty(el, 'outerHTML', { value: '' });",
+        "declare const el: HTMLElement; declare const k: string; el[k] = '<style></style>';",
+        "declare const el: HTMLElement; el['inner' + 'HTML'] = '<style></style>';",
+        'declare const el: HTMLElement; declare const src: Record<string, string>; Object.assign(el, src);',
+        "export const a = <div dangerouslySetInnerHTML={{ __html: '<style></style>' }} />;",
       ],
       'sink',
     ),
@@ -139,6 +168,8 @@ tester.run('ui/inline-style-static-keys', uiLint.rules['inline-style-static-keys
       [
         'declare const k: string; export const a = <div style={Object.fromEntries([[k, 1]])} />;',
         'declare const r: Record<string, number>; export const a = <div style={r} />;',
+        // P1 QA2 G6: a pattern key other than `--${string}`.
+        'declare const side: string; const s8: Record<`border${string}`, string> = { [`border${side}Radius`]: "13px" }; export const a = <div style={s8} />;',
         `${REACT}declare const k: string; createElement('div', { style: Object.fromEntries([[k, 1]]) });`,
       ],
       'indexed',

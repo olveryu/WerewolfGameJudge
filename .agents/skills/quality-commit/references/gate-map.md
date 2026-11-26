@@ -20,7 +20,7 @@ Commit-time automation (`.husky/pre-commit`) runs the staged-file formatter and 
 
 - TypeScript files: `eslint --fix --max-warnings=0 --no-warn-ignored` then `prettier --write`.
 - JSON, Markdown, and YAML files: `prettier --write`.
-- Web CSS files (`packages/web/src/**/*.css`): `stylelint --suppress-location stylelint-suppressions.json` then `prettier --write`.
+- Web style files (`packages/web/**/*.{css,pcss,postcss,scss,sass,less,styl,stylus,sss}`): `node scripts/ui-lint/lint-css.mjs` (Stylelint with the root config against `ui-style-baseline.json`; any other style language is rejected) then `prettier --write`.
 
 The configuration for that staged-file behaviour lives in the `lint-staged` section of `package.json`.
 
@@ -35,7 +35,7 @@ npm run --silent lint:css
 npm run --silent lint:ui-baseline
 ```
 
-All four run; the hook stops at the first failure. `lint:css` is Stylelint with the recorded CSS debt suppressed; `lint:ui-baseline` (`scripts/ui-baseline-ratchet.mjs`) checks that the recorded debt is exact and has not grown since the base revision, and that no `eslint-disable` comment switches off a UI gate rule.
+All four run; the hook stops at the first failure. `lint:css` (`scripts/ui-lint/lint-css.mjs`) is Stylelint with the root config over every stylesheet git knows in `packages/web`, failing on any violation not recorded in `ui-style-baseline.json` and on any other Stylelint config, ignore file or style language; `lint:ui-baseline` (`scripts/ui-baseline-ratchet.mjs`) checks that the recorded fingerprints are exact and have not grown since the base revision, and that no inline comment disables or configures a UI gate rule.
 
 The check files are installed by the `prepare` script (`husky`) in `package.json`.
 

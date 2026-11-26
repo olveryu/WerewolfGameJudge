@@ -2,28 +2,32 @@
 /**
  * UI baseline ratchet: the recorded lint debt is exact and only ever shrinks.
  *
- * 1. Exact: Stylelint runs here without suppressions, and its per-file, per-rule counts must equal
- *    `stylelint-suppressions.json` entry for entry. Fixing a violation without shrinking the record
- *    fails, so the record never holds slack that a new violation could hide in. (ESLint checks its
- *    own record for files it lints — an unused suppression makes `eslint` exit 2 — so the ratchet
- *    only rejects ESLint entries for files ESLint never visits.)
- * 2. Shrink only: compared with the base revision, no entry gains count, and an entry is new only
- *    where its rule did not apply to that file at the base — the PR that introduces a rule (or
- *    brings a file under it) records the rule's existing debt; nothing else can. A renamed file
- *    keeps its entries under the new path (`git diff -M`).
- * 3. No gate disables: no `eslint-disable` comment in the web client names a gate rule or names no
- *    rule (`scripts/ui-lint/disableDirectives.mjs`). Stylelint ignores disable comments outright.
+ * 1. Exact: Stylelint runs here (through `ui-lint/styleGate.mjs`: the root config, every
+ *    stylesheet, no suppressions) and its violation fingerprints must equal `ui-style-baseline.json`
+ *    as a multiset, file by file and rule by rule. Fixing a violation without shrinking the record
+ *    fails, so the record never holds slack a new violation could hide in, and a fixed literal
+ *    cannot be traded for a new one in the same file. The scope and configuration checks of
+ *    `styleGate.mjs` run here too. (ESLint checks its own record for files it lints — an unused
+ *    suppression makes `eslint` exit 2 — so the ratchet only rejects ESLint entries for files
+ *    ESLint never visits.)
+ * 2. Shrink only: compared with the base revision, no fingerprint (Stylelint) or count (ESLint)
+ *    grows, and an entry is new only where its rule did not apply to that file at the base — the
+ *    PR that introduces a rule (or brings a file under it) records the rule's existing debt;
+ *    nothing else can. A renamed file keeps its entries under the new path (`git diff -M`).
+ * 3. No gate disables: no inline comment in the web client disables a gate rule, disables every
+ *    rule, or configures a gate rule (`scripts/ui-lint/disableDirectives.mjs`, which reads
+ *    comments with ESLint's own parser). Stylelint ignores disable comments outright.
  *
- * Base: `--base <rev>` when given; `HEAD^1` in CI (a pull request checks out its merge commit, whose
- * first parent is main; a push to main compares with the previous main); otherwise
- * `git merge-base HEAD origin/main`.
+ * Base: `--base <rev>` when given; `HEAD^1` for a pull request or push in CI (a pull request checks
+ * out its merge commit, whose first parent is main; a push to main compares with the previous
+ * main); otherwise, including a manual CI dispatch, `git merge-base HEAD origin/main`.
  *
  * Fix a failure by fixing the violation, then `pnpm run lint:css:baseline` (Stylelint: rewrites the
- * record from Stylelint's counts, dropping renamed and deleted paths) or
+ * record from the current fingerprints, dropping renamed and deleted paths) or
  * `pnpm exec eslint <files> --prune-suppressions` (ESLint) to shrink the record.
  *
- * Options: `--base <rev>`; `--write` rewrites `stylelint-suppressions.json` to the current counts
- * and exits (the shrink-only check still runs in the gate).
+ * Options: `--base <rev>`; `--write` rewrites `ui-style-baseline.json` to the current
+ * fingerprints and exits (the shrink-only check still runs in the gate).
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -31,15 +35,23 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { ESLint } from 'eslint';
-import { globSync } from 'glob';
 import stylelint from 'stylelint';
 
 import { gateDisableDirectives } from './ui-lint/disableDirectives.mjs';
+import {
+  baselineFrom,
+  checkAllStyles,
+  knownFiles,
+  mismatches,
+  parseBaseline,
+  readBaseline,
+  STYLE_BASELINE,
+  STYLELINT_CONFIG,
+  WEB_PACKAGE,
+} from './ui-lint/styleGate.mjs';
 
-export const STYLELINT_SUPPRESSIONS = 'stylelint-suppressions.json';
 export const ESLINT_SUPPRESSIONS = 'eslint-suppressions.json';
-export const STYLELINT_FILES = 'packages/web/src/**/*.css';
-export const DIRECTIVE_FILES = 'packages/web/src/**/*.{ts,tsx,js,jsx,mjs,cjs}';
+const SCRIPT_FILE = /\.(?:[cm]?[jt]sx?)$/;
 /** What a base revision's lint configuration needs in order to load outside the work tree. */
 const CONFIG_PATHS = ['package.json', 'stylelint.config.mjs', 'eslint.config.mjs', 'scripts'];
 
@@ -49,7 +61,8 @@ function git(args, cwd) {
 
 function resolveBase(cwd, explicit) {
   if (explicit !== undefined) return explicit;
-  if (process.env.CI) return 'HEAD^1';
+  // A manual dispatch checks out a branch head, whose first parent is not main.
+  if (process.env.CI && process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch') return 'HEAD^1';
   try {
     return git(['merge-base', 'HEAD', 'origin/main'], cwd).trim();
   } catch (error) {
@@ -80,9 +93,9 @@ function readRecord(cwd, file) {
   return fs.existsSync(full) ? parseRecord(fs.readFileSync(full, 'utf8'), file) : {};
 }
 
-function readBaseRecord(cwd, base, file) {
+function readBaseRecord(cwd, base, file, parse) {
   try {
-    return parseRecord(git(['show', `${base}:${file}`], cwd), `${base}:${file}`);
+    return parse(git(['show', `${base}:${file}`], cwd), `${base}:${file}`);
   } catch (error) {
     if (/does not exist|exists on disk, but not in/.test(String(error.stderr ?? error.message))) {
       return undefined;
@@ -103,82 +116,62 @@ function existsAtBase(cwd, base, file) {
 /** Maps each path renamed since `base` (committed or in the working tree) to its base path. */
 function renamesSince(cwd, base) {
   const renames = new Map();
-  for (const line of git(['diff', '-M', '--name-status', base, '--'], cwd).split('\n')) {
+  let diff;
+  try {
+    diff = git(['diff', '-M', '--name-status', base, '--'], cwd);
+  } catch (error) {
+    throw new Error(
+      `UI baseline ratchet: cannot compare with base ${base} (${String(error.stderr ?? error.message).trim()}). Pass --base <rev> naming a commit this checkout has.`,
+    );
+  }
+  for (const line of diff.split('\n')) {
     const [status, from, to] = line.split('\t');
     if (status?.startsWith('R') && from && to) renames.set(to, from);
   }
   return renames;
 }
 
+/** An entry as a multiset: Stylelint fingerprints, or an ESLint count under one blank key. */
+function tallyOf(entry) {
+  const counts = new Map();
+  if (entry === undefined) return counts;
+  if (Array.isArray(entry)) {
+    for (const print of entry) counts.set(print, (counts.get(print) ?? 0) + 1);
+  } else {
+    counts.set('', entry.count);
+  }
+  return counts;
+}
+
 /**
- * Entries of `current` that are larger than in `base`, or new although their rule already applied
- * to the file at the base (`appliedAtBase(baseFile, rule)`; by default every rule did).
+ * What in `current` grew beyond `base`: a fingerprint recorded more often (or an ESLint count
+ * that rose), or an entry that is new although its rule already applied to the file at the base
+ * (`appliedAtBase(baseFile, rule)`; by default every rule did).
  */
 export async function growth(current, base, renames = new Map(), appliedAtBase = async () => true) {
   const problems = [];
   for (const [file, rules] of Object.entries(current)) {
     const baseFile = renames.get(file) ?? file;
     const baseRules = base[baseFile] ?? {};
-    for (const [rule, { count }] of Object.entries(rules)) {
-      const before = baseRules[rule]?.count ?? 0;
-      if (before === 0) {
+    for (const [rule, entry] of Object.entries(rules)) {
+      const before = tallyOf(baseRules[rule]);
+      if (before.size === 0) {
         if (await appliedAtBase(baseFile, rule)) {
-          problems.push(`${file} → ${rule}: new entry (${count}) for a rule that already applied`);
+          const size = Array.isArray(entry) ? entry.length : entry.count;
+          problems.push(`${file} → ${rule}: new entry (${size}) for a rule that already applied`);
         }
-      } else if (count > before) {
-        problems.push(`${file} → ${rule}: ${before} → ${count}`);
+        continue;
+      }
+      for (const [key, count] of tallyOf(entry)) {
+        const had = before.get(key) ?? 0;
+        if (count <= had) continue;
+        problems.push(
+          key === '' ? `${file} → ${rule}: ${had} → ${count}` : `${file} → ${rule}: new ${key}`,
+        );
       }
     }
   }
   return problems;
-}
-
-/** Differences between the recorded counts and the counts Stylelint reports now. */
-export function mismatches(recorded, actual) {
-  const problems = [];
-  const files = new Set([...Object.keys(recorded), ...Object.keys(actual)]);
-  for (const file of [...files].sort()) {
-    const rules = new Set([
-      ...Object.keys(recorded[file] ?? {}),
-      ...Object.keys(actual[file] ?? {}),
-    ]);
-    for (const rule of [...rules].sort()) {
-      const want = recorded[file]?.[rule]?.count ?? 0;
-      const have = actual[file]?.[rule]?.count ?? 0;
-      if (want !== have) problems.push(`${file} → ${rule}: recorded ${want}, found ${have}`);
-    }
-  }
-  return problems;
-}
-
-/**
- * Stylelint's own counts, unsuppressed. File runs always apply a suppressions file (the default
- * name in `cwd` if none is given), so this run points at an empty one.
- */
-export async function stylelintCounts(cwd) {
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-baseline-ratchet-'));
-  const noSuppressions = path.join(scratch, 'none.json');
-  fs.writeFileSync(noSuppressions, '{}');
-  let results;
-  try {
-    ({ results } = await stylelint.lint({
-      files: STYLELINT_FILES,
-      cwd,
-      suppressLocation: noSuppressions,
-    }));
-  } finally {
-    fs.rmSync(scratch, { recursive: true, force: true });
-  }
-  const counts = {};
-  for (const result of results) {
-    if (result.source === undefined) continue;
-    const file = path.relative(cwd, result.source).split(path.sep).join('/');
-    for (const warning of result.warnings) {
-      const rules = (counts[file] ??= {});
-      rules[warning.rule] = { count: (rules[warning.rule]?.count ?? 0) + 1 };
-    }
-  }
-  return counts;
 }
 
 /** ESLint entries for files ESLint never visits: deleted, moved without the record, or ignored. */
@@ -190,16 +183,6 @@ export async function unvisitedEslintEntries(cwd, record) {
     else if (await eslint.isPathIgnored(file)) problems.push(`${file}: file is not linted`);
   }
   return problems;
-}
-
-/** The record Stylelint's counts imply, sorted for a stable diff. */
-export function recordFrom(counts) {
-  const record = {};
-  for (const file of Object.keys(counts).sort()) {
-    record[file] = {};
-    for (const rule of Object.keys(counts[file]).sort()) record[file][rule] = counts[file][rule];
-  }
-  return record;
 }
 
 function isEnabled(setting) {
@@ -223,14 +206,17 @@ async function baseRuleLookup(cwd, base, scratch) {
     execFileSync('tar', ['-x', '-C', scratch], { input: archive });
   }
   fs.symlinkSync(path.join(cwd, 'node_modules'), path.join(scratch, 'node_modules'), 'dir');
-  const hasStylelint = present.includes('stylelint.config.mjs');
+  const hasStylelint = present.includes(STYLELINT_CONFIG);
   const hasEslint = present.includes('eslint.config.mjs');
   const eslint = hasEslint ? new ESLint({ cwd: scratch }) : undefined;
   return {
     hasStylelint,
     async stylelint(file, rule) {
       if (!hasStylelint) return false;
-      const config = await stylelint.resolveConfig(path.join(scratch, file), { cwd: scratch });
+      const config = await stylelint.resolveConfig(path.join(scratch, file), {
+        cwd: scratch,
+        configFile: path.join(scratch, STYLELINT_CONFIG),
+      });
       return isEnabled(config?.rules?.[rule]);
     },
     async eslint(file, rule) {
@@ -241,13 +227,17 @@ async function baseRuleLookup(cwd, base, scratch) {
   };
 }
 
-/** Gate disable directives in the web client's sources. */
-export function disableDirectiveProblems(cwd) {
+/** Gate directive comments in every web client source ESLint lints. */
+export async function disableDirectiveProblems(cwd) {
+  const eslint = new ESLint({ cwd });
   const problems = [];
-  for (const file of globSync(DIRECTIVE_FILES, { cwd, nodir: true }).sort()) {
-    for (const { line, text } of gateDisableDirectives(
-      fs.readFileSync(path.join(cwd, file), 'utf8'),
-    )) {
+  for (const file of knownFiles(cwd, WEB_PACKAGE).filter((name) => SCRIPT_FILE.test(name))) {
+    if (await eslint.isPathIgnored(file)) continue;
+    const source = fs.readFileSync(path.join(cwd, file), 'utf8');
+    // Every directive comment spells `eslint` literally (comments carry no escapes), so a file
+    // without that word has none and needs no parse.
+    if (!source.includes('eslint')) continue;
+    for (const { line, text } of gateDisableDirectives(source, file)) {
       problems.push(`${file}:${line}: ${text}`);
     }
   }
@@ -257,20 +247,28 @@ export function disableDirectiveProblems(cwd) {
 async function main() {
   const cwd = process.cwd();
   const baseFlag = process.argv.indexOf('--base');
-  const counts = await stylelintCounts(cwd);
+  const styles = await checkAllStyles(cwd);
   if (process.argv.includes('--write')) {
-    const record = `${JSON.stringify(recordFrom(counts), null, 2)}\n`;
-    fs.writeFileSync(path.join(cwd, STYLELINT_SUPPRESSIONS), record);
-    console.log(`Wrote ${STYLELINT_SUPPRESSIONS} from Stylelint's current counts.`);
+    const record = `${JSON.stringify(baselineFrom(styles.found), null, 2)}\n`;
+    fs.writeFileSync(path.join(cwd, STYLE_BASELINE), record);
+    console.log(`Wrote ${STYLE_BASELINE} from the current Stylelint fingerprints.`);
+    if (styles.problems.length > 0) {
+      console.error(['The CSS gate scope has problems:', ...styles.problems].join('\n'));
+      process.exitCode = 1;
+    }
     return;
   }
   const base = resolveBase(cwd, baseFlag === -1 ? undefined : process.argv[baseFlag + 1]);
   const failures = [];
 
-  const exact = mismatches(readRecord(cwd, STYLELINT_SUPPRESSIONS), counts);
+  if (styles.problems.length > 0) {
+    failures.push('The CSS gate scope or configuration is not closed:', ...styles.problems);
+  }
+
+  const exact = mismatches(readBaseline(cwd), styles.found);
   if (exact.length > 0) {
     failures.push(
-      `${STYLELINT_SUPPRESSIONS} does not match Stylelint (fix new violations; after fixing old ones run \`pnpm run lint:css:baseline\`):`,
+      `${STYLE_BASELINE} does not match Stylelint (fix new violations; after fixing old ones run \`pnpm run lint:css:baseline\`):`,
       ...exact,
     );
   }
@@ -283,10 +281,10 @@ async function main() {
     );
   }
 
-  const directives = disableDirectiveProblems(cwd);
+  const directives = await disableDirectiveProblems(cwd);
   if (directives.length > 0) {
     failures.push(
-      'eslint-disable comments may not switch off UI gate rules (fix the code or record the debt):',
+      'Inline comments may not disable or configure UI gate rules (fix the code or record the debt):',
       ...directives,
     );
   }
@@ -300,12 +298,12 @@ async function main() {
         `UI baseline ratchet: ${base} has no Stylelint config, so every recorded entry counts as new debt of a new rule. If origin/main is stale, fetch it first.`,
       );
     }
-    for (const [file, applied] of [
-      [STYLELINT_SUPPRESSIONS, lookup.stylelint],
-      [ESLINT_SUPPRESSIONS, lookup.eslint],
+    for (const [file, parse, current, applied] of [
+      [STYLE_BASELINE, parseBaseline, readBaseline(cwd), lookup.stylelint],
+      [ESLINT_SUPPRESSIONS, parseRecord, readRecord(cwd, ESLINT_SUPPRESSIONS), lookup.eslint],
     ]) {
-      const baseRecord = readBaseRecord(cwd, base, file) ?? {};
-      const grown = await growth(readRecord(cwd, file), baseRecord, renames, applied);
+      const baseRecord = readBaseRecord(cwd, base, file, parse) ?? {};
+      const grown = await growth(current, baseRecord, renames, applied);
       if (grown.length > 0) {
         failures.push(`${file} grew since ${base} (the record only shrinks):`, ...grown);
       }

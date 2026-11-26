@@ -12,8 +12,8 @@
     "typecheck": "pnpm run types:pages:check && tsc --noEmit && tsc -p functions/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "lint:css": "stylelint \"packages/web/src/**/*.css\" --suppress-location stylelint-suppressions.json",
-    "lint:css:baseline": "node scripts/ui-baseline-ratchet.mjs --write && prettier --write stylelint-suppressions.json",
+    "lint:css": "node scripts/ui-lint/lint-css.mjs",
+    "lint:css:baseline": "node scripts/ui-baseline-ratchet.mjs --write && prettier --write ui-style-baseline.json",
     "lint:ui-baseline": "node scripts/ui-baseline-ratchet.mjs",
     "format": "prettier . --check",
     "format:write": "prettier . --write",
@@ -57,8 +57,8 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ],
-    "packages/web/src/**/*.css": [
-      "stylelint --suppress-location stylelint-suppressions.json",
+    "packages/web/**/*.{css,pcss,postcss,scss,sass,less,styl,stylus,sss}": [
+      "node scripts/ui-lint/lint-css.mjs",
       "prettier --write"
     ]
   },
@@ -85,7 +85,7 @@
     "postcss-value-parser": "^4.2.0",
     "prettier": "^3.10.0",
     "serve": "^14.2.7",
-    "stylelint": "^17.16.0",
+    "stylelint": "17.16.0",
     "turbo": "^2.11.11",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.2",

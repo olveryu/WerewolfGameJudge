@@ -5,11 +5,14 @@
  * value checks) do not apply to them. Mechanism rules (escapes, style elements, computed keys)
  * still apply.
  *
- * This list is the single registration point (plan D7): `stylelint.config.mjs` reads it (and so
+ * This file is the single registration point (plan D7): `stylelint.config.mjs` reads it (and so
  * will the inline-style value rules when they land), and `scripts/ui-lint/registry.test.mjs` pins
- * its exact contents, so adding an art path changes this file and that test in the same diff.
+ * its exact contents, so adding art changes this file and that test in the same diff.
  *
- * Paths are globs relative to the repository root.
+ * - `ART_LAYER_PATHS`: the art areas (globs relative to the repository root).
+ * - `ART_LAYER_STYLESHEETS`: the stylesheets exempt from the Stylelint value rules, file by file.
+ *   An area is not exempt as a whole: a new stylesheet under `scene/` is ordinary UI CSS until it
+ *   is registered here, so writing plain UI styles into an art directory buys nothing.
  */
 export const ART_LAYER_PATHS = Object.freeze([
   'packages/web/src/scene/**',
@@ -20,6 +23,15 @@ export const ART_LAYER_PATHS = Object.freeze([
   'packages/web/src/boot/bootSplash.css',
   'packages/web/src/theme/nightArt.css',
   'packages/web/src/routes/bench/**',
+]);
+
+export const ART_LAYER_STYLESHEETS = Object.freeze([
+  'packages/web/src/scene/scene.css',
+  'packages/web/src/components/nameStyles/nameStyles.css',
+  'packages/web/src/features/gacha/machine/CapsuleMachine.css',
+  'packages/web/src/boot/bootSplash.css',
+  'packages/web/src/theme/nightArt.css',
+  'packages/web/src/routes/bench/SceneBench.css',
 ]);
 
 /** The token source: the only stylesheet allowed to hold raw style values. */

@@ -80,7 +80,7 @@ importers:
         specifier: ^14.2.7
         version: 14.2.7
       stylelint:
-        specifier: ^17.16.0
+        specifier: 17.16.0
         version: 17.16.0(typescript@6.0.3)
       turbo:
         specifier: ^2.11.11
