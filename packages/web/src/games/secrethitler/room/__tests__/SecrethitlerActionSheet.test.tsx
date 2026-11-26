@@ -157,6 +157,7 @@ it('shows hands only to their authorized office and submits the actual available
   if (state.phase.kind !== 'legislativePresident') throw new Error('Expected hand');
   const input = props(state, state.phase.presidentSeat);
   const rendered = render(<SecrethitlerActionSheet screen={input} />);
+  expect(screen.getByRole('dialog', { name: '查看并弃牌' })).toHaveClass('center-dialog');
   expect(screen.queryByRole('button', { name: '关闭' })).not.toBeInTheDocument();
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(input.closeAction).not.toHaveBeenCalled();
@@ -191,6 +192,7 @@ it('submits a vote directly and closes after success', async () => {
   const state = fixture('voting');
   const input = props(state, 1);
   render(<SecrethitlerActionSheet screen={input} />);
+  expect(screen.getByRole('dialog', { name: '秘密投票' })).toHaveClass('center-dialog');
   fireEvent.click(screen.getByTestId('secrethitler-vote-yes'));
   expect(input.submit).toHaveBeenCalledWith(
     '赞成',
@@ -261,6 +263,7 @@ it('submits the chancellor enact command for the tapped policy card', async () =
   if (state.phase.kind !== 'legislativeChancellor') throw new Error('Expected hand');
   const input = props(state, state.phase.chancellorSeat);
   render(<SecrethitlerActionSheet screen={input} />);
+  expect(screen.getByRole('dialog', { name: '查看并施政' })).toHaveClass('center-dialog');
   const policy = state.phase.hand[0];
   if (policy === undefined) throw new Error('Missing policy');
   const label = `施行${policy === 'liberal' ? '自由派' : '法西斯'}政策`;

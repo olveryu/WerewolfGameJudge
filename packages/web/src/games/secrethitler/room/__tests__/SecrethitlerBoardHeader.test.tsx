@@ -22,6 +22,10 @@ import { alertStore, dismissAlert } from '@/utils/alert';
 import * as alertPresets from '@/utils/alertPresets';
 
 import {
+  secrethitlerPolicyFascistImage,
+  secrethitlerPolicyLiberalImage,
+} from '../../assets/secrethitlerPolicyImages';
+import {
   secrethitlerVoteFailImage,
   secrethitlerVotePassImage,
 } from '../../assets/secrethitlerVoteImages';
@@ -115,6 +119,7 @@ it('shows public vote results without allowing dismissal or confirmation', () =>
     'src',
     secrethitlerVotePassImage,
   );
+  expect(screen.getByRole('list', { name: '' })).toBeVisible();
   const voteResult = props.viewModel.publicVoteResult;
   if (voteResult === null) throw new Error('Missing public vote result');
   rerender(
@@ -149,11 +154,62 @@ it('shows public vote results without allowing dismissal or confirmation', () =>
     />,
   );
   expect(screen.getByText('施行自由派政策')).toBeVisible();
+  expect(screen.getByTestId(TESTIDS.secrethitlerPolicyResultImage)).toHaveAttribute(
+    'src',
+    secrethitlerPolicyLiberalImage,
+  );
+  rerender(
+    <SecrethitlerPublicResult
+      screen={{
+        ...props,
+        state: {
+          ...state,
+          phase: { ...state.phase, previous: legislative.phase, policy: 'fascist' },
+        },
+        viewModel: { ...props.viewModel, publicVoteResult: null },
+      }}
+    />,
+  );
+  expect(screen.getByText('施行法西斯政策')).toBeVisible();
+  expect(screen.getByTestId(TESTIDS.secrethitlerPolicyResultImage)).toHaveAttribute(
+    'src',
+    secrethitlerPolicyFascistImage,
+  );
   expect(screen.queryByTestId(TESTIDS.secrethitlerSettledVoteBanner)).not.toBeInTheDocument();
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.getByRole('dialog', { name: '公共结果' })).toBeVisible();
   expect(screen.queryByRole('button', { name: '知道了' })).not.toBeInTheDocument();
   expect(submit).not.toHaveBeenCalled();
+});
+
+it('shows the enacted policy image for chaos without revealing secret ballots', () => {
+  const state = buildSecrethitlerPhaseStates().get('publicResult');
+  if (state === undefined || state.phase.kind !== 'publicResult')
+    throw new Error('Missing public result fixture');
+  const secretState = {
+    ...state,
+    config: { ...state.config, voteMode: 'secret' },
+    phase: { ...state.phase, chaosPolicy: 'fascist' },
+  } satisfies SecrethitlerState;
+  render(
+    <SecrethitlerPublicResult
+      screen={{
+        state: secretState,
+        viewModel: getSecrethitlerViewModel(secretState, 0),
+        effectiveSeat: 0,
+        controlledSeat: null,
+        isHost: false,
+        isSubmitting: false,
+        submit: vi.fn(async () => true),
+      }}
+    />,
+  );
+  expect(screen.getByText('混乱：自动施行法西斯政策')).toBeVisible();
+  expect(screen.getByTestId(TESTIDS.secrethitlerPolicyResultImage)).toHaveAttribute(
+    'src',
+    secrethitlerPolicyFascistImage,
+  );
+  expect(screen.queryByRole('region', { name: '投票明细' })).not.toBeInTheDocument();
 });
 
 it('projects aggregate vote results while hiding secret ballots', () => {

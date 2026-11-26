@@ -4,6 +4,7 @@ import './SecrethitlerRoomScreen.css';
 import {
   getSecrethitlerOccupiedSeatCount,
   getSecrethitlerRoleCounts,
+  type SecrethitlerPolicy,
   type SecrethitlerState,
   type SecrethitlerViewModel,
 } from '@game-judge/game-engine/games/secrethitler/public';
@@ -41,6 +42,10 @@ import IconCheckboxOutline from '~icons/ion/checkbox-outline';
 import IconMoonOutline from '~icons/ion/moon-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
+import {
+  secrethitlerPolicyFascistImage,
+  secrethitlerPolicyLiberalImage,
+} from '../assets/secrethitlerPolicyImages';
 import {
   secrethitlerVoteFailImage,
   secrethitlerVotePassImage,
@@ -271,23 +276,43 @@ export function SecrethitlerPublicResult({
             className="secrethitler-result-banner-image"
             data-testid={TESTIDS.secrethitlerSettledVoteBanner}
           />
-          <p>
+          <p
+            className="secrethitler-result-summary"
+            data-testid={TESTIDS.secrethitlerVoteResultSummary}
+          >
             政府{voteResult.passed ? '通过' : '未通过'}：赞成 {voteResult.yesCount}，反对{' '}
             {voteResult.noCount}
           </p>
-          {view.voteMode === 'public' &&
-            voteResult.votes?.map(({ seat: voter, vote }) => (
-              <p key={voter}>
-                {secrethitlerSeatLabel(view, voter)}：{vote === 'ja' ? '赞成' : '反对'}
-              </p>
-            ))}
+          {view.voteMode === 'public' && voteResult.votes !== null && (
+            <section className="secrethitler-vote-details" aria-label="投票明细">
+              <h2>投票明细</h2>
+              <ul role="list">
+                {voteResult.votes.map(({ seat: voter, vote }) => (
+                  <li key={voter} data-testid={TESTIDS.secrethitlerVoteResultRow(voter)}>
+                    <span>{secrethitlerSeatLabel(view, voter)}</span>
+                    <strong>{vote === 'ja' ? '赞成' : '反对'}</strong>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
       {previous.kind === 'legislativeChancellor' && phase.policy !== null && (
-        <p>施行{policyLabel(phase.policy)}政策</p>
+        <>
+          <PolicyResultImage policy={phase.policy} />
+          <p className="secrethitler-result-summary">施行{policyLabel(phase.policy)}政策</p>
+        </>
       )}
       {previous.kind === 'vetoResponse' && <p>总统{phase.vetoApproved ? '同意' : '拒绝'}否决</p>}
-      {phase.chaosPolicy !== null && <p>混乱：自动施行{policyLabel(phase.chaosPolicy)}政策</p>}
+      {phase.chaosPolicy !== null && (
+        <>
+          <PolicyResultImage policy={phase.chaosPolicy} />
+          <p className="secrethitler-result-summary">
+            混乱：自动施行{policyLabel(phase.chaosPolicy)}政策
+          </p>
+        </>
+      )}
       {remainingSeconds === null && <p>等待进入下一阶段…</p>}
       {remainingSeconds !== null && remainingSeconds > 0 && <p>{`${remainingSeconds} 秒后继续`}</p>}
       <StageSettleRescue
@@ -305,6 +330,18 @@ export function SecrethitlerPublicResult({
         waitingLabel="等待进入下一阶段…"
       />
     </CenterDialog>
+  );
+}
+
+function PolicyResultImage({ policy }: { readonly policy: SecrethitlerPolicy }) {
+  return (
+    <img
+      src={policy === 'liberal' ? secrethitlerPolicyLiberalImage : secrethitlerPolicyFascistImage}
+      alt=""
+      decoding="async"
+      className="secrethitler-policy-result-image"
+      data-testid={TESTIDS.secrethitlerPolicyResultImage}
+    />
   );
 }
 
@@ -327,12 +364,23 @@ export function SecrethitlerInvestigationResult({
       { controlledSeat: screen.controlledSeat, actionKey: null },
     );
   return (
-    <CenterDialog open title="私密调查结果" requireConfirmation onClose={acknowledge}>
-      <p>
+    <CenterDialog
+      open
+      title="私密调查结果"
+      requireConfirmation
+      onClose={acknowledge}
+      testId={TESTIDS.secrethitlerInvestigationResultDialog}
+      titleTestId={TESTIDS.secrethitlerInvestigationResultTitle}
+    >
+      <p data-testid={TESTIDS.secrethitlerInvestigationResultFaction}>
         {secrethitlerSeatLabel(view, result.targetSeat)}：
         {result.faction === 'liberal' ? '自由派' : '法西斯阵营'}
       </p>
-      <Button disabled={screen.isSubmitting} onClick={acknowledge}>
+      <Button
+        disabled={screen.isSubmitting}
+        data-testid={TESTIDS.secrethitlerInvestigationAcknowledge}
+        onClick={acknowledge}
+      >
         知道了
       </Button>
     </CenterDialog>

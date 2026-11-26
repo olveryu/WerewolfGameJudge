@@ -224,11 +224,11 @@ const sql = [
   ]),
   ...UNDERCOVER_WORD_PAIRS.map(
     ([id, wordA, wordB, category]) =>
-      `INSERT INTO undercover_word_pairs (id, word_a, word_b, category, status, created_at, reviewed_at, review_json) VALUES (${sqlString(id)}, ${sqlString(wordA)}, ${sqlString(wordB)}, ${sqlString(category)}, 'active', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), '{}') ON CONFLICT (id) DO NOTHING;`,
+      `INSERT INTO undercover_word_pairs (id, word_a, word_b, category, status, created_at, reviewed_at, review_json) VALUES (${sqlString(id)}, ${sqlString(wordA)}, ${sqlString(wordB)}, ${sqlString(category)}, 'active', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), '{}') ON CONFLICT DO NOTHING;`,
   ),
   ...DRAWGUESS_WORDS.map(
     ([id, word, pinyinInitials, category, difficulty]) =>
-      `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(pinyinInitials)}, ${sqlString(category)}, ${sqlString(difficulty)}, 'active', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL) ON CONFLICT (id) DO NOTHING;`,
+      `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(pinyinInitials)}, ${sqlString(category)}, ${sqlString(difficulty)}, 'active', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL) ON CONFLICT DO NOTHING;`,
   ),
 ].join(' ');
 
