@@ -144,10 +144,20 @@ corepack pnpm new-game <gameId> --feature identity=none --feature night=none --f
 ```
 
 Replace each feature value with the approved profile; all eight declarations
-are required and duplicate/unknown fields fail before writing. See
+are required and duplicate/unknown fields fail before writing. A word library
+(`wordSupply` other than `none`) also takes its approved categories as repeated
+`--word-category <id>=<name>`; the generator never invents them. See
 `references/generator.md` for options and generated outputs. Preflight computes
 all templates, shared edits and the migration
-before writing; a duplicate game id is never overwritten. Formatting/lint errors
+before writing; a duplicate game id is never overwritten. The migration is
+planned from the schema the current migrations actually produce (replayed in
+`node:sqlite`), never from an earlier migration; if an inserts-only
+registration would be wrong (id already registered, missing lookup table, a
+CHECK hard-coding a game list, …) it exits non-zero and you hand-write the
+migration under `packages/api-worker/AGENTS.md`. The generated migration is a
+starting point: review it against the current schema and this game's
+requirements before committing; never copy it or an earlier migration as a
+template. Formatting/lint errors
 after writing leave the game in place—fix those files rather than rerunning.
 
 ### 5. Dispose of all 9 report steps
@@ -170,7 +180,11 @@ wiring or passing contracts as proof that the game is complete.
 ### 7. Wire capabilities, word supply, and E2E deliberately
 
 Wire capabilities before changing their declaration and contract row. Register
-word supply in all three required locations only when approved. Keep E2E out of
+word supply in all three required locations only when approved; a word library
+also needs its category catalog (same entries as `--word-category`) and
+`GAME_WORD_GAMES` entry; the registration migration already seeds
+`word_games`/`word_categories` (`references/registration-checklist.md` item 7). Migration rules (lookup tables,
+write budget, merge window) are owned by `packages/api-worker/AGENTS.md`. Keep E2E out of
 CI until deliberately activated; use the `new-e2e-spec` skill and real
 multi-context seats. See `references/capabilities-and-report.md` and
 `references/skeleton-and-wiring.md`.
@@ -192,7 +206,7 @@ corepack pnpm --filter @game-judge/api-worker run typecheck
 corepack pnpm --filter @game-judge/game-engine run test src/games/<gameId> src/platform/__tests__/engineSkeleton.contract.test.ts src/platform/__tests__/gameRegistry.contract.test.ts src/platform/__tests__/phaseDeadlineVariants.contract.test.ts src/platform/engine/__tests__/capabilities.contract.test.ts
 corepack pnpm --filter @game-judge/api-worker run test src/games/<gameId> src/games/__tests__/catalog.test.ts
 corepack pnpm --filter @game-judge/web run test src/games/<gameId> src/__tests__/roomReview.contract.test.ts src/__tests__/roomGuidanceMatrix.contract.test.ts src/games/__tests__/homeProductionFilter.contract.test.ts
-corepack pnpm run test contracts/architecture.contract.test.ts contracts/ciE2eCoverage.contract.test.ts
+corepack pnpm run test contracts/architecture.contract.test.ts contracts/ciE2eCoverage.contract.test.ts contracts/d1Catalog.contract.test.ts contracts/d1MigrationRules.contract.test.ts
 corepack pnpm run knip
 ```
 

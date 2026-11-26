@@ -1,21 +1,10 @@
-/** Regression test for B-1: migration 0079 must apply on a database that already
- * holds word_submission_events rows. The events table references both tables the
- * migration rebuilds, so the old DROP TABLE failed with FOREIGN KEY constraint
- * failed on any populated database (an empty test database could not catch it).
- * The fix rebuilds events without REFERENCES first and restores them afterwards;
- * this test re-applies the migration over seeded rows and asserts the rows, the
- * AUTOINCREMENT sequence, the restored foreign keys and the new values survive. */
+/** Current-schema contract for the endorsement values (introduced by 0079):
+ * word_submission_events keeps both foreign keys enforced, items accept the
+ * approved status, actions accept endorse, and the item count triggers exist.
+ * Runs on the full migration chain applied by test/applyMigrations.ts. */
+import { FIB_WORD_CATEGORY_IDS } from '@game-judge/game-engine/games/fibking/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-
-const MIGRATION_NAME = '0079_word_submission_endorsement.sql';
-
-function requireMigration() {
-  const migration = env.TEST_MIGRATIONS.find(({ name }) => name === MIGRATION_NAME);
-  if (migration === undefined || migration.queries.length === 0)
-    throw new Error(`[FAIL-FAST] Missing test migration ${MIGRATION_NAME}`);
-  return migration;
-}
 
 beforeEach(async () => {
   await env.DB.batch([
@@ -48,8 +37,8 @@ beforeEach(async () => {
     env.DB.prepare(
       `INSERT INTO word_submission_items
        (id, batch_id, game, client_item_id, identity, content_hash, title, category, material_json, status, revision)
-       VALUES ('item-1', 'batch-1', 'fibking', 'c1', 'idn-1', 'hash-1', 't', 'cat', '{}', 'pending', 0)`,
-    ),
+       VALUES ('item-1', 'batch-1', 'fibking', 'c1', 'idn-1', 'hash-1', 't', ?, '{}', 'pending', 0)`,
+    ).bind(FIB_WORD_CATEGORY_IDS[0]),
     env.DB.prepare(
       `INSERT INTO word_submission_actions
        (id, batch_id, action, request_hash, items_json, reason, status, created_at)
@@ -68,30 +57,18 @@ beforeEach(async () => {
   ]);
 });
 
-describe('word submission endorsement migration', () => {
-  it('applies on a database with event rows and preserves them', async () => {
-    await env.DB.batch(requireMigration().queries.map((query) => env.DB.prepare(query)));
-
-    const events = await env.DB.prepare(
-      'SELECT id, action_id, item_id FROM word_submission_events ORDER BY id',
+describe('word submission endorsement schema', () => {
+  it('keeps event foreign keys, the approved status, endorse actions and the count triggers', async () => {
+    const foreignKeys = await env.DB.prepare(
+      `SELECT "table" AS parent, "from" AS child_column, "to" AS parent_column
+       FROM pragma_foreign_key_list('word_submission_events') ORDER BY parent`,
     ).all();
-    expect(events.results).toEqual([
-      { id: 1, action_id: 'act-1', item_id: 'item-1' },
-      { id: 2, action_id: 'act-1', item_id: null },
+    expect(foreignKeys.results).toEqual([
+      { parent: 'word_submission_actions', child_column: 'action_id', parent_column: 'id' },
+      { parent: 'word_submission_items', child_column: 'item_id', parent_column: 'id' },
     ]);
 
-    const seq = await env.DB.prepare(
-      "SELECT seq FROM sqlite_sequence WHERE name = 'word_submission_events'",
-    ).first<{ seq: number }>();
-    expect(seq?.seq).toBe(2);
-
-    const tableSql = await env.DB.prepare(
-      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'word_submission_events'",
-    ).first<{ sql: string }>();
-    expect(tableSql?.sql).toContain('REFERENCES word_submission_actions(id)');
-    expect(tableSql?.sql).toContain('REFERENCES word_submission_items(id)');
-
-    // Foreign keys are enforced again after the restore.
+    // Event foreign keys are enforced.
     await expect(
       env.DB.prepare(
         `INSERT INTO word_submission_events
@@ -100,7 +77,7 @@ describe('word submission endorsement migration', () => {
       ).run(),
     ).rejects.toThrow(/FOREIGN KEY/i);
 
-    // The new values the migration adds are accepted.
+    // The approved status and the endorse action are accepted.
     await env.DB.prepare(
       "UPDATE word_submission_items SET status = 'approved' WHERE id = 'item-1'",
     ).run();
@@ -114,7 +91,7 @@ describe('word submission endorsement migration', () => {
        VALUES ('act-2', 'batch-1', 'endorse', 'rh-2', '[]', '', 'complete', '2026-11-14T00:00:00Z')`,
     ).run();
 
-    // The count triggers survived the rebuild.
+    // The item count triggers exist.
     const triggers = await env.DB.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'word_submission_items%'",
     ).all();

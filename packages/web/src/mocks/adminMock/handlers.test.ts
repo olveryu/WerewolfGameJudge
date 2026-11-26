@@ -1,8 +1,5 @@
-import {
-  DECRYPTO_WORD_CATEGORIES,
-  DECRYPTO_WORD_CATEGORY_NAMES,
-} from '@game-judge/game-engine/games/decrypto/public';
-import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
+import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
+import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
 import {
   GAME_WORD_GAMES,
   wordSubmissionAgentsSchema,
@@ -108,7 +105,7 @@ describe('admin mock fixtures', () => {
     }
 
     const drawGuessCategories = getWordStats('drawguess').categories;
-    expect(drawGuessCategories.map(({ id }) => id)).toEqual(DRAWGUESS_WORD_CATEGORIES);
+    expect(drawGuessCategories.map(({ id }) => id)).toEqual(DRAWGUESS_WORD_CATEGORY_CATALOG.ids);
     expect(drawGuessCategories.find(({ id }) => id === 'plants')).toMatchObject({
       active: 0,
       total: 0,
@@ -120,7 +117,7 @@ describe('admin mock fixtures', () => {
     expect(categories).toHaveLength(40);
     expect(new Set(categories.map(({ id }) => id)).size).toBe(40);
     expect(categories.map(({ id, name }) => ({ id, name }))).toEqual(
-      DECRYPTO_WORD_CATEGORIES.map((id) => ({ id, name: DECRYPTO_WORD_CATEGORY_NAMES[id] })),
+      DECRYPTO_WORD_CATEGORY_CATALOG.entries,
     );
     expect(categories.find(({ id }) => id === 'animals')?.active).toBeGreaterThan(0);
     expect(categories.find(({ id }) => id === 'school')).toMatchObject({ active: 0, total: 0 });

@@ -13,10 +13,9 @@ import {
 } from '../../../platform/protocol/runtimeDecoder';
 import { parseRoomRoster } from '../../../platform/room/roster';
 import type { UndercoverRole } from '../domain/rules';
+import { UNDERCOVER_WORD_CATEGORY_CATALOG, type UndercoverCategory } from '../wordCategories';
 import { normalizeUndercoverState } from './normalize';
 import {
-  UNDERCOVER_CATEGORIES,
-  type UndercoverCategory,
   type UndercoverConfig,
   type UndercoverPendingRound,
   type UndercoverRound,
@@ -31,7 +30,8 @@ function parseRole(value: unknown, path: string): UndercoverRole {
 }
 
 function parseCategory(value: unknown, path: string): UndercoverCategory {
-  for (const category of UNDERCOVER_CATEGORIES) if (category === value) return category;
+  for (const category of UNDERCOVER_WORD_CATEGORY_CATALOG.ids)
+    if (category === value) return category;
   return failDecode(path, 'an Undercover category');
 }
 

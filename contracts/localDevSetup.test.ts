@@ -395,7 +395,7 @@ it('preserves an existing DrawGuess word when its seeded word conflicts under an
       INSERT INTO drawguess_words
         (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
       VALUES
-        ('custom-panda-word', '大熊猫', 'dxm', 'custom', 'easy', 'disabled', 'preserved', 'preserved');
+        ('custom-panda-word', '大熊猫', 'dxm', 'food', 'easy', 'disabled', 'preserved', 'preserved');
     `);
 
     expect(() => database.exec(seedSql)).not.toThrow();
@@ -408,7 +408,7 @@ it('preserves an existing DrawGuess word when its seeded word conflicts under an
     ).toEqual([
       {
         id: 'custom-panda-word',
-        category: 'custom',
+        category: 'food',
         status: 'disabled',
         created_at: 'preserved',
         disabled_at: 'preserved',

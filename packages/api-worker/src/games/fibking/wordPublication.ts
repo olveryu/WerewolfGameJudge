@@ -3,15 +3,15 @@
  * workflow. There is no monthly quota: the admin controls how often to
  * trigger by hand. */
 
+import {
+  FIB_WORD_CATEGORY_IDS,
+  FIBKING_WORD_CATEGORY_CATALOG,
+  type FibWordSupplyCategory,
+} from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
 import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
 import { createFailWordPackStatement } from '../../platform/wordSupply/wordPackLedger';
-import {
-  FIB_WORD_ALL_CATEGORY_IDS,
-  FIB_WORD_CATEGORY_IDS,
-  type FibWordSupplyCategory,
-} from './wordCategories';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_PROMPT_VERSION } from './wordProviders/prompt';
 import { FIB_WORD_SEARCH_QUERY_COUNT, FIB_WORD_SEARCHES } from './wordSearchPlan';
@@ -34,7 +34,7 @@ type FibWordProviderOperation =
 
 const packSchema = z.strictObject({
   id: z.string(),
-  category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
+  category: z.enum(FIBKING_WORD_CATEGORY_CATALOG.ids),
   request_token: z.string(),
   searchIndex: z
     .number()
@@ -155,7 +155,7 @@ export async function selectFibWordSearch(db: D1Database, pack: FibWordPack) {
         .int()
         .min(0)
         .max(FIB_WORD_SEARCH_QUERY_COUNT - 1),
-      category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
+      category: z.enum(FIBKING_WORD_CATEGORY_CATALOG.ids),
     })
     .parse(selected);
 }

@@ -1,5 +1,5 @@
 /** Real Workflow, provider and D1 checkpoints with model HTTP mocked. */
-import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
+import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
 import { env, introspectWorkflowInstance } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -100,7 +100,7 @@ describe('DrawGuess supply workflow', () => {
     // An already-pending submission waits for the manual review flow: the
     // workflow never reviews or publishes it.
     const day = new Date().toISOString().slice(0, 10);
-    const sortedCategories = [...DRAWGUESS_WORD_CATEGORIES].sort();
+    const sortedCategories = [...DRAWGUESS_WORD_CATEGORY_CATALOG.ids].sort();
     const category = sortedCategories[0];
     if (category === undefined) throw new Error('DrawGuess categories are empty');
     await env.DB.batch([
@@ -226,7 +226,7 @@ describe('DrawGuess supply workflow', () => {
     expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 1 });
     const pack = z
       .object({
-        category: z.enum(DRAWGUESS_WORD_CATEGORIES),
+        category: z.enum(DRAWGUESS_WORD_CATEGORY_CATALOG.ids),
         status: z.string(),
         generation_json: z.string(),
       })
@@ -307,7 +307,7 @@ describe('DrawGuess supply workflow', () => {
     // History reads the inventory, not only active words: every seeded word
     // is disabled, and the generated category's word must still appear.
     await env.DB.batch(
-      DRAWGUESS_WORD_CATEGORIES.map((category, index) =>
+      DRAWGUESS_WORD_CATEGORY_CATALOG.ids.map((category, index) =>
         env.DB.prepare(
           `INSERT INTO drawguess_words
            (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
@@ -343,7 +343,7 @@ describe('DrawGuess supply workflow', () => {
     await instance.waitForStatus('complete');
     const generation = requests[0];
     expect(generation).toBeDefined();
-    const categoryIndex = DRAWGUESS_WORD_CATEGORIES.findIndex(
+    const categoryIndex = DRAWGUESS_WORD_CATEGORY_CATALOG.ids.findIndex(
       (category) => category === generation?.category,
     );
     expect(generation).toMatchObject({ history: [historyWordOf(categoryIndex)] });

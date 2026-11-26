@@ -1,4 +1,4 @@
-import { DECRYPTO_WORD_CATEGORIES } from '@game-judge/game-engine/games/decrypto/public';
+import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
 import { sql } from 'drizzle-orm';
 import {
   check,
@@ -41,7 +41,7 @@ export const decryptoWords = sqliteTable(
   {
     id: text('id').primaryKey(),
     word: text('word').notNull(),
-    category: text('category', { enum: DECRYPTO_WORD_CATEGORIES }).notNull(),
+    category: text('category', { enum: DECRYPTO_WORD_CATEGORY_CATALOG.ids }).notNull(),
     status: text('status', { enum: ['active', 'disabled'] }).notNull(),
     createdAt: text('created_at').notNull(),
   },
@@ -58,7 +58,7 @@ export const decryptoWordPacks = sqliteTable(
   'decrypto_word_packs',
   {
     id: text('id').primaryKey(),
-    category: text('category', { enum: DECRYPTO_WORD_CATEGORIES }).notNull(),
+    category: text('category', { enum: DECRYPTO_WORD_CATEGORY_CATALOG.ids }).notNull(),
     requestToken: text('request_token').notNull(),
     status: text('status', { enum: ['reserved', 'published', 'failed'] }).notNull(),
     model: text('model').notNull(),

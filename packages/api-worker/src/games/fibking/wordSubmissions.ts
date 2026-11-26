@@ -4,6 +4,7 @@ import {
   FIB_DEFINITION_FIELD_MIN_LENGTH,
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
+  FIBKING_WORD_CATEGORY_CATALOG,
 } from '@game-judge/game-engine/games/fibking/public';
 import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
@@ -15,7 +16,6 @@ import {
   SubmissionReviewItemError,
   type WordSubmissionAdapter,
 } from '../../platform/wordSupply/submissionAdapter';
-import { FIB_WORD_ALL_CATEGORY_IDS } from './wordCategories';
 import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { createGeminiFibWordProvider, GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
@@ -33,7 +33,7 @@ const definitionField = z
 const inputSchema = z.strictObject({
   word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
   definition: z.strictObject({ coreMeaning: definitionField, usageNote: definitionField }),
-  category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
+  category: z.enum(FIBKING_WORD_CATEGORY_CATALOG.ids),
   references: z
     .array(
       z.strictObject({

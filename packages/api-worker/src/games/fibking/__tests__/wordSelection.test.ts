@@ -1,12 +1,13 @@
 /** FibKing question allocation: random, never repeated per account, replayed by identity. */
 
-import type { FibSelectWordEffect } from '@game-judge/game-engine/games/fibking/public';
+import type {
+  FibSelectWordEffect,
+  FibWordCategory,
+} from '@game-judge/game-engine/games/fibking/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { getFibWatermarkConversion } from '../../../../test/fibWordWatermarkMigration';
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
-import { type FibWordCategory } from '../wordProviders/types';
 import { getOrCreateFibWordSelection, type SelectFibWordInput } from '../wordSelection';
 
 const ROOM_ID = 'selection-room';
@@ -62,9 +63,7 @@ async function insertPoolWord(
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM fib_word_usages').run();
   await env.DB.prepare('DELETE FROM fib_round_word_selections').run();
-  await env.DB.prepare('DELETE FROM fib_word_exposures').run();
   await env.DB.prepare('DELETE FROM fib_word_sequence').run();
-  await env.DB.prepare('DELETE FROM fib_word_progress').run();
   await env.DB.prepare('DELETE FROM word_seen').run();
   await env.DB.prepare('DELETE FROM fib_words').run();
   await env.DB.prepare('DELETE FROM rooms').run();
@@ -100,48 +99,14 @@ async function selectWord(roundId: string, participantUserIds: string[]): Promis
 }
 
 describe('getOrCreateFibWordSelection', () => {
-  it('keeps played accounts past the old prefix through both migrations while new accounts can play approved old words', async () => {
+  it('keeps a played account past the words it has seen and never serves a disabled word', async () => {
     await env.DB.prepare("INSERT INTO users (id) VALUES ('new-player')").run();
     await insertPoolWord('old-approved', '射覆', 'plants', 1);
     await insertPoolWord('old-disabled', '却扇', 'plants', 2);
     await env.DB.prepare(
       "UPDATE fib_words SET status = 'disabled', disabled_at = '2026-08-01T00:00:00.000Z', status_reason = 'quality_review: rejected' WHERE id = 'old-disabled'",
     ).run();
-    await env.DB.prepare('DELETE FROM fib_word_sequence').run();
-    const findQueries = (name: string, pattern: RegExp): string[] => {
-      const migration = env.TEST_MIGRATIONS.find((candidate) => candidate.name === name);
-      if (migration === undefined) throw new Error(`Missing migration ${name}`);
-      return migration.queries.filter((query) => pattern.test(query.trim()));
-    };
-    const watermarkQueries = findQueries(
-      '0051_fib_word_progress.sql',
-      /^INSERT INTO fib_word_(sequence|progress)\s/,
-    );
-    const seenQuery = getFibWatermarkConversion(env.TEST_MIGRATIONS);
-    expect(watermarkQueries).toHaveLength(2);
-    // Replay 0051 (exposures to watermark), then 0067 (watermark to seen record) on its output.
-    await env.DB.prepare(
-      "INSERT INTO fib_word_exposures (user_id, word, last_seen_at) VALUES (?, '残存旧词', '2026-08-01T00:00:00.000Z')",
-    )
-      .bind(USER_ID)
-      .run();
-    // 0051 ran when fib_word_candidate_reviews existed; 0085 dropped it, so
-    // restore the table at 0051's point in history for this replay. The UNION
-    // in 0051 only selects `word`; 射覆 is seeded as the review-approved old
-    // word (UNION dedupes it with fib_words, so the expected sequence below
-    // is unchanged).
-    await env.DB.prepare('CREATE TABLE fib_word_candidate_reviews (word TEXT NOT NULL)').run();
-    await env.DB.prepare("INSERT INTO fib_word_candidate_reviews (word) VALUES ('射覆')").run();
-    await env.DB.batch(watermarkQueries.map((query) => env.DB.prepare(query)));
-    expect(
-      await env.DB.prepare('SELECT word FROM fib_word_sequence ORDER BY id').all(),
-    ).toMatchObject({ results: [{ word: '却扇' }, { word: '射覆' }, { word: '残存旧词' }] });
-    expect(
-      await env.DB.prepare(
-        'SELECT user_id, sequence_number = (SELECT MAX(id) FROM fib_word_sequence) AS is_at_end FROM fib_word_progress',
-      ).all(),
-    ).toMatchObject({ results: [{ user_id: USER_ID, is_at_end: 1 }] });
-    await env.DB.prepare(seenQuery).run();
+    expect(await selectWord('played-old', [USER_ID])).toBe('射覆');
     await insertPoolWord('new-word', '打尖', 'plants', 3);
     expect(await selectWord('played-round', [USER_ID])).toBe('打尖');
     await expect(selectWord('played-exhausted', [USER_ID])).rejects.toThrow(
@@ -152,8 +117,6 @@ describe('getOrCreateFibWordSelection', () => {
       await selectWord('new-player-second', ['new-player']),
     ];
     expect(newPlayerWords.sort()).toEqual(['射覆', '打尖'].sort());
-    // Restore the post-0085 schema for the remaining tests in this file.
-    await env.DB.prepare('DROP TABLE fib_word_candidate_reviews').run();
   });
 
   it('draws only questions no participant has seen and marks them seen for everyone', async () => {

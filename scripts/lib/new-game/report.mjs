@@ -74,7 +74,7 @@ export function buildIntegrationReport({
   const wordSupplyStep =
     wordSupplyMode === 'none'
       ? '7. **词库：不适用**：特征声明为 `wordSupply=none`；设计变更需要词库时，先更新特征声明并补齐三处 workflow 接线。'
-      : `7. **词库（${wordSupplyMode}）**：按已声明的供应模式实现 workflow，并为实际准备/后台供应流程补行为测试；同时登记 \`packages/game-engine/src/games/registry.ts\` 的 \`workerWorkflows\`（\`workflowName: '${gameId}-word-supply'\`、\`binding: '${gameId.toUpperCase()}_WORD_SUPPLY'\`、\`exportName: '${names.pascal}WordSupplyWorkflow'\`）、\`packages/api-worker/src/index.ts\`（\`export { ${names.pascal}WordSupplyWorkflow } from './games/${gameId}/wordSupplyWorkflow';\`）、\`packages/api-worker/wrangler.toml\` 的 \`[[workflows]]\` block（\`binding = "${gameId.toUpperCase()}_WORD_SUPPLY"\`），并运行 Wrangler 更新 \`worker-configuration.d.ts\`。架构合同核对 registry、部署配置与 Env 类型。`;
+      : `7. **词库（${wordSupplyMode}）**：按已声明的供应模式实现 workflow，并为实际准备/后台供应流程补行为测试；同时登记 \`packages/game-engine/src/games/registry.ts\` 的 \`workerWorkflows\`（\`workflowName: '${gameId}-word-supply'\`、\`binding: '${gameId.toUpperCase()}_WORD_SUPPLY'\`、\`exportName: '${names.pascal}WordSupplyWorkflow'\`）、\`packages/api-worker/src/index.ts\`（\`export { ${names.pascal}WordSupplyWorkflow } from './games/${gameId}/wordSupplyWorkflow';\`）、\`packages/api-worker/wrangler.toml\` 的 \`[[workflows]]\` block（\`binding = "${gameId.toUpperCase()}_WORD_SUPPLY"\`），并运行 Wrangler 更新 \`worker-configuration.d.ts\`。架构合同核对 registry、部署配置与 Env 类型。词库登记与上述接线同一次落地：用 \`defineWordCategoryCatalog('${gameId}', [...])\` 定义已批准的分类目录、把 \`${gameId}\` 加进 \`GAME_WORD_GAMES\` 并补齐各个按词库游戏穷举的适配表，条目与生成时传入的 \`--word-category\` 逐项相同、顺序相同（注册迁移 \`${migrationName}\` 已按它插好 \`word_games\` 与 \`word_categories\`）；还要把它加进 \`contracts/d1Catalog.contract.test.ts\` 的 \`CATEGORY_CATALOGS\`，该合同钉查表与代码逐行相等。`;
   return `# ${home.displayName}（${gameId}）接入报告
 
 > 由 \`corepack pnpm new-game ${gameId}${featureArgs}${production ? ' --production' : ''}\` 生成。骨架只接通底盘，尚不是可玩的游戏；所有 \`TODO(gameplay)\` 都必须完成。
@@ -119,10 +119,10 @@ ${edited}
 2. **玩法实现**：在 engine、worker、web 的 \`${gameId}\` 目录处理所有 \`TODO(gameplay)\`。在 engine \`__tests__/engine.test.ts\` 为每个批准的状态转移、边界和拒绝路径补行为断言；示例命令的 \`notImplemented\` 测试必须保留到玩法真正实现，不能以骨架通过冒充完成。按 [骨架与接线清单](.agents/skills/new-game/references/skeleton-and-wiring.md) 复用房间组件，验证阶段操作、隐私投影、房主控件、素材预加载、身份/机器人变体与终局界面。${audioNote}${catalogueNote}
 3. **本局复盘填空**：实现 \`packages/web/src/games/${gameId}/review/to${names.pascal}ReviewDocument.ts\` 和 \`review/${names.camel}Review.ts\`，补齐 \`review/__tests__/${names.camel}Review.test.ts\`。只用 \`packages/web/src/features/room/review/types.ts\` 的封闭 block vocabulary；需要新表达时先扩展平台。按批准玩法断言终局事实、参与者/身份/成绩归属、轮次标识、阶段可用性和观战者内容，不要只保留生成器的通用名单示例。局面 fixture \`${names.upper}_REVIEW_ROUNDS\` 已注册，玩法变化时同步维护。
 ${rewardsAndStatsStep}
-5. **审 migration**：手工核对 \`packages/api-worker/migrations/${migrationName}\` 的约束、外键、索引/触发器和复制成本。注册 migration 来源与新增累计表见 [注册清单](.agents/skills/new-game/references/registration-checklist.md)；机械派生不代替 schema 审查。
+5. **审 migration**：生成器先在 node:sqlite 里按顺序重放现有全部迁移、按得到的实际 schema 做前置检查，再生成并试跑；它的产物只是起点，不是模板。提交前对照当前 schema 与本游戏需求手工审 \`packages/api-worker/migrations/${migrationName}\`：只插 \`game_types\` 一行（\`sort_order\` 追加在末尾，与 \`GAME_TYPES\` 一致）、词库游戏另插 \`word_games\`/\`word_categories\`，不重建任何表；改了这份迁移就同步改 \`contracts/d1MigrationManifest.json\` 里它的 sha256；新增累计表的约束与外键按 [注册清单](.agents/skills/new-game/references/registration-checklist.md) 审。迁移规则见 \`packages/api-worker/AGENTS.md\`。
 6. **e2e 启用需用户批准**：\`e2e/specs/${gameId}.spec.ts.tmpl\` 默认不进 CI。批准后按 \`new-e2e-spec\` skill 改为真实多 context 测试，并将 spec 加入 \`.github/workflows/ci.yml\` 分片矩阵。
 ${wordSupplyStep}
-8. **验证**：运行 skill acceptance commands、generator contract、受影响包测试/typecheck、lint/format 和 \`knip\`。覆盖玩法完成、授权/隐私、确认与音频回执顺序、统计原子性/重试及 profile/settings 的加载、错误、空态、真实数量；注册迁移需用已有数据跑 SQLite 集成合同并检查外键与索引。完整 quality/E2E 由 CI 执行。每一步记录验证证据，或用户批准的不适用理由。
+8. **验证**：运行 skill acceptance commands、generator contract、受影响包测试/typecheck、lint/format 和 \`knip\`。覆盖玩法完成、授权/隐私、确认与音频回执顺序、统计原子性/重试及 profile/settings 的加载、错误、空态、真实数量；注册迁移要在完整迁移链上跑 \`contracts/d1Catalog.contract.test.ts\`（查表与代码逐行相等）并检查外键。完整 quality/E2E 由 CI 执行。每一步记录验证证据，或用户批准的不适用理由。
 9. **上线${production ? '（已同步目录名单）' : '（翻生产）'}**：${
     production
       ? '`--production` 已将 registry `isProduction` 设为 true，并更新 `homeProductionFilter.contract.test.ts` 中的 `PRODUCTION_GAME_TYPES`；这不等于部署或玩法验收。先完成其他步骤。'

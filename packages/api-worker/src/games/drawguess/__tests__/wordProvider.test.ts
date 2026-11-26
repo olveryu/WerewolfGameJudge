@@ -1,5 +1,5 @@
 /** Provider transport uses separate material, strict output, and redacted failures. */
-import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
+import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -43,7 +43,7 @@ describe('DrawGuess provider', () => {
   });
 
   it('supports at least 30 distinct editorial categories', () => {
-    expect(new Set(DRAWGUESS_WORD_CATEGORIES).size).toBeGreaterThanOrEqual(30);
+    expect(new Set(DRAWGUESS_WORD_CATEGORY_CATALOG.ids).size).toBeGreaterThanOrEqual(30);
   });
 
   it('sends reasons before verdicts and reviews at most 1 word without extra requests', async () => {

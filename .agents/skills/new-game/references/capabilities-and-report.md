@@ -116,10 +116,14 @@ disposition in the PR description.
    assertions to engine `__tests__/publicStats.test.ts` and Worker
    `__tests__/publicUserStats.test.ts`; DTO shape and catalog wiring alone
    are not semantic coverage.
-5. Review the migration: the generated file is mechanically derived from
-   the latest registration migration. Verify the rebuild set against the
-   current schema by hand; the cumulative completed-games table is already
-   generated. No extra history or index is implied.
+5. Review the migration: the generator planned it from the replayed
+   current schema (`references/generator.md`); it inserts one `game_types`
+   row (plus `word_games`/`word_categories` rows for a word library) and
+   rebuilds no table. It is a starting point, not a template: check it
+   against the current schema and this game's requirements, review the
+   cumulative completed-games table it creates, and update its
+   `contracts/d1MigrationManifest.json` sha256 if you edit it. No extra
+   history or index is implied.
 6. E2E activation: the spec skeleton is
    `e2e/specs/<gameId>.spec.ts.tmpl` and is not in CI by default. Activating
    it means renaming it to `<gameId>.spec.ts` and adding the filename to the
@@ -128,6 +132,10 @@ disposition in the PR description.
    `references/skeleton-and-wiring.md`, including the explicit
    `workflowName` and `binding` registry metadata, then regenerate
    `worker-configuration.d.ts`. The skeleton carries no workflow body.
+   The word-library catalog (same entries as `--word-category`) and
+   `GAME_WORD_GAMES` entry land in the same change; the registration
+   migration already seeds `word_games` / `word_categories`
+   (`references/registration-checklist.md` item 7).
 8. Re-run scoped engine/Worker/web tests and affected contracts, root
    `tsc --noEmit`, changed-package typechecks, `knip`, the skill check, and
    changed-file prettier/eslint. Full suites/quality/E2E belong to CI.

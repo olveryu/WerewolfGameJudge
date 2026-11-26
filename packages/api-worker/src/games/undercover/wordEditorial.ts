@@ -1,6 +1,6 @@
 /** Editorial-only pair material; descriptions and review evidence never enter room snapshots. */
 import {
-  UNDERCOVER_CATEGORIES,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
   type UndercoverCategory,
 } from '@game-judge/game-engine/games/undercover/public';
 import { Converter } from 'opencc-js/t2cn';
@@ -23,7 +23,7 @@ const reviewExplanationSchema = z.string().trim().min(2).max(1000);
 export const undercoverCandidateSchema = z.strictObject({
   wordA: wordSchema,
   wordB: wordSchema,
-  category: z.enum(UNDERCOVER_CATEGORIES),
+  category: z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids),
   commonTraits: z.array(explanationSchema).min(2).max(4),
   differences: z.array(explanationSchema).min(2).max(4),
   potentialIssues: z.array(explanationSchema).max(4),

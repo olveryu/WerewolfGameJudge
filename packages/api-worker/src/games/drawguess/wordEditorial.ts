@@ -1,6 +1,6 @@
 /** Editorial-only DrawGuess word material; review records never enter room snapshots. */
 import {
-  DRAWGUESS_WORD_CATEGORIES,
+  DRAWGUESS_WORD_CATEGORY_CATALOG,
   type DrawGuessWordCategory,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { Converter } from 'opencc-js/t2cn';
@@ -31,7 +31,7 @@ const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 
 export const drawGuessCandidateSchema = z.strictObject({
   word: wordSchema,
-  category: z.enum(DRAWGUESS_WORD_CATEGORIES),
+  category: z.enum(DRAWGUESS_WORD_CATEGORY_CATALOG.ids),
   difficulty: difficultySchema,
   potentialIssues: z.array(explanationSchema).max(4),
 });

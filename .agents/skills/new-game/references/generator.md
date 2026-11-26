@@ -89,18 +89,37 @@ named assertions for every enabled feature, and runs representative generated
 packages through formatting, lint, typecheck and package tests. Each profile's
 report also names its manual workflow and gameplay verification obligations.
 
-## Migration source and numbering
+## Registration migration and numbering
 
-The next filename comes from the highest physical migration number,
-not the latest registration number. The latest registration migration
-is used as the rebuild source; historical migration files remain immutable.
-The registration rebuild body is bounded by the source PRAGMAs so a
-previous game's appended owned tables are not copied into the next game.
-With `stats=enabled` the generator appends the new owned `<id>_user_stats` table; it does not
-create a statistics history ledger or indexes.
+The next filename comes from the highest physical migration number. The
+generator never derives SQL from an earlier migration. It replays every
+file under `packages/api-worker/migrations` in order into an in-memory
+`node:sqlite` database (one transaction per file, foreign keys on) and
+judges the schema that results against the code's `GAME_TYPES`:
 
-Review the rebuild set against current migrations/schema, including
-foreign-key dependents, indexes/triggers and copy costs. Derivation is not
-permission to apply a stale table body. The isolated generation contracts
-exercise migration application and preserve existing data; gameplay-specific
-schema changes remain approved manual work.
+- it refuses, before writing anything, when the id is already in
+  `game_types`, the game already has `word_games` or `word_categories`
+  rows, `<id>_user_stats` already exists, the category list repeats an id
+  or name or has a blank one, a lookup table is missing, `game_types`
+  drifts from `GAME_TYPES`, or any CHECK hard-codes a game list (that would
+  need a constraint change, i.e. a table rebuild);
+- otherwise it emits inserts only: one `game_types` row appended after the
+  current maximum `sort_order`; with a word library (`wordSupply` other
+  than `none`) one `word_games` row and the approved categories passed as
+  `--word-category <id>=<name>` (required exactly then, in display order)
+  as `word_categories` rows; with `stats=enabled` a brand-new
+  `<id>_user_stats` table. No `DROP`, `ALTER`, `RENAME`, `PRAGMA` or `_next`;
+- it applies the generated SQL to the replayed database and verifies the
+  resulting rows and `PRAGMA foreign_key_check` before writing.
+
+The same run appends the new file's sha256 to
+`contracts/d1MigrationManifest.json` (a `SHARED_EDITS` entry). A refusal
+means the migration is hand-written under the D1 rules in
+`packages/api-worker/AGENTS.md` (rebuild with every descendant and trigger,
+write estimate, reset window, manifest). The generated migration is a
+starting point, not a template: review it against the current schema and
+this game's requirements before committing, and never copy it or an
+earlier migration mechanically. The word rows still need the game's
+`GAME_WORD_GAMES` entry, its `defineWordCategoryCatalog` catalog with the
+same entries, and the word-library adapters (report step 7,
+`references/registration-checklist.md` item 7).

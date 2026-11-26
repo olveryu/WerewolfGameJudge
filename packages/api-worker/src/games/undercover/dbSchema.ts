@@ -1,5 +1,5 @@
 /** Undercover-owned editorial inventory and immutable per-room allocations. */
-import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
+import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/undercover/public';
 import {
   index,
   integer,
@@ -34,7 +34,7 @@ export const undercoverWordPairs = sqliteTable(
     id: text('id').primaryKey(),
     wordA: text('word_a').notNull(),
     wordB: text('word_b').notNull(),
-    category: text('category', { enum: UNDERCOVER_CATEGORIES }).notNull(),
+    category: text('category', { enum: UNDERCOVER_WORD_CATEGORY_CATALOG.ids }).notNull(),
     status: text('status', { enum: ['active', 'disabled'] }).notNull(),
     createdAt: text('created_at').notNull(),
     reviewedAt: text('reviewed_at').notNull(),
@@ -63,7 +63,7 @@ export const undercoverRoundWordSelections = sqliteTable(
       .references(() => undercoverWordPairs.id, { onDelete: 'restrict' }),
     wordA: text('word_a').notNull(),
     wordB: text('word_b').notNull(),
-    category: text('category', { enum: UNDERCOVER_CATEGORIES }).notNull(),
+    category: text('category', { enum: UNDERCOVER_WORD_CATEGORY_CATALOG.ids }).notNull(),
     selectedAt: text('selected_at').notNull(),
   },
   (table) => [
@@ -81,7 +81,7 @@ export const undercoverWordPacks = sqliteTable(
   'undercover_word_packs',
   {
     id: text('id').primaryKey(),
-    category: text('category', { enum: UNDERCOVER_CATEGORIES }).notNull(),
+    category: text('category', { enum: UNDERCOVER_WORD_CATEGORY_CATALOG.ids }).notNull(),
     requestToken: text('request_token').notNull(),
     status: text('status', { enum: ['reserved', 'published', 'failed'] }).notNull(),
     model: text('model').notNull(),

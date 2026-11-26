@@ -1,7 +1,4 @@
-import {
-  DECRYPTO_WORD_CATEGORIES,
-  DECRYPTO_WORD_CATEGORY_NAMES,
-} from '@game-judge/game-engine/games/decrypto/public';
+import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
 import type {
   WordSubmissionAgent,
   wordSubmissionAuditSchema,
@@ -29,6 +26,7 @@ import { type AdminRewardGrant, adminUserRewardsSchema } from '@/features/admin/
 import type { MaintenanceConfig } from '@/features/maintenance/maintenance';
 
 import { ADMIN_MOCK_DRAWGUESS_CATEGORIES } from './drawGuessCategories';
+import { ADMIN_MOCK_FIBKING_CATEGORIES } from './fibkingCategories';
 import { ADMIN_MOCK_UNDERCOVER_CATEGORIES } from './undercoverCategories';
 
 const SYSTEM_AGENT_ID = '00000000-0000-4000-8000-000000000001';
@@ -40,57 +38,13 @@ const MOCK_ACTIVE_COUNTS: Readonly<Record<GameWordGame, Readonly<Record<string, 
   decrypto: { animals: 12, food: 12, dailyObjects: 8 },
 };
 
-const GAME_CATEGORIES: Record<GameWordGame, readonly { id: string; name: string }[]> = {
-  fibking: [
-    { id: 'customs', name: '民俗礼仪' },
-    { id: 'festivals', name: '节令节庆' },
-    { id: 'clothing', name: '服饰衣冠' },
-    { id: 'food', name: '饮食菜肴' },
-    { id: 'drinks', name: '茶酒饮品' },
-    { id: 'utensils', name: '器物用具' },
-    { id: 'buildings', name: '建筑营造' },
-    { id: 'crafts', name: '手工技艺' },
-    { id: 'textiles', name: '纺织染绣' },
-    { id: 'agriculture', name: '农耕渔猎' },
-    { id: 'mining', name: '矿冶盐业' },
-    { id: 'trade', name: '商业金融' },
-    { id: 'currency', name: '货币钱财' },
-    { id: 'transport', name: '交通行旅' },
-    { id: 'education', name: '教育科举' },
-    { id: 'games', name: '游戏博戏' },
-    { id: 'sports', name: '体育武术' },
-    { id: 'music', name: '音乐乐器' },
-    { id: 'theatre', name: '戏曲曲艺' },
-    { id: 'painting', name: '书画艺术' },
-    { id: 'literature', name: '语言文字' },
-    { id: 'dialect', name: '方言俗语' },
-    { id: 'internet', name: '网络文化' },
-    { id: 'occupations', name: '职业行话' },
-    { id: 'law', name: '法律制度' },
-    { id: 'medicine', name: '医药养生' },
-    { id: 'plants', name: '植物花草' },
-    { id: 'animals', name: '动物生物' },
-    { id: 'earth', name: '地理矿物' },
-    { id: 'astronomy', name: '天文气象' },
-    { id: 'science', name: '科学技术' },
-    { id: 'courtship', name: '婚恋风俗' },
-    { id: 'emotions', name: '情感词语' },
-    { id: 'drinkingCustoms', name: '酒令酒俗' },
-    { id: 'partyGames', name: '聚会游戏' },
-    { id: 'jianghu', name: '江湖行话' },
-    { id: 'stageProps', name: '戏台道具' },
-    { id: 'theatricalTricks', name: '戏剧机关' },
-    { id: 'detective', name: '侦探推理' },
-    { id: 'socialEtiquette', name: '社交礼节' },
-    { id: 'urbanSlang', name: '市井俚语' },
-    { id: 'other', name: '其他' },
-  ],
+const GAME_CATEGORIES: Readonly<
+  Record<GameWordGame, readonly { readonly id: string; readonly name: string }[]>
+> = {
+  fibking: ADMIN_MOCK_FIBKING_CATEGORIES,
   undercover: ADMIN_MOCK_UNDERCOVER_CATEGORIES,
   drawguess: ADMIN_MOCK_DRAWGUESS_CATEGORIES,
-  decrypto: DECRYPTO_WORD_CATEGORIES.map((id) => ({
-    id,
-    name: DECRYPTO_WORD_CATEGORY_NAMES[id],
-  })),
+  decrypto: DECRYPTO_WORD_CATEGORY_CATALOG.entries,
 };
 
 type SubmissionSeed = {

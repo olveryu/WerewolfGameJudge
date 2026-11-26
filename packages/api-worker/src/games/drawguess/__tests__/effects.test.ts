@@ -120,7 +120,7 @@ describe('DrawGuess effects', () => {
       env.DB.prepare("INSERT INTO users (id) VALUES ('drawguess-seen-player')"),
       env.DB.prepare(
         `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at)
-         VALUES ('seen-word', '火锅', 'h g', '食物', 'easy', 'active', datetime('now'))`,
+         VALUES ('seen-word', '火锅', 'h g', 'food', 'easy', 'active', datetime('now'))`,
       ),
     ]);
     const effect = drawGuessEffectSchema.parse({

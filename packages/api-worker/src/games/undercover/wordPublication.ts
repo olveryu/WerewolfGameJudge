@@ -4,7 +4,7 @@
  * live on the manual review/publish endpoints, never in the workflow.
  */
 import {
-  UNDERCOVER_CATEGORIES,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
   type UndercoverCategory,
 } from '@game-judge/game-engine/games/undercover/public';
 import { z } from 'zod';
@@ -19,7 +19,7 @@ import { UNDERCOVER_WORD_MODEL } from './wordProvider';
 
 const packSchema = z.strictObject({
   id: z.string(),
-  category: z.enum(UNDERCOVER_CATEGORIES),
+  category: z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids),
   request_token: z.string(),
 });
 export type UndercoverWordPack = z.output<typeof packSchema>;
@@ -33,7 +33,7 @@ export async function reserveUndercoverWordPack(
 ): Promise<UndercoverWordPack | null> {
   z.iso.date().parse(day);
   z.string().min(1).max(64).parse(runId);
-  const selectedCategory = z.enum(UNDERCOVER_CATEGORIES).parse(category);
+  const selectedCategory = z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids).parse(category);
   const row = await insertReservedWordPack(db, {
     packsTable: 'undercover_word_packs',
     packId: createWordPackId(day, runId),

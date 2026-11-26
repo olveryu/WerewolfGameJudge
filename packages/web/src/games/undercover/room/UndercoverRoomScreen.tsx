@@ -1,8 +1,9 @@
 /** Undercover room mounts exclusively through shared authentication, session and shell boundaries. */
 import {
   getUndercoverOccupiedSeatCount,
-  UNDERCOVER_CATEGORY_NAMES,
+  UNDERCOVER_ALL_CATEGORIES_LABEL,
   UNDERCOVER_ROLE_NAMES,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
   type UndercoverRole,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
@@ -80,7 +81,13 @@ function UndercoverRoomContent(
     state.phase === 'viewing';
   const settings = [
     { label: '白板模式', value: formatUndercoverBlankMode(state.config.hasBlank) },
-    { label: '词语分类', value: UNDERCOVER_CATEGORY_NAMES[state.config.category] },
+    {
+      label: '词语分类',
+      value:
+        state.config.category === 'all'
+          ? UNDERCOVER_ALL_CATEGORIES_LABEL
+          : UNDERCOVER_WORD_CATEGORY_CATALOG.names[state.config.category],
+    },
   ];
   const board = (
     <BoardInfoContent

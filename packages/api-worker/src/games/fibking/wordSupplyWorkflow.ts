@@ -3,30 +3,23 @@
  * one pack's candidates, stores them as pending submission items, and stops.
  * One trigger runs one pack; there is no daily batch limit: the admin
  * controls how often to trigger by hand. */
+import {
+  FIB_WORD_CATEGORY_IDS,
+  type FibWordCategory,
+  type FibWordSupplyCategory,
+} from '@game-judge/game-engine/games/fibking/public';
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
 import { storeSupplySubmissions } from '../../features/wordSubmissions/ingestion';
 import { getAiDiagnostic, outputValidationSummarySchema } from '../../platform/ai/aiError';
-import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
 import { createLogger } from '../../platform/observability/logger';
 import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import type { WordSupplySubmissionItem } from '../../platform/wordSupply/submissionAdapter';
 import { cleanupFibWordAudit } from './maintenance';
-import {
-  FIB_WORD_CATEGORY_IDS,
-  type FibWordCategory,
-  type FibWordSupplyCategory,
-} from './wordCategories';
-import {
-  classifyFibWords,
-  getFibWordsToClassify,
-  storeFibWordCategories,
-} from './wordCategoryClassification';
 import { createConfiguredFibWordProvider } from './wordProviders';
 import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
-import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { getFibWordProviderFailureKind } from './wordProviders/providerError';
 import {
   extractFibWordEvidence,
@@ -125,32 +118,6 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
     if (!isEnabled) return { status: 'disabled' };
     if (day.slice(0, 7) !== new Date().toISOString().slice(0, 7)) return { status: 'expired' };
     await step.do('retention', () => cleanupFibWordAudit(this.env.DB, Date.now()));
-    try {
-      await step.do('classify-history', MODEL_STEP, async () => {
-        const words = await getFibWordsToClassify(this.env.DB);
-        if (words.length === 0) return;
-        const identity = `${day}:${runId}`;
-        await claimEditorialModelRequest(
-          this.env.DB,
-          `fib:history:${identity}`,
-          'fibking',
-          GEMINI_FIB_WORD_MODEL,
-          'generation',
-          Date.now(),
-        );
-        const classifications = await classifyFibWords(this.env.GEMINI_API_KEY, words, {
-          workflowId: identity,
-        });
-        await storeFibWordCategories(this.env.DB, words, classifications);
-      });
-    } catch (error) {
-      if (getAiDiagnostic(error) !== undefined)
-        log.warn('historical category classification failed', { day, runId });
-      else
-        log.error('historical category classification failed', {
-          error: error instanceof Error ? error.message : String(error),
-        });
-    }
     const capacity = await step.do('capacity', () => measureDatabaseCapacity(this.env.DB));
     if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
     const pack = await step.do('reserve', () =>

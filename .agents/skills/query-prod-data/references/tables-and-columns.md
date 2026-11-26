@@ -19,7 +19,7 @@ equipped_effect, equipped_seat_animation, token_version
 
 Rules: never use a wildcard select on this table. `password_hash` is sensitive; never select it and never include it in output. List explicitly only the columns the question needs. The `last_country` / `last_colo` columns record the most recent values seen (`0014_add_geo_columns.sql`); do not present them as a verified current location.
 
-## rooms — current shape, from the 0088 rebuild
+## rooms — current shape, from the 0095 rebuild
 
 ```
 id, code, game_type, host_user_id, creation_id, config_json, status,
@@ -28,11 +28,11 @@ reconcile_after, delete_requested_by, created_at, updated_at,
 games_started, last_started_at
 ```
 
-Notes: `code` is the four-digit room code. The host column is `host_user_id` (not an older `host_id` name from the initial schema). `status` is one of `creating`, `active`, `deleting`, `failed`. Filter lookups by `code` and, where the question needs it, by `game_type` and `status`.
+Notes: `game_type` references `game_types(id)` (no CHECK list since `0095_game_catalog_lookup.sql`). `code` is the four-digit room code. The host column is `host_user_id` (not an older `host_id` name from the initial schema). `status` is one of `creating`, `active`, `deleting`, `failed`. Filter lookups by `code` and, where the question needs it, by `game_type` and `status`.
 
 ## room_participants — exists; query it directly
 
-Current shape (established by `0036_room_directory_saga.sql`, rebuilt with the same shape in `0088_remove_demo_game.sql`):
+Current shape (established by `0036_room_directory_saga.sql`, rebuilt with the same shape in `0088_remove_demo_game.sql` and `0095_game_catalog_lookup.sql`):
 
 ```
 room_id, user_id, joined_at
@@ -60,14 +60,17 @@ The original participants table (`0024_room_participants.sql`) was keyed by `roo
 
 ## Other tables named by this skill (verified columns only)
 
-| Table                   | Verified columns / facts                                                                                                                                                   | Migration                             |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `user_stats`            | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                       | `0025_cascade_user_fks.sql`           |
-| `draw_history`          | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                       | `0025_cascade_user_fks.sql`           |
-| `refresh_tokens`        | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                       | `0020_auth_refresh_tokens.sql`        |
-| `login_attempts`        | `email_hash`, `attempted_at`. No IP column exists in this table.                                                                                                           | `0005_login_attempts.sql`             |
-| `password_reset_tokens` | `id`, `user_id`, `token_hash`, `expires_at`, `used`, `created_at`.                                                                                                         | `0003_password_reset.sql`             |
-| `room_game_starts`      | Rebuilt alongside `rooms` when the game-type constraint changes; keyed by room id with a started revision and timestamp. Read the latest rebuild before selecting columns. | `0088_remove_demo_game.sql` (rebuild) |
+| Table                   | Verified columns / facts                                                                                                                                       | Migration                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `user_stats`            | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                           | `0025_cascade_user_fks.sql`              |
+| `draw_history`          | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                           | `0025_cascade_user_fks.sql`              |
+| `refresh_tokens`        | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                           | `0020_auth_refresh_tokens.sql`           |
+| `login_attempts`        | `email_hash`, `attempted_at`. No IP column exists in this table.                                                                                               | `0005_login_attempts.sql`                |
+| `password_reset_tokens` | `id`, `user_id`, `token_hash`, `expires_at`, `used`, `created_at`.                                                                                             | `0003_password_reset.sql`                |
+| `room_game_starts`      | Rebuilt alongside `rooms` as its foreign-key child; `effect_id`, `room_id`, `started_revision`, `started_at`.                                                  | `0095_game_catalog_lookup.sql` (rebuild) |
+| `game_types`            | `id`, `sort_order`. The game list; a projection of `GAME_TYPES` (one row per game, code order).                                                                | `0095_game_catalog_lookup.sql`           |
+| `word_games`            | `game`. Games that own a word library; each references `game_types(id)`.                                                                                       | `0095_game_catalog_lookup.sql`           |
+| `word_categories`       | `game`, `id`, `name`, `sort_order`; primary key `(game, id)`. Word categories per word game, with display names; a projection of the engine category catalogs. | `0095_game_catalog_lookup.sql`           |
 
 For `user_stats`, `draw_history`, and `refresh_tokens`, list the columns needed after reading the defining migration. Do not select token material.
 
@@ -85,4 +88,5 @@ WHERE r.code = '{ROOM_CODE}'
 
 - Realtime room state, role assignments, and night actions: not in these tables, not documented by this skill.
 - Any claim about the room authority store's lifetime, recycling, or data loss: not stated here.
+- `fib_word_progress` and `fib_word_exposures` no longer exist (dropped by `0095_game_catalog_lookup.sql`); do not query them.
 - Tables beyond the list above: the database has more tables (word supply, rewards, feedback, inbox, and others). They are not listed because this skill's questions do not need them and their columns were not verified for this rewrite. Read the migrations before naming any of them.

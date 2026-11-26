@@ -2,9 +2,9 @@
 
 import {
   isValidUndercoverWordPair,
-  UNDERCOVER_CATEGORIES,
   UNDERCOVER_CONFIG_SCHEMA,
   UNDERCOVER_MAX_PLAYERS,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
   undercoverCompletionPayloadSchema,
   type UndercoverConfig,
   type UndercoverEffect,
@@ -27,7 +27,7 @@ export const undercoverWordPairSchema: z.ZodType<UndercoverWordPair> = z
     id: z.string().min(1),
     wordA: z.string().min(1),
     wordB: z.string().min(1),
-    category: z.enum(UNDERCOVER_CATEGORIES),
+    category: z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids),
   })
   .refine(isValidUndercoverWordPair);
 
@@ -86,7 +86,7 @@ export const undercoverEffectSchema: z.ZodType<UndercoverEffect> = z.discriminat
     type: z.literal('undercover.word.select'),
     payload: z.strictObject({
       roundId: z.string().min(1),
-      category: z.union([z.literal('all'), z.enum(UNDERCOVER_CATEGORIES)]),
+      category: z.union([z.literal('all'), z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids)]),
       avoidWordPairIds: z.array(z.string().min(1)).readonly(),
       shouldAllowRepeated: z.boolean(),
     }),

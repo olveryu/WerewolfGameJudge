@@ -4,6 +4,7 @@ import {
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   FIB_WORD_SOURCES,
+  FIBKING_WORD_CATEGORY_CATALOG,
   type FibWordSource,
   isValidFibDefinitionField,
   isValidFibWord,
@@ -12,7 +13,6 @@ import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
 import { AiOutputValidationError } from '../../../platform/ai/aiError';
-import { FIB_WORD_ALL_CATEGORY_IDS } from '../wordCategories';
 import { FIB_WORD_EVIDENCE_SOURCE_LIMIT, fibWordEvidenceSchema } from './tavily';
 import {
   FIB_WORD_GENERATION_BATCH_LIMIT,
@@ -49,13 +49,13 @@ const fibWordCandidatePayloadSchema = z.strictObject({
 });
 
 const fibWordEditorialCandidateSchema = fibWordCandidatePayloadSchema.extend({
-  category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
+  category: z.enum(FIBKING_WORD_CATEGORY_CATALOG.ids),
   source: z.enum(FIB_WORD_SOURCES),
   evidence: z.array(fibWordEvidenceSchema).max(FIB_WORD_EVIDENCE_SOURCE_LIMIT),
 });
 
 const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.extend({
-  category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
+  category: z.enum(FIBKING_WORD_CATEGORY_CATALOG.ids),
   citations: z
     .array(z.strictObject({ evidenceIndex: z.number().int().min(0), quote: evidenceQuoteSchema }))
     .min(1)
@@ -116,7 +116,7 @@ export const FIB_WORD_JSON_SCHEMA = {
     },
     category: {
       type: 'string',
-      enum: FIB_WORD_ALL_CATEGORY_IDS,
+      enum: FIBKING_WORD_CATEGORY_CATALOG.ids,
       description: '必须使用本次指定的目标类别',
     },
     citations: {

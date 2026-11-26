@@ -28,6 +28,7 @@ import {
   editExpectedPhaseDeadlineVariants,
   editGameTypes,
   editGuidanceMatrixRegistry,
+  editMigrationManifest,
   editNightCatalogueRegistry,
   editNightCatalogueIndex,
   editPreviewGames,
@@ -50,10 +51,9 @@ import {
   resolveFeatureTestRequirements,
 } from './features.mjs';
 import {
-  assertRegistrationGameTypes,
-  buildRegistrationMigration,
-  findLatestRegistrationMigration,
+  MIGRATIONS_RELATIVE_DIR,
   nextMigrationName,
+  planRegistrationMigration,
 } from './migration.mjs';
 import { deriveGameNames, renderTemplateFile } from './render.mjs';
 import { buildIntegrationReport } from './report.mjs';
@@ -180,6 +180,7 @@ export const SHARED_EDITS = [
     file: 'packages/web/preview/previewGames.ts',
     apply: (content, ctx) => editPreviewGames(content, ctx),
   },
+  { file: 'contracts/d1MigrationManifest.json', apply: editMigrationManifest },
 ];
 
 const FORMATTABLE_FILE = /\.(?:ts|tsx|js|mjs|json|md|css)$/;
@@ -198,8 +199,11 @@ function formatGeneratedFiles(repoRoot, files) {
   try {
     const require = createRequire(path.join(repoRoot, 'package.json'));
     prettierBin = require.resolve('prettier/bin/prettier.cjs');
-  } catch {
-    return false;
+  } catch (error) {
+    throw new Error(
+      `node_modules/prettier exists in ${repoRoot} but prettier/bin/prettier.cjs does not resolve; reinstall dependencies.`,
+      { cause: error },
+    );
   }
   try {
     execFileSync(process.execPath, [prettierBin, '--write', ...targets], {
@@ -241,8 +245,11 @@ function autofixGeneratedImports(repoRoot, createdFiles) {
   try {
     const require = createRequire(path.join(repoRoot, 'package.json'));
     eslintBin = path.join(path.dirname(require.resolve('eslint/package.json')), 'bin', 'eslint.js');
-  } catch {
-    return;
+  } catch (error) {
+    throw new Error(
+      `node_modules/eslint exists in ${repoRoot} but eslint/package.json does not resolve; reinstall dependencies.`,
+      { cause: error },
+    );
   }
   try {
     execFileSync(process.execPath, [eslintBin, '--fix', '--max-warnings', '0', ...targets], {
@@ -263,6 +270,7 @@ function autofixGeneratedImports(repoRoot, createdFiles) {
       .join('\n');
     throw new Error(
       `eslint --fix left problems in the generated files. The game itself is fully generated and registered; fix the lint output (pnpm lint) instead of re-running new-game, which would now refuse the duplicate id:\n${output}`,
+      { cause: error },
     );
   }
 }
@@ -363,6 +371,7 @@ function createGenerationContext(options) {
     tier = 'mini',
     rewards: requestedRewards,
     production = false,
+    wordCategories = null,
   } = options;
   if (tier !== 'main' && tier !== 'mini') {
     throw new Error(`Invalid tier "${String(tier)}": expected "main" or "mini".`);
@@ -379,6 +388,16 @@ function createGenerationContext(options) {
   }
   const rewards = features.rewards === 'none' ? null : (requestedRewards ?? DEFAULT_REWARDS);
   const capabilities = deriveCapabilities(features);
+  if (capabilities.wordLibrary && wordCategories === null) {
+    throw new Error(
+      `wordSupply=${features.wordSupply} gives the game a word library: pass its approved category list (--word-category <id>=<name>, repeatable, in display order). The generator never invents categories.`,
+    );
+  }
+  if (!capabilities.wordLibrary && wordCategories !== null) {
+    throw new Error(
+      'Word categories need a word library: declare --feature wordSupply other than none.',
+    );
+  }
   const selectedCapabilities = DERIVED_CAPABILITY_KEYS.filter((key) => capabilities[key]);
   // Statistics ride the completion settlement, so they exist only with
   // rewards. Deadline arming is delayed until play begins only when
@@ -446,7 +465,18 @@ function createGenerationContext(options) {
     ctx,
     rewards,
     production,
+    wordCategories,
   };
+}
+
+/** The code's GAME_TYPES, in order, before this run appends to it — the authority game_types projects. */
+function readCodeGameTypes(rootDir) {
+  const file = 'packages/game-engine/src/platform/protocol/gameTypes.ts';
+  const match = /export const GAME_TYPES = \[([\s\S]*?)\] as const;/.exec(
+    fs.readFileSync(path.join(rootDir, file), 'utf8'),
+  );
+  if (match === null) throw new Error(`${file}: GAME_TYPES list not found.`);
+  return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]);
 }
 
 function buildGenerationPlan(context) {
@@ -463,6 +493,7 @@ function buildGenerationPlan(context) {
     ctx,
     rewards,
     production,
+    wordCategories,
   } = context;
   const templates = new Map([
     ...collectTemplateFiles('shared', renderCapabilities),
@@ -495,37 +526,28 @@ function buildGenerationPlan(context) {
     }
   }
 
+  // Judge the schema the current migrations actually produce (never an
+  // earlier migration's text), against the code's GAME_TYPES before this
+  // game is appended to it.
+  const migrationsDir = path.join(rootDir, MIGRATIONS_RELATIVE_DIR);
+  const migrationName = nextMigrationName(fs.readdirSync(migrationsDir), gameId);
+  const migrationContent = planRegistrationMigration({
+    migrationsDir,
+    gameId,
+    displayName,
+    codeGameTypes: readCodeGameTypes(rootDir),
+    includeStatsTable: features.stats === 'enabled',
+    wordCategories,
+  });
+  const editContext = { ...ctx, migration: { name: migrationName, content: migrationContent } };
+
   const edited = new Map();
   for (const edit of SHARED_EDITS) {
     const fullPath = path.join(rootDir, edit.file);
     const content = fs.readFileSync(fullPath, 'utf8');
-    edited.set(edit.file, edit.apply(content, ctx));
+    edited.set(edit.file, edit.apply(content, editContext));
   }
 
-  const migrationsDir = path.join(rootDir, 'packages/api-worker/migrations');
-  const migrationFiles = fs
-    .readdirSync(migrationsDir)
-    .filter((name) => name.endsWith('.sql'))
-    .map((name) => ({ name, content: fs.readFileSync(path.join(migrationsDir, name), 'utf8') }));
-  const source = findLatestRegistrationMigration(migrationFiles);
-  const gameTypeSource = edited.get('packages/game-engine/src/platform/protocol/gameTypes.ts');
-  const gameTypeList = /export const GAME_TYPES = \[([\s\S]*?)\] as const;/.exec(gameTypeSource);
-  if (gameTypeList === null) throw new Error('Cannot verify the canonical game set.');
-  const existingGameTypes = [...gameTypeList[1].matchAll(/'([a-z][a-z0-9]*)'/g)]
-    .map((match) => match[1])
-    .filter((id) => id !== gameId);
-  assertRegistrationGameTypes(source.content, existingGameTypes);
-  const migrationName = nextMigrationName(
-    migrationFiles.map((file) => file.name),
-    gameId,
-  );
-  const migrationContent = buildRegistrationMigration({
-    sourceName: source.name,
-    sourceContent: source.content,
-    gameId,
-    displayName,
-    includeStatsTable: features.stats === 'enabled',
-  });
   created.set(`packages/api-worker/migrations/${migrationName}`, migrationContent);
 
   const createdFiles = [...created.keys()].sort();

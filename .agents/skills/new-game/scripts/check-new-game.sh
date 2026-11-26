@@ -14,7 +14,7 @@ const load = (file) => import(pathToFileURL(path.join(root, file)).href);
 const { generatorFacts } = await load('scripts/lib/new-game/generate.mjs');
 const { deriveCapabilities, FEATURE_KEYS, FEATURE_VALUES } = await load('scripts/lib/new-game/features.mjs');
 const { REPORT_STEP_COUNT, buildIntegrationReport } = await load('scripts/lib/new-game/report.mjs');
-const { findLatestRegistrationMigration, nextMigrationName } = await load('scripts/lib/new-game/migration.mjs');
+const { nextMigrationName } = await load('scripts/lib/new-game/migration.mjs');
 const facts = generatorFacts();
 const baseTestCaseCount = facts.baseTestRequirements.reduce(
   (count, item) => count + item.testCases.length,
@@ -60,13 +60,11 @@ for (const production of [false, true]) {
   if (steps.length === 0) steps.push(...reportSteps);
 }
 const dir = path.join(root, 'packages/api-worker/migrations');
-const migrations = fs.readdirSync(dir).filter((name) => name.endsWith('.sql')).map((name) => ({
-  name, content: fs.readFileSync(path.join(dir, name), 'utf8'),
-}));
+const migrations = fs.readdirSync(dir).filter((name) => name.endsWith('.sql'));
 console.log(`SHARED_EDITS entries: ${facts.sharedFiles.length}`);
 console.log(`template files: ${facts.templateCount}`);
 console.log(`feature keys: ${facts.featureKeys.join(', ')}`);
 console.log(`behavior test cases: ${baseTestCaseCount} base; ${featureTestCaseCount} conditional`);
 console.log(`report steps: ${steps.join(', ')}`);
-console.log(`migration files: ${migrations.length}; registration source: ${findLatestRegistrationMigration(migrations).name}; next: ${nextMigrationName(migrations.map(({ name }) => name), 'newgame')}`);
+console.log(`migration files: ${migrations.length}; next registration: ${nextMigrationName(migrations, 'newgame')}`);
 JS

@@ -240,7 +240,10 @@ re-export is checked there as well. The workflow body is hand-written at
 in-game preparation protocol
 (`packages/game-engine/src/platform/room/preparation.ts`) and the
 supply runtime (`packages/api-worker/src/platform/wordSupply/`) are
-the existing mechanisms; read them before wiring either.
+the existing mechanisms; read them before wiring either. The word-library
+catalog is item 7 of `references/registration-checklist.md`; its
+`word_games` / `word_categories` rows come from the registration migration
+(item 11).
 
 ## Relay games
 

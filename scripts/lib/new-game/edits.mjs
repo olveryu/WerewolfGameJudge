@@ -8,6 +8,8 @@
  * before writing anything.
  */
 
+import { createHash } from 'node:crypto';
+
 function fail(file, detail) {
   // No "new-game" brand here: the CLI catch adds the single
   // `new-game: ` prefix to every failure it reports.
@@ -535,4 +537,26 @@ export function editReviewContractRegistry(content, { gameId, camel }) {
     /(const REVIEW_CONTRACT = \{[\s\S]*?)(\n\} as const satisfies Record<Exclude<GameType, 'toolbox'>, ReviewContractCase>;)/,
     (_match, head, tail) => `${head}\n  ${gameId}: reviewCase(${contribution}, ${rounds}),${tail}`,
   );
+}
+
+/**
+ * Record the generated registration migration in the immutable-migration
+ * manifest (file name → sha256, in Wrangler order) that
+ * `migration files match the recorded sha256 manifest` checks.
+ */
+export function editMigrationManifest(content, { migration }) {
+  const file = 'contracts/d1MigrationManifest.json';
+  let manifest;
+  try {
+    manifest = JSON.parse(content);
+  } catch (error) {
+    throw new Error(`${file}: not valid JSON; cannot record ${migration.name}.`, { cause: error });
+  }
+  const names = Object.keys(manifest);
+  if (Object.hasOwn(manifest, migration.name)) fail(file, `${migration.name} is already recorded`);
+  if (names.length > 0 && names.at(-1) >= migration.name) {
+    fail(file, `${migration.name} does not sort after the last recorded migration`);
+  }
+  manifest[migration.name] = createHash('sha256').update(migration.content).digest('hex');
+  return `${JSON.stringify(manifest, null, 2)}\n`;
 }

@@ -1,16 +1,15 @@
 /** FibKing-owned word generation port and provider result contract. */
 
 import type {
+  FibWordCategory,
   FibWordDefinition,
   FibWordSource,
 } from '@game-judge/game-engine/games/fibking/public';
 
 import type { AiCorrelation } from '../../../platform/ai/aiError';
 import type { GeneratedCandidateBatch } from '../../../platform/wordSupply/generatedCandidates';
-import type { FibWordCategory } from '../wordCategories';
 import type { FibWordEvidence } from './tavily';
 
-export type { FibWordCategory } from '../wordCategories';
 export const FIB_WORD_GENERATION_BATCH_LIMIT = 1;
 export const FIB_WORD_REVIEW_BATCH_LIMIT = 1;
 // Durable checkpoints and completed packs retain their original batch boundaries.

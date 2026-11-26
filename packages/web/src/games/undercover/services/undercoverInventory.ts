@@ -1,6 +1,6 @@
 /** Public category metadata only; word pairs remain owned by the room allocation endpoint. */
 import {
-  UNDERCOVER_CATEGORIES,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
   type UndercoverCategory,
 } from '@game-judge/game-engine/games/undercover/public';
 import { queryOptions } from '@tanstack/react-query';
@@ -22,7 +22,7 @@ function parseInventory(value: unknown): {
   )
     throw new Error('Invalid Undercover inventory response');
   const availableCategories = value.availableCategories.map((entry: unknown) => {
-    const category = UNDERCOVER_CATEGORIES.find((candidate) => candidate === entry);
+    const category = UNDERCOVER_WORD_CATEGORY_CATALOG.ids.find((candidate) => candidate === entry);
     if (category === undefined) throw new Error('Invalid Undercover inventory category');
     return category;
   });

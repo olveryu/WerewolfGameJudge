@@ -8,6 +8,7 @@
 
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -18,6 +19,7 @@ import { afterAll, it } from 'vitest';
 
 import {
   editEngineContractsTest,
+  editMigrationManifest,
   editNightCatalogueIndex,
   editNightCatalogueRegistry,
 } from './lib/new-game/edits.mjs';
@@ -39,10 +41,11 @@ import {
   resolveFeatureTestRequirements,
 } from './lib/new-game/features.mjs';
 import {
-  assertRegistrationGameTypes,
-  buildRegistrationMigration,
-  findLatestRegistrationMigration,
+  findHardCodedGameLists,
   nextMigrationName,
+  planRegistrationMigration,
+  registrationPreflightProblems,
+  replayMigrations,
 } from './lib/new-game/migration.mjs';
 import {
   applyCapabilityBlocks,
@@ -92,10 +95,19 @@ function makeFixtureRepo() {
   return root;
 }
 
+/** An approved category list for word-library profiles; the generator never invents one. */
+const TEST_WORD_CATEGORIES = Object.freeze([
+  { id: 'animals', name: '动物' },
+  { id: 'objects', name: "物品'引号" },
+]);
+
 function generateNewGame(options) {
+  const features = options.features ?? DEFAULT_FEATURE_PROFILE;
   return generateNewGameWithProfile({
     ...options,
-    features: options.features ?? DEFAULT_FEATURE_PROFILE,
+    features,
+    wordCategories:
+      options.wordCategories ?? (features.wordSupply === 'none' ? undefined : TEST_WORD_CATEGORIES),
   });
 }
 
@@ -276,6 +288,85 @@ function expectedCreatedFiles(gameId, features) {
 
 function readFixture(root, file) {
   return fs.readFileSync(path.join(root, file), 'utf8');
+}
+
+/** A registration migration appends the game_types row and creates only game-owned tables. */
+function assertRegistrationOnlyInsertsRows(migration, gameId) {
+  assert.ok(
+    migration.includes(
+      `INSERT INTO game_types (id, sort_order) VALUES ('${gameId}', (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM game_types));`,
+    ),
+  );
+  for (const forbidden of [
+    'rooms_next',
+    '_next',
+    'CHECK (game_type IN',
+    'game_type IN (',
+    'DROP ',
+    'ALTER TABLE',
+    'RENAME',
+    'PRAGMA',
+    'defer_foreign_keys',
+  ]) {
+    assert.ok(!migration.includes(forbidden), `registration migration contains ${forbidden}`);
+  }
+  const createdTables = [...migration.matchAll(/CREATE TABLE (\w+)/g)].map((match) => match[1]);
+  for (const table of createdTables) assert.equal(table, `${gameId}_user_stats`);
+}
+
+/** The generated migration is the manifest's last entry, recorded with its exact sha256. */
+function assertManifestRecordsMigration(root, migrationName) {
+  const manifest = JSON.parse(readFixture(root, 'contracts/d1MigrationManifest.json'));
+  const migrations = fs
+    .readdirSync(path.join(root, 'packages/api-worker/migrations'))
+    .filter((name) => name.endsWith('.sql'))
+    .sort();
+  assert.deepEqual(Object.keys(manifest), migrations, 'manifest lists every migration in order');
+  assert.equal(
+    manifest[migrationName],
+    createHash('sha256')
+      .update(readFixture(root, `packages/api-worker/migrations/${migrationName}`))
+      .digest('hex'),
+  );
+}
+
+/** Append a hand-written migration to a fixture, as if it had landed on main. */
+function addFixtureMigration(root, name, sql) {
+  fs.writeFileSync(path.join(root, 'packages/api-worker/migrations', name), sql);
+}
+
+function fixtureMigrationName(root, suffix) {
+  return nextMigrationName(
+    fs.readdirSync(path.join(root, 'packages/api-worker/migrations')),
+    suffix,
+  );
+}
+
+/** Apply the fixture's migration chain in file order, as Wrangler does. */
+function applyFixtureMigrations(database, root, { except } = {}) {
+  const migrationsDir = path.join(root, 'packages/api-worker/migrations');
+  for (const name of fs
+    .readdirSync(migrationsDir)
+    .filter((entry) => entry.endsWith('.sql'))
+    .sort()) {
+    if (name === except) continue;
+    database.exec(readFixture(root, `packages/api-worker/migrations/${name}`));
+  }
+}
+
+function readGameTypeRows(database) {
+  return database
+    .prepare('SELECT id FROM game_types ORDER BY sort_order')
+    .all()
+    .map((row) => row.id);
+}
+
+/** GAME_TYPES as the fixture's (generator-edited) engine source declares it, in order. */
+function readFixtureGameTypes(root) {
+  const source = readFixture(root, 'packages/game-engine/src/platform/protocol/gameTypes.ts');
+  const list = /export const GAME_TYPES = \[([\s\S]*?)\] as const;/.exec(source);
+  assert.ok(list, 'GAME_TYPES declaration');
+  return [...list[1].matchAll(/'([a-z][a-z0-9]*)'/g)].map((match) => match[1]);
 }
 
 it('capability blocks keep lines only for enabled capabilities and fail fast on bad markers', () => {
@@ -819,13 +910,19 @@ for (const scenario of FEATURE_SCENARIOS) {
       'report TODO_IDENTITY note follows identityViewing',
     );
 
-    // Migration: both game_type CHECK lists extended, manual step marked.
+    // Migration: registration is one game_types row; nothing is rebuilt.
     const migration = readFixture(root, `packages/api-worker/migrations/${summary.migrationName}`);
-    const lists = [...migration.matchAll(/game_type IN \(([^)]*)\)/g)];
-    assert.ok(lists.length >= 2, 'expected both game_type CHECK lists');
-    for (const list of lists) assert.ok(list[1].includes(`'demoproto'`));
-    assert.ok(migration.includes('TODO(gameplay)'));
+    assertRegistrationOnlyInsertsRows(migration, 'demoproto');
+    assertManifestRecordsMigration(root, summary.migrationName);
+    const wordLibrary = scenario.features.wordSupply !== 'none';
+    assert.equal(
+      migration.includes("INSERT INTO word_games (game) VALUES ('demoproto');"),
+      wordLibrary,
+    );
+    assert.equal(migration.includes("('demoproto', 'animals', '动物', 0)"), wordLibrary);
+    assert.equal(migration.includes("('demoproto', 'objects', '物品''引号', 1)"), wordLibrary);
     const statsEnabled = scenario.features.stats === 'enabled';
+    assert.equal(migration.includes('TODO(gameplay)'), statsEnabled);
     assert.equal(migration.includes('CREATE TABLE demoproto_user_stats'), statsEnabled);
     assert.equal(migration.includes("typeof(games_played) = 'integer'"), statsEnabled);
     if (statsEnabled) assert.ok(migration.includes('ON DELETE CASCADE'));
@@ -1334,27 +1431,6 @@ it('night narration derives audio orchestration and renders its full wiring', ()
 it('generator facts track feature test obligations and migration numbering uses physical migrations', () => {
   const facts = generatorFacts();
   assert.deepEqual(facts.sharedFiles, SHARED_FILES);
-  const files = fs
-    .readdirSync(path.join(REPO_ROOT, 'packages/api-worker/migrations'))
-    .filter((name) => name.endsWith('.sql'))
-    .map((name) => ({
-      name,
-      content: readFixture(REPO_ROOT, `packages/api-worker/migrations/${name}`),
-    }));
-  const gameTypes = readFixture(
-    REPO_ROOT,
-    'packages/game-engine/src/platform/protocol/gameTypes.ts',
-  );
-  const currentTypes = [...gameTypes.matchAll(/^\s*'([a-z][a-z0-9]*)',$/gm)].map(
-    (match) => match[1],
-  );
-  const latestRegistration = findLatestRegistrationMigration(files);
-  for (const [, list] of latestRegistration.content.matchAll(/game_type IN \(([^)]*)\)/g)) {
-    assert.deepEqual(
-      [...list.matchAll(/'([a-z][a-z0-9]*)'/g)].map((match) => match[1]).sort(),
-      [...currentTypes].sort(),
-    );
-  }
   assert.equal(
     nextMigrationName(['0075_physical.sql', '0065_demo.sql', '0070_physical.sql'], 'probe'),
     '0076_probe.sql',
@@ -1371,28 +1447,46 @@ it('generator facts track feature test obligations and migration numbering uses 
   );
 });
 
-it('new registration migrations do not repeat the one-time demo cleanup', () => {
-  const sourceName = '0088_remove_demo_game.sql';
-  const sourceContent = readFixture(REPO_ROOT, `packages/api-worker/migrations/${sourceName}`);
-  const migration = buildRegistrationMigration({
-    sourceName,
-    sourceContent,
-    gameId: 'probe',
-    displayName: 'Probe',
-    includeStatsTable: true,
-  });
-
-  assert.ok(sourceContent.includes("DELETE FROM rooms WHERE game_type = 'demo';"));
-  assert.ok(!migration.includes("DELETE FROM rooms WHERE game_type = 'demo';"));
-  assert.ok(
-    !migration.includes("DELETE FROM product_game_reward_results WHERE game_type = 'demo';"),
+it('registration migrations only append lookup rows and never rebuild tables', () => {
+  const migrationsDir = path.join(REPO_ROOT, 'packages/api-worker/migrations');
+  const database = replayMigrations(migrationsDir);
+  const codeGameTypes = readGameTypeRows(database);
+  database.close();
+  for (const includeStatsTable of [true, false]) {
+    for (const wordCategories of [null, TEST_WORD_CATEGORIES]) {
+      const migration = planRegistrationMigration({
+        migrationsDir,
+        gameId: 'probe',
+        displayName: 'Probe',
+        codeGameTypes,
+        includeStatsTable,
+        wordCategories,
+      });
+      assertRegistrationOnlyInsertsRows(migration, 'probe');
+      assert.equal(migration.includes('CREATE TABLE probe_user_stats'), includeStatsTable);
+      assert.equal(migration.includes("typeof(games_played) = 'integer'"), includeStatsTable);
+      assert.equal(migration.includes('INSERT INTO word_games'), wordCategories !== null);
+      assert.equal(migration.includes('INSERT INTO word_categories'), wordCategories !== null);
+    }
+  }
+  const manifest = JSON.stringify({ '0001_init.sql': 'a', '0097_last.sql': 'b' });
+  const migration = { name: '0098_probe.sql', content: 'INSERT;\n' };
+  assert.deepEqual(Object.keys(JSON.parse(editMigrationManifest(manifest, { migration }))), [
+    '0001_init.sql',
+    '0097_last.sql',
+    '0098_probe.sql',
+  ]);
+  assert.throws(
+    () => editMigrationManifest(manifest, { migration: { ...migration, name: '0097_last.sql' } }),
+    /already recorded/,
   );
-  assert.ok(!migration.includes("json_extract(input_json, '$.gameType') = 'demo';"));
-  assert.ok(migration.includes('CREATE TABLE rooms_next'));
-  assert.ok(migration.includes('INSERT INTO rooms_next SELECT * FROM rooms;'));
-});
+  assert.throws(
+    () => editMigrationManifest(manifest, { migration: { ...migration, name: '0050_probe.sql' } }),
+    /does not sort after/,
+  );
+}, 120_000);
 
-it('consecutive registrations copy rebuilds but never the preceding game owned stats table', () => {
+it('consecutive registrations each append one row and never the preceding game owned stats table', () => {
   const root = makeFixtureRepo();
   const first = generateNewGame({
     rootDir: root,
@@ -1404,33 +1498,33 @@ it('consecutive registrations copy rebuilds but never the preceding game owned s
     gameId: 'secondprobe',
     features: featureProfile({ identity: 'private' }),
   });
+  assert.ok(second.migrationName > first.migrationName);
   const migration = readFixture(root, `packages/api-worker/migrations/${second.migrationName}`);
-  assert.ok(migration.includes(`from ${first.migrationName}`));
+  assertRegistrationOnlyInsertsRows(migration, 'secondprobe');
+  assert.ok(!migration.includes('firstprobe'));
   assert.ok(migration.includes('CREATE TABLE secondprobe_user_stats'));
-  assert.ok(!migration.includes('CREATE TABLE firstprobe_user_stats'));
-  const checks = [...migration.matchAll(/game_type IN \(([^)]*)\)/g)];
-  assert.ok(checks.length >= 2);
-  for (const [, list] of checks) {
-    assert.ok(list.includes("'firstprobe'"));
-    assert.ok(list.includes("'secondprobe'"));
-  }
-});
+  assertManifestRecordsMigration(root, first.migrationName);
+  assertManifestRecordsMigration(root, second.migrationName);
 
-it('preserves populated D1 records and indexes through a generated registration migration', () => {
+  const database = new DatabaseSync(':memory:');
+  try {
+    database.exec('PRAGMA foreign_keys = ON');
+    applyFixtureMigrations(database, root);
+    assert.deepEqual(readGameTypeRows(database), readFixtureGameTypes(root));
+    assert.deepEqual(readGameTypeRows(database).slice(-2), ['firstprobe', 'secondprobe']);
+  } finally {
+    database.close();
+  }
+}, 60_000);
+
+it('preserves populated D1 records through a generated registration migration and admits only registered games', () => {
   const root = makeFixtureRepo();
   const summary = generateNewGame({ rootDir: root, gameId: 'dataprobe' });
-  const migrationsDir = path.join(root, 'packages/api-worker/migrations');
   const database = new DatabaseSync(':memory:');
 
   try {
     database.exec('PRAGMA foreign_keys = ON');
-    for (const name of fs
-      .readdirSync(migrationsDir)
-      .filter((entry) => entry.endsWith('.sql'))
-      .sort()) {
-      if (name === summary.migrationName) continue;
-      database.exec(readFixture(root, `packages/api-worker/migrations/${name}`));
-    }
+    applyFixtureMigrations(database, root, { except: summary.migrationName });
 
     database.exec(`
       INSERT INTO users (id, email, password_hash, display_name, is_anonymous, created_at, updated_at)
@@ -1465,102 +1559,40 @@ it('preserves populated D1 records and indexes through a generated registration 
     ];
     const readRows = (table) => database.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all();
     const rowsBefore = new Map(tables.map((table) => [table, readRows(table)]));
-    const rebuiltTables = [
-      'rooms',
-      'room_game_starts',
-      'room_participants',
-      'fib_round_word_selections',
-      'undercover_round_word_selections',
-      'product_game_reward_results',
-    ];
-    const indexesBefore = database
-      .prepare(
-        `SELECT name, tbl_name, sql FROM sqlite_master
-         WHERE type = 'index' AND sql IS NOT NULL AND tbl_name IN (${rebuiltTables.map(() => '?').join(', ')})
-         ORDER BY name`,
-      )
-      .all(...rebuiltTables);
-
-    database.exec(readFixture(root, `packages/api-worker/migrations/${summary.migrationName}`));
-
-    for (const table of tables) {
-      assert.deepEqual(readRows(table), rowsBefore.get(table), `${table} rows survive rebuild`);
-    }
-    assert.deepEqual(
+    const readSchema = () =>
       database
         .prepare(
-          `SELECT name, tbl_name, sql FROM sqlite_master
-           WHERE type = 'index' AND sql IS NOT NULL AND tbl_name IN (${rebuiltTables.map(() => '?').join(', ')})
-           ORDER BY name`,
+          `SELECT type, name, tbl_name, sql FROM sqlite_master
+           WHERE name <> 'dataprobe_user_stats' AND tbl_name <> 'dataprobe_user_stats'
+           ORDER BY type, name`,
         )
-        .all(...rebuiltTables),
-      indexesBefore,
-      'explicit indexes on rebuilt tables are retained',
-    );
-    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
-    assert.deepEqual(database.prepare('SELECT * FROM dataprobe_user_stats').all(), []);
-    assert.doesNotThrow(() =>
+        .all();
+    const schemaBefore = readSchema();
+    const insertRoom = (id, gameType) =>
       database
         .prepare(
           `INSERT INTO rooms
             (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at)
-           VALUES ('room-2', '2345', 'dataprobe', 'user-1', 'create-2', '{}', 'active', '2026-01-02', '2026-01-02')`,
+           VALUES (?, ?, ?, 'user-1', ?, '{}', 'active', '2026-01-02', '2026-01-02')`,
         )
-        .run(),
-    );
+        .run(id, id.slice(-4), gameType, `create-${id}`);
+    assert.throws(() => insertRoom('room-2345', 'dataprobe'), /FOREIGN KEY constraint failed/);
+
+    database.exec(readFixture(root, `packages/api-worker/migrations/${summary.migrationName}`));
+
+    for (const table of tables) {
+      assert.deepEqual(readRows(table), rowsBefore.get(table), `${table} rows are untouched`);
+    }
+    assert.deepEqual(readSchema(), schemaBefore, 'registration changes no existing schema object');
+    assert.deepEqual(readGameTypeRows(database), readFixtureGameTypes(root));
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+    assert.deepEqual(database.prepare('SELECT * FROM dataprobe_user_stats').all(), []);
+    assert.doesNotThrow(() => insertRoom('room-2345', 'dataprobe'));
+    assert.throws(() => insertRoom('room-3456', 'unregistered'), /FOREIGN KEY constraint failed/);
   } finally {
     database.close();
   }
-});
-
-it('stale registration CHECK lists fail before any generated file is written', () => {
-  assert.doesNotThrow(() =>
-    assertRegistrationGameTypes("game_type IN ('demo', 'werewolf')", ['werewolf', 'demo']),
-  );
-  assert.throws(
-    () =>
-      assertRegistrationGameTypes("game_type IN ('werewolf', 'demo', 'demo')", [
-        'werewolf',
-        'demo',
-      ]),
-    /does not match the canonical game set/,
-  );
-  assert.throws(
-    () =>
-      assertRegistrationGameTypes("game_type IN ('werewolf', 'demo')", [
-        'werewolf',
-        'demo',
-        'probe',
-      ]),
-    /does not match the canonical game set/,
-  );
-  const root = makeFixtureRepo();
-  const migrationsDir = path.join(root, 'packages/api-worker/migrations');
-  const migrationFiles = fs.readdirSync(migrationsDir).map((name) => ({
-    name,
-    content: readFixture(root, `packages/api-worker/migrations/${name}`),
-  }));
-  const sourceName = findLatestRegistrationMigration(migrationFiles).name;
-  const file = path.join(migrationsDir, sourceName);
-  const staleContent = fs
-    .readFileSync(file, 'utf8')
-    .replace(/game_type IN \(([^)]*)\)/g, (_match, list) => {
-      const values = [...list.matchAll(/'([a-z][a-z0-9]*)'/g)].map((match) => match[1]);
-      values.pop();
-      return `game_type IN (${values.map((value) => `'${value}'`).join(', ')})`;
-    });
-  fs.writeFileSync(file, staleContent);
-  assert.throws(
-    () =>
-      generateNewGame({
-        rootDir: root,
-        gameId: 'probe',
-        features: featureProfile({ stageDeadline: 'enabled' }),
-      }),
-    /does not match the canonical game set/,
-  );
-  assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/probe')), false);
-});
+}, 60_000);
 
 it('production: true synchronizes the registry, Home contract and go-live report', () => {
   const root = makeFixtureRepo();
@@ -1751,6 +1783,210 @@ it('refuses to generate the same game id twice', () => {
 it('refuses an existing game id from the shipped catalog', () => {
   const root = makeFixtureRepo();
   assert.throws(() => generateNewGame({ rootDir: root, gameId: 'avalon' }), /already/);
+});
+
+/** Nothing of the game is written when the preflight refuses. */
+function assertNothingGenerated(root, gameId, manifestBefore) {
+  assert.equal(fs.existsSync(path.join(root, `packages/game-engine/src/games/${gameId}`)), false);
+  assert.equal(fs.existsSync(path.join(root, `new-game-${gameId}-report.md`)), false);
+  assert.equal(readFixture(root, 'contracts/d1MigrationManifest.json'), manifestBefore);
+  assert.equal(
+    fs
+      .readdirSync(path.join(root, 'packages/api-worker/migrations'))
+      .some((name) => name.endsWith(`_${gameId}.sql`)),
+    false,
+  );
+}
+
+it('generates an inserts-only registration with a word library and records it in the manifest', () => {
+  const root = makeFixtureRepo();
+  const summary = generateNewGame({
+    rootDir: root,
+    gameId: 'wordprobe',
+    features: featureProfile({ wordSupply: 'in-game' }),
+  });
+  const migration = readFixture(root, `packages/api-worker/migrations/${summary.migrationName}`);
+  assertRegistrationOnlyInsertsRows(migration, 'wordprobe');
+  assertManifestRecordsMigration(root, summary.migrationName);
+  const statements = migration
+    .replaceAll(/--.*$/gm, '')
+    .split(';')
+    .map((part) => part.trim());
+  for (const statement of statements) {
+    if (statement === '') continue;
+    assert.match(statement, /^(?:INSERT INTO |CREATE TABLE wordprobe_user_stats )/);
+  }
+  const database = new DatabaseSync(':memory:');
+  try {
+    database.exec('PRAGMA foreign_keys = ON');
+    applyFixtureMigrations(database, root);
+    assert.deepEqual(readGameTypeRows(database), readFixtureGameTypes(root));
+    assert.deepEqual(
+      database
+        .prepare(
+          'SELECT id, name, sort_order FROM word_categories WHERE game = ? ORDER BY sort_order',
+        )
+        .all('wordprobe')
+        .map((row) => ({ ...row })),
+      TEST_WORD_CATEGORIES.map((entry, index) => ({ ...entry, sort_order: index })),
+    );
+    assert.deepEqual(
+      database.prepare("SELECT game FROM word_games WHERE game = 'wordprobe'").all().length,
+      1,
+    );
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally {
+    database.close();
+  }
+});
+
+it('refuses a game id that the current schema already registers in game_types', () => {
+  const root = makeFixtureRepo();
+  const manifestBefore = readFixture(root, 'contracts/d1MigrationManifest.json');
+  addFixtureMigration(
+    root,
+    fixtureMigrationName(root, 'ghost'),
+    "INSERT INTO game_types (id, sort_order) VALUES ('ghostgame', (SELECT MAX(sort_order) + 1 FROM game_types));\n",
+  );
+  assert.throws(
+    () => generateNewGame({ rootDir: root, gameId: 'ghostgame' }),
+    (error) => {
+      assert.match(error.message, /'ghostgame' is already registered in game_types/);
+      assert.match(error.message, /Write this migration by hand/);
+      return true;
+    },
+  );
+  assertNothingGenerated(root, 'ghostgame', manifestBefore);
+});
+
+it('refuses to generate when the current schema hard-codes a game list that would need a rebuild', () => {
+  const root = makeFixtureRepo();
+  const manifestBefore = readFixture(root, 'contracts/d1MigrationManifest.json');
+  addFixtureMigration(
+    root,
+    fixtureMigrationName(root, 'legacy_scores'),
+    "CREATE TABLE legacy_scores (\n  game_type TEXT NOT NULL CHECK (game_type IN ('werewolf', 'avalon')),\n  score INTEGER NOT NULL\n);\n",
+  );
+  assert.throws(
+    () => generateNewGame({ rootDir: root, gameId: 'listprobe' }),
+    (error) => {
+      assert.match(error.message, /table legacy_scores hard-codes a game list/);
+      assert.match(error.message, /table rebuild/);
+      assert.match(error.message, /packages\/api-worker\/AGENTS\.md/);
+      assert.match(error.message, /contracts\/d1MigrationManifest\.json/);
+      return true;
+    },
+  );
+  assertNothingGenerated(root, 'listprobe', manifestBefore);
+});
+
+it('refuses when a lookup table is missing from the replayed schema', () => {
+  const migrationsDir = fs.mkdtempSync(path.join(tmpdir(), 'wgj-new-game-migrations-'));
+  fixtureRoots.add(migrationsDir);
+  fs.writeFileSync(
+    path.join(migrationsDir, '0001_init.sql'),
+    'CREATE TABLE users (id TEXT PRIMARY KEY NOT NULL);\n',
+  );
+  assert.throws(
+    () =>
+      planRegistrationMigration({
+        migrationsDir,
+        gameId: 'probe',
+        displayName: 'Probe',
+        codeGameTypes: [],
+        includeStatsTable: true,
+        wordCategories: TEST_WORD_CATEGORIES,
+      }),
+    (error) => {
+      assert.match(error.message, /lookup table game_types \(id, sort_order\) is missing/);
+      assert.match(error.message, /lookup table word_games \(game\) is missing/);
+      assert.match(error.message, /lookup table word_categories .* is missing/);
+      return true;
+    },
+  );
+});
+
+it('a migration that fails to replay is reported with its file and the original error as cause', () => {
+  const migrationsDir = fs.mkdtempSync(path.join(tmpdir(), 'wgj-new-game-migrations-'));
+  fixtureRoots.add(migrationsDir);
+  fs.writeFileSync(path.join(migrationsDir, '0001_broken.sql'), 'CREATE TABLE broken (;\n');
+  assert.throws(
+    () => replayMigrations(migrationsDir),
+    (error) => {
+      assert.match(error.message, /^Migration 0001_broken\.sql failed while replaying /);
+      assert.ok(error.message.includes(path.join(migrationsDir, '0001_broken.sql')));
+      assert.ok(error.cause instanceof Error, 'the SQLite error is kept as cause');
+      assert.match(error.cause.message, /syntax error/);
+      return true;
+    },
+  );
+});
+
+it('preflight reports existing word rows, a stale stats table, drift and an inconsistent category list', () => {
+  const database = replayMigrations(path.join(REPO_ROOT, 'packages/api-worker/migrations'));
+  try {
+    const codeGameTypes = readGameTypeRows(database);
+    const problems = registrationPreflightProblems(database, {
+      gameId: 'fibking',
+      codeGameTypes: codeGameTypes.filter((id) => id !== 'fibking'),
+      includeStatsTable: false,
+      wordCategories: [
+        { id: 'animals', name: '动物' },
+        { id: 'animals', name: '植物' },
+        { id: 'plants', name: '动物' },
+        { id: 'blank', name: ' ' },
+      ],
+    });
+    assert.deepEqual(problems, [
+      "'fibking' is already registered in game_types",
+      "'fibking' already has a word_games row",
+      "'fibking' already has word_categories rows",
+      `word category id "animals" of 'fibking' is repeated`,
+      `word category name "动物" of 'fibking' is repeated`,
+      `word category {"id":"blank","name":" "} of 'fibking' has a blank or padded id or name`,
+      'table fibking_user_stats already exists',
+    ]);
+    assert.match(
+      registrationPreflightProblems(database, {
+        gameId: 'newprobe',
+        codeGameTypes: [...codeGameTypes].reverse(),
+        includeStatsTable: false,
+        wordCategories: null,
+      }).join('\n'),
+      /differ from GAME_TYPES/,
+    );
+    assert.deepEqual(
+      findHardCodedGameLists(database, codeGameTypes),
+      [],
+      'a role list that happens to contain a game id (undercover) is not a game list',
+    );
+  } finally {
+    database.close();
+  }
+});
+
+it('a word library needs an approved category list and only a word library takes one', () => {
+  const root = makeFixtureRepo();
+  assert.throws(
+    () =>
+      generateNewGameWithProfile({
+        rootDir: root,
+        gameId: 'nocats',
+        features: featureProfile({ wordSupply: 'in-game' }),
+      }),
+    /pass its approved category list/,
+  );
+  assert.throws(
+    () =>
+      generateNewGameWithProfile({
+        rootDir: root,
+        gameId: 'nocats',
+        features: featureProfile({ wordSupply: 'none' }),
+        wordCategories: TEST_WORD_CATEGORIES,
+      }),
+    /Word categories need a word library/,
+  );
+  assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/nocats')), false);
 });
 
 it('rejects invalid game ids and incomplete or invalid feature profiles before writing anything', () => {

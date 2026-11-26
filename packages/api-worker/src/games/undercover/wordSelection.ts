@@ -1,7 +1,7 @@
 /** Idempotent pair allocation through the shared word draw; retries replay the per-round snapshot. */
 
 import {
-  UNDERCOVER_CATEGORIES,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
   type UndercoverEffect,
   type UndercoverWordPair,
 } from '@game-judge/game-engine/games/undercover/public';
@@ -40,7 +40,7 @@ const selectionRowSchema = z.strictObject({
   word_pair_id: z.string().min(1),
   word_a: z.string().min(1),
   word_b: z.string().min(1),
-  category: z.enum(UNDERCOVER_CATEGORIES),
+  category: z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids),
 });
 
 async function readSelection(input: SelectUndercoverWordInput, requestFingerprint: string) {
@@ -72,7 +72,7 @@ const poolPairRowSchema = z.strictObject({
   id: z.string().min(1),
   word_a: z.string().min(1),
   word_b: z.string().min(1),
-  category: z.enum(UNDERCOVER_CATEGORIES),
+  category: z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids),
   status: z.enum(['active', 'disabled']),
 });
 type UndercoverPoolPair = z.output<typeof poolPairRowSchema>;

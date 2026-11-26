@@ -1,6 +1,6 @@
 /** Real D1 allocation contracts for Undercover snapshots and per-account deduplication. */
 
-import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
+import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/undercover/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -52,43 +52,10 @@ beforeEach(async () => {
 });
 
 describe('Undercover word selection', () => {
-  it('preserves existing draws and indexes when adding the party categories', async () => {
-    const newCategories = UNDERCOVER_CATEGORIES.slice(-10);
-    const selection = await getOrCreateUndercoverWordSelection(input());
-    const oldIndex = (
-      await env.DB.prepare(
-        "SELECT partition_key, members FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN ('all', 'food') ORDER BY partition_key",
-      ).all()
-    ).results;
-    const seen = await env.DB.prepare(
-      "SELECT seen FROM word_seen WHERE user_id = ? AND pool = 'undercover'",
-    )
-      .bind(PLAYER)
-      .first();
-    await env.DB.prepare(
-      "DELETE FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN (SELECT value FROM json_each(?))",
-    )
-      .bind(JSON.stringify(newCategories))
-      .run();
-    const migration = env.TEST_MIGRATIONS.find(
-      ({ name }) => name === '0070_undercover_party_categories.sql',
+  it('indexes a new pair of every catalog category in its own partition and draws a party category', async () => {
+    const newCategories = UNDERCOVER_WORD_CATEGORY_CATALOG.ids.filter(
+      (category) => category !== 'food',
     );
-    if (migration === undefined) throw new Error('Undercover party category migration is missing');
-    await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
-    expect(await getOrCreateUndercoverWordSelection(input())).toEqual(selection);
-    expect(
-      (
-        await env.DB.prepare(
-          "SELECT partition_key, members FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN ('all', 'food') ORDER BY partition_key",
-        ).all()
-      ).results,
-    ).toEqual(oldIndex);
-    expect(
-      await env.DB.prepare("SELECT seen FROM word_seen WHERE user_id = ? AND pool = 'undercover'")
-        .bind(PLAYER)
-        .first(),
-    ).toEqual(seen);
-    expect((await env.DB.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
     await env.DB.batch(
       newCategories.map((category, index) =>
         env.DB.prepare(
@@ -103,8 +70,9 @@ describe('Undercover word selection', () => {
        JOIN word_draw_index i ON i.pool = 'undercover' AND i.partition_key = p.category
        WHERE p.id LIKE 'new-%'`,
     ).all<{ category: string; members: string; draw_ordinal: number }>();
-    expect(indexed.results).toHaveLength(10);
+    expect(indexed.results).toHaveLength(newCategories.length);
     for (const row of indexed.results) expect(row.members).toBe(`,${row.draw_ordinal},`);
+    expect((await env.DB.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
     const partySelection = await getOrCreateUndercoverWordSelection({
       ...input('party-round'),
       effect: {
@@ -118,55 +86,6 @@ describe('Undercover word selection', () => {
       },
     });
     expect(partySelection.category).toBe('dating');
-  });
-
-  it('preserves existing snapshots and draw indexes when expanding categories', async () => {
-    const selection = await getOrCreateUndercoverWordSelection(input());
-    const beforeIndex = (
-      await env.DB.prepare(
-        "SELECT partition_key, members FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN ('all', 'food') ORDER BY partition_key",
-      ).all()
-    ).results;
-    const beforeSeen = await env.DB.prepare(
-      "SELECT seen FROM word_seen WHERE user_id = ? AND pool = 'undercover'",
-    )
-      .bind(PLAYER)
-      .first();
-    await env.DB.prepare(
-      `DELETE FROM word_draw_index WHERE pool = 'undercover'
-       AND partition_key NOT IN ('all', 'food', 'dailyLife', 'school', 'work', 'relationships', 'actions', 'entertainment', 'sportsAndGames', 'travel', 'nature')`,
-    ).run();
-    const migration = env.TEST_MIGRATIONS.find(
-      ({ name }) => name === '0068_undercover_word_categories.sql',
-    );
-    if (migration === undefined) throw new Error('Undercover category migration is missing');
-    await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
-    expect(await getOrCreateUndercoverWordSelection(input())).toEqual(selection);
-    expect(
-      (
-        await env.DB.prepare(
-          "SELECT partition_key, members FROM word_draw_index WHERE pool = 'undercover' AND partition_key IN ('all', 'food') ORDER BY partition_key",
-        ).all()
-      ).results,
-    ).toEqual(beforeIndex);
-    expect(
-      await env.DB.prepare("SELECT seen FROM word_seen WHERE user_id = ? AND pool = 'undercover'")
-        .bind(PLAYER)
-        .first(),
-    ).toEqual(beforeSeen);
-    expect((await env.DB.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
-    await env.DB.prepare(
-      `INSERT INTO undercover_word_pairs
-        (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
-       VALUES ('new-pair', '咖啡', '茶', 'drinks', 'active', '2026-09-21', '2026-09-21', '{}')`,
-    ).run();
-    const newIndex = await env.DB.prepare(
-      "SELECT members FROM word_draw_index WHERE pool = 'undercover' AND partition_key = 'drinks'",
-    ).first<{ members: string }>();
-    const newPair = await env.DB.prepare(
-      "SELECT draw_ordinal FROM undercover_word_pairs WHERE id = 'new-pair'",
-    ).first<{ draw_ordinal: number }>();
-    expect(newIndex?.members).toBe(`,${newPair?.draw_ordinal},`);
   });
 
   it('keeps all available below the category threshold and exposes categories at eight pairs', async () => {
@@ -186,6 +105,50 @@ describe('Undercover word selection', () => {
     await env.DB.prepare("UPDATE undercover_word_pairs SET status = 'disabled'").run();
     const empty = await undercoverInventoryRoutes.request('/categories', {}, env);
     expect(await empty.json()).toEqual({ availableCategories: [], hasAnyWords: false });
+  });
+
+  it('reads category availability from the draw index partitions at a fixed row budget', async () => {
+    const insertPairs = (category: string, status: string, count: number, prefix: string) =>
+      env.DB.batch(
+        Array.from({ length: count }, (_, index) =>
+          env.DB.prepare(
+            `INSERT INTO undercover_word_pairs (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+           VALUES (?, ?, ?, ?, ?, '2026-09-21', '2026-09-21', '{}')`,
+          ).bind(
+            `${prefix}-${index}`,
+            `${prefix}A${index}`,
+            `${prefix}B${index}`,
+            category,
+            status,
+          ),
+        ),
+      );
+    // food: 1 seeded + 7 active = 8 (threshold); drinks: 7 active + 5 disabled stays below it.
+    await insertPairs('food', 'active', 7, 'food');
+    await insertPairs('drinks', 'active', 7, 'drinks');
+    await insertPairs('drinks', 'disabled', 5, 'drinks-off');
+    await insertPairs('school', 'active', 60, 'school');
+    const partitions = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM word_draw_index WHERE pool = 'undercover'",
+    ).first<{ count: number }>();
+    if (partitions === null) throw new Error('Undercover draw index partitions are missing');
+    expect(partitions.count).toBe(UNDERCOVER_WORD_CATEGORY_CATALOG.ids.length + 1);
+
+    const counting = createRowCountingDb(env.DB);
+    const response = await undercoverInventoryRoutes.request(
+      '/categories',
+      {},
+      {
+        ...env,
+        DB: counting.db,
+      },
+    );
+    expect(await response.json()).toEqual({
+      availableCategories: ['food', 'school'],
+      hasAnyWords: true,
+    });
+    // One primary-key range over the partitions; independent of how many pairs exist.
+    expect(counting.counts).toEqual({ rowsRead: partitions.count, rowsWritten: 0 });
   });
 
   it('replays a round snapshot even after its source changes and retires', async () => {

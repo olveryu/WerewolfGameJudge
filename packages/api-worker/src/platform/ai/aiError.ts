@@ -37,7 +37,7 @@ const diagnosticSchema = z.strictObject({
   provider: z.literal('gemini'),
   game: z.string(),
   model: z.string(),
-  operation: z.enum(['generate', 'review', 'classify', 'chat']).optional(),
+  operation: z.enum(['generate', 'review', 'chat']).optional(),
   packId: z.string().optional(),
   workflowId: z.string().optional(),
   requestId: z.string().optional(),

@@ -81,8 +81,8 @@
 
 ## 6. 已知范围与后续
 
-- `fib_word_progress` 和 `fib_word_exposures` 已不再读写，但迁移 `0067` 没有删除它们：迁移先于 Worker 部署，
-  旧版 Worker 在部署完成前仍要读 `fib_word_progress`。确认线上不再有读它的代码后，由后续迁移删除。
+- `fib_word_progress` 和 `fib_word_exposures` 自 `0067` 起不再读写（`0067` 先于 Worker 部署，当时没有删除），
+  已由迁移 `0095_game_catalog_lookup.sql` 删除。
 - `fib_words.selection_key` 列和 `idx_fib_words_selection` 索引在本次改动之前就已不参与选词，本次没有处理。
 - 可抽索引和已见记录都是一行存整个集合，适用于几万词以内的词库；超过后需要分段。
 - `INSERT OR REPLACE` 这类不触发删除触发器的写法会在索引里留下失效编号。抽到失效编号时会自动换一个，不会

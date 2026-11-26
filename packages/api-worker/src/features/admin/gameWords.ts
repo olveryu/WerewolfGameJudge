@@ -6,10 +6,16 @@
  * reaches SQL or env bindings directly.
  */
 
+import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
+import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
 import {
-  DECRYPTO_WORD_CATEGORIES,
-  DECRYPTO_WORD_CATEGORY_NAMES,
-} from '@game-judge/game-engine/games/decrypto/public';
+  FIB_WORD_CATEGORY_IDS,
+  FIBKING_WORD_CATEGORY_CATALOG,
+} from '@game-judge/game-engine/games/fibking/public';
+import {
+  UNDERCOVER_CATEGORY_MIN_ACTIVE_PAIRS,
+  UNDERCOVER_WORD_CATEGORY_CATALOG,
+} from '@game-judge/game-engine/games/undercover/public';
 import {
   GAME_WORD_GAMES,
   type GameWordGame,
@@ -23,25 +29,12 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
-import {
-  FIB_WORD_CATEGORY_IDS,
-  FIB_WORD_CATEGORY_LABELS,
-} from '../../games/fibking/wordCategories';
 import { FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS } from '../../games/fibking/wordPublication';
 import { createFibWordSearchQuery } from '../../games/fibking/wordSearchPlan';
 import { readModelBudgetByOperation } from '../../platform/ai/editorialBudget';
 import { isWordSupplyAvailable } from '../../platform/wordSupply/automaticSupply';
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import type { WordSupplyParams } from '../../platform/wordSupply/wordSupplyWorkflow';
-import {
-  DRAWGUESS_DASHBOARD_CATEGORIES,
-  DRAWGUESS_DASHBOARD_CATEGORY_IDS,
-} from './drawGuessWordLabels';
-import {
-  UNDERCOVER_CATEGORY_MIN_ACTIVE_PAIRS,
-  UNDERCOVER_DASHBOARD_CATEGORIES,
-  UNDERCOVER_DASHBOARD_CATEGORY_IDS,
-} from './undercoverWordLabels';
 
 export const gameWordGameSchema = z.enum(GAME_WORD_GAMES);
 
@@ -49,15 +42,15 @@ export const triggerSupplySchema = z.discriminatedUnion('game', [
   z.strictObject({ game: z.literal('fibking'), category: z.enum(FIB_WORD_CATEGORY_IDS) }),
   z.strictObject({
     game: z.literal('undercover'),
-    category: z.enum(UNDERCOVER_DASHBOARD_CATEGORY_IDS),
+    category: z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids),
   }),
   z.strictObject({
     game: z.literal('drawguess'),
-    category: z.enum(DRAWGUESS_DASHBOARD_CATEGORY_IDS),
+    category: z.enum(DRAWGUESS_WORD_CATEGORY_CATALOG.ids),
   }),
   z.strictObject({
     game: z.literal('decrypto'),
-    category: z.enum(DECRYPTO_WORD_CATEGORIES),
+    category: z.enum(DECRYPTO_WORD_CATEGORY_CATALOG.ids),
   }),
 ]);
 export type TriggerSupplyInput = z.output<typeof triggerSupplySchema>;
@@ -82,19 +75,13 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
         ? 'drawguess_word_packs'
         : 'decrypto_word_packs';
   const categoryColumn = 'category';
-  const labels = isFib
-    ? [
-        ...FIB_WORD_CATEGORY_IDS.map((id) => ({ id, name: FIB_WORD_CATEGORY_LABELS[id] })),
-        { id: 'other', name: '其他' },
-      ]
+  const labels: readonly { readonly id: string; readonly name: string }[] = isFib
+    ? FIBKING_WORD_CATEGORY_CATALOG.entries
     : game === 'undercover'
-      ? UNDERCOVER_DASHBOARD_CATEGORIES
+      ? UNDERCOVER_WORD_CATEGORY_CATALOG.entries
       : game === 'drawguess'
-        ? DRAWGUESS_DASHBOARD_CATEGORIES
-        : DECRYPTO_WORD_CATEGORIES.map((id) => ({
-            id,
-            name: DECRYPTO_WORD_CATEGORY_NAMES[id],
-          }));
+        ? DRAWGUESS_WORD_CATEGORY_CATALOG.entries
+        : DECRYPTO_WORD_CATEGORY_CATALOG.entries;
   const bucket = `COALESCE(${categoryColumn}, 'other')`;
   // Pending counts now read the submission queue: the candidate tables are
   // dropped (0085). All games group by the shared inventory category.
@@ -265,9 +252,11 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
     } catch {
       // Search plan shrank since this pack was reserved; keep the fallback label.
     }
-    const category = FIB_WORD_CATEGORY_IDS.find((id) => id === r.category);
+    const category = FIBKING_WORD_CATEGORY_CATALOG.ids.find((id) => id === r.category);
     const details = [
-      category === undefined ? '其他' : FIB_WORD_CATEGORY_LABELS[category],
+      category === undefined
+        ? FIBKING_WORD_CATEGORY_CATALOG.names.other
+        : FIBKING_WORD_CATEGORY_CATALOG.names[category],
       r.promptVersion === null ? null : `prompt v${r.promptVersion}`,
     ].filter((value) => value !== null);
     return {
