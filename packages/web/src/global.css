@@ -112,3 +112,7 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+.probe-ui-gate {
+  border-radius: 13px;
+}
