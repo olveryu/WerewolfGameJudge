@@ -9,10 +9,12 @@ export const BUBBLE_HORIZONTAL_MARGIN = Math.ceil(Math.max(BUBBLE_MARGIN, BUBBLE
 /** Keeps the bubble clear of the page header. */
 const BUBBLE_TOP_INSET = BUBBLE_MARGIN + 50;
 /**
- * Conservative clearance for the room hand, including the safe-area inset, fan rotation,
- * raised focus state and 「待行动」 badge.
+ * Height the room hand can reach above the viewport bottom, mirrored from tokens.css and
+ * RoomShell.css: top padding (--space-small) + visible card (--size-hand-card-visible) + a
+ * safe-area inset, then a raised card (--space-medium), the 「待行动」 badge (--line-caption) and
+ * one extra wrapped label line (--line-secondary).
  */
-export const ROOM_HAND_REACH = 16 + 120 + 16 + 16 + 16;
+export const ROOM_HAND_REACH = 8 + 92 + 34 + 16 + 16 + 20;
 /** The default spot sits a margin above the hand so the bubble never covers or hides behind it. */
 const DEFAULT_BOTTOM_INSET = ROOM_HAND_REACH + BUBBLE_MARGIN;
 

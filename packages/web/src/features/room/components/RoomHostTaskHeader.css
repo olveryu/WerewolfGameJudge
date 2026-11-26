@@ -6,6 +6,10 @@
   border-top: var(--border-width) solid var(--color-border-light);
 }
 
+.host-task-card:empty {
+  display: none;
+}
+
 .host-task-steps {
   display: flex;
   flex-wrap: wrap;

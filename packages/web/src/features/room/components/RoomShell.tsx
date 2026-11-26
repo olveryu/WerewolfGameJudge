@@ -279,7 +279,11 @@ export function RoomShell({
   }, [navigation]);
 
   return (
-    <div className="room-shell" data-testid={TESTIDS.roomScreenRoot}>
+    <div
+      className="room-shell"
+      data-testid={TESTIDS.roomScreenRoot}
+      data-hand-layout={content.kind === 'seats' ? 'overlay' : 'docked'}
+    >
       <header
         className="room-header page-header-surface"
         data-testid={TESTIDS.roomHeader}
