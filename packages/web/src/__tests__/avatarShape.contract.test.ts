@@ -94,9 +94,11 @@ const HOST_BOXES: Readonly<Record<string, string | null>> = {
 /**
  * Every concentric box and the file that gives it `AVATAR_CONCENTRIC_CLASS`: the host boxes above,
  * the boxes around a tile (the profile mat, the settings link), the seat's emphasis ring, and the
- * placeholders that stand where an avatar would.
+ * placeholders that stand where an avatar would (the settings teaser lock, the admin user table's
+ * initial).
  */
 const CONCENTRIC_BOXES: Readonly<Record<string, string>> = {
+  'admin-avatar': 'routes/admin/pages/UsersPage.tsx',
   'appearance-cell': 'routes/appearance/AppearancePickers.tsx',
   'appearance-cell-upload': 'routes/appearance/AppearancePickers.tsx',
   'profile-avatar': 'features/room/components/PlayerProfileCard.tsx',
