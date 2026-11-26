@@ -1,0 +1,330 @@
+{
+  "packages/web/src/global.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/components/BottomSheet.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/components/Button.css": {
+    "ui/strict-value": {
+      "count": 7
+    }
+  },
+  "packages/web/src/components/CenterDialog.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/components/ChoiceCard.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/components/GameGuide.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/components/GameStatsPanel.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/components/IndeterminateProgressBar.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/LoadingScreen.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/NumPad.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/components/ScreenHeader.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/Spinner.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/Switch.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/components/avatar/avatarConcentric.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/encyclopedia/Encyclopedia.css": {
+    "ui/strict-value": {
+      "count": 10
+    }
+  },
+  "packages/web/src/routes/admin/admin.css": {
+    "ui/strict-value": {
+      "count": 42
+    }
+  },
+  "packages/web/src/routes/appearance/AppearancePage.css": {
+    "ui/strict-value": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/gacha/GachaPage.css": {
+    "ui/strict-value": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/games/GamePickerPage.css": {
+    "ui/strict-value": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/home/HomePage.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/routes/home/InstallMenuItem.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/settings/MusicSettingsPage.css": {
+    "ui/strict-value": {
+      "count": 13
+    }
+  },
+  "packages/web/src/routes/settings/SettingsPage.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/unlocks/UnlocksPage.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/drawing/components/DrawingToolbar.css": {
+    "ui/no-local-literal-custom-property": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/feedback/components/FeedbackTab.css": {
+    "ui/strict-value": {
+      "count": 16
+    }
+  },
+  "packages/web/src/features/product/components/CosmeticTabs.css": {
+    "ui/strict-value": {
+      "count": 6
+    }
+  },
+  "packages/web/src/features/room/components/PlayerProfileCard.css": {
+    "ui/strict-value": {
+      "count": 3
+    }
+  },
+  "packages/web/src/features/room/components/RoleCard.css": {
+    "ui/strict-value": {
+      "count": 2
+    },
+    "color-named": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomActionHand.css": {
+    "ui/strict-value": {
+      "count": 3
+    }
+  },
+  "packages/web/src/features/room/components/RoomBottomActionPanel.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/RoomDialog.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomGameSummary.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/RoomPlayerPickModal.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/RoomRecord.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/RoomSeatBoard.css": {
+    "ui/strict-value": {
+      "count": 14
+    }
+  },
+  "packages/web/src/features/room/components/RoomShell.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/features/room/components/RoomStageHud.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/steps/StepCardPicker.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/spotmatch/room/SpotmatchRoomScreen.css": {
+    "ui/strict-value": {
+      "count": 6
+    }
+  },
+  "packages/web/src/games/werewolf/components/NotepadPanel.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/games/werewolf/components/WerewolfBoardAnnouncementTab.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/components/WerewolfHomeSpotlight.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/routes/admin/words/wordSubmissions.css": {
+    "ui/strict-value": {
+      "count": 7
+    }
+  },
+  "packages/web/src/routes/gacha/components/DrawButton.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/routes/gacha/components/PityProgressBar.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/gacha/components/RewardPreview.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/gacha/components/SingleResultReveal.css": {
+    "ui/strict-value": {
+      "count": 8
+    }
+  },
+  "packages/web/src/routes/gacha/components/TenResultOverlay.css": {
+    "ui/strict-value": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/gacha/components/TicketTabBar.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/features/room/review/components/review.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/avalon/room/components/AvalonRecord.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/avalon/room/components/AvalonResultPanel.css": {
+    "ui/strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/drawguess/room/components/DrawGuessStage.css": {
+    "ui/strict-value": {
+      "count": 5
+    }
+  },
+  "packages/web/src/games/pictionary/room/components/PictionaryStage.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/storyrelay/room/components/StoryRelayStage.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.css": {
+    "ui/strict-value": {
+      "count": 8
+    }
+  },
+  "packages/web/src/games/werewolf/components/BoardStrategy/BoardStrategy.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/BoardNominationList.css": {
+    "ui/strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/MvpSelectionModal.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/ShareReviewModal.css": {
+    "ui/strict-value": {
+      "count": 3
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/SheriffElection.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/werewolf/screens/ConfigScreen/ConfigScreen.css": {
+    "ui/strict-value": {
+      "count": 5
+    }
+  },
+  "packages/web/src/games/werewolf/screens/NotepadScreen/NotepadScreen.css": {
+    "ui/strict-value": {
+      "count": 2
+    }
+  }
+}

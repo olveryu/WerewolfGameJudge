@@ -12,11 +12,14 @@
     "typecheck": "pnpm run types:pages:check && tsc --noEmit && tsc -p functions/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:css": "stylelint \"packages/web/src/**/*.css\" --suppress-location stylelint-suppressions.json",
+    "lint:css:baseline": "stylelint \"packages/web/src/**/*.css\" --suppress --suppress-location stylelint-suppressions.json",
+    "lint:ui-baseline": "node scripts/ui-baseline-ratchet.mjs",
     "format": "prettier . --check",
     "format:write": "prettier . --write",
     "knip": "knip",
     "fix": "pnpm run lint:fix && pnpm run format:write",
-    "quality": "turbo run build typecheck lint knip format test && pnpm run validate:agents",
+    "quality": "turbo run build typecheck lint knip format test && pnpm run validate:agents && pnpm run lint:css && pnpm run lint:ui-baseline",
     "e2e:night": "playwright test --reporter=list werewolf-night-flow restart",
     "e2e:ui": "playwright test --ui",
     "dev": "node scripts/setup-local-dev.mjs && node scripts/dev.mjs",
@@ -53,6 +56,10 @@
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
+    ],
+    "packages/web/src/**/*.css": [
+      "stylelint --suppress-location stylelint-suppressions.json",
+      "prettier --write"
     ]
   },
   "devDependencies": {
@@ -75,8 +82,10 @@
     "knip": "^6.45.1",
     "lint-staged": "^16.4.0",
     "miniprogram-ci": "^2.1.31",
+    "postcss-value-parser": "^4.2.0",
     "prettier": "^3.10.0",
     "serve": "^14.2.7",
+    "stylelint": "^17.16.0",
     "turbo": "^2.11.11",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.2",

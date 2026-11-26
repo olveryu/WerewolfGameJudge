@@ -291,7 +291,9 @@ over every avatar site its census finds; the frame geometry tests
 
 ## Do's and Don'ts
 
-- Use the semantic color and size tokens instead of copying values into component styles.
+- Use the semantic color and size tokens instead of copying values into component styles. Stylelint
+  enforces this (`pnpm run lint:css`); existing exceptions are recorded in
+  `stylelint-suppressions.json` and may only shrink.
 - Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
 - Do not replace meaningful game art or faction semantics with decorative styling.
 - Do not reintroduce gradients or colored side stripes merely as decoration.

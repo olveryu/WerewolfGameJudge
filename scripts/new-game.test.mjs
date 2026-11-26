@@ -2,7 +2,7 @@
  * Generator tests: run the real generator against a fixture repository
  * assembled from the real shared files it edits, across representative feature
  * profiles. A real-tree copy validates representative selections with the
- * generated output's formatting, lint, types and package tests. Run with
+ * generated output's formatting, lint (including Stylelint), types and package tests. Run with
  * `corepack pnpm run test scripts/new-game.test.mjs`.
  */
 
@@ -1550,6 +1550,22 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
             .join(' '),
         },
       });
+
+      // Generated stylesheets meet the UI gate with no recorded debt: no suppressions file.
+      const styleTargets = createdFiles.filter((file) => file.endsWith('.css'));
+      assert.ok(styleTargets.length > 0, 'the generator emits stylesheets');
+      execFileSync(
+        process.execPath,
+        [
+          path.join(
+            path.dirname(require.resolve('stylelint/package.json')),
+            'bin',
+            'stylelint.mjs',
+          ),
+          ...styleTargets,
+        ],
+        { cwd: root, stdio: 'pipe' },
+      );
 
       const webTestPaths = [
         ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),

@@ -6,6 +6,8 @@ import testingLibrary from 'eslint-plugin-testing-library';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+import uiLint from './scripts/ui-lint/eslint-plugin.mjs';
+
 /** Deprecated identifiers — prevent regression after bulk renames. */
 const RENAMED_IDENTIFIER_SELECTORS = [
   { selector: "Identifier[name='roomNumber']", message: "Renamed → 'roomCode'" },
@@ -275,9 +277,17 @@ export default tseslint.config(
   // =========================================================================
   {
     files: ['packages/web/**/*.{ts,tsx}'],
+    plugins: { ui: uiLint },
     rules: {
       // Untrusted strings render only through React's default escaping (docs/web-client-rewrite.md §5.11).
       'react/no-danger': 'error',
+      // UI gate (scripts/ui-lint/eslint-plugin.mjs): styles enter the page only as bundled CSS (E5),
+      // inline style objects name their properties statically (E4), and no code path is built from
+      // strings the checker cannot read (E9).
+      'ui/no-style-elements': 'error',
+      'ui/inline-style-static-keys': 'error',
+      'no-eval': 'error',
+      'no-new-func': 'error',
     },
   },
   // The web client's logger is the only place allowed to write to the console.
