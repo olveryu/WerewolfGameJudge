@@ -2,12 +2,11 @@ import './AccountAvatar.css';
 
 import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 
+import { formatTicketBadgeCount } from '../ticketBadgeCount';
 import { Avatar } from './Avatar';
 
 /** Side of the account entry's avatar in px (Home and room headers). */
 const ACCOUNT_AVATAR_SIZE = 36;
-/** Counts above this read as `99+`. */
-const ACCOUNT_BADGE_MAX = 99;
 
 /**
  * Class of the element that carries an account entry (a link on Home, a button in a room): a
@@ -31,7 +30,7 @@ export function AccountTicketBadge({ count }: { readonly count: number }) {
   if (count <= 0) return null;
   return (
     <span className="account-ticket-badge" aria-label={`${count} 张抽奖券`} role="img">
-      {count > ACCOUNT_BADGE_MAX ? `${ACCOUNT_BADGE_MAX}+` : count}
+      {formatTicketBadgeCount(count)}
     </span>
   );
 }
