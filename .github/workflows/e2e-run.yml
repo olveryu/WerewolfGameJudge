@@ -6,6 +6,9 @@ name: E2E Run (Reusable)
 #   downloads the web-dist artifact its build-web job produced.
 # - e2e-single-spec.yml calls this with build-web: true and builds the
 #   web bundle inline, since it runs standalone.
+# - suite: visual runs the screenshot gate (e2e/visual) through
+#   scripts/e2e-visual.mjs inside the pinned Playwright image; ci.yml's
+#   e2e-visual job compares, e2e-visual.yml (manual) compares or rewrites the baselines.
 
 on:
   workflow_call:
@@ -21,6 +24,16 @@ on:
       build-web:
         description: 'true: export the web bundle inline. false: download the caller-provided web-dist artifact.'
         required: true
+        type: boolean
+      suite:
+        description: 'e2e: specs under e2e/specs/ on the runner. visual: the screenshot gate under e2e/visual/, inside the pinned Playwright image.'
+        required: false
+        default: e2e
+        type: string
+      update-snapshots:
+        description: 'visual only: rewrite the baselines and upload them as the visual-baselines artifact.'
+        required: false
+        default: false
         type: boolean
 
 jobs:
@@ -39,7 +52,16 @@ jobs:
       - name: Validate spec files exist
         env:
           SPECS: ${{ inputs.specs }}
+          SUITE: ${{ inputs.suite }}
         run: |
+          case "$SUITE" in
+            e2e) dir=e2e/specs ;;
+            visual) dir=e2e/visual ;;
+            *)
+              echo "::error::Unknown suite: $SUITE (expected e2e or visual)"
+              exit 1
+              ;;
+          esac
           for spec in $SPECS; do
             case "$spec" in
               */*)
@@ -47,11 +69,11 @@ jobs:
                 exit 1
                 ;;
             esac
-            if [ ! -f "e2e/specs/$spec" ]; then
-              echo "::error::Spec not found: e2e/specs/$spec"
+            if [ ! -f "$dir/$spec" ]; then
+              echo "::error::Spec not found: $dir/$spec"
               exit 1
             fi
-            echo "Found e2e/specs/$spec"
+            echo "Found $dir/$spec"
           done
 
       - uses: pnpm/action-setup@v5
@@ -78,11 +100,14 @@ jobs:
           name: web-dist
           path: packages/web/dist/
 
+      # The visual suite runs in the Playwright image, which ships its browsers.
       - name: Get Playwright version
+        if: inputs.suite == 'e2e'
         id: pw-version
         run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
+        if: inputs.suite == 'e2e'
         id: pw-cache
         uses: actions/cache@v5
         with:
@@ -90,11 +115,11 @@ jobs:
           key: playwright-chromium-${{ steps.pw-version.outputs.version }}
 
       - name: Install Playwright browsers
-        if: steps.pw-cache.outputs.cache-hit != 'true'
+        if: inputs.suite == 'e2e' && steps.pw-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Install Playwright system deps only
-        if: steps.pw-cache.outputs.cache-hit == 'true'
+        if: inputs.suite == 'e2e' && steps.pw-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
       # Apply D1 migrations as a dedicated step (not buried inside the
@@ -104,15 +129,48 @@ jobs:
         run: node scripts/setup-d1-migrations.mjs
 
       - name: Run E2E tests (shard ${{ inputs.shard }})
+        if: inputs.suite == 'e2e'
         env:
           SPECS: ${{ inputs.specs }}
           E2E_BUNDLE_RUN_ID: ${{ github.run_id }}
           E2E_BUNDLE_SHARD: ${{ inputs.shard }}
         run: pnpm exec playwright test $SPECS --reporter=list,blob,./e2e/reporters/failureBundle.ts
 
+      - name: Run visual gate (shard ${{ inputs.shard }})
+        if: inputs.suite == 'visual'
+        env:
+          SPECS: ${{ inputs.specs }}
+          UPDATE: ${{ inputs.update-snapshots }}
+        run: |
+          if [ "$UPDATE" = "true" ]; then
+            node scripts/e2e-visual.mjs --update $SPECS
+          else
+            node scripts/e2e-visual.mjs $SPECS
+          fi
+
+      # Expected, actual and diff PNGs of every failed comparison: plain images
+      # that open on a phone straight from the run page.
+      - name: Upload visual diffs
+        uses: actions/upload-artifact@v7
+        if: inputs.suite == 'visual' && failure()
+        with:
+          name: visual-diff-${{ inputs.shard }}
+          path: test-results-visual/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload visual baselines
+        uses: actions/upload-artifact@v7
+        if: inputs.suite == 'visual' && inputs.update-snapshots
+        with:
+          name: visual-baselines
+          path: e2e/visual/__screenshots__/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload blob report
         uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && inputs.suite == 'e2e'
         with:
           name: blob-report-${{ inputs.shard }}
           path: blob-report/
@@ -120,7 +178,7 @@ jobs:
 
       - name: Upload failure bundle
         uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && inputs.suite == 'e2e'
         with:
           name: failure-bundle-${{ inputs.shard }}
           path: failure-bundles/

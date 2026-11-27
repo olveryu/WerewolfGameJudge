@@ -101,6 +101,10 @@ git push
 
 Acceptance is: scoped checks pass, only lint/format fixes were auto-applied, the staged diff was inspected before committing, commit happened only on explicit request, and push happened only on explicit push request. The `git push` line above is conditional on that request; it is not a default step.
 
+## Visible changes and the screenshot gate
+
+A change that alters what any screen shows (styles, tokens, shared components, layout, copy) updates the screenshot baselines in `e2e/visual/__screenshots__/` in the same pull request; the `e2e-visual` job in `ci-gate` fails on any pixel that differs from them. Baselines come only from the pinned Playwright image: run `pnpm run e2e:visual:update` (Docker), or dispatch `gh workflow run e2e-visual.yml --ref <branch> --field update=true` and commit the `visual-baselines` artifact. Never hand-edit or partially regenerate a baseline to turn the job green. The pull request body shows the changed screens before and after (the `visual-diff-visual` artifact of the failing run has expected, actual and diff PNGs).
+
 ## Pitfalls
 
 1. A plain `as` cast fails `contracts/architecture.contract.test.ts` ('Production types: no ordinary assertions'; only `as const` is allowed).

@@ -545,4 +545,14 @@ export const TESTIDS = {
   encyclopediaRoleItem: (id: string) => `encyclopedia-role-${id}`,
   encyclopediaFactionTab: (key: string) => `encyclopedia-faction-tab-${key}`,
   encyclopediaTagFilter: (tag: string) => `encyclopedia-tag-${tag}`,
+
+  // UI gallery (/__bench/ui): the visual gate screenshots one block per shared component.
+  uiGalleryRoot: 'ui-gallery-root',
+  /** The room title (房间 + code): masked by the visual gate, the code is random. */
+  roomHeaderTitle: 'room-header-title',
+  adminLoginScreen: 'admin-login-screen',
+  uiGalleryBlock: (block: string) => `ui-gallery-block-${block}`,
+  uiGalleryChoice: (state: string) => `ui-gallery-choice-${state}`,
+  /** A gallery control the visual gate hovers or focuses before its state screenshot. */
+  uiGalleryTarget: (name: string) => `ui-gallery-target-${name}`,
 } as const;
