@@ -572,6 +572,13 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         "import { toast } from 'sonner'; const show = (m: string): void => void toast(m); export { show };",
         // A property key or a qualified name's member is not the binding.
         "import { toast } from 'sonner'; export interface Options { toast: string } void toast;",
+        // `export { x }` resolves by scope: another import, an imported type, a destructured
+        // binding; a name that only shadows or matches the package binding is not it (P1 QA29).
+        "import { toast } from 'sonner'; import { z as zod } from 'zod'; export { zod as schema }; void toast;",
+        "import { toast } from 'sonner'; import type { CSSProperties } from 'react'; export type { CSSProperties }; void toast;",
+        "import { toast } from 'sonner'; const { length } = 'ab'; export { length }; void toast;",
+        "import { toast } from 'sonner'; export enum Kind { toast } void toast;",
+        "import { toast } from 'sonner'; export function notify(toast: string): string { return toast; }",
       ],
       ADAPTED,
     ),

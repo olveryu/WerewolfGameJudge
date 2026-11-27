@@ -1223,9 +1223,10 @@ const packageAdapter = {
   create(context) {
     const file = fileKey(context, context.filename);
     const packages = context.options[0]?.packages ?? PACKAGES;
-    // Local names this adapter binds to its registered entries (`import type` included): the
-    // names its exports may not write.
+    // The adapter's import bindings of its registered entries (`import type` included), by local
+    // name; their references (resolved by scope, never by name) are what its exports may not write.
     const bindings = new Map();
+    const references = new Map();
     const exported = [];
     // The package's adapter rule for a written specifier; a non-literal or relative specifier is
     // the bundle graph's.
@@ -1273,7 +1274,7 @@ const packageAdapter = {
         if (key === 'key' && !node.computed) continue;
         named(child, out);
       }
-      if (node.type === 'Identifier' && bindings.has(node.name)) out.push(node);
+      if (node.type === 'Identifier' && references.has(node)) out.push(node);
       return out;
     };
     /** The package binding an initializer is: itself, or an object or array literal's entry. */
@@ -1286,7 +1287,7 @@ const packageAdapter = {
           held(property.type === 'Property' ? property.value : property.argument, out);
       else if (node.type === 'SpreadElement') held(node.argument, out);
       else if (node.type === 'MemberExpression' && !node.computed) held(node.object, out);
-      else if (node.type === 'Identifier' && bindings.has(node.name)) out.push(node);
+      else if (node.type === 'Identifier' && references.has(node)) out.push(node);
       else if (FUNCTION_TYPES.has(node.type))
         named([node.params, node.returnType, node.typeParameters], out);
       return out;
@@ -1368,23 +1369,34 @@ const packageAdapter = {
       },
       'Program:exit'(program) {
         if (bindings.size === 0) return;
-        // `export { x }` exports the top-level declaration named `x`: judged as that declaration.
-        const declared = new Map();
-        for (const statement of program.body) {
-          const own = statement.type.startsWith('Export') ? statement.declaration : statement;
-          if (own == null) continue;
-          if (own.type === 'VariableDeclaration')
-            for (const declarator of own.declarations)
-              if (declarator.id.type === 'Identifier') declared.set(declarator.id.name, own);
-          if (own.id?.type === 'Identifier') declared.set(own.id.name, own);
-        }
-        for (const { node, name } of exported) {
-          const declaration =
-            node.type === 'Identifier' && !bindings.has(node.name) ? declared.get(node.name) : node;
-          if (declaration === undefined)
+        // The module's own scope (an adapter imports, so it is a module), not the global one.
+        const scope = context.sourceCode.scopeManager.acquire(program, true);
+        for (const variable of scope.variables)
+          if (
+            variable.defs.some((def) => def.type === 'ImportBinding') &&
+            bindings.has(variable.name)
+          )
+            for (const reference of variable.references)
+              references.set(reference.identifier, bindings.get(variable.name));
+        // `export { x }` is judged as the declaration `x` resolves to by scope: a package binding
+        // is reported itself, another import is not ours to judge, a variable by its declarator
+        // (destructuring included), anything else by its declaring node.
+        const declarationOf = (identifier) => {
+          if (references.has(identifier)) return identifier;
+          const variable = scope.set.get(identifier.name);
+          const def = variable?.defs[0];
+          if (def === undefined)
             throw new Error(
-              `ui-gate E12: ${file}: \`export { ${node.name} }\` names no top-level declaration`,
+              `ui-gate E12: ${file}: \`export { ${identifier.name} }\` resolves to no declaration in scope`,
             );
+          if (def.type === 'ImportBinding') return null;
+          if (def.type === 'Variable')
+            return { type: 'VariableDeclaration', declarations: [def.node] };
+          return def.node;
+        };
+        for (const { node, name } of exported) {
+          const declaration = node.type === 'Identifier' ? declarationOf(node) : node;
+          if (declaration === null) continue;
           const exportName = name ?? exportedName(declaration);
           for (const binding of signature(declaration))
             context.report({
@@ -1393,7 +1405,7 @@ const packageAdapter = {
               data: {
                 name: exportName,
                 binding: binding.name,
-                specifier: bindings.get(binding.name),
+                specifier: references.get(binding),
               },
             });
         }
@@ -1402,10 +1414,15 @@ const packageAdapter = {
   },
 };
 
+/** A declared pattern's names, as written. */
+function patternName(id) {
+  return id.type === 'Identifier' ? id.name : '{…}';
+}
+
 /** The name a declaration is exported under (its own, or the variables it declares). */
 function exportedName(declaration) {
   if (declaration.type === 'VariableDeclaration')
-    return declaration.declarations.map((declarator) => declarator.id.name ?? '…').join(', ');
+    return declaration.declarations.map((declarator) => patternName(declarator.id)).join(', ');
   return declaration.id?.name ?? 'default';
 }
 
