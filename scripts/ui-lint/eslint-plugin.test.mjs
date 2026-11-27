@@ -365,6 +365,10 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     // A canvas's width and height are its bitmap's resolution, not a box size (P1 QA16 F2).
     'export const a = <canvas width={480} height={320} />;',
     "declare const c: HTMLCanvasElement; c.setAttribute('width', '480');",
+    // A shape's width and height are its user-unit geometry, read from SIZE_HOSTS by every entry
+    // point: JSX and setAttribute give one answer (P1 QA30 N5).
+    'export const a = <svg><rect width={40} height={40} /></svg>;',
+    "declare const r: SVGRectElement; r.setAttribute('width', '40');",
     'declare const fx: KeyframeEffect; fx.setKeyframes(null);',
     // A style declaration handed on as one stays a style declaration.
     "declare const el: HTMLElement; Object.assign(el.style, { opacity: '1' });",

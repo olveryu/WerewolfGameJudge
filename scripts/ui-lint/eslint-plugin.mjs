@@ -540,12 +540,21 @@ function isValueAttribute(name, tag) {
   );
 }
 
-/** `width`/`height` on an element whose tag (`null`: not known) or DOM interface is given. */
+/**
+ * What `width`/`height` mean where they land, read from `SIZE_HOSTS` alone: by tag (`null`: not
+ * known; a tag not listed takes none), by DOM interface, or by React attribute interface. A DOM or
+ * React interface that no host lists, or that a `box` host shares, is `box`.
+ */
+function hostMeaning(field, name) {
+  const meanings = [...SIZE_HOSTS.values()]
+    .filter((host) => host[field] === name)
+    .map((host) => host.meaning);
+  return meanings.length === 0 || meanings.includes('box') ? 'box' : meanings[0];
+}
 const sizeMeaning = {
   ofTag: (tag) => (tag === null ? 'box' : SIZE_HOSTS.get(tag)?.meaning),
-  ofElement: (name) =>
-    [...SIZE_HOSTS.values()].find((host) => host.element === name)?.meaning ?? 'box',
-  ofReact: (name) => [...SIZE_HOSTS.values()].find((host) => host.react === name)?.meaning ?? 'box',
+  ofElement: (name) => hostMeaning('element', name),
+  ofReact: (name) => hostMeaning('react', name),
 };
 
 /**

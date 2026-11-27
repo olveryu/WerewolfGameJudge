@@ -1002,8 +1002,6 @@ export const ATTRIBUTES = Object.freeze(
       d: ['path'],
       x: ['filter', 'rect'],
       y: ['filter', 'rect'],
-      width: ['filter', 'rect'],
-      height: ['filter', 'rect'],
       x1: ['line', 'linearGradient'],
       x2: ['line', 'linearGradient'],
       y1: ['line', 'linearGradient'],
@@ -1156,9 +1154,12 @@ export const DOM_VALUE_WRITERS = Object.freeze(
  * the element's DOM interface and React attribute interface, so a JSX attribute, a DOM write and
  * a component prop that lands on the element read one answer (P1 QA17 S1). `box` sizes the
  * element's box: a style value, judged in the size domain. `bitmap` is a canvas bitmap's
- * resolution in pixels (CSS sizes its box), content rather than style (P1 QA16 F2). An element
- * not listed takes no `width`/`height` attribute in JSX; written through the DOM or a component
- * prop where the element is not known, they are judged as `box`.
+ * resolution in pixels (CSS sizes its box), content rather than style (P1 QA16 F2). `geometry`
+ * is an SVG shape's extent in its own user units, content rather than style. An element not
+ * listed takes no `width`/`height` attribute in JSX; written through the DOM or a component prop
+ * where the element is not known (or may be a `box` host), they are judged as `box`. This table
+ * is the only place `width`/`height` get a meaning: JSX, `setAttribute` and component props all
+ * read it (P1 QA30 N5).
  */
 export const SIZE_HOSTS = Object.freeze(
   new Map([
@@ -1166,6 +1167,8 @@ export const SIZE_HOSTS = Object.freeze(
     ['img', { meaning: 'box', element: 'HTMLImageElement', react: 'ImgHTMLAttributes' }],
     ['svg', { meaning: 'box', element: 'SVGSVGElement', react: 'SVGAttributes' }],
     ['canvas', { meaning: 'bitmap', element: 'HTMLCanvasElement', react: 'CanvasHTMLAttributes' }],
+    ['rect', { meaning: 'geometry', element: 'SVGRectElement', react: 'SVGAttributes' }],
+    ['filter', { meaning: 'geometry', element: 'SVGFilterElement', react: 'SVGAttributes' }],
   ]),
 );
 

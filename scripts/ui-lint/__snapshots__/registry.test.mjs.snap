@@ -159,10 +159,6 @@ exports[`UI gate registry > pins ATTRIBUTES exactly 1`] = `
     "linearGradient",
     "radialGradient",
   ],
-  "height": [
-    "filter",
-    "rect",
-  ],
   "hidden": [
     "*",
   ],
@@ -270,10 +266,6 @@ exports[`UI gate registry > pins ATTRIBUTES exactly 1`] = `
   ],
   "viewBox": [
     "svg",
-  ],
-  "width": [
-    "filter",
-    "rect",
   ],
   "x": [
     "filter",
@@ -1752,6 +1744,11 @@ exports[`UI gate registry > pins SIZE_HOSTS exactly 1`] = `
     "meaning": "bitmap",
     "react": "CanvasHTMLAttributes",
   },
+  "filter": {
+    "element": "SVGFilterElement",
+    "meaning": "geometry",
+    "react": "SVGAttributes",
+  },
   "iframe": {
     "element": "HTMLIFrameElement",
     "meaning": "box",
@@ -1761,6 +1758,11 @@ exports[`UI gate registry > pins SIZE_HOSTS exactly 1`] = `
     "element": "HTMLImageElement",
     "meaning": "box",
     "react": "ImgHTMLAttributes",
+  },
+  "rect": {
+    "element": "SVGRectElement",
+    "meaning": "geometry",
+    "react": "SVGAttributes",
   },
   "svg": {
     "element": "SVGSVGElement",
