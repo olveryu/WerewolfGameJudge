@@ -1286,6 +1286,88 @@ function isValueReference(node) {
   }
 }
 
+/** `reach`'s owner of a type of ours declared in another file (judged there). */
+const ELSEWHERE = Symbol('declared in another file of ours');
+
+/**
+ * Whether a value with no contextual type takes no other type where it stands (E12 `escapes`):
+ * it is called or read from, bound without an annotation, discarded, tested, compared or turned
+ * into a primitive, or carried into the expression around it (an object, array, branch, `await`,
+ * a function's body or `return`), which is held and judged itself. Every other position (a
+ * `throw`, a class field, a `yield`, a spread argument, a default value, …) takes the value to a
+ * place no type describes, and is reported (P1 QA26 F1).
+ */
+function takesNoOtherType(node) {
+  const { parent } = node;
+  switch (parent.type) {
+    case 'CallExpression':
+    case 'NewExpression':
+      return parent.callee === node;
+    case 'TaggedTemplateExpression':
+      return parent.tag === node;
+    case 'MemberExpression':
+      return parent.object === node;
+    case 'VariableDeclarator':
+      return parent.init === node && parent.id.typeAnnotation === undefined;
+    case 'PropertyDefinition':
+      return parent.value === node && parent.typeAnnotation == null;
+    case 'AssignmentExpression':
+      // The place written, not a value read; the value written is judged against its type.
+      return parent.left === node;
+    case 'TSAsExpression':
+      // `as const` keeps the value's own type; the assertion is held and judged itself.
+      return (
+        parent.typeAnnotation.type === 'TSTypeReference' &&
+        parent.typeAnnotation.typeName.type === 'Identifier' &&
+        parent.typeAnnotation.typeName.name === 'const'
+      );
+    case 'MethodDefinition':
+      // A method is judged as a member of its class (`exposes`, or where the class goes).
+      return parent.value === node;
+    case 'ClassDeclaration':
+    case 'ClassExpression':
+      // Extended, the class is ours and is judged by its own type.
+      return parent.superClass === node;
+    case 'ForOfStatement':
+    case 'ForInStatement':
+      // Iterated into a binding without an annotation, judged where read.
+      return (
+        parent.right === node &&
+        parent.left.type === 'VariableDeclaration' &&
+        parent.left.declarations.every(({ id }) => id.typeAnnotation === undefined)
+      );
+    case 'IfStatement':
+    case 'WhileStatement':
+    case 'DoWhileStatement':
+    case 'ForStatement':
+      return parent.test === node;
+    case 'SpreadElement':
+      return parent.parent.type === 'ArrayExpression' || parent.parent.type === 'ObjectExpression';
+    case 'Property':
+      return parent.value === node && parent.parent.type === 'ObjectExpression';
+    case 'ArrowFunctionExpression':
+      return parent.body === node;
+    case 'ExportDefaultDeclaration':
+      // Judged as the module's export (`exposes`).
+      return true;
+    case 'ExpressionStatement':
+    case 'UnaryExpression':
+    case 'BinaryExpression':
+    case 'TemplateLiteral':
+    case 'ConditionalExpression':
+    case 'LogicalExpression':
+    case 'SequenceExpression':
+    case 'AwaitExpression':
+    case 'ChainExpression':
+    case 'TSNonNullExpression':
+    case 'ArrayExpression':
+    case 'ReturnStatement':
+      return true;
+    default:
+      return false;
+  }
+}
+
 const packageAdapter = {
   meta: {
     type: 'problem',
@@ -1308,7 +1390,7 @@ const packageAdapter = {
       reexport:
         'The adapter re-exports `{{specifier}}`, handing the package on past it: export functions or components of ours that take our own types instead (UI gate E12).',
       exposes:
-        "`{{name}}`, exported by a module that imports `{{specifier}}`, exposes `{{type}}` of `{{pkg}}`, so callers reach the package through it: export only our own types (React's allowed) (UI gate E12).",
+        "`{{name}}` is exported or declared global here and exposes `{{type}}` of `{{pkg}}`, so other modules reach the package through it: export and declare only our own types (React's allowed) (UI gate E12).",
       escapes:
         'This value is `{{type}}` of `{{pkg}}`, and it goes where its type is {{target}}, so the package leaves this module unseen (passed on, stored or returned under another type): use it only where a type of `{{pkg}}` is expected (its own calls, elements and props, or a binding without an annotation), and hand callers values of our own types (UI gate E12).',
     },
@@ -1373,7 +1455,12 @@ const packageAdapter = {
           return undefined;
         if (services.program.isSourceFileDefaultLibrary(site.getSourceFile())) return null;
         const pkg = packageOf(site);
-        if (pkg === undefined) return undefined;
+        // A type of ours declared in another file is judged there, where it is exported
+        // (`exposes`): only its type arguments are this file's.
+        if (pkg === undefined)
+          return site.getSourceFile() === services.program.getSourceFile(context.filename)
+            ? undefined
+            : ELSEWHERE;
         return EXPOSABLE_TYPE_PACKAGES.has(pkg) || !shipped.has(pkg) ? null : pkg;
       };
       const argumentsOf = (type) => [
@@ -1394,7 +1481,7 @@ const packageAdapter = {
         const pkg = owner(type.aliasSymbol ?? type.getSymbol());
         if (typeof pkg === 'string') return { pkg, type: checker.typeToString(type) };
         const nested = first(argumentsOf(type));
-        if (nested !== undefined || pkg === null) return nested;
+        if (nested !== undefined || pkg === null || pkg === ELSEWHERE) return nested;
         for (const signature of [...type.getCallSignatures(), ...type.getConstructSignatures()]) {
           const found = first([
             ...signature.getParameters().map((parameter) => checker.getTypeOfSymbol(parameter)),
@@ -1404,6 +1491,7 @@ const packageAdapter = {
         }
         for (const property of checker.getPropertiesOfType(type)) {
           const declared = owner(property);
+          if (declared === ELSEWHERE) continue;
           if (typeof declared === 'string')
             return { pkg: declared, type: `${checker.typeToString(type)}.${property.getName()}` };
           if (declared === undefined) {
@@ -1439,83 +1527,162 @@ const packageAdapter = {
         if (node.importKind !== 'type' && node.moduleReference.type === 'TSExternalModuleReference')
           judge(node, node.moduleReference.expression, false);
       },
-      // An expression's own value, never a name being declared, a key or a type.
-      'Identifier, MemberExpression, CallExpression, NewExpression, AwaitExpression'(node) {
+      // Every expression's own value (never a name being declared, a key or a type): all kinds,
+      // `import()` and composites included (P1 QA26 F3), so none carries a package value unseen.
+      ':expression'(node) {
+        // A JSX element's name is its tag, judged as the element (E2/E4), not a value handed on.
+        // esquery's `:expression` also matches type nodes such as `TSTypeLiteral`: of the TS
+        // nodes only the expressions are values.
+        if (
+          node.type === 'Literal' ||
+          node.type === 'TemplateLiteral' ||
+          node.type.startsWith('JSX') ||
+          (node.type.startsWith('TS') && !node.type.endsWith('Expression'))
+        )
+          return;
         if (node.type === 'Identifier' && !isValueReference(node)) return;
         held.push(node);
       },
-      'Program:exit'(program) {
-        if (reached.size === 0) return;
-        const specifier = [...reached].sort().join(', ');
-        // A value of a package stays one: wherever it goes, the type it is taken as is the
-        // package's (its contextual type reaches a package type) or there is no other type to take
-        // (no contextual type: a callee, a member's object, an unannotated binding, a discarded
-        // statement). Under any other type (ours, `any`, `unknown`, a type parameter, an asserted
-        // type), the package leaves the module without its type showing it.
-        for (const node of held) {
-          const expression = services.esTreeNodeToTSNodeMap.get(node);
-          const own = foreignType(checker.getTypeAtLocation(expression));
-          if (own === undefined) continue;
-          // An unannotated destructuring takes the package's own members apart; the pattern's
-          // implied type is no type the value is taken as, and each binding is judged where read.
-          const { parent } = node;
-          if (
-            parent.type === 'VariableDeclarator' &&
-            parent.init === node &&
-            parent.id.type !== 'Identifier' &&
-            parent.id.typeAnnotation === undefined
-          )
-            continue;
-          // React's dependency lists compare identities and hand nothing on.
-          if (parent.type === 'ArrayExpression') {
-            const list = checker.getContextualType(services.esTreeNodeToTSNodeMap.get(parent));
-            const alias = list && checker.getNonNullableType(list).aliasSymbol;
-            if (
-              alias?.getName() === 'DependencyList' &&
-              alias.declarations?.some((site) => packageOf(site) === '@types/react')
-            )
-              continue;
-          }
-          const target = checker.getContextualType(expression);
-          if (target === undefined || foreignType(target) !== undefined) continue;
-          context.report({
-            node,
-            messageId: 'escapes',
-            data: { ...own, target: `\`${checker.typeToString(target)}\`` },
-          });
-        }
-        const module = checker.getSymbolAtLocation(
-          services.program.getSourceFile(context.filename),
-        );
-        if (module === undefined) return;
-        for (const exported of checker.getExportsOfModule(module)) {
-          const symbol =
-            exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
-          // A re-export from a package is reported as one where it is written.
-          const site = exported.declarations?.[0];
-          if (
-            site === undefined ||
-            site.getSourceFile() !== services.program.getSourceFile(context.filename) ||
-            (ts.isExportSpecifier(site) && site.parent.parent.moduleSpecifier !== undefined)
-          )
-            continue;
-          const types = [];
-          if (symbol.flags & ts.SymbolFlags.Value) types.push(checker.getTypeOfSymbol(symbol));
-          if (symbol.flags & ts.SymbolFlags.Type)
-            types.push(checker.getDeclaredTypeOfSymbol(symbol));
-          for (const type of types) {
-            const found = foreignType(type);
-            if (found === undefined) continue;
-            context.report({
-              node: services.tsNodeToESTreeNodeMap.get(site) ?? program,
-              messageId: 'exposes',
-              data: { name: exported.getName(), specifier, ...found },
-            });
-            break;
-          }
-        }
+      'Program:exit'() {
+        const source = services.program.getSourceFile(context.filename);
+        if (source === undefined)
+          throw new Error(`ui-gate E12: ${file} is not in the TypeScript program`);
+        if (reached.size > 0) judgeEscapes();
+        judgeExposed(source);
       },
     };
+    /** Whether an array is a React dependency list (identities compared, nothing handed on). */
+    function isDependencyList(node) {
+      if (node.type !== 'ArrayExpression') return false;
+      const list = checker.getContextualType(services.esTreeNodeToTSNodeMap.get(node));
+      const alias = list && checker.getNonNullableType(list).aliasSymbol;
+      return (
+        alias?.getName() === 'DependencyList' &&
+        alias.declarations?.some((site) => packageOf(site) === '@types/react') === true
+      );
+    }
+    /**
+     * A value of a package stays one: wherever it goes, the type it is taken as is the package's
+     * (its contextual type reaches a package type) or, with no contextual type, its position takes
+     * no other type (`takesNoOtherType`). Under any other type (ours, `any`, `unknown`, a type
+     * parameter, an asserted type) or position, the package leaves the module without its type
+     * showing it.
+     */
+    function judgeEscapes() {
+      for (const node of held) {
+        const expression = services.esTreeNodeToTSNodeMap.get(node);
+        const own = foreignType(checker.getTypeAtLocation(expression));
+        if (own === undefined) continue;
+        // An unannotated destructuring takes the package's own members apart; the pattern's
+        // implied type is no type the value is taken as, and each binding is judged where read.
+        const { parent } = node;
+        if (
+          parent.type === 'VariableDeclarator' &&
+          parent.init === node &&
+          parent.id.type !== 'Identifier' &&
+          parent.id.typeAnnotation === undefined
+        )
+          continue;
+        // React's dependency lists compare identities and hand nothing on.
+        if (
+          isDependencyList(node) ||
+          (parent.type === 'ArrayExpression' && isDependencyList(parent))
+        )
+          continue;
+        // An assignment's target has the type it is written as, a setter's included.
+        const target =
+          checker.getContextualType(expression) ??
+          (parent.type === 'AssignmentExpression' && parent.right === node
+            ? checker.getTypeAtLocation(services.esTreeNodeToTSNodeMap.get(parent.left))
+            : undefined);
+        if (target === undefined ? takesNoOtherType(node) : foreignType(target) !== undefined)
+          continue;
+        context.report({
+          node,
+          messageId: 'escapes',
+          data: {
+            ...own,
+            target:
+              target === undefined
+                ? `none, at a \`${parent.type}\``
+                : `\`${checker.typeToString(target)}\``,
+          },
+        });
+      }
+    }
+    /**
+     * What this file makes visible to other modules may not reach a package type: its exports,
+     * and what it declares global (a script's top level, `declare global`, `declare module`
+     * augmentations), in every file, so no module of ours can hold a package value in a slot
+     * other modules read (P1 QA26 F2).
+     */
+    function judgeExposed(source) {
+      const report = (name, site, type) => {
+        const found = foreignType(type);
+        if (found === undefined) return false;
+        const node = services.tsNodeToESTreeNodeMap.get(site);
+        if (node === undefined)
+          throw new Error(
+            `ui-gate E12: ${file}: no ESTree node for the declaration of \`${name}\``,
+          );
+        context.report({ node, messageId: 'exposes', data: { name, ...found } });
+        return true;
+      };
+      const module = checker.getSymbolAtLocation(source);
+      for (const exported of module === undefined ? [] : checker.getExportsOfModule(module)) {
+        const symbol =
+          exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
+        // A re-export from a package is reported as one where it is written.
+        const site = exported.declarations?.[0];
+        if (
+          site === undefined ||
+          site.getSourceFile() !== source ||
+          (ts.isExportSpecifier(site) && site.parent.parent.moduleSpecifier !== undefined)
+        )
+          continue;
+        const types = [];
+        if (symbol.flags & ts.SymbolFlags.Value) types.push(checker.getTypeOfSymbol(symbol));
+        if (symbol.flags & ts.SymbolFlags.Type) types.push(checker.getDeclaredTypeOfSymbol(symbol));
+        for (const type of types) if (report(exported.getName(), site, type)) break;
+      }
+      const globals = (statements) => {
+        for (const statement of statements) {
+          if (ts.isModuleDeclaration(statement)) {
+            if (statement.body !== undefined && ts.isModuleBlock(statement.body))
+              globals(statement.body.statements);
+            continue;
+          }
+          // An interface or class is judged by the members declared here (a global interface
+          // such as `Window` merges with the library's, whose own members are not ours).
+          const members =
+            ts.isInterfaceDeclaration(statement) || ts.isClassDeclaration(statement)
+              ? statement.members
+              : ts.isVariableStatement(statement)
+                ? statement.declarationList.declarations
+                : [statement];
+          for (const member of members) {
+            const name = ts.getNameOfDeclaration(member);
+            if (name === undefined) continue;
+            const symbol = checker.getSymbolAtLocation(name);
+            if (symbol === undefined)
+              throw new Error(`ui-gate E12: ${file}: no symbol for global \`${name.getText()}\``);
+            const types = [];
+            if (symbol.flags & ts.SymbolFlags.Value) types.push(checker.getTypeOfSymbol(symbol));
+            if (symbol.flags & ts.SymbolFlags.Type)
+              types.push(checker.getDeclaredTypeOfSymbol(symbol));
+            for (const type of types) if (report(symbol.getName(), member, type)) break;
+          }
+        }
+      };
+      if (module === undefined) globals(source.statements);
+      for (const statement of source.statements)
+        if (
+          ts.isModuleDeclaration(statement) &&
+          statement.body !== undefined &&
+          ts.isModuleBlock(statement.body)
+        )
+          globals(statement.body.statements);
+    }
   },
 };
 

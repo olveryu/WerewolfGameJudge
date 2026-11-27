@@ -575,11 +575,9 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
       ],
     ),
     ...green([
-      "import type { Graphics } from 'pixi.js'; export type G = Graphics;",
       "export type { ToasterProps } from 'sonner';",
       "import { z } from 'zod'; export const s = z.string();",
       "import { useNavigate } from 'react-router'; export const useGo = () => useNavigate();",
-      "import type sonner = require('sonner'); export type S = typeof sonner;",
     ]),
     ...green(
       [
@@ -594,6 +592,10 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         // Only the types a page-writing package ships are its own: zod's are not.
         "import 'sonner'; import { z } from 'zod'; declare function keep(x: unknown): void; keep(z.string()); export const s = z.string();",
         "import { toast } from 'sonner'; const { success } = toast; export function ok(m: string) { success(m); }",
+        "import { toast } from 'sonner'; class Holder { t = toast; } export function show(m: string) { new Holder().t(m); }",
+        // A written place, a method, an extended class, `as const`: no other type taken.
+        "import { toast } from 'sonner'; const box = { t: toast } as const; export function show(m: string) { box.t(m); }",
+        "import { toast } from 'sonner'; class Holder { t = toast; reset() { this.t = toast; } run() { return toast; } } export function show(m: string) { new Holder().run()(m); }",
       ],
       ADAPTED,
     ),
@@ -656,8 +658,30 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         "import { toast } from 'sonner'; const f = toast as unknown as () => void; f();",
         "import { Toaster } from 'sonner'; export function make(): unknown { return Toaster; }",
         "import { Toaster } from 'sonner'; import type { ComponentType } from 'react'; const later = (c: ComponentType<any>) => c; export const T = later(Toaster);",
+        // No contextual type, and a position that takes the value somewhere no type describes
+        // (P1 QA26 F1, F3).
+        "import { toast } from 'sonner'; export function fail(): void { throw toast; }",
+        "import { toast } from 'sonner'; queueMicrotask(() => { throw toast; });",
+        "import { toast } from 'sonner'; class Holder { t: unknown = toast; } void Holder;",
+        "import { toast } from 'sonner'; export function* each(): Generator<unknown> { yield toast; }",
+        "import 'sonner'; export const load = (): Promise<unknown> => import('sonner');",
       ],
       'escapes',
+      ADAPTED,
+    ),
+    // A slot of a package type is declared where no package is imported, or declared global:
+    // the module or global holding it exposes the package (P1 QA26 F2).
+    ...red(
+      [
+        "export function keep(f: typeof import('sonner').toast): void { void f; }",
+        "export let slot: typeof import('sonner').Toaster | undefined;",
+        "declare global { var shown: typeof import('sonner').toast; } export {};",
+        "declare global { interface Window { shown: typeof import('sonner').toast } } export {};",
+        "declare var shown: typeof import('sonner').toast;",
+        "import type { Toaster } from 'sonner'; export type T = typeof Toaster;",
+        "import type sonner = require('sonner'); export type S = typeof sonner;",
+      ],
+      'exposes',
       ADAPTED,
     ),
     // A debt module (no adapter yet) is judged the same: its import is debt, and it hands nothing on.
