@@ -593,6 +593,9 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         "import 'sonner'; import { z } from 'zod'; declare function keep(x: unknown): void; keep(z.string()); export const s = z.string();",
         "import { toast } from 'sonner'; const { success } = toast; export function ok(m: string) { success(m); }",
         "import { toast } from 'sonner'; class Holder { t = toast; } export function show(m: string) { new Holder().t(m); }",
+        // Handed to the package itself: its calls, members, elements and callbacks.
+        "import { toast } from 'sonner'; toast('a', { onDismiss: (t) => void t.id });",
+        "import { Toaster } from 'sonner'; const T = Toaster; export function A() { return <T toastOptions={{ duration: 1 }} />; }",
         // A written place, a method, an extended class, `as const`: no other type taken.
         "import { toast } from 'sonner'; const box = { t: toast } as const; export function show(m: string) { box.t(m); }",
         "import { toast } from 'sonner'; class Holder { t = toast; reset() { this.t = toast; } run() { return toast; } } export function show(m: string) { new Holder().run()(m); }",
@@ -654,7 +657,6 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         "import { toast } from 'sonner'; declare function keep(f: (m: string) => void): void; keep(toast);",
         "import { toast } from 'sonner'; setTimeout(toast, 0, 'x');",
         "import { toast } from 'sonner'; declare function keep(f: unknown): void; keep(toast.success);",
-        "import { toast } from 'sonner'; queueMicrotask(toast.bind(null, 'x'));",
         "import { toast } from 'sonner'; const f = toast as unknown as () => void; f();",
         "import { Toaster } from 'sonner'; export function make(): unknown { return Toaster; }",
         "import { Toaster } from 'sonner'; import type { ComponentType } from 'react'; const later = (c: ComponentType<any>) => c; export const T = later(Toaster);",
@@ -665,10 +667,38 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         "import { toast } from 'sonner'; class Holder { t: unknown = toast; } void Holder;",
         "import { toast } from 'sonner'; export function* each(): Generator<unknown> { yield toast; }",
         "import 'sonner'; export const load = (): Promise<unknown> => import('sonner');",
+        // Handed to code no package declares, whatever type it takes it as: a generic, a
+        // library call, a global (P1 QA27 F1–F3).
+        "import { toast } from 'sonner'; function keep<T>(v: T): void { void v; } keep(toast);",
+        "import { toast } from 'sonner'; export const box: { t?: unknown } = {}; Object.assign(box, { t: toast });",
+        "import { toast } from 'sonner'; function keep(v: unknown): void { void v; } keep.call(null, toast);",
+        "import { toast } from 'sonner'; declare global { var held: unknown; } globalThis.held = toast;",
+        "import { toast } from 'sonner'; export const slot: { t?: unknown } = {}; slot.t = toast;",
       ],
       'escapes',
       ADAPTED,
     ),
+    // A function the package calls with its values takes them under another type (QA27 F1).
+    ...red(
+      [
+        "import { toast } from 'sonner'; toast('a', { onDismiss: (t: unknown) => void t });",
+        "import { toast } from 'sonner'; function seen(t: object): void { void t; } toast('a', { onAutoClose: seen });",
+      ],
+      'takes',
+      ADAPTED,
+    ),
+    {
+      filename,
+      code: "import { toast } from 'sonner'; queueMicrotask(toast.bind(null, 'x'));",
+      options: ADAPTED,
+      errors: [{ messageId: 'escapes' }],
+    },
+    {
+      filename,
+      code: "import { toast } from 'sonner'; export const slot: { root?: unknown } = {}; const keep = (v: unknown): void => { slot.root = v; }; [toast].forEach(keep);",
+      options: ADAPTED,
+      errors: [{ messageId: 'takes' }],
+    },
     // A slot of a package type is declared where no package is imported, or declared global:
     // the module or global holding it exposes the package (P1 QA26 F2).
     ...red(

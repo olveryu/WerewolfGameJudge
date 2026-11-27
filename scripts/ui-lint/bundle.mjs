@@ -578,6 +578,11 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
           `registry: \`${module}\` is the adapter of \`${specifier}\` (${name}) but does not import it`,
         );
   }
+  // Declaration files are in no import graph, yet the web program reads every one: a global
+  // they declare is a slot any module can fill and read, so E12 judges what they expose
+  // (P1 QA27 F3).
+  for (const file of trackedFiles(root, `${WEB_ROOT}/*.d.ts`))
+    if (!file.split('/').includes('node_modules')) scripts.add(file);
   return {
     scripts: [...scripts].sort(),
     styles: [...styles].sort(),

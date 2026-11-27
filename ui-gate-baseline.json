@@ -968,7 +968,10 @@
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > <div> > width\twidth: 40,",
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > <div> > width\twidth: 80,",
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > bottom\tbottom: 40,",
-      "ui/package-adapter\tescapes\tFortuneWheel > build\tconst build: ArtBuilder = (root, own) => { if (!reducedMotion) { const stars = graphicsLayer(root, { blur: 4, screen: true }); for (const star of createFortuneStars(screenWidth, screenHeight)) { stars .circle(star.x, star.y, star.r * 4) .fill({ color: '#aaaaff', alpha: 0.3 }) .circle(star.x, star.y, star.r) .fill({ color: '#ccccff', alpha: 0.8 }); } }  const wheel = groupLayer(root, new Container()); wheel.pivot.set(cx, cy); wheel.position.set(cx, cy); const rotor = groupLayer(wheel, new Container()); rotor.pivot.set(cx, cy); rotor.position.set(cx, cy);  const sectors = graphicsLayer(rotor); sectors .circle(cx, cy, wheelR) .fill(GOLD_DARK) .circle(cx, cy, wheelR) .stroke({ color: GOLD, width: 3 }); for (const segment of segmentData) { sectors .moveTo(cx, cy) .lineTo( cx + innerR * Math.cos(segment.startAngle), cy + innerR * Math.sin(segment.startAngle), ) .arc(cx, cy, innerR, segment.startAngle, segment.endAngle) .closePath() .fill(segment.color); } for (const segment of segmentData) { sectors .moveTo(cx, cy) .lineTo(segment.edgeX, segment.edgeY) .stroke({ color: SEGMENT_DIVIDER, width: 1.5 }) .circle(segment.dotX, segment.dotY, DOT_R) .fill(GOLD); } sectors.circle(cx, cy, innerR).stroke({ color: GOLD_DARK, width: 1.5 }); const gems = graphicsLayer(rotor, { blur: 3 });  const hub = graphicsLayer(wheel); hub .circle(cx, cy, centerR) .fill(CENTER_FILL) .circle(cx, cy, centerR) .stroke({ color: GOLD, width: 3 }) .circle(cx, cy, centerR * 0.7) .stroke({ color: GOLD_DARK, width: 1 }) .circle(cx, cy, centerR * 0.35) .fill(own(radialGradient(cx - 2, cy - 2, centerR * 0.35, ['#ff6666', '#cc0033', '#660019']))); graphicsLayer(wheel, { blur: 1 }) .circle(cx - 3, cy - 3, 3) .fill({ color: '#ffffff', alpha: 0.4 });  const pointerTop = cy - wheelR - POINTER_GAP; const pointerTipY = pointerTop + POINTER_SIZE; const pointerHalfWidth = POINTER_SIZE * 0.55; const pointerPoints = [ cx, pointerTipY, cx - pointerHalfWidth, pointerTop, cx + pointerHalfWidth, pointerTop, ]; graphicsLayer(wheel) .poly(pointerPoints) .fill(POINTER_FILL) .poly(pointerPoints) .stroke({ color: POINTER_STROKE_COLOR, width: 2 }); const tickGlow = graphicsLayer(wheel, { blur: 4 }); tickGlow .circle(cx, pointerTipY, 8) .fill(own(radialGradient(cx, pointerTipY, 8, ['#ff666680', '#ff660000'])));  const flash = graphicsLayer(root); flash.rect(0, 0, screenWidth, screenHeight).fill(theme.glowColor);  return () => { wheel.alpha = canvasOpacity.get() * wheelOpacity.get(); wheel.scale.set(wheelScale.get()); rotor.rotation = rotation.get(); const pulse = gemPulse.get(); gems.clear(); segmentData.forEach((segment, index) => { gems.circle(segment.dotX, segment.dotY, DOT_R + 2).fill({ color: GEM_COLORS[index % GEM_COLORS.length] ?? GOLD, alpha: 0.5 + Math.sin(pulse + (index * Math.PI) / 3) * 0.3, }); }); tickGlow.alpha = pointerTickGlow.get() * 0.6; flash.alpha = flashOpacity.get(); }; };",
+      "ui/package-adapter\tescapes\tFortuneWheel > build\t.fill(own(radialGradient(cx - 2, cy - 2, centerR * 0.35, ['#ff6666', '#cc0033', '#660019'])));",
+      "ui/package-adapter\tescapes\tFortuneWheel > build\t.fill(own(radialGradient(cx, pointerTipY, 8, ['#ff666680', '#ff660000'])));",
+      "ui/package-adapter\tescapes\tFortuneWheel > build > rotor\tconst rotor = groupLayer(wheel, new Container());",
+      "ui/package-adapter\tescapes\tFortuneWheel > build > wheel\tconst wheel = groupLayer(root, new Container());",
       "ui/package-adapter\tnone\t\timport { Container } from 'pixi.js';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/GachaMachine.tsx": [
@@ -1323,7 +1326,8 @@
       "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > letterSpacing\tletterSpacing: 2,",
       "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > opacity\t<span style={{ ...captionStyle, bottom: 12, fontSize: 10, opacity: 0.4 }}>",
       "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > opacity\topacity: 0.5,",
-      "ui/package-adapter\tescapes\tCoatingArt > build\tconst build: ArtBuilder = (root, own) => { const corners = new Graphics() .roundRect(0, 0, width, height, CARD_CORNER_RADIUS) .fill(0xffffff); root.addChild(corners); root.mask = corners;  const holes = new Graphics(); root.addChild(holes); const coating = new Container(); root.addChild(coating); coating.setMask({ mask: holes, inverse: true });  coating.addChild( new Graphics() .rect(0, 0, width, height) .fill( own( linearGradient({ x: 0, y: 0 }, { x: width, y: height }, [ SCRATCH_COLORS.metalLight, SCRATCH_COLORS.metalBase, SCRATCH_COLORS.metalDark, ]), ), ), );  const diamonds = new Container(); diamonds.alpha = 0.08; coating.addChild(diamonds); const glyphs = Array.from( { length: DIAMOND_ROWS * DIAMOND_COLUMNS }, () => new Text({ text: '◇', style: { fontSize: 16, fill: 0x000000 } }), ); const [firstGlyph] = glyphs; if (!firstGlyph) throw new Error('ScratchReveal needs its diamond pattern'); const glyphWidth = firstGlyph.width; const glyphHeight = firstGlyph.height; const patternLeft = (width - (DIAMOND_COLUMNS * glyphWidth + (DIAMOND_COLUMNS - 1) * DIAMOND_GAP)) / 2; const patternTop = (height - DIAMOND_ROWS * glyphHeight) / 2; glyphs.forEach((glyph, index) => { const row = Math.floor(index / DIAMOND_COLUMNS); const column = index % DIAMOND_COLUMNS; glyph.position.set( patternLeft + column * (glyphWidth + DIAMOND_GAP), patternTop + row * glyphHeight, ); diamonds.addChild(glyph); });  const sheen = new Graphics() .rect(0, 0, SHEEN_WIDTH, height) .fill( own( linearGradient({ x: 0, y: 0 }, { x: SHEEN_WIDTH, y: 0 }, [ 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 0)', ]), ), ); coating.addChild(sheen);  let drawnHoles = 0; return () => { sheen.x = interpolate(sheenPosition.get(), [0, 1], [-width, width]); const points = pointsRef.current; for (; drawnHoles < points.length; drawnHoles++) { const point = points[drawnHoles]; if (point) holes.circle(point.x, point.y, brushRadius).fill(0xffffff); } }; };",
+      "ui/package-adapter\tescapes\tCoatingArt > build\tlinearGradient({ x: 0, y: 0 }, { x: width, y: height }, [ SCRATCH_COLORS.metalLight, SCRATCH_COLORS.metalBase, SCRATCH_COLORS.metalDark, ]),",
+      "ui/package-adapter\tescapes\tCoatingArt > build > sheen\tlinearGradient({ x: 0, y: 0 }, { x: SHEEN_WIDTH, y: 0 }, [ 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 0)', ]),",
       "ui/package-adapter\tnone\t\timport { Container, Graphics, Text } from 'pixi.js';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/SealBreak.tsx": [
@@ -1580,6 +1584,7 @@
       "ui/inline-style-keys\tuntracked\tVortexCollapse > <div> > background\tstyle={{ position: 'absolute', inset: 0, background: BG_GRADIENT }}"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/pixi/kit.ts": [
+      "ui/package-adapter\tescapes\tgraphicsLayer\treturn groupLayer(parent, new Graphics(), options);",
       "ui/package-adapter\texposes\tblurFilter\texport function blurFilter(sigma: number): BlurFilter { const filter = new BlurFilter({ strength: 1 }); setBlurSigma(filter, sigma); return filter; }",
       "ui/package-adapter\texposes\tgraphicsLayer\texport function graphicsLayer(parent: Container, options: LayerOptions = {}): Graphics { return groupLayer(parent, new Graphics(), options); }",
       "ui/package-adapter\texposes\tgroupLayer\texport function groupLayer<T extends Container>( parent: Container, child: T, options: LayerOptions = {}, ): T { const blendMode = options.screen ? 'screen' : 'normal'; if (options.blur !== undefined) { const filter = typeof options.blur === 'number' ? blurFilter(options.blur) : options.blur; filter.blendMode = blendMode; child.filters = [filter]; } else { child.blendMode = blendMode; } parent.addChild(child); return child; }",
@@ -2494,11 +2499,20 @@
     ],
     "packages/web/src/scene/stage.ts": [
       "ui/package-adapter\tescapes\tContainerSceneNode > build\tartView.context = this.leases.acquire(art, `${size}`, (context) => art(context, size));",
-      "ui/package-adapter\tescapes\tMorphSceneNode\tthis.view.addChild(...this.variants);",
+      "ui/package-adapter\tescapes\tContextCache > acquire\tbyKey.set(key, entry);",
+      "ui/package-adapter\tescapes\tContextCache > acquire\tthis.entries.set(owner, byKey);",
+      "ui/package-adapter\tescapes\tSceneStage > createNode\treturn new GroupSceneNode(node, node.children.map(createChild), leases);",
+      "ui/package-adapter\tescapes\tSceneStage > createNode\treturn new LayerSceneNode(node, (node.children ?? []).map(createChild), leases);",
+      "ui/package-adapter\tescapes\tSceneStage > layerFor\tthis.hostLayers.set(host, layer);",
+      "ui/package-adapter\tescapes\tSceneStage > loadMaskTexture\tthis.maskTextures.set(url, texture);",
       "ui/package-adapter\tescapes\tSceneStage > mount\treturn decoration;",
+      "ui/package-adapter\tescapes\tSceneStage > mount\tthis.decorations.add(decoration);",
+      "ui/package-adapter\tescapes\tSceneStage > mount > decoration\tconst decoration = new MountedDecoration(this, spec.nodes.map(createNode), resolution);",
       "ui/package-adapter\tescapes\tSceneStage > mountEntrance > entrance\tconst entrance = new MountedEntrance(spec, callbacks, this);",
+      "ui/package-adapter\tescapes\tSceneStage > unmount\tthis.decorations.delete(decoration);",
       "ui/package-adapter\tescapes\tStrokePair > setOpacity > weight\tconst weight = thickWeight(strokeWidth, this);",
-      "ui/package-adapter\tescapes\tdashFlowShape\tart = (context, k, size) => node.art(context, dashFlowOffset(k, variantCount, node.dashPeriod), size);",
+      "ui/package-adapter\tescapes\tTextureCache > acquire\tbyKey.set(key, entry);",
+      "ui/package-adapter\tescapes\tTextureCache > acquire\tthis.entries.set(art, byKey);",
       "ui/package-adapter\tescapes\treleaseUnfinishedRenderer > pipes\tconst pipes = new Set<unknown>(Object.values(renderer.renderPipes));",
       "ui/package-adapter\tescapes\tsystemNameOf\treturn Object.entries(renderer).find(([, value]) => value === system)?.[0] ?? 'unknown';",
       "ui/package-adapter\texposes\t\texport type { SceneStage };",
