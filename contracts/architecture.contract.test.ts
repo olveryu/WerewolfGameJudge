@@ -1178,18 +1178,21 @@ describe('Client dialogs: one Ark dialog root', () => {
   // zag closes every dismissable layer above a layer that is removed. AppDialog's root blocks
   // that cascade (see its file header), so it is the only module that may import Ark's dialog.
   // Other Ark/zag parts that open dismissable layers (drawer, popover, menu, select, hover card,
-  // the bare barrels, zag's own packages) would bring the cascade back, so Ark and zag are
-  // allowed only through this list of parts that open no layer. The color picker is used
-  // `inline` (DrawingToolbar), which renders no popover layer.
+  // a non-inline color picker, the bare barrels, zag's own packages) would bring the cascade
+  // back. Ark and zag are therefore imported only by their owning shared modules — AppDialog
+  // for the dialog, InlineColorPicker (always inline) for the color picker — or for parts that
+  // open no layer.
   const LAYERLESS_ARK_PARTS = [
-    '@ark-ui/react/color-picker',
     '@ark-ui/react/portal',
     '@ark-ui/react/qr-code',
     '@ark-ui/react/tabs',
   ];
-  const APP_DIALOG_FILE = 'packages/web/src/components/AppDialog.tsx';
+  const OWNED_ARK_PARTS: Readonly<Record<string, string>> = {
+    '@ark-ui/react/dialog': 'packages/web/src/components/AppDialog.tsx',
+    '@ark-ui/react/color-picker': 'packages/web/src/components/InlineColorPicker.tsx',
+  };
 
-  it('imports Ark and zag only through AppDialog or parts that open no layer', () => {
+  it('imports Ark and zag only through their shared owners or parts that open no layer', () => {
     const offenders = srcFiles.flatMap((filePath) => {
       const source = fs.readFileSync(filePath, 'utf-8');
       // Every Ark or zag specifier contains one of these strings; skip parsing the rest.
@@ -1199,65 +1202,9 @@ describe('Client dialogs: one Ark dialog root', () => {
         .filter(
           (specifier) =>
             !LAYERLESS_ARK_PARTS.includes(specifier) &&
-            !(specifier === '@ark-ui/react/dialog' && repoPath(filePath) === APP_DIALOG_FILE),
+            OWNED_ARK_PARTS[specifier] !== repoPath(filePath),
         )
         .map((specifier) => `${repoPath(filePath)}: ${specifier}`);
-    });
-
-    expect(offenders).toEqual([]);
-  });
-
-  it('opens no color-picker popover: every ColorPicker.Root is inline', () => {
-    const files = srcFiles.filter((filePath) =>
-      getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes(
-        '@ark-ui/react/color-picker',
-      ),
-    );
-    // Every root of the part, under any local name, must carry `inline`.
-    const offenders = files.flatMap((filePath) => {
-      const sourceFile = ts.createSourceFile(
-        filePath,
-        fs.readFileSync(filePath, 'utf-8'),
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TSX,
-      );
-      const localNames = sourceFile.statements.flatMap((statement) => {
-        if (
-          !ts.isImportDeclaration(statement) ||
-          !ts.isStringLiteral(statement.moduleSpecifier) ||
-          statement.moduleSpecifier.text !== '@ark-ui/react/color-picker'
-        ) {
-          return [];
-        }
-        const bindings = statement.importClause?.namedBindings;
-        if (bindings === undefined) return [];
-        if (ts.isNamespaceImport(bindings)) return [`${bindings.name.text}.ColorPicker`];
-        return bindings.elements
-          .filter((element) => (element.propertyName ?? element.name).text === 'ColorPicker')
-          .map((element) => element.name.text);
-      });
-      const rootTags = new Set(localNames.map((name) => `${name}.Root`));
-      const roots: ts.JsxAttributes[] = [];
-      const visit = (node: ts.Node): void => {
-        if (
-          (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
-          rootTags.has(node.tagName.getText(sourceFile))
-        ) {
-          roots.push(node.attributes);
-        }
-        ts.forEachChild(node, visit);
-      };
-      visit(sourceFile);
-      return roots
-        .filter(
-          (attributes) =>
-            !attributes.properties.some(
-              (property) =>
-                ts.isJsxAttribute(property) && property.name.getText(sourceFile) === 'inline',
-            ),
-        )
-        .map(() => repoPath(filePath));
     });
 
     expect(offenders).toEqual([]);

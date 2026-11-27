@@ -8,12 +8,12 @@
 
 import './DrawingToolbar.css';
 
-import { ColorPicker, parseColor } from '@ark-ui/react/color-picker';
 import { Portal } from '@ark-ui/react/portal';
 import type { ComponentType, CSSProperties, SVGProps } from 'react';
 import { useRef, useState } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
+import { InlineColorPicker, parseColor } from '@/components/InlineColorPicker';
 import { TESTIDS } from '@/testids';
 import IconAdd from '~icons/ion/add';
 import IconArrowBack from '~icons/ion/arrow-back';
@@ -151,8 +151,7 @@ function ColorPickerPanel({
   readonly onColorChange: (hex: string) => void;
 }) {
   return (
-    <ColorPicker.Root
-      inline
+    <InlineColorPicker.Root
       className="drawing-color-picker"
       defaultValue={parseColor(color)}
       onValueChangeEnd={(details) => {
@@ -163,31 +162,34 @@ function ColorPickerPanel({
         onColorChange(hex);
       }}
     >
-      <ColorPicker.Area
+      <InlineColorPicker.Area
         className="drawing-color-picker-area"
         aria-label="饱和度与明度"
         data-testid={TESTIDS.drawingColorPickerArea}
       >
-        <ColorPicker.AreaBackground className="drawing-color-picker-area-background" />
-        <ColorPicker.AreaThumb
+        <InlineColorPicker.AreaBackground className="drawing-color-picker-area-background" />
+        <InlineColorPicker.AreaThumb
           className="drawing-color-picker-thumb"
           aria-label="调整饱和度与明度"
         />
-      </ColorPicker.Area>
-      <ColorPicker.ChannelSlider
+      </InlineColorPicker.Area>
+      <InlineColorPicker.ChannelSlider
         className="drawing-color-picker-hue"
         channel="hue"
         aria-label="色相"
         data-testid={TESTIDS.drawingColorPickerHue}
       >
-        <ColorPicker.ChannelSliderTrack className="drawing-color-picker-hue-track" />
-        <ColorPicker.ChannelSliderThumb
+        <InlineColorPicker.ChannelSliderTrack className="drawing-color-picker-hue-track" />
+        <InlineColorPicker.ChannelSliderThumb
           className="drawing-color-picker-thumb"
           aria-label="调整色相"
         />
-      </ColorPicker.ChannelSlider>
-      <ColorPicker.ValueSwatch className="drawing-color-picker-preview" aria-label="当前颜色预览" />
-    </ColorPicker.Root>
+      </InlineColorPicker.ChannelSlider>
+      <InlineColorPicker.ValueSwatch
+        className="drawing-color-picker-preview"
+        aria-label="当前颜色预览"
+      />
+    </InlineColorPicker.Root>
   );
 }
 
