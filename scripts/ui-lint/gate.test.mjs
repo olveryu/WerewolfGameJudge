@@ -40,6 +40,24 @@ describe('baseline comparison', () => {
   });
 });
 
+describe('baseline format (P1 QA7 F2)', () => {
+  // A fingerprint is rule ID, message ID and source line; the message text is not part of it, so
+  // rewording a message never turns recorded debt into new debt.
+  it('records identities, not message text', () => {
+    const saved = JSON.parse(
+      fs.readFileSync(path.join(import.meta.dirname, '../..', BASELINE_FILE), 'utf8'),
+    );
+    for (const list of Object.values(saved.files))
+      for (const key of list) {
+        const [rule, messageId, source, ...rest] = key.split('\t');
+        expect(saved.rules).toContain(rule);
+        expect(messageId).toMatch(/^(?:[a-zA-Z]+)?$/);
+        expect(source).not.toBe('');
+        expect(rest).toEqual([]);
+      }
+  });
+});
+
 describe('bundle graph', () => {
   it('has no problems and reaches the app, the boot splash and the token sheet', () => {
     const graph = bundleGraph();

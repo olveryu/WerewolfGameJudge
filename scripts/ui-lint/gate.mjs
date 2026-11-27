@@ -5,7 +5,10 @@
  * 1. Compute the bundle graph (`bundle.mjs`); any graph problem fails the gate.
  * 2. Lint the graph's stylesheets with `stylelint.gate.mjs` and its scripts with `eslint.gate.mjs`
  *    (own configurations only, inline disables ignored).
- * 3. Turn every violation into a fingerprint (rule, message, trimmed source line) and compare:
+ * 3. Turn every violation into a fingerprint and compare. A fingerprint is the violation's
+ *    identity in code: rule ID, message ID (ESLint; Stylelint has none) and the trimmed source
+ *    line. The message text is not part of it, so rewording a message records no new debt
+ *    (P1 QA7 F2); renaming a message ID is renaming part of a rule's identity, like a rule ID.
  *    - exactly equal to `ui-gate-baseline.json` (a fixed violation must shrink the baseline);
  *    - no fingerprint beyond the baseline at the comparison base (renames followed), except
  *      for rule IDs the base baseline does not list yet (a new rule records its existing debt).
@@ -26,11 +29,18 @@ import stylelintConfig from './stylelint.gate.mjs';
 
 export const BASELINE_FILE = 'ui-gate-baseline.json';
 
-function fingerprint(rule, message, lines, line, file) {
+function fingerprint(rule, messageId, lines, line, file) {
   // A reported line outside the file is a linter or rule bug, never an empty fingerprint.
   if (!Number.isInteger(line) || line < 1 || line > lines.length)
     throw new Error(`UI gate: ${rule} reported line ${line} of ${file} (${lines.length} lines)`);
-  return `${rule}\t${message}\t${lines[line - 1].trim()}`;
+  return `${rule}\t${messageId}\t${lines[line - 1].trim()}`;
+}
+
+/** Where and why each current fingerprint was reported, for the failure output (P1 QA7 S1). */
+function remember(reports, file, key, line, message) {
+  const list = reports.get(`${file}\t${key}`) ?? [];
+  list.push(`${file}:${line}: ${message}`);
+  reports.set(`${file}\t${key}`, list);
 }
 
 function readLines(root, file) {
@@ -50,13 +60,15 @@ function sortFiles(files) {
 }
 
 /**
- * Lint the graph; returns `{ problems, rules, files, graph }`. `only` (repository-relative
+ * Lint the graph; returns `{ problems, rules, files, reports, graph }` (`reports`: for each
+ * `file\tfingerprint`, the `file:line: message` of its occurrences). `only` (repository-relative
  * paths) narrows the linted files to those of the graph it names; the scope stays the graph.
  */
 export async function runGate({ root = REPO_ROOT, styles = true, scripts = true, only } = {}) {
   const graph = bundleGraph(root);
   const pick = (list) => (only ? list.filter((file) => only.has(file)) : list);
   const files = {};
+  const reports = new Map();
   const rules = new Set();
   if (styles) {
     for (const rule of Object.keys(stylelintConfig.rules)) rules.add(rule);
@@ -79,7 +91,11 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
         // A stylesheet that does not parse is not linted past the error: never a baseline entry.
         if (warning.rule === 'CssSyntaxError')
           graph.problems.push(`${file}:${warning.line}: ${warning.text}`);
-        else add(files, file, fingerprint(warning.rule, warning.text, lines, warning.line, file));
+        else {
+          const key = fingerprint(warning.rule, '', lines, warning.line, file);
+          add(files, file, key);
+          remember(reports, file, key, warning.line, warning.text);
+        }
       }
     }
   }
@@ -101,12 +117,24 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
       for (const message of result.messages) {
         if (message.ruleId === null)
           graph.problems.push(`${file}:${message.line}: ${message.message}`);
-        else
-          add(files, file, fingerprint(message.ruleId, message.message, lines, message.line, file));
+        else {
+          // Every rule of the gate configuration reports through `messages` (message IDs).
+          if (message.messageId === undefined)
+            throw new Error(`UI gate: ${message.ruleId} reported without a message ID in ${file}`);
+          const key = fingerprint(message.ruleId, message.messageId, lines, message.line, file);
+          add(files, file, key);
+          remember(reports, file, key, message.line, message.message);
+        }
       }
     }
   }
-  return { problems: graph.problems, rules: [...rules].sort(), files: sortFiles(files), graph };
+  return {
+    problems: graph.problems,
+    rules: [...rules].sort(),
+    files: sortFiles(files),
+    reports,
+    graph,
+  };
 }
 
 function git(root, args) {
@@ -178,6 +206,21 @@ export function growth(current, base, renames) {
   );
 }
 
+/** One failure line per occurrence: where and what for a current violation, else its source. */
+function describe(current, file, key, delta) {
+  const [rule, messageId, source] = key.split('\t');
+  const id = messageId === '' ? rule : `${rule}/${messageId}`;
+  const occurrences = current.reports.get(`${file}\t${key}`);
+  if (delta > 0 && occurrences !== undefined) {
+    // The baseline holds some of these: which ones are new is a matter of count, not of line.
+    const share = delta < occurrences.length ? ` (${delta} of these ${occurrences.length})` : '';
+    return occurrences.map((occurrence) => `  new${share} ${occurrence} (${id})`);
+  }
+  const label = delta > 0 ? 'new' : 'fixed, still in baseline';
+  const times = Math.abs(delta) > 1 ? ` ×${Math.abs(delta)}` : '';
+  return [`  ${label} ${file} (${id})${times}: ${source}`];
+}
+
 const onlyStyles = (files) =>
   Object.fromEntries(Object.entries(files).filter(([file]) => file.endsWith('.css')));
 
@@ -221,10 +264,7 @@ async function main() {
   if (drift.length > 0) {
     fail([
       `UI gate: violations differ from ${BASELINE_FILE} (fix new ones; after fixing old ones run pnpm run lint:ui:baseline):`,
-      ...drift.map(
-        ([file, key, delta]) =>
-          `  ${delta > 0 ? 'new' : 'fixed, still in baseline'} ${file}: ${key.split('\t').slice(0, 2).join(' — ')}${Math.abs(delta) > 1 ? ` ×${Math.abs(delta)}` : ''}`,
-      ),
+      ...drift.flatMap(([file, key, delta]) => describe(current, file, key, delta)),
     ]);
   }
   if (!stylesOnly) {
@@ -233,7 +273,7 @@ async function main() {
     if (grown.length > 0) {
       fail([
         `UI gate: ${BASELINE_FILE} grew against ${base.slice(0, 12)}; the baseline only shrinks:`,
-        ...grown.map(([file, key]) => `  ${file}: ${key.split('\t').slice(0, 2).join(' — ')}`),
+        ...grown.flatMap(([file, key, delta]) => describe(current, file, key, delta)),
       ]);
     }
   }

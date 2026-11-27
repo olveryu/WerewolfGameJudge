@@ -5,38 +5,22 @@
  */
 import valueParser from 'postcss-value-parser';
 
-import { DOMAIN_COMMON, DOMAINS, FUNCTIONS, PROPERTIES, SYSTEM_COLORS } from './registry.mjs';
+import {
+  ANIMATION_KEYWORDS,
+  ANIMATION_NAMES,
+  COLOR_KEYWORDS,
+  DOMAIN_COMMON,
+  DOMAINS,
+  FUNCTIONS,
+  MATH,
+  OPERATORS,
+  PROPERTIES,
+  REFERENCES,
+  SYSTEM_COLORS,
+} from './registry.mjs';
 
 const VENDOR_PREFIX = /^-(?:webkit|moz|ms|o)-/;
-const MATH = new Set(['calc', 'min', 'max', 'clamp']);
-const OPERATORS = new Set(['+', '-', '*', '/']);
 const IDENT = /^-?[a-z_][\w-]*$/i;
-/** Color atoms besides `var()`: every domain that holds a color accepts them. */
-const COLOR_KEYWORDS = new Set(['transparent', 'currentcolor']);
-/** Functions whose arguments are references, not values: `url()` only (`env()` has a fallback). */
-const REFERENCES = new Set(['url']);
-/** `animation` keywords; any other identifier there names a keyframes rule. */
-const ANIMATION_KEYWORDS = new Set([
-  'infinite',
-  'linear',
-  'ease',
-  'ease-in',
-  'ease-out',
-  'ease-in-out',
-  'step-start',
-  'step-end',
-  'normal',
-  'reverse',
-  'alternate',
-  'alternate-reverse',
-  'none',
-  'forwards',
-  'backwards',
-  'both',
-  'running',
-  'paused',
-]);
-const ANIMATION_NAMES = new Set(['animation', 'animation-name']);
 
 export const valueMessages = {
   property: (prop) => `\`${prop}\` is not a registered property (UI gate S1).`,

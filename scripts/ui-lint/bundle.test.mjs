@@ -112,10 +112,36 @@ describe('bundle graph allow list', () => {
     ['declare const s: string; void new URL(s, import.meta.url);', 'takes a literal relative path'],
     ["void new URL('./missing.ts', import.meta.url);", 'resolves to no file'],
     ["void new Worker('/w.js');", 'a worker takes'],
-    ["void import.meta.glob('./**/*.ts');", 'must be one directory'],
+    ["void import.meta.glob('./**/*.ts');", 'must match files of one directory'],
+    ["void import.meta.glob('./*/x.ts');", 'must match files of one directory'],
+    ["void import.meta.glob('!./b.ts');", 'negated patterns'],
+    ["void import.meta.glob('./nowhere/*.ts');", 'does not exist'],
+    ["void import.meta.glob('lib/*.ts');", 'not relative, rooted or aliased'],
   ])('rejects %s', (text, problem) => {
     const { problems } = graph(main(text));
     expect(problems.some((line) => line.includes(problem))).toBe(true);
+  });
+
+  // Vite resolves glob patterns from the file, from the project root and through aliases, and
+  // expands braces: each form reaches the modules it matches (P1 QA7 F3).
+  const X = 'packages/web/src/g/x.ts';
+  const Y = 'packages/web/src/g/y.tsx';
+  it.each([
+    ["void import.meta.glob('./g/*.ts');", [X]],
+    ["void import.meta.glob('/src/g/*.ts');", [X]],
+    ["void import.meta.glob('@/g/*.ts');", [X]],
+    ["void import.meta.glob('./g/*.{ts,tsx}');", [X, Y]],
+    ["void import.meta.glob(['./g/x.ts', '@/g/y.tsx']);", [X, Y]],
+  ])('follows the matches of %s', (text, matched) => {
+    const result = graph({
+      ...main(text),
+      [X]: 'export {};',
+      [Y]: 'export {};',
+    });
+    expect(result.problems).toEqual([]);
+    expect(result.scripts.filter((file) => file.startsWith('packages/web/src/g/'))).toEqual(
+      matched,
+    );
   });
 
   it('accepts a package only through its registered entries (QA6 L7)', () => {

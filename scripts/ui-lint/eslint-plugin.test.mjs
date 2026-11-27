@@ -53,6 +53,9 @@ const writer = (entries) => [{ writers: { [PROBE]: entries } }];
 tester.run('ui/dom-allowlist', uiLint.rules['dom-allowlist'], {
   valid: [
     ...green([
+      // `super()` into a chain without a declared constructor resolves to nothing to judge (QA7 S3).
+      'class Base {} export class Child extends Base { constructor() { super(); } }',
+      'class Base { x = 1; } class Mid extends Base {} export class Child extends Mid { constructor() { super(); } }',
       'declare const el: HTMLElement; el.addEventListener("click", () => {}); el.focus();',
       'declare const el: HTMLElement; el.getBoundingClientRect(); el.querySelector("a");',
       'declare const el: HTMLElement; const { style } = el; void style.color;',
@@ -203,6 +206,9 @@ tester.run('ui/dom-allowlist', uiLint.rules['dom-allowlist'], {
 
 tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
   valid: green([
+    // `super()` into a chain without a declared constructor resolves to nothing to judge (QA7 S3).
+    'class Base {} export class Child extends Base { constructor() { super(); } }',
+    'class Base { x = 1; } class Mid extends Base {} export class Child extends Mid { constructor() { super(); } }',
     'export const a = <div><span /></div>;',
     'const Card = () => null; export const a = <Card />;',
     'const ui = { Card: () => null }; export const a = <ui.Card />;',
@@ -288,6 +294,12 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     `${REACT}declare const fromProps: CSSProperties; export const a = <div style={fromProps} />;`,
     'declare const on: boolean; const card = { opacity: 1 }; export const a = <div style={on ? card : { opacity: 0 }} />;',
     'declare const s: { opacity: number }; export const a = <div style={s} />;',
+    // A name without a written literal is a runtime value (QA7 F4 negative cases).
+    'export const A = ({ size }: { size: number }) => <div style={{ width: size }} />;',
+    "import { useState } from 'react'; export function A() { const [w] = useState(() => window.innerWidth); return <div style={{ width: w }} />; }",
+    "const sizes = { card: 'var(--space-3)' }; export const a = <div style={{ padding: sizes.card }} />;",
+    // A typed style literal in another file is judged where it is written, not again here (N3).
+    "import { typedCard } from './styles'; export const a = <div style={typedCard} />;",
   ]),
   invalid: [
     ...red(
@@ -332,6 +344,17 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "import { shorthandCard } from './styles'; export const a = <div style={shorthandCard} />;",
         "declare const s: Record<'mysteryProperty', string>; export const a = <div style={s} />;",
         'declare const s: { borderRadius: 7 }; export const a = <div style={s} />;',
+        // Written literals TypeScript widens are read from their initializers (QA7 F4).
+        'export const A = ({ size = 8 }: { size?: number }) => <div style={{ width: size }} />;',
+        'export function A(size = 8) { return <div style={{ width: size }} />; }',
+        'let gap = 12; gap += 0; export const a = <div style={{ gap }} />;',
+        'const sizes = { card: 12 }; export const a = <div style={{ padding: sizes.card }} />;',
+        "import { widened } from './styles'; export const a = <div style={{ width: widened.size }} />;",
+        "import { useState } from 'react'; export function A() { const [w] = useState(16); return <div style={{ width: w }} />; }",
+        // One literal reading in this file and in another (QA7 F5).
+        "import { templateCard } from './styles'; export const a = <div style={templateCard} />;",
+        "import { fallbackCard } from './styles'; export const a = <div style={fallbackCard} />;",
+        'declare const open: number | undefined; export const a = <div style={{ width: open || 12 }} />;',
       ],
       'value',
     ),

@@ -1,5 +1,35 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`UI gate registry > pins ANIMATION_KEYWORDS exactly 1`] = `
+[
+  "alternate",
+  "alternate-reverse",
+  "backwards",
+  "both",
+  "ease",
+  "ease-in",
+  "ease-in-out",
+  "ease-out",
+  "forwards",
+  "infinite",
+  "linear",
+  "none",
+  "normal",
+  "paused",
+  "reverse",
+  "running",
+  "step-end",
+  "step-start",
+]
+`;
+
+exports[`UI gate registry > pins ANIMATION_NAMES exactly 1`] = `
+[
+  "animation",
+  "animation-name",
+]
+`;
+
 exports[`UI gate registry > pins ART_SHEETS exactly 1`] = `
 {
   "packages/web/src/boot/bootSplash.css": "boot",
@@ -43,6 +73,13 @@ exports[`UI gate registry > pins AT_RULES exactly 1`] = `
 exports[`UI gate registry > pins BUILD_ENTRIES exactly 1`] = `
 [
   "packages/web/src/boot/bootSplash.ts",
+]
+`;
+
+exports[`UI gate registry > pins COLOR_KEYWORDS exactly 1`] = `
+[
+  "currentcolor",
+  "transparent",
 ]
 `;
 
@@ -629,6 +666,13 @@ exports[`UI gate registry > pins ELEMENTS exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins FACTORIES exactly 1`] = `
+[
+  "createElement",
+  "createElementNS",
+]
+`;
+
 exports[`UI gate registry > pins FORCED_COLORS_MEDIA exactly 1`] = `"(forced-colors:active)"`;
 
 exports[`UI gate registry > pins FUNCTIONS exactly 1`] = `
@@ -675,6 +719,50 @@ exports[`UI gate registry > pins FUNCTIONS exactly 1`] = `
   "translateY",
   "url",
   "var",
+]
+`;
+
+exports[`UI gate registry > pins HTML_KEYS exactly 1`] = `
+[
+  "__html",
+  "dangerouslySetInnerHTML",
+]
+`;
+
+exports[`UI gate registry > pins MATH exactly 1`] = `
+[
+  "calc",
+  "clamp",
+  "max",
+  "min",
+]
+`;
+
+exports[`UI gate registry > pins NAMED_WRITERS exactly 1`] = `
+[
+  "removeAttribute",
+  "removeProperty",
+  "setAttribute",
+  "setAttributeNS",
+  "setProperty",
+  "toggleAttribute",
+]
+`;
+
+exports[`UI gate registry > pins OPEN_KEY_HEADS exactly 1`] = `
+[
+  "--",
+  "aria-",
+  "data-",
+]
+`;
+
+exports[`UI gate registry > pins OPERATORS exactly 1`] = `
+[
+  "*",
+  "+",
+  "-",
+  "/",
 ]
 `;
 
@@ -1112,6 +1200,47 @@ exports[`UI gate registry > pins REACT_UNITLESS exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins REFERENCES exactly 1`] = `
+[
+  "url",
+]
+`;
+
+exports[`UI gate registry > pins REFLECTION exactly 1`] = `
+{
+  "ObjectConstructor": [
+    "assign",
+    "defineProperties",
+    "defineProperty",
+    "setPrototypeOf",
+  ],
+  "Reflect": [
+    "apply",
+    "construct",
+    "defineProperty",
+    "set",
+    "setPrototypeOf",
+  ],
+}
+`;
+
+exports[`UI gate registry > pins ROOT_INTERFACES exactly 1`] = `
+[
+  "Node",
+  "Element",
+  "HTMLElement",
+  "SVGElement",
+  "MathMLElement",
+  "Document",
+  "DocumentFragment",
+  "ShadowRoot",
+  "Text",
+  "Comment",
+  "Attr",
+  "CharacterData",
+]
+`;
+
 exports[`UI gate registry > pins RUNTIME_TOKEN_FAMILIES exactly 1`] = `
 [
   "--color-",
@@ -1134,6 +1263,37 @@ exports[`UI gate registry > pins SIZED_ELEMENTS exactly 1`] = `
   "iframe",
   "img",
   "svg",
+]
+`;
+
+exports[`UI gate registry > pins STYLE_INTERFACES exactly 1`] = `
+[
+  "CSSStyleDeclaration",
+  "CSSStyleProperties",
+  "CSSRule",
+  "CSSRuleList",
+  "CSSStyleSheet",
+  "StyleSheet",
+  "StyleSheetList",
+  "MediaList",
+  "StylePropertyMap",
+  "StylePropertyMapReadOnly",
+  "DOMTokenList",
+  "DOMStringMap",
+  "NamedNodeMap",
+  "Range",
+  "AbstractRange",
+  "Selection",
+  "DOMParser",
+  "XMLSerializer",
+  "FontFace",
+  "FontFaceSet",
+  "CustomElementRegistry",
+  "ElementInternals",
+  "Animation",
+  "KeyframeEffect",
+  "AnimationEffect",
+  "CSS",
 ]
 `;
 
@@ -1182,6 +1342,14 @@ exports[`UI gate registry > pins SYSTEM_COLORS exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins TAG_MAPS exactly 1`] = `
+[
+  "HTMLElementTagNameMap",
+  "SVGElementTagNameMap",
+  "MathMLElementTagNameMap",
+]
+`;
+
 exports[`UI gate registry > pins TOKEN_SHEET exactly 1`] = `
 {
   "file": "packages/web/src/theme/tokens.css",
@@ -1190,6 +1358,12 @@ exports[`UI gate registry > pins TOKEN_SHEET exactly 1`] = `
     ":root",
   ],
 }
+`;
+
+exports[`UI gate registry > pins UNMANAGED exactly 1`] = `
+[
+  "EventTarget",
+]
 `;
 
 exports[`UI gate registry > pins VIRTUAL_MODULE_PREFIXES exactly 1`] = `

@@ -934,3 +934,109 @@ export const DOM_WRITERS = Object.freeze({
     (family) => `setProperty:${family}*`,
   ),
 });
+
+// ---------------------------------------------------------------------------------------------
+// Lists that decide what the rules manage and accept (moved here from eslint-plugin.mjs and
+// values.mjs so every allow list is pinned by the registry snapshot, P1 QA7 S2).
+// ---------------------------------------------------------------------------------------------
+
+/** Interfaces outside the node hierarchy whose members also write markup, styles or nodes. */
+export const STYLE_INTERFACES = Object.freeze([
+  'CSSStyleDeclaration',
+  'CSSStyleProperties',
+  'CSSRule',
+  'CSSRuleList',
+  'CSSStyleSheet',
+  'StyleSheet',
+  'StyleSheetList',
+  'MediaList',
+  'StylePropertyMap',
+  'StylePropertyMapReadOnly',
+  'DOMTokenList',
+  'DOMStringMap',
+  'NamedNodeMap',
+  'Range',
+  'AbstractRange',
+  'Selection',
+  'DOMParser',
+  'XMLSerializer',
+  'FontFace',
+  'FontFaceSet',
+  'CustomElementRegistry',
+  'ElementInternals',
+  'Animation',
+  'KeyframeEffect',
+  'AnimationEffect',
+  'CSS',
+]);
+export const ROOT_INTERFACES = Object.freeze([
+  'Node',
+  'Element',
+  'HTMLElement',
+  'SVGElement',
+  'MathMLElement',
+  'Document',
+  'DocumentFragment',
+  'ShadowRoot',
+  'Text',
+  'Comment',
+  'Attr',
+  'CharacterData',
+]);
+export const TAG_MAPS = Object.freeze([
+  'HTMLElementTagNameMap',
+  'SVGElementTagNameMap',
+  'MathMLElementTagNameMap',
+]);
+/** Event dispatch is shared with non-DOM objects and writes nothing. */
+export const UNMANAGED = Object.freeze(new Set(['EventTarget']));
+export const FACTORIES = Object.freeze(new Set(['createElement', 'createElementNS']));
+export const NAMED_WRITERS = Object.freeze(
+  new Set([
+    'setAttribute',
+    'removeAttribute',
+    'toggleAttribute',
+    'setAttributeNS',
+    'setProperty',
+    'removeProperty',
+  ]),
+);
+export const REFLECTION = Object.freeze({
+  ObjectConstructor: new Set(['assign', 'defineProperty', 'defineProperties', 'setPrototypeOf']),
+  Reflect: new Set(['set', 'defineProperty', 'apply', 'construct', 'setPrototypeOf']),
+});
+
+/** Template index keys a props or style type may carry: custom properties, data and ARIA. */
+export const OPEN_KEY_HEADS = Object.freeze(new Set(['--', 'data-', 'aria-']));
+/** React's two names for raw HTML: the prop and the key of its value. */
+export const HTML_KEYS = Object.freeze(new Set(['dangerouslySetInnerHTML', '__html']));
+export const MATH = Object.freeze(new Set(['calc', 'min', 'max', 'clamp']));
+export const OPERATORS = Object.freeze(new Set(['+', '-', '*', '/']));
+/** Color atoms besides `var()`: every domain that holds a color accepts them. */
+export const COLOR_KEYWORDS = Object.freeze(new Set(['transparent', 'currentcolor']));
+/** Functions whose arguments are references, not values: `url()` only (`env()` has a fallback). */
+export const REFERENCES = Object.freeze(new Set(['url']));
+/** `animation` keywords; any other identifier there names a keyframes rule. */
+export const ANIMATION_KEYWORDS = Object.freeze(
+  new Set([
+    'infinite',
+    'linear',
+    'ease',
+    'ease-in',
+    'ease-out',
+    'ease-in-out',
+    'step-start',
+    'step-end',
+    'normal',
+    'reverse',
+    'alternate',
+    'alternate-reverse',
+    'none',
+    'forwards',
+    'backwards',
+    'both',
+    'running',
+    'paused',
+  ]),
+);
+export const ANIMATION_NAMES = Object.freeze(new Set(['animation', 'animation-name']));

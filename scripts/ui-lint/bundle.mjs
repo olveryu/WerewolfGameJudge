@@ -191,21 +191,46 @@ function scriptReferences(file, text) {
   return { references, problems };
 }
 
-function expandGlob(pattern, from) {
-  const absolute = path.resolve(path.dirname(from), pattern);
+/**
+ * The files one `import.meta.glob` pattern matches, or a problem. The pattern is resolved the way
+ * Vite resolves it, relative (`./x/*.ts`), from the project root (`/src/x/*.ts`) or through an
+ * alias (`@/x/*.ts`), and braces (`*.{ts,tsx}`) expand to their alternatives. A shape the gate
+ * cannot expand exactly (`**`, a wildcard directory, a negation) or a directory that does not
+ * exist is a problem: a pattern the gate reads as empty would put its modules in the page
+ * unchecked (P1 QA7 F3).
+ */
+function expandGlob(pattern, from, root, options) {
+  if (pattern.startsWith('!')) return { problem: 'negated patterns are not expanded' };
+  const braces = pattern.match(/\{([^{}]*)\}/);
+  if (braces) {
+    const results = braces[1]
+      .split(',')
+      .map((choice) => expandGlob(pattern.replace(braces[0], choice), from, root, options));
+    const failed = results.find((result) => result.problem !== undefined);
+    return failed ?? { matches: [...new Set(results.flatMap((result) => result.matches))] };
+  }
+  const absolute = pattern.startsWith('.')
+    ? path.resolve(path.dirname(from), pattern)
+    : pattern.startsWith('/')
+      ? path.join(root, WEB_ROOT, pattern)
+      : aliasedPath(pattern, from, options);
+  if (absolute === undefined) return { problem: 'the pattern is not relative, rooted or aliased' };
   const directory = path.dirname(absolute);
+  if (absolute.includes('**') || /[*?[\]]/.test(directory))
+    return { problem: 'the pattern must match files of one directory' };
+  if (!fs.existsSync(directory)) return { problem: `${rel(directory)} does not exist` };
   const name = new RegExp(
     `^${path
       .basename(absolute)
       .replace(/[.+^${}()|[\]\\]/g, '\\$&')
       .replace(/\*/g, '[^/]*')}$`,
   );
-  if (absolute.includes('**') || directory.includes('*')) return null;
-  if (!fs.existsSync(directory)) return [];
-  return fs
-    .readdirSync(directory)
-    .filter((entry) => name.test(entry))
-    .map((entry) => path.join(directory, entry));
+  return {
+    matches: fs
+      .readdirSync(directory)
+      .filter((entry) => name.test(entry))
+      .map((entry) => path.join(directory, entry)),
+  };
 }
 
 function pageEntries(root, file, problems) {
@@ -325,9 +350,9 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
       }
       if (glob) {
         const [pattern, query = ''] = specifier.split(/(?=\?)/);
-        const matches = expandGlob(pattern, file);
-        if (matches === null)
-          problems.push(`${at}: \`import.meta.glob\` pattern must be one directory`);
+        const { matches, problem } = expandGlob(pattern, file, root, options);
+        if (problem !== undefined)
+          problems.push(`${at}: \`import.meta.glob('${pattern}')\`: ${problem}`);
         else for (const match of matches) leaf(match + query, specifier, at);
         continue;
       }
