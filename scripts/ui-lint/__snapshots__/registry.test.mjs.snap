@@ -775,7 +775,6 @@ exports[`UI gate registry > pins DOMAINS exactly 1`] = `
       "wavy",
       "from-font",
     ],
-    "unitless": true,
     "units": [
       "%",
       "deg",
@@ -793,7 +792,38 @@ exports[`UI gate registry > pins DOMAINS exactly 1`] = `
     ],
   },
   "shape": {
-    "shape": true,
+    "functions": [
+      "inset",
+      "circle",
+      "ellipse",
+      "polygon",
+      "rect",
+      "url",
+    ],
+    "keywords": [
+      "none",
+      "center",
+      "top",
+      "bottom",
+      "left",
+      "right",
+      "at",
+      "round",
+      "closest-side",
+      "farthest-side",
+      "nonzero",
+      "evenodd",
+      "margin-box",
+      "border-box",
+      "padding-box",
+      "content-box",
+      "fill-box",
+      "stroke-box",
+      "view-box",
+    ],
+    "units": [
+      "%",
+    ],
   },
   "size": {
     "functions": [
@@ -1131,6 +1161,165 @@ exports[`UI gate registry > pins OPERATORS exactly 1`] = `
   "-",
   "/",
 ]
+`;
+
+exports[`UI gate registry > pins PACKAGE_PROPS exactly 1`] = `
+{
+  "@ark-ui/react": {
+    "keys": {
+      "lazyMount": "plain",
+      "unmountOnExit": "plain",
+    },
+  },
+  "@sentry/core": {
+    "all": "plain",
+    "why": "error reporting; renders nothing",
+  },
+  "@sentry/react": {
+    "all": "plain",
+    "why": "error reporting; renders nothing",
+  },
+  "@tanstack/query-core": {
+    "all": "plain",
+    "why": "data fetching; renders nothing",
+  },
+  "@tanstack/react-query": {
+    "all": "plain",
+    "why": "data fetching; renders nothing",
+  },
+  "@types/node": {
+    "all": "plain",
+    "why": "timers; render nothing",
+  },
+  "@types/react": {
+    "all": "plain",
+    "why": "hooks, context, \`memo\`, \`lazy\`, \`Suspense\`; the props of \`createElement\`/\`cloneElement\` are judged by element-allowlist (E11)",
+  },
+  "@types/react-dom": {
+    "all": "plain",
+    "why": "\`createRoot\`; renders what we render",
+  },
+  "@zag-js/color-picker": {
+    "keys": {
+      "(colorString)": "color",
+      "channel": "plain",
+      "defaultValue": "plain",
+      "inline": "plain",
+      "onValueChangeEnd": "plain",
+    },
+  },
+  "@zag-js/color-utils": {
+    "all": "plain",
+    "why": "colour conversion of a value judged where written",
+  },
+  "@zag-js/dialog": {
+    "keys": {
+      "closeOnEscape": "plain",
+      "closeOnInteractOutside": "plain",
+      "onOpenChange": "plain",
+      "open": "plain",
+      "role": "plain",
+    },
+  },
+  "@zag-js/dismissable": {
+    "keys": {
+      "onEscapeKeyDown": "plain",
+      "onRequestDismiss": "plain",
+    },
+  },
+  "@zag-js/interact-outside": {
+    "keys": {
+      "onInteractOutside": "plain",
+    },
+  },
+  "@zag-js/qr-code": {
+    "keys": {
+      "encoding": "plain",
+      "value": "plain",
+    },
+  },
+  "@zag-js/tabs": {
+    "keys": {
+      "activationMode": "plain",
+      "onValueChange": "plain",
+      "value": "plain",
+    },
+  },
+  "@zumer/snapdom": {
+    "keys": {
+      "(element)": "plain",
+      "(options)": "options",
+      "crop": "plain",
+      "dpr": "plain",
+      "height": "plain",
+      "width": "plain",
+      "x": "plain",
+      "y": "plain",
+    },
+  },
+  "msw": {
+    "all": "plain",
+    "why": "admin mock worker; renders nothing",
+  },
+  "pinyin-pro": {
+    "all": "plain",
+    "why": "text conversion; renders nothing",
+  },
+  "pixi.js": {
+    "all": "plain",
+    "why": "draws into its own canvas; canvas content is outside the gate (U7); its own DOM writes are D13",
+  },
+  "react-router": {
+    "keys": {
+      "(delta)": "plain",
+      "(error)": "plain",
+      "(fn)": "plain",
+      "(navigateOpts)": "plain",
+      "(nextInit)": "plain",
+      "(options)": "plain",
+      "(to)": "plain",
+      "Component": "plain",
+      "ErrorBoundary": "plain",
+      "children": "plain",
+      "className": "plain",
+      "element": "plain",
+      "end": "plain",
+      "errorElement": "plain",
+      "flushSync": "plain",
+      "index": "plain",
+      "initialEntries": "plain",
+      "path": "plain",
+      "replace": "plain",
+      "router": "plain",
+      "state": "plain",
+      "to": "plain",
+    },
+  },
+  "sonner": {
+    "keys": {
+      "(data)": "options",
+      "(id)": "plain",
+      "(message)": "plain",
+      "closeButton": "plain",
+      "description": "plain",
+      "duration": "plain",
+      "id": "plain",
+      "position": "plain",
+    },
+  },
+  "uqr": {
+    "all": "plain",
+    "why": "QR matrix encoding; the code is drawn by Ark from our CSS",
+  },
+  "vite": {
+    "all": "plain",
+    "why": "\`import.meta.glob\` options, read at build time",
+  },
+  "zod": {
+    "all": "plain",
+    "why": "validation; renders nothing",
+  },
+}
 `;
 
 exports[`UI gate registry > pins PACKAGES exactly 1`] = `
@@ -1895,3 +2084,5 @@ exports[`UI gate registry > pins WORKER_CONSTRUCTORS exactly 1`] = `
   "Worker",
 ]
 `;
+
+exports[`UI gate registry > pins packageProp exactly 1`] = `[Function]`;

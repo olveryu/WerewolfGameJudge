@@ -220,6 +220,7 @@
       "ui/value-allowlist\t\t@media (min-width: 768px)\t@media (min-width: 768px) {"
     ],
     "packages/web/src/features/drawing/components/DrawingToolbar.tsx": [
+      "ui/inline-style-keys\tuntracked\tColorPickerPanel > <ColorPicker.Root.drawing-color-picker>\tdefaultValue={parseColor(color)}",
       "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <AppDialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot>\twidth,",
       "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <AppDialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot> > backgroundColor\tprops.tool === 'eraser' ? 'var(--color-text-muted)' : props.color,",
       "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <AppDialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot> > height\theight: width,",
@@ -231,7 +232,8 @@
       "ui/inline-style-keys\tuntracked\tcolorPanelStyle\tif (placement.kind === 'sheet') return undefined;",
       "ui/inline-style-keys\tuntracked\tcolorPanelStyle > bottom\tbottom: `calc(${window.innerHeight - placement.anchorTop}px + var(--space-small))`,",
       "ui/inline-style-keys\tuntracked\tcolorPanelStyle > left\tleft: `clamp(var(--space-small), ${placement.anchorLeft}px, calc(100vw - var(--drawing-color-popover-width) - var(--space-small)))`,",
-      "ui/inline-style-keys\tuntracked\tcolorPanelStyle > maxHeight\tmaxHeight: `calc(${placement.anchorTop}px - env(safe-area-inset-top) - var(--space-medium))`,"
+      "ui/inline-style-keys\tuntracked\tcolorPanelStyle > maxHeight\tmaxHeight: `calc(${placement.anchorTop}px - env(safe-area-inset-top) - var(--space-medium))`,",
+      "ui/inline-style-keys\tuntracked\tisDarkColor\treturn parseColor(value).toFormat('hsla').getChannelValue('lightness') < 50;"
     ],
     "packages/web/src/features/encyclopedia/Encyclopedia.css": [
       "ui/value-allowlist\t\t.encyclopedia-filter-chip\tbackground-color 100ms ease-out,",
@@ -1926,6 +1928,8 @@
       "ui/value-allowlist\t\t.admin-chart-grid\tstroke-width: 1;",
       "ui/value-allowlist\t\t.admin-choice-mark\tborder: 1px solid var(--admin-border-strong);",
       "ui/value-allowlist\t\t.admin-console\tz-index: 1;",
+      "ui/value-allowlist\t\t.admin-console .admin-danger-solid:hover:not(:disabled)\tfilter: brightness(0.92);",
+      "ui/value-allowlist\t\t.admin-console .admin-primary:hover:not(:disabled)\tfilter: brightness(1.08);",
       "ui/value-allowlist\t\t.admin-console .screen-header\tz-index: 4;",
       "ui/value-allowlist\t\t.admin-console button:focus-visible, .admin-console a:focus-visible, .admin-console input:focus-visible, .admin-console select:focus-visible, .admin-console textarea:focus-visible, .admin-console [role='menuitem']:focus-visible\toutline-offset: 3px;",
       "ui/value-allowlist\t\t.admin-console button:where(:not(.maintenance-moon, .screen-header-back))\tbackground 120ms,",

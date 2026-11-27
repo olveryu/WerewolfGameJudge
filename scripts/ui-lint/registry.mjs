@@ -438,7 +438,6 @@ export const DOMAINS = Object.freeze({
       'from-font',
     ],
     colors: true,
-    unitless: true,
     units: ['%', 'deg', 'turn'],
     functions: [
       'url',
@@ -455,8 +454,31 @@ export const DOMAINS = Object.freeze({
       'saturate',
     ],
   },
-  /** `clip-path`: shapes are free, except the corner radius after `round` (radius domain). */
-  shape: { shape: true },
+  /**
+   * `clip-path`: a basic shape or a fragment reference. Its lengths are tokens or percentages of
+   * the reference box, like every length (P1 QA18 F2); the corner radius after `round` too.
+   */
+  shape: {
+    keywords: [
+      'none',
+      ...POSITION_KEYWORDS,
+      'at',
+      'round',
+      'closest-side',
+      'farthest-side',
+      'nonzero',
+      'evenodd',
+      'margin-box',
+      'border-box',
+      'padding-box',
+      'content-box',
+      'fill-box',
+      'stroke-box',
+      'view-box',
+    ],
+    units: ['%'],
+    functions: ['inset', 'circle', 'ellipse', 'polygon', 'rect', 'url'],
+  },
   /**
    * A custom property defined outside the token sheet (S4): it only aliases tokens (references,
    * zero, global keywords, colors keywords), so no literal hides behind a local variable.
@@ -906,7 +928,9 @@ export const ATTRIBUTES = Object.freeze(
       crossOrigin: ['img'],
       decoding: ['img'],
       src: ['iframe', 'img'],
-      // SVG geometry and coordinate systems, in the element's own user units.
+      // SVG geometry and coordinate systems, in the element's own user units: the drawing of an
+      // icon or illustration, its content like an image's pixels (U7), not a spacing, size or
+      // colour of the design system; paint and stroke are presentation attributes, judged (E4).
       cx: ['circle', 'radialGradient'],
       cy: ['circle', 'radialGradient'],
       r: ['circle', 'radialGradient'],
@@ -1061,6 +1085,125 @@ export const DOM_VALUE_WRITERS = Object.freeze(
     ['AnimationEffect.updateTiming', 'updateTiming'],
   ]),
 );
+
+/**
+ * What a third-party package does with each prop, option key or positional argument (`(name)`,
+ * by the parameter's name) we hand it, by the package that declares it (P1 QA18 F1). A package
+ * renders our values where the gate does not see them (sonner writes `offset` into `--offset-*`,
+ * snapdom paints `backgroundColor`), so a key it declares and this table does not list is
+ * reported. Each package lists:
+ * - `all: 'plain'` with why no value handed to it reaches the page as a style, or
+ * - `keys`: `plain` (behaviour or content, never a style value), `options` (an object whose keys
+ *   are judged where written, by the package that declares them), or the CSS property the value
+ *   is judged as.
+ * React's DOM attribute interfaces (`SVGAttributes`, …) are judged as the attributes they become
+ * (`SIZE_HOSTS`, `SVG_ATTRIBUTES`), and `CSSProperties` as style declarations, not here.
+ */
+export const PACKAGE_PROPS = Object.freeze({
+  '@tanstack/query-core': { all: 'plain', why: 'data fetching; renders nothing' },
+  '@tanstack/react-query': { all: 'plain', why: 'data fetching; renders nothing' },
+  zod: { all: 'plain', why: 'validation; renders nothing' },
+  '@sentry/core': { all: 'plain', why: 'error reporting; renders nothing' },
+  '@sentry/react': { all: 'plain', why: 'error reporting; renders nothing' },
+  'pinyin-pro': { all: 'plain', why: 'text conversion; renders nothing' },
+  msw: { all: 'plain', why: 'admin mock worker; renders nothing' },
+  vite: { all: 'plain', why: '`import.meta.glob` options, read at build time' },
+  '@types/node': { all: 'plain', why: 'timers; render nothing' },
+  '@types/react': {
+    all: 'plain',
+    why: 'hooks, context, `memo`, `lazy`, `Suspense`; the props of `createElement`/`cloneElement` are judged by element-allowlist (E11)',
+  },
+  '@types/react-dom': { all: 'plain', why: '`createRoot`; renders what we render' },
+  '@zag-js/color-utils': { all: 'plain', why: 'colour conversion of a value judged where written' },
+  uqr: { all: 'plain', why: 'QR matrix encoding; the code is drawn by Ark from our CSS' },
+  'pixi.js': {
+    all: 'plain',
+    why: 'draws into its own canvas; canvas content is outside the gate (U7); its own DOM writes are D13',
+  },
+  sonner: {
+    keys: {
+      '(message)': 'plain',
+      '(data)': 'options',
+      '(id)': 'plain',
+      id: 'plain',
+      description: 'plain',
+      duration: 'plain',
+      closeButton: 'plain',
+      position: 'plain',
+    },
+  },
+  '@zumer/snapdom': {
+    keys: {
+      '(element)': 'plain',
+      '(options)': 'options',
+      // The capture rectangle and pixel ratio of our own DOM: the image's geometry, not a style.
+      crop: 'plain',
+      dpr: 'plain',
+      x: 'plain',
+      y: 'plain',
+      width: 'plain',
+      height: 'plain',
+    },
+  },
+  'react-router': {
+    keys: Object.fromEntries(
+      [
+        '(delta)',
+        '(error)',
+        '(fn)',
+        '(to)',
+        // Navigation options and search parameters: routing, never a style.
+        '(navigateOpts)',
+        '(nextInit)',
+        '(options)',
+        'Component',
+        'ErrorBoundary',
+        'children',
+        'className',
+        'element',
+        'end',
+        'errorElement',
+        'flushSync',
+        'index',
+        'initialEntries',
+        'path',
+        'replace',
+        'router',
+        'state',
+        'to',
+      ].map((key) => [key, 'plain']),
+    ),
+  },
+  '@ark-ui/react': { keys: { lazyMount: 'plain', unmountOnExit: 'plain' } },
+  '@zag-js/dialog': {
+    keys: {
+      open: 'plain',
+      onOpenChange: 'plain',
+      role: 'plain',
+      closeOnEscape: 'plain',
+      closeOnInteractOutside: 'plain',
+    },
+  },
+  '@zag-js/dismissable': { keys: { onEscapeKeyDown: 'plain', onRequestDismiss: 'plain' } },
+  '@zag-js/interact-outside': { keys: { onInteractOutside: 'plain' } },
+  '@zag-js/tabs': { keys: { value: 'plain', onValueChange: 'plain', activationMode: 'plain' } },
+  '@zag-js/color-picker': {
+    keys: {
+      // The picker paints its swatches from this colour.
+      '(colorString)': 'color',
+      // A colour made by `parseColor`, whose string is judged there.
+      defaultValue: 'plain',
+      channel: 'plain',
+      inline: 'plain',
+      onValueChangeEnd: 'plain',
+    },
+  },
+  '@zag-js/qr-code': { keys: { value: 'plain', encoding: 'plain' } },
+});
+
+/** What `pkg` does with `name` (`PACKAGE_PROPS`), undefined when not registered. */
+export const packageProp = (pkg, name) =>
+  PACKAGE_PROPS[pkg]?.all ?? PACKAGE_PROPS[pkg]?.keys?.[name];
 
 /**
  * What `width`/`height` mean on each element that takes them as attributes, keyed by tag with

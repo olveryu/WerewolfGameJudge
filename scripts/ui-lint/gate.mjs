@@ -125,11 +125,17 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
     for (const rule of Object.keys(stylelintConfig.rules)) rules.add(rule);
     for (const override of stylelintConfig.overrides)
       for (const rule of Object.keys(override.rules)) rules.add(rule);
-    const { results } = await stylelint.lint({
-      files: pick(graph.styles).map((file) => path.join(root, file)),
-      config: stylelintConfig,
-      configBasedir: root,
-    });
+    // Stylelint reads an empty file list as the whole working directory: with no stylesheet to
+    // lint (`only` names scripts alone), it is not run (P1 QA18 should-fix 3).
+    const sheets = pick(graph.styles);
+    const { results } =
+      sheets.length === 0
+        ? { results: [] }
+        : await stylelint.lint({
+            files: sheets.map((file) => path.join(root, file)),
+            config: stylelintConfig,
+            configBasedir: root,
+          });
     for (const result of results) {
       const file = path.relative(root, result.source).split(path.sep).join('/');
       if (result.ignored) graph.problems.push(`${file}: Stylelint ignored this stylesheet`);

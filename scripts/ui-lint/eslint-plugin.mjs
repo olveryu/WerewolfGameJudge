@@ -43,6 +43,7 @@ import {
   SAFE_PRODUCTS,
   SIZE_ATTRIBUTES,
   SIZE_HOSTS,
+  packageProp,
   STYLE_TYPE_WRAPPERS,
   ANIMATION_OPTIONS,
   KEYFRAME_META,
@@ -549,23 +550,55 @@ function attributeProp(name, meanings) {
   return SIZE_ATTRIBUTES.has(name) && meanings.includes('box') ? name : undefined;
 }
 
+/** The package a declaration lives in (`@scope/name` under its last `node_modules`), or undefined. */
+function packageOf(declaration) {
+  const file = declaration.getSourceFile().fileName.split(path.sep).join('/');
+  const at = file.lastIndexOf('/node_modules/');
+  if (at === -1) return undefined;
+  const [first, second] = file.slice(at + '/node_modules/'.length).split('/');
+  return first.startsWith('@') ? `${first}/${second}` : first;
+}
+
+/** Every member of a union or intersection, flattened. */
+const members = (type) => (type.isUnionOrIntersection() ? type.types.flatMap(members) : [type]);
+
 /**
- * The React DOM attribute interface (`SVGAttributes`, `ImgHTMLAttributes`, …) that declares a
- * component prop, or undefined. A prop declared there is handed to a native element by the
- * component (an icon component's `width`, Ark's `QrCode.Frame` `fill`), so its value is judged as
- * the element's attribute (P1 QA17 F1, F3).
+ * Where a prop or option key we write is declared, the one definition of what a third-party API
+ * does with a value we hand it (P1 QA17 F1/F3, QA18 F1). The declarations are those of the key in
+ * every member of the type that receives it; a key without one (a mapped type's, an index
+ * signature's) is declared where that type is:
+ * - `{ react }`: a React DOM attribute interface (`SVGAttributes`, `ImgHTMLAttributes`, …): the
+ *   prop is handed to a native element and judged as that attribute.
+ * - `{ pkg, meaning }`: any other package, with its `PACKAGE_PROPS` registration (`plain`,
+ *   `options`, or the CSS property its value is), `meaning` undefined when not registered.
+ * - `{ own: true }`: declared only in our code or the TypeScript library: its use is checked where
+ *   it lands.
+ * - `null`: no declaration can be found for the key.
  */
-function reactDomAttribute(symbol) {
-  for (const declaration of symbol?.declarations ?? []) {
-    const owner = declaration.parent;
-    if (
-      ts.isInterfaceDeclaration(owner) &&
-      /Attributes$/.test(owner.name.text) &&
-      /[\\/]@types[\\/]react[\\/]/.test(declaration.getSourceFile().fileName)
-    )
-      return owner.name.text;
+function propSource(owner, name, checker, program) {
+  const sites = [];
+  for (const type of members(checker.getApparentType(owner))) {
+    const symbol = checker.getPropertyOfType(type, name);
+    if (symbol?.declarations?.length) sites.push(...symbol.declarations);
+    else if (symbol !== undefined || checker.getIndexInfosOfType(type).length > 0) {
+      const site = (type.aliasSymbol ?? type.getSymbol())?.declarations?.[0];
+      if (site !== undefined) sites.push(site);
+    }
   }
-  return undefined;
+  if (sites.length === 0) return null;
+  const foreign = (site) =>
+    !program.isSourceFileDefaultLibrary(site.getSourceFile()) && packageOf(site) !== undefined;
+  const site = sites.find(foreign);
+  if (site === undefined) return { own: true };
+  const pkg = packageOf(site);
+  const holder = site.parent;
+  if (
+    pkg === '@types/react' &&
+    ts.isInterfaceDeclaration(holder) &&
+    /Attributes$/.test(holder.name.text)
+  )
+    return { react: holder.name.text };
+  return { pkg, meaning: packageProp(pkg, name) };
 }
 
 const elementAllowlist = {
@@ -729,6 +762,9 @@ const inlineStyleKeys = {
       name: 'This DOM style write names its property through an expression, so which property it writes is not shown: write the name as a string literal here, or a `--x-${…}` template with a literal custom property prefix (UI gate E4).',
       indirect:
         'This DOM method writes a style value; call it directly so its value is checked (UI gate E4).',
+      prop: '`{{name}}` is declared by `{{pkg}}` and not registered in `PACKAGE_PROPS`: a value handed to a third-party API can reach the page as a style the gate does not see. Register it as `plain` (behaviour or content), `options` (an object whose keys are registered in turn) or with the CSS property its value is (UI gate E4, scripts/ui-lint/registry.mjs).',
+      options:
+        '`{{name}}` of `{{pkg}}` takes an object some of whose keys reach the page as styles (`PACKAGE_PROPS`), and it is not an object literal here, so its keys are not shown: write the object literal at this call (UI gate E4).',
       alias:
         'A style declaration is handed to a position not typed as one, where the properties written through it are not shown as style writes: write them on the declaration itself (UI gate E4).',
       styleText:
@@ -823,11 +859,76 @@ const inlineStyleKeys = {
         .filter((part) => !(part.flags & nullish))
         .every(isDeclarationType);
     const isStyleObject = (node) => isCssProperties(services.getTypeAtLocation(node));
-    // The declared prop a JSX attribute sets: the member of the props type its element expects
-    // (the checker's symbol for the attribute itself is only the attribute).
-    const propOf = (attribute, name) => {
-      const props = checker.getContextualType(toTs(attribute).parent);
-      return props && checker.getPropertyOfType(checker.getApparentType(props), name);
+    /**
+     * A prop or option key we hand to code that is not ours to check, by where it is declared
+     * (`propSource`): our own is checked where it lands; a React DOM attribute is judged as the
+     * attribute it becomes (a component's `style` is a position typed as a style object,
+     * `intoStyle`); a package's key by its `PACKAGE_PROPS` registration: `plain` is not a style
+     * value, `options` takes an object literal whose keys are judged in turn where written, a
+     * CSS property judges the value as that property. Not registered, or no declaration, is
+     * reported (`prop`).
+     */
+    const checkKey = (node, name, source, expression) => {
+      if (source?.own) return;
+      if (source === null)
+        return context.report({ node, messageId: 'prop', data: { name, pkg: 'no declaration' } });
+      if (source.react !== undefined) {
+        if (expression === null || name === 'style') return;
+        const prop = attributeProp(name, [sizeMeaning.ofReact(source.react)]);
+        if (prop !== undefined) judge(expression, prop, read(expression, String));
+        return;
+      }
+      if (source.meaning === undefined)
+        return context.report({ node, messageId: 'prop', data: { name, pkg: source.pkg } });
+      if (source.meaning === 'plain' || expression === null) return;
+      if (source.meaning === 'options') {
+        if (strip(expression).type !== 'ObjectExpression')
+          context.report({
+            node: expression,
+            messageId: 'options',
+            data: { name, pkg: source.pkg },
+          });
+        return;
+      }
+      judge(expression, source.meaning, read(expression, unitFor(source.meaning)));
+    };
+    /**
+     * Where a key with no declaration in the type that receives it (`any`, `unknown`, an object
+     * type without it) is declared: by the function the outermost literal holding it is passed
+     * to. Passed to a package's function, it is that package's key; to ours or the TypeScript
+     * library's (`JSON.stringify`), ours; a hyphenated key spread into JSX, an attribute;
+     * anywhere else, `null` (reported).
+     */
+    const receiverSource = (object, name) => {
+      let outer = object;
+      while (
+        [
+          'ObjectExpression',
+          'ArrayExpression',
+          'Property',
+          'SpreadElement',
+          'ConditionalExpression',
+          'LogicalExpression',
+          'TSAsExpression',
+          'TSSatisfiesExpression',
+        ].includes(outer.parent.type)
+      )
+        outer = outer.parent;
+      const call = outer.parent;
+      // A hyphenated key spread into JSX (`data-*`, `aria-*`) needs no declaration, as written
+      // as an attribute.
+      if (call.type === 'JSXSpreadAttribute' && name.includes('-')) return { own: true };
+      if (
+        !['CallExpression', 'NewExpression'].includes(call.type) ||
+        !call.arguments.includes(outer)
+      )
+        return null;
+      const site = checker.getResolvedSignature(toTs(call))?.getDeclaration();
+      if (site === undefined) return null;
+      const pkg = services.program.isSourceFileDefaultLibrary(site.getSourceFile())
+        ? undefined
+        : packageOf(site);
+      return pkg === undefined ? { own: true } : { pkg, meaning: packageProp(pkg, name) };
     };
     const isCssPropertiesLiteral = (node) => {
       const contextual = checker.getContextualType(toTs(node));
@@ -1034,7 +1135,37 @@ const inlineStyleKeys = {
         }
       },
       Property(node) {
-        if (node.parent.type === 'ObjectExpression') intoStyle(node.value);
+        if (node.parent.type !== 'ObjectExpression') return;
+        intoStyle(node.value);
+        // A key of an options object a package declares (`toast(…, { duration })`, a nested
+        // `positioning={{ gutter }}`) is judged as a prop of that package. A style object's own
+        // keys are judged by `checkObject`.
+        const key = writtenKey(node.key, node.computed);
+        if (key === null || isCssPropertiesLiteral(node.parent)) return;
+        const contextual = checker.getContextualType(toTs(node.parent));
+        if (contextual === undefined) return;
+        checkKey(
+          node,
+          key,
+          propSource(contextual, key, checker, services.program) ??
+            receiverSource(node.parent, key),
+          node.value,
+        );
+      },
+      // A positional argument of a package's function is a key of that package named by its
+      // parameter, `(name)` (`toast(message)`, `snapdom.toCanvas(element)`): a value handed to
+      // code that is not ours to check (P1 QA18 F1).
+      'CallExpression, NewExpression'(node) {
+        const site = checker.getResolvedSignature(toTs(node))?.getDeclaration();
+        if (site === undefined || services.program.isSourceFileDefaultLibrary(site.getSourceFile()))
+          return;
+        const pkg = packageOf(site);
+        if (pkg === undefined) return;
+        node.arguments.forEach((argument, index) => {
+          const parameter = site.parameters[Math.min(index, site.parameters.length - 1)];
+          const name = `(${parameter === undefined || !ts.isIdentifier(parameter.name) ? index : parameter.name.text})`;
+          checkKey(argument, name, { pkg, meaning: packageProp(pkg, name) }, argument);
+        });
       },
       ArrayExpression(node) {
         for (const element of node.elements) intoStyle(element);
@@ -1103,31 +1234,33 @@ const inlineStyleKeys = {
         if (node.name.type !== 'JSXIdentifier') return;
         const name = node.name.name;
         const tags = nativeTags(node.parent.name, services);
-        // A component's prop is an attribute only where React's DOM attribute types declare it.
-        const host = tags === undefined ? reactDomAttribute(propOf(node, name)) : undefined;
-        if (tags === undefined && host === undefined) return;
         const value = node.value;
-        if (value === null) return;
         const expression =
-          value.type === 'JSXExpressionContainer'
-            ? value.expression.type === 'JSXEmptyExpression'
+          value === null
+            ? null
+            : value.type === 'JSXExpressionContainer'
+              ? value.expression.type === 'JSXEmptyExpression'
+                ? null
+                : value.expression
+              : value;
+        if (tags === undefined) {
+          // A component's prop: judged by where it is declared (`checkKey`).
+          const props = checker.getContextualType(toTs(node).parent);
+          // A hyphenated attribute (`data-*`, `aria-*`) needs no declaration in JSX: it is content
+          // handed on to the element, never a style value.
+          const source =
+            props === undefined
               ? null
-              : value.expression
-            : value;
-        if (expression === null) return;
-        if (name === 'style') {
-          // A component's `style` is a position typed as a style object (`intoStyle`).
-          if (tags !== undefined) checkStyle(expression);
-          return;
+              : name.includes('-') && checker.getPropertyOfType(props, name) === undefined
+                ? { own: true }
+                : propSource(props, name, checker, services.program);
+          return checkKey(node, name, source, expression);
         }
+        if (expression === null) return;
+        if (name === 'style') return checkStyle(expression);
         // An SVG presentation attribute (a number is in user units, so it stays a bare number),
         // or a `width`/`height` that sizes a box.
-        const prop = attributeProp(
-          name,
-          tags === undefined
-            ? [sizeMeaning.ofReact(host)]
-            : (tags ?? [null]).map(sizeMeaning.ofTag),
-        );
+        const prop = attributeProp(name, (tags ?? [null]).map(sizeMeaning.ofTag));
         if (prop !== undefined) judge(expression, prop, read(expression, String));
       },
     };

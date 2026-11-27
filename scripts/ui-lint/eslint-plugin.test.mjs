@@ -343,6 +343,14 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     'export const a = <div style={{ width: `var(--size-icon)` }} />;',
     "export const a = <div style={{ ['--seat-progress']: '0' }} />;",
     `${REACT}export const a = <div style={{ opacity: 1 } as CSSProperties} />;`,
+    // Registered keys, options and arguments of a package (P1 QA18 F1).
+    "import { Toaster, toast } from 'sonner'; export const a = <Toaster position=\"top-center\" />; toast('x', { duration: 3, description: 'y' });",
+    "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; void snapdom.toCanvas(el, { dpr: 2 });",
+    // Our own declarations and the TypeScript library's are checked where they land.
+    'declare function f(o: { gap: number }): void; f({ gap: 14 }); JSON.stringify({ gap: 14 });',
+    'export const a = <svg data-x="1" />; declare function C(p: { a?: number }): null; export const b = <C data-step="2" />;',
+    "export const a = <div style={{ clipPath: 'inset(50%)' }} />;",
+    "export const a = <div style={{ clipPath: 'polygon(8% 0, 92% 0, 100% 100%, 0 100%)' }} />;",
     `${REACT}const s: CSSProperties = { color: 'var(--a)' }; void s;`,
     'export const a = <svg><rect rx={0} fill="currentColor" stroke="url(#g)" opacity={1} /></svg>;',
     'export const a = <svg width="100%" height="100%" />;',
@@ -408,8 +416,36 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "export const a = <div style={{ backgroundImage: 'url(data:image/svg+xml,x)' }} />;",
         "export const a = <div style={{ backgroundImage: 'url(https://a.example/x.png)' }} />;",
         "export const a = <div style={{ backgroundImage: 'url(./x.png)' }} />;",
+        // A length inside a basic shape is a length like any other (P1 QA18 F2).
+        "export const a = <div style={{ clipPath: 'polygon(0 0, 37px 0, 100% 100%)' }} />;",
+        "export const a = <div style={{ clipPath: 'inset(0 0 12px 0)' }} />;",
+        "export const a = <div style={{ clipPath: 'inset(0 round 8px)' }} />;",
+        // A filter coefficient is a written number, as an opacity is (P1 QA18 should-fix 1).
+        "export const a = <div style={{ filter: 'brightness(0.5)' }} />;",
+        // A package's key registered as a CSS property is judged as that property (P1 QA18 F1).
+        "import { parseColor } from '@ark-ui/react/color-picker'; export const c = parseColor('#f00');",
       ],
       'value',
+    ),
+    // A key, option or argument a package declares and `PACKAGE_PROPS` does not register: the
+    // package renders it where the gate does not see it (sonner's `offset` into `--offset-*`,
+    // snapdom's `backgroundColor`) (P1 QA18 F1).
+    ...red(
+      [
+        "import { Toaster } from 'sonner'; export const a = <Toaster offset={37} />;",
+        "import { Toaster } from 'sonner'; export const a = <Toaster gap={14} />;",
+        "import { Toaster } from 'sonner'; export const a = <Toaster mobileOffset={13} />;",
+        "import { toast } from 'sonner'; toast('x', { className: 'a' });",
+        "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; void snapdom.toCanvas(el, { backgroundColor: '#f00' });",
+      ],
+      'prop',
+    ),
+    // A registered options argument that is not an object literal hides its keys (P1 QA18 F1).
+    ...red(
+      [
+        "import { toast } from 'sonner'; declare const o: Parameters<typeof toast>[1]; toast('x', o);",
+      ],
+      'options',
     ),
     ...red(
       [

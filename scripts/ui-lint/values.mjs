@@ -156,23 +156,6 @@ function valueProblems(
     }
   };
 
-  /** clip-path: shapes are free, except the corner radius after `round` (radius domain). */
-  const shape = (nodes) => {
-    let afterRound = false;
-    for (const node of nodes) {
-      if (afterRound && node.type !== 'space') {
-        walk([node], DOMAINS.radius, 'radius');
-      } else if (node.type === 'word' && node.value.toLowerCase() === 'round') {
-        afterRound = true;
-      } else if (node.type === 'function') {
-        if (node.value !== '' && !FUNCTIONS.has(node.value))
-          problem(node, valueMessages.func(node.value));
-        else if (REFERENCES.has(node.value.toLowerCase())) reference(node);
-        else shape(node.nodes);
-      }
-    }
-  };
-
   /** Walk value nodes in a token domain: every word is an atom of it. */
   const walk = (nodes, domain, name, inMath = false, fn = undefined) => {
     for (const node of nodes) {
@@ -223,7 +206,6 @@ function valueProblems(
 
   const nodes = valueParser(value).nodes;
   if (domainName === 'free') registeredOnly(nodes);
-  else if (DOMAINS[domainName].shape) shape(nodes);
   else walk(nodes, DOMAINS[domainName], domainName);
   return problems;
 }
