@@ -37,6 +37,9 @@ const HAND_WRITTEN_GUIDANCE = [
   'and record the new file in contracts/d1MigrationManifest.json.',
 ].join('\n  ');
 
+const INPUT_GUIDANCE =
+  'Fix the --word-category list (<id>=<name>, repeatable, in display order) and run the generator again.';
+
 /** SQL a registration migration must never contain; a match means the plan is not inserts-only. */
 const FORBIDDEN_STATEMENTS = [
   /\bDROP\s+(?:TABLE|INDEX|TRIGGER|VIEW)\b/i,
@@ -304,8 +307,15 @@ export function planRegistrationMigration({
   try {
     const problems = registrationPreflightProblems(database, options);
     if (problems.length > 0) {
+      // A malformed --word-category list is an input error: fix the input, not the schema.
+      const inputProblems = new Set(
+        wordCategories === null ? [] : wordCategoryProblems(gameId, wordCategories),
+      );
+      const guidance = problems.some((problem) => !inputProblems.has(problem))
+        ? HAND_WRITTEN_GUIDANCE
+        : INPUT_GUIDANCE;
       throw new Error(
-        `Registration migration for '${gameId}' cannot be generated against the current schema:\n  - ${problems.join('\n  - ')}\n  ${HAND_WRITTEN_GUIDANCE}`,
+        `Registration migration for '${gameId}' cannot be generated against the current schema:\n  - ${problems.join('\n  - ')}\n  ${guidance}`,
       );
     }
     const sql = buildRegistrationSql({ gameId, displayName, codeGameTypes, includeStatsTable });

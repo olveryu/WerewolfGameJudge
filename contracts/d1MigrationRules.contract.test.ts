@@ -605,7 +605,7 @@ it('migration files match the recorded sha256 manifest', () => {
  */
 const D1_PATTERN_MAX_BYTES = 50;
 /** `x GLOB '…'` operator form; `glob(…)`, `like(…)` and `GLOB ('…')` all capture `(`. */
-const PATTERN_OPERAND = /\b(GLOB|LIKE)\s*(\(|'(?:[^']|'')*'|\S+)/gi;
+const PATTERN_OPERAND = /(?<!["\x60[])\b(GLOB|LIKE)\b(?!["\x60\]])\s*(\(|'(?:[^']|'')*'|\S+)/gi;
 
 function patternProblems(sql: string): string[] {
   const problems: string[] = [];
@@ -647,6 +647,12 @@ it('flags a computed pattern and a literal over 50 bytes', () => {
     "like(…) hides its pattern; write x like '<literal>'",
     "GLOB(…) hides its pattern; write x GLOB '<literal>'",
   ]);
+  expect(
+    patternProblems(
+      'CREATE TABLE t (likes_count INTEGER, globals TEXT, likelihood REAL, "like" TEXT)',
+    ),
+  ).toEqual([]);
+  expect(patternProblems("CHECK (n LIKE'a%')")).toEqual([]);
   expect(patternProblems('CHECK (id GLOB\n  name)')).toEqual([
     'GLOB name) is not a literal pattern',
   ]);
