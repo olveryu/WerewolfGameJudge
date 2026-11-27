@@ -12,8 +12,7 @@ export interface SqlToken {
 
 /**
  * Every character of `sql`, in order, as SQLite lexes it: a `--` or `/* *\/` inside a string is
- * data, and a quoted identifier ("x", `x`, [x]) is never a keyword. The only SQL lexer in
- * the repository: migration rules and the worker runtime SQL rule both read SQL through it.
+ * data, and a quoted identifier ("x", `x`, [x]) is never a keyword.
  */
 const SQL_LEXEME =
   /(\s+)|(--[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^']|'')*')|('(?:[^']|'')*)|("(?:[^"]|"")*"?|\x60(?:[^\x60]|\x60\x60)*\x60?|\[[^\]]*\]?)|([A-Za-z_][A-Za-z0-9_$]*)|([\s\S])/g;
@@ -79,15 +78,43 @@ const D1_PATTERN_MAX_BYTES = 50;
 export const RUNTIME_VALUE = '__runtime_value__';
 const PATTERN_KEYWORDS = new Set(['GLOB', 'LIKE']);
 
+/** Bind parameters: `?`, `?1`, `:name`, `@name`, `$name`. */
+const BIND_PARAMETER_STARTS = new Set(['?', ':', '@', '$']);
+
+/** The code tokens of `sql`: no whitespace or comments. */
+function codeTokens(sql: string): SqlToken[] {
+  return sqlTokens(sql).filter((token) => token.kind !== 'space' && token.kind !== 'comment');
+}
+
+/**
+ * Whether `text`, a string found in source code, uses LIKE or GLOB as SQL. An upper-case keyword
+ * always counts (SQL keywords are written upper case). A keyword in any other case counts when
+ * what follows can only be a pattern operand — a bind parameter, a string literal, `(` or a
+ * function call — so lower-case `like ?`, `like '%…%'` and `like lower(?)` are caught while prose
+ * such as "looks like a bot" or `'looks like ' + name` is not. The one shape left to the
+ * upper-case rule is a lower-case keyword followed straight by an interpolated value, which reads
+ * the same as prose.
+ */
+export function usesPatternOperator(text: string): boolean {
+  const tokens = codeTokens(text);
+  return tokens.some((token, index) => {
+    if (token.kind !== 'word' || !PATTERN_KEYWORDS.has(token.text.toUpperCase())) return false;
+    if (PATTERN_KEYWORDS.has(token.text)) return true;
+    const operand = tokens[index + 1];
+    if (operand === undefined) return false;
+    if (operand.kind === 'string' || operand.kind === 'unterminated') return true;
+    if (operand.text === '(' || BIND_PARAMETER_STARTS.has(operand.text)) return true;
+    return operand.kind === 'word' && tokens[index + 2]?.text === '(';
+  });
+}
+
 /**
  * Judges the token after every unquoted GLOB/LIKE keyword: `glob(…)`, `like(…)` and `GLOB (…)`
  * hide their pattern; an operand other than one closed string literal free of `RUNTIME_VALUE` is
  * computed; and a literal must fit.
  */
 export function patternProblems(sql: string): string[] {
-  const tokens = sqlTokens(sql).filter(
-    (token) => token.kind !== 'space' && token.kind !== 'comment',
-  );
+  const tokens = codeTokens(sql);
   const problems: string[] = [];
   tokens.forEach((token, index) => {
     if (token.kind !== 'word' || !PATTERN_KEYWORDS.has(token.text.toUpperCase())) return;
