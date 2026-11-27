@@ -89,7 +89,8 @@ const CASES: readonly Case[] = [
     outside: false,
   },
   {
-    // The branch main's RoomDialog patch used to cover by itself.
+    // Guards the branch main's RoomDialog patch used to cover by itself: these cases were green
+    // before the fix too, and keep the shared root from regressing what the patch held.
     name: 'RoomDialog without Escape',
     render: (onClose) => (
       <RoomDialog title="详情" testId={CONTENT_ID} onClose={onClose} footer={null}>
@@ -165,7 +166,12 @@ describe('AppDialog.Root', () => {
   it.each(CASES)('closes $name with Escape only when it allows Escape', async (dialog) => {
     const { onClose, user } = await openFromConfirmation(dialog);
 
+    // The key reaches zag: focus is trapped in the dialog and zag listens on its document.
+    expect(screen.getByTestId(CONTENT_ID).contains(document.activeElement)).toBe(true);
+    const keys: string[] = [];
+    document.addEventListener('keydown', (event) => keys.push(event.key), { once: true });
     await user.keyboard('{Escape}');
+    expect(keys).toEqual(['Escape']);
 
     if (dialog.escape) {
       expect(onClose).toHaveBeenCalledOnce();
@@ -180,12 +186,23 @@ describe('AppDialog.Root', () => {
     async (dialog) => {
       const { onClose, user } = await openFromConfirmation(dialog);
 
+      // The press reaches zag's document listener, outside the dialog's content.
+      const pressTargets: EventTarget[] = [];
+      document.addEventListener(
+        'pointerdown',
+        (event) => {
+          if (event.target !== null) pressTargets.push(event.target);
+        },
+        { once: true },
+      );
       // zag ignores a press inside the content's box; jsdom boxes are all at the origin.
       await user.pointer({
         keys: '[MouseLeft]',
         target: document.body,
         coords: { clientX: 200, clientY: 200 },
       });
+
+      expect(pressTargets).toEqual([document.body]);
 
       if (dialog.outside) {
         await waitFor(() => expect(onClose).toHaveBeenCalledOnce());

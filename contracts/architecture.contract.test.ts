@@ -1198,6 +1198,17 @@ function viteGlobPatterns(filePath: string): string[] {
             `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob needs literal patterns`,
           );
         }
+        // Only the file-name segment may be a wildcard, and never under node_modules: a wildcard
+        // directory (`**`, `@ark-*`, `{a,b}`) could reach a package the gate cannot name.
+        const segments = literal.text.split('/');
+        if (
+          segments.includes('node_modules') ||
+          segments.slice(0, -1).some((segment) => /[*?{}[\]]/.test(segment))
+        ) {
+          throw new Error(
+            `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob may only wildcard file names outside node_modules`,
+          );
+        }
         patterns.push(literal.text);
       }
     }
@@ -1308,6 +1319,17 @@ describe('Client dialogs: one Ark dialog root', () => {
         /@(?:ark-ui|zag-js)\//.test(fs.readFileSync(path.join(process.cwd(), file), 'utf-8')),
       ),
     ).toEqual([]);
+    // Node subpath imports (`"imports": { "#x": "@ark-ui/..." }`) are aliases too.
+    const manifestsImportingArkOrZag = [
+      'package.json',
+      ...['web', 'game-engine', 'api-worker'].map((name) => `packages/${name}/package.json`),
+    ].filter((file) => {
+      const manifest = z
+        .object({ imports: z.unknown().optional() })
+        .parse(JSON.parse(fs.readFileSync(path.join(process.cwd(), file), 'utf-8')));
+      return /@(?:ark-ui|zag-js)\//.test(JSON.stringify(manifest.imports ?? {}));
+    });
+    expect(manifestsImportingArkOrZag).toEqual([]);
   });
 });
 
