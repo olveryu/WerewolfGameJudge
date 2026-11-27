@@ -595,6 +595,9 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         "import { toast } from 'sonner'; class Holder { t = toast; } export function show(m: string) { new Holder().t(m); }",
         // Handed to the package itself: its calls, members, elements and callbacks.
         "import { toast } from 'sonner'; toast('a', { onDismiss: (t) => void t.id });",
+        "import { toast, type ToastT } from 'sonner'; function seen(t: ToastT): void { void t.id; } toast('a', { onDismiss: seen });",
+        // A rest parameter written with the package's type takes every argument (P1 QA28 S1).
+        "import { toast } from 'sonner'; function hold(...all: (typeof toast)[]): void { void all; } hold(toast, toast);",
         "import { Toaster } from 'sonner'; const T = Toaster; export function A() { return <T toastOptions={{ duration: 1 }} />; }",
         // A written place, a method, an extended class, `as const`: no other type taken.
         "import { toast } from 'sonner'; const box = { t: toast } as const; export function show(m: string) { box.t(m); }",
@@ -683,6 +686,11 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
       [
         "import { toast } from 'sonner'; toast('a', { onDismiss: (t: unknown) => void t });",
         "import { toast } from 'sonner'; function seen(t: object): void { void t; } toast('a', { onAutoClose: seen });",
+        // A library method or another module's function takes it as ours (P1 QA28 F1).
+        "import { toast } from 'sonner'; export const parts = new Set<unknown>(); [toast].forEach(parts.add, parts);",
+        "import { toast } from 'sonner'; import { keepPart } from './keep'; [toast].forEach(keepPart);",
+        "import { toast } from 'sonner'; import { keepPart } from './keep'; toast('a', { onDismiss: keepPart });",
+        "import { toast } from 'sonner'; toast('a', { onDismiss: (...all: unknown[]) => void all });",
       ],
       'takes',
       ADAPTED,

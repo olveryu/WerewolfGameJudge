@@ -37,7 +37,8 @@
       "ui/package-adapter\tnone\t\timport { captureException } from '@sentry/react';"
     ],
     "packages/web/src/app/router.ts": [
-      "ui/package-adapter\tnone\t\timport { wrapCreateBrowserRouter } from '@sentry/react/react-router';"
+      "ui/package-adapter\tnone\t\timport { wrapCreateBrowserRouter } from '@sentry/react/react-router';",
+      "ui/package-adapter\ttakes\tcreateSentryBrowserRouter\tconst createSentryBrowserRouter = wrapCreateBrowserRouter(createBrowserRouter);"
     ],
     "packages/web/src/boot/WechatBrowserGuide.css": [
       "ui/value-allowlist\t\t.wechat-guide-arrow\tanimation: wechat-guide-bounce 1.5s ease-in-out infinite;",
@@ -1609,7 +1610,8 @@
       "ui/package-adapter\texposes\tRevealSceneContext\texport const RevealSceneContext = createContext<RevealScene | null>(null);",
       "ui/package-adapter\texposes\tSharedValue\texport class SharedValue { private from: number; private animation: Animation | null = null; private startMs = 0; private stopWatching: (() => void) | null = null;  constructor( private readonly scene: RevealScene, initial: number, ) { this.from = initial; }  get(): number { if (!this.animation) return this.from; return this.animation.valueAt(this.from, Math.max(0, this.scene.now() - this.startMs)); }  set(value: number): void { this.cancel(); this.from = value; }  /** Starts `animation` from the current value; `onFinish` runs on the frame it finishes. */ animate(animation: Animation, onFinish?: () => void): void { this.cancel(); const startMs = this.scene.now(); this.animation = animation; this.startMs = startMs; if (!onFinish) return; const durationMs = animation.durationFrom(this.from); this.stopWatching = this.scene.subscribe((nowMs) => { if (nowMs - startMs < durationMs) return; this.stopWatching?.(); this.stopWatching = null; onFinish(); }); }  /** Freezes the value where it is, like `cancelAnimation`. */ cancel(): void { this.stopWatching?.(); this.stopWatching = null; if (!this.animation) return; this.from = this.get(); this.animation = null; } }",
       "ui/package-adapter\texposes\tuseRevealScene\texport function useRevealScene(): RevealScene { const scene = useContext(RevealSceneContext); if (!scene) { throw new Error('Reveal effects render inside RevealSceneContext'); } return scene; }",
-      "ui/package-adapter\texposes\tuseSharedValue\texport function useSharedValue(initial: number): SharedValue { const scene = useRevealScene(); const [value] = useState(() => new SharedValue(scene, initial)); useEffect(() => () => value.cancel(), [value]); return value; }"
+      "ui/package-adapter\texposes\tuseSharedValue\texport function useSharedValue(initial: number): SharedValue { const scene = useRevealScene(); const [value] = useState(() => new SharedValue(scene, initial)); useEffect(() => () => value.cancel(), [value]); return value; }",
+      "ui/package-adapter\ttakes\tuseRevealScene > scene\tconst scene = useContext(RevealSceneContext);"
     ],
     "packages/web/src/features/room/components/RoomActionHand.css": [
       "ui/value-allowlist\t\t.room-action-card-cell .room-hand-card:active:not([aria-disabled='true'], [aria-busy='true'])\t0 1px 0 var(--hand-ink);",

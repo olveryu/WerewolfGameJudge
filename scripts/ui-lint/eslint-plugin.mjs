@@ -1568,6 +1568,7 @@ const packageAdapter = {
         if (source === undefined)
           throw new Error(`ui-gate E12: ${file} is not in the TypeScript program`);
         if (reached.size > 0) judgeEscapes();
+        judgeTakes();
         judgeExposed(source);
       },
     };
@@ -1627,41 +1628,72 @@ const packageAdapter = {
           data: { ...own, target: positionOf(node) },
         });
       }
-      // A function given where the package's type calls it with its own values (a callback
-      // option, a render prop) takes them under that type: a parameter written as ours, `any` or
-      // `unknown` would carry them out (P1 QA27 F1).
+    }
+    /**
+     * A value given where the package calls it with its own values (a callback option, a render
+     * prop, `forEach` over the package's values) takes them under the type its declaration
+     * writes. Every such place is judged, in every file, by a whitelist (P1 QA27 F1, QA28 F1): a
+     * function written here whose parameter there is unannotated or written with the package's
+     * type; a value whose signatures are declared in the package, or whose declared parameter
+     * there is written with the package's type (never a type parameter). Anything else, a
+     * library method, a function of another module taking it as ours, `any` or `unknown`, or a
+     * signature with no declaration, is reported.
+     */
+    function judgeTakes() {
       for (const node of held) {
         const expression = services.esTreeNodeToTSNodeMap.get(node);
         const contextual = checker.getContextualType(expression);
         if (contextual === undefined) continue;
-        const here = services.program.getSourceFile(context.filename);
-        const own = checker
-          .getTypeAtLocation(expression)
-          .getCallSignatures()
-          .filter((signature) => signature.getDeclaration()?.getSourceFile() === here);
-        if (own.length === 0) continue;
         for (const expected of checker.getNonNullableType(contextual).getCallSignatures()) {
           expected.getParameters().forEach((parameter, index) => {
             const given = checker.getTypeOfSymbol(parameter);
             const found = foreignType(given);
             if (found === undefined) return;
-            for (const signature of own) {
-              const taken = signature.getParameters()[index];
-              if (taken === undefined) continue;
-              if (foreignType(checker.getTypeOfSymbol(taken)) !== undefined) continue;
-              context.report({
-                node,
-                messageId: 'takes',
-                data: {
-                  ...found,
-                  name: taken.getName(),
-                  taken: checker.typeToString(checker.getTypeOfSymbol(taken)),
-                },
-              });
-            }
+            const taken = takenAs(node, expression, index);
+            if (taken === undefined) return;
+            context.report({
+              node,
+              messageId: 'takes',
+              data: { ...found, type: checker.typeToString(given), ...taken },
+            });
           });
         }
       }
+    }
+    /**
+     * How `node` takes the package's value given at parameter `index`, when that is not provably
+     * the package's type: `{ name, taken }` for the message, `undefined` when it is.
+     */
+    function takenAs(node, expression, index) {
+      if (FUNCTIONS.has(node.type)) {
+        const written = parameterAt(expression, index);
+        if (written === undefined || written.type === undefined) return undefined;
+        const type = checker.getTypeAtLocation(written.type);
+        return declaresPackage(type)
+          ? undefined
+          : { name: written.name.getText(), taken: checker.typeToString(type) };
+      }
+      for (const signature of checker.getTypeAtLocation(expression).getCallSignatures()) {
+        const site = signature.getDeclaration();
+        if (site === undefined)
+          return { name: `#${index}`, taken: 'a signature with no declaration' };
+        if (inPackage(site)) continue;
+        const written = parameterAt(site, index);
+        if (written === undefined) continue;
+        const type = checker.getTypeAtLocation(written);
+        if (!declaresPackage(type))
+          return { name: written.name.getText(), taken: checker.typeToString(type) };
+      }
+      return undefined;
+    }
+    /** The parameter declaration of `site` that receives argument `index`, a rest one included. */
+    function parameterAt(site, index) {
+      const { parameters } = site;
+      const last = parameters.at(-1);
+      return (
+        parameters[index] ??
+        (last !== undefined && last.dotDotDotToken !== undefined ? last : undefined)
+      );
     }
     /** Whether every declaration of `symbol` (an alias resolved) is a package's. */
     function declaredInPackage(symbol) {
@@ -1705,13 +1737,14 @@ const packageAdapter = {
           if (inPackage(site)) return true;
           // Our own function or class takes it where its declaration writes the package's type
           // (never a type parameter, never the type a call infers).
-          const declared = checker.getSignatureFromDeclaration(site);
-          const parameters = declared?.getParameters() ?? [];
-          const last = parameters.at(-1);
-          const parameter =
-            parameters[index] ??
-            (last !== undefined && signature.hasRestParameter?.() ? last : undefined);
-          return parameter !== undefined && declaresPackage(checker.getTypeOfSymbol(parameter));
+          const written = parameterAt(site, index);
+          if (written === undefined) return false;
+          const type = checker.getTypeAtLocation(written);
+          return declaresPackage(
+            written.dotDotDotToken === undefined
+              ? type
+              : (checker.getIndexTypeOfType(type, ts.IndexKind.Number) ?? type),
+          );
         }
         case 'MemberExpression':
           // Reading a member hands nothing on: the member read is a value of its own type, held
