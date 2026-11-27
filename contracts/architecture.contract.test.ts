@@ -1176,6 +1176,37 @@ describe('Client storage ownership', () => {
   });
 });
 
+/**
+ * The literal patterns of every Vite `import.meta.glob(...)` in a file: a glob imports modules
+ * too, so the Ark/zag gate checks it like an import. A non-literal pattern fails fast.
+ */
+function viteGlobPatterns(filePath: string): string[] {
+  const source = fs.readFileSync(filePath, 'utf-8');
+  if (!source.includes('import.meta.glob')) return [];
+  const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
+  const patterns: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node) && node.expression.getText(sourceFile) === 'import.meta.glob') {
+      const [pattern] = node.arguments;
+      const literals =
+        pattern !== undefined && ts.isArrayLiteralExpression(pattern)
+          ? pattern.elements
+          : [pattern];
+      for (const literal of literals) {
+        if (literal === undefined || !ts.isStringLiteralLike(literal)) {
+          throw new Error(
+            `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob needs literal patterns`,
+          );
+        }
+        patterns.push(literal.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return patterns;
+}
+
 describe('Client dialogs: one Ark dialog root', () => {
   // zag closes every dismissable layer above a layer that is removed. AppDialog's root blocks
   // that cascade (see its file header), so it is the only module that may import Ark's dialog.
@@ -1200,7 +1231,10 @@ describe('Client dialogs: one Ark dialog root', () => {
       getAllProductionFiles(path.join(process.cwd(), 'packages', 'web', dir)),
     );
     const offenders = [...srcFiles, ...otherWebFiles].flatMap((filePath) =>
-      getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'))
+      [
+        ...getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')),
+        ...viteGlobPatterns(filePath),
+      ]
         // A bare package name or a path into the installed package (`…/node_modules/@ark-ui/…`).
         .filter((specifier) => /(?:^|\/)@(?:ark-ui|zag-js)\//.test(specifier))
         .filter(
@@ -1214,35 +1248,56 @@ describe('Client dialogs: one Ark dialog root', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('reaches zag only through Ark, with no bundler or TypeScript alias to either', () => {
-    // A zag-based UI library shares zag's layer stack and would bring the cascade back under a
-    // package name the import gate does not know, so Ark must be zag's only outside dependent.
-    const lockfile: unknown = parse(
-      fs.readFileSync(path.join(process.cwd(), 'pnpm-lock.yaml'), 'utf-8'),
+  it('reaches zag only through Ark, which only the web package depends on by its own name', () => {
+    // A library built on Ark or zag shares zag's layer stack and would bring the cascade back
+    // under a package name the import gate does not know; so would an alias to either scope.
+    // The lockfile records every dependency edge, aliased or not, so it is checked whole.
+    const DEPENDENCY_KINDS = ['dependencies', 'devDependencies', 'optionalDependencies'] as const;
+    const dependencyMap = z.record(
+      z.string(),
+      z.union([z.string(), z.object({ specifier: z.string(), version: z.string() })]),
     );
-    const snapshots = z
+    const dependencyGroups = z
+      .object(Object.fromEntries(DEPENDENCY_KINDS.map((kind) => [kind, dependencyMap.optional()])))
+      .nullable();
+    const lockfile = z
       .object({
-        snapshots: z.record(
-          z.string(),
-          z
-            .object({
-              dependencies: z.record(z.string(), z.string()).optional(),
-              optionalDependencies: z.record(z.string(), z.string()).optional(),
-            })
-            .nullable(),
-        ),
+        importers: z.record(z.string(), dependencyGroups),
+        snapshots: z.record(z.string(), dependencyGroups),
       })
-      .parse(lockfile).snapshots;
-    const zagDependents = Object.entries(snapshots)
-      .filter(([key]) => !key.startsWith('@zag-js/'))
-      .filter(([, entry]) =>
-        Object.keys({ ...entry?.dependencies, ...entry?.optionalDependencies }).some((name) =>
-          name.startsWith('@zag-js/'),
+      .parse(parse(fs.readFileSync(path.join(process.cwd(), 'pnpm-lock.yaml'), 'utf-8')));
+    const ARK_OR_ZAG = /(?:^|[/:])@(?:ark-ui|zag-js)\//;
+    const packageName = (key: string): string => key.slice(0, key.indexOf('@', 1));
+    // `dependent -> name: resolution` for every edge whose name or resolution is Ark or zag.
+    const edges = (
+      entries: Record<string, z.infer<typeof dependencyGroups>>,
+      dependentName: (key: string) => string,
+    ): string[] =>
+      Object.entries(entries).flatMap(([key, groups]) =>
+        DEPENDENCY_KINDS.flatMap((kind) =>
+          Object.entries(groups?.[kind] ?? {}).flatMap(([name, entry]) => {
+            const resolution =
+              typeof entry === 'string' ? entry : `${entry.specifier} ${entry.version}`;
+            return ARK_OR_ZAG.test(name) || ARK_OR_ZAG.test(resolution)
+              ? [`${dependentName(key)} -> ${name}: ${resolution}`]
+              : [];
+          }),
         ),
-      )
-      .map(([key]) => key.slice(0, key.indexOf('@', 1)));
+      );
+    const importerEdges = edges(lockfile.importers, (key) => key);
+    const snapshotEdges = edges(lockfile.snapshots, packageName).filter(
+      // zag's packages depend on each other, and Ark on zag; nothing else may reach either.
+      (edge) =>
+        !edge.startsWith('@zag-js/') &&
+        !(edge.startsWith('@ark-ui/react -> @zag-js/') && !edge.includes('npm:')),
+    );
 
-    expect([...new Set(zagDependents)]).toEqual(['@ark-ui/react']);
+    // Only the web package, by Ark's own name and without an `npm:` alias.
+    expect(importerEdges.map((edge) => edge.slice(0, edge.indexOf(':')))).toEqual([
+      'packages/web -> @ark-ui/react',
+    ]);
+    expect(importerEdges.filter((edge) => edge.includes('npm:'))).toEqual([]);
+    expect(snapshotEdges).toEqual([]);
     const aliasFiles = [
       'packages/web/vite.config.ts',
       'packages/web/tsconfig.json',

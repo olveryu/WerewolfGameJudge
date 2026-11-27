@@ -88,6 +88,17 @@ const CASES: readonly Case[] = [
     escape: true,
     outside: false,
   },
+  {
+    // The branch main's RoomDialog patch used to cover by itself.
+    name: 'RoomDialog without Escape',
+    render: (onClose) => (
+      <RoomDialog title="详情" testId={CONTENT_ID} onClose={onClose} footer={null}>
+        内容
+      </RoomDialog>
+    ),
+    escape: false,
+    outside: false,
+  },
 ];
 
 /** A page whose button asks「查看身份？」and opens `dialog` from the confirmation's「查看」. */
