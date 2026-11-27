@@ -77,7 +77,7 @@ The announcement file is not in the release script's version-file allowlist, so 
 
 ### Step 5 — Run scoped checks
 
-Run the scoped local checks for the changed area plus the pre-push checks (`npx tsc --noEmit`, `npx knip`, `npm run --silent lint:ui`, `.husky/pre-push`). The release script itself runs no quality check.
+Run the scoped local checks for the changed area plus the pre-push checks (`npx tsc --noEmit`, `npx knip`, `npm run --silent lint:css`, `.husky/pre-push`). The release script itself runs no quality check.
 
 ### Step 6 — Run the release script and handle its prompts
 

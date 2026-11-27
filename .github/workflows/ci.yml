@@ -40,10 +40,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      # Depth 2: a PR's UI gate compares its baseline with HEAD^1 (main, for the merge commit).
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 2
 
       - uses: pnpm/action-setup@v5
 
@@ -54,26 +51,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # ESLint applies eslint-suppressions.json itself and fails on entries no longer needed.
       - name: Lint
         run: pnpm run lint
 
+      # Stylelint applies stylelint-suppressions.json itself.
+      - name: Stylelint
+        run: pnpm run lint:css
+
       - name: Format check
         run: pnpm run format
-
-      # A push compares with the commit main was at before it (every pushed commit counts).
-      - name: Fetch the UI gate base
-        if: github.event_name == 'push'
-        run: git fetch --no-tags --depth=1 origin ${{ github.event.before }}
-
-      - name: UI gate
-        env:
-          UI_GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
-        run: pnpm run lint:ui
-
-      # Beside the gate, not in a test-root shard: the suite builds the web bundle and spawns
-      # linters, and starved time-limited contract tests there.
-      - name: UI gate tests
-        run: pnpm run test:ui-lint
 
   # Root contracts + game-engine and web Vitest suites, sharded across 2
   # runners (mirrors the test-api-worker sharding below). As its own job it

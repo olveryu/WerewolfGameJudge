@@ -263,8 +263,8 @@ framing, and the blue-grey background stays clean and nearly untextured.
 ## Shapes
 
 Controls and surfaces use the shared radius scale. Full-radius shapes remain appropriate for small
-badges and progress tracks. The UI gate (`ui/value-allowlist`) accepts a radius only as a radius
-token (`var(--radius-*)`) or a registered keyword; tokens are defined in
+badges and progress tracks. Stylelint (`scale-unlimited/declaration-strict-value`) accepts a radius
+only as a token (`var(--radius-*)`) or a keyword; tokens are defined in
 `packages/web/src/theme/tokens.css`.
 
 Avatars are rounded squares at every size: `Avatar` alone sets their corners from
@@ -272,9 +272,11 @@ Avatars are rounded squares at every size: `Avatar` alone sets their corners fro
 along the same corner, and `applyAvatarShapeTokens` publishes the ratio as `--avatar-corner-ratio`.
 A square box hugging an avatar (a tile, a seat, a mat, a placeholder standing where an avatar
 would) is concentric with it through the shared `avatar-concentric` rule and its `--avatar-inset`;
-no stylesheet repeats the ratio or gives such a box a fixed radius. The web avatar shape contract
-test (`packages/web/src/__tests__/avatarShape.contract.test.ts`) pins the avatar and box rules
-over every avatar site its census finds; the frame geometry tests
+no stylesheet repeats the ratio or gives such a box a fixed radius. Stylelint keeps corners and cuts off
+the avatar, its hosts and stages, and the boxes (`rule-selector-property-disallowed-list` in
+`stylelint.config.mjs`), and keeps the ratio's name to its publisher and the concentric rule;
+ESLint keeps avatar URLs and art inside `components/avatar`. The screenshot gate (`e2e/visual`)
+pins the rendered shape, `avatarShape.contract.test.ts` the values; the frame geometry tests
 (`packages/web/src/scene/frames/__tests__/frameBox.test.ts`) pin the frames to the same corner.
 
 ## Components
@@ -290,36 +292,20 @@ over every avatar site its census finds; the frame geometry tests
   empty, disabled, selected and submitting states.
 - Keyboard focus is visible through the global focus treatment; input focus retains its
   component-specific treatment.
-- Component styles live in bundled CSS. In TSX the UI gate allows only registered native elements
-  (`ui/element-allowlist`; no `<style>`, `<link>` or `<script>`, no spread into a native
-  element, and `createElement` props only as an object literal of registered attributes),
-  inline style values judged by their write site's syntax alone (`ui/inline-style-keys`: a key
-  must be written out, and a value passes only as a literal within the CSS value domains, a
-  member of a token constant registered in `TOKEN_CONSTANTS`, or a call to a runtime source
-  registered in `RUNTIME_SOURCES` written into a custom property; any other expression, a style
-  object passed by name and a spread are `untracked`, since the gate traces no data flow; the
-  `width`/`height` of `svg`, `img` and `iframe` are sizes, while a canvas's are its bitmap
-  resolution), and DOM members that write markup, styles, attributes or
-  nodes only where `DOM_WRITERS` in `scripts/ui-lint/registry.mjs` registers them for that file
-  (`ui/dom-allowlist`). What the gate covers is the web build's bundle graph
-  (`scripts/ui-lint/bundle.mjs`): a package import passes only if `PACKAGES` in the registry
-  lists it for the manifest field it is in, and a package with registered `entries` (`react`,
-  `react-dom/client`) only through those specifiers, static or dynamic `import()` alike.
+- Component styles live in bundled CSS. In TSX (ESLint, UI drift lock section of
+  `eslint.config.mjs`) an inline `style` is an object literal of `--custom` properties only,
+  script sets only custom properties, `CSSProperties` objects and prop spreading onto DOM elements
+  are rejected, and a page-writing package (Ark, Sentry, snapdom, Pixi, sonner) is imported only
+  in its adapter file (`no-restricted-imports`).
 
 ## Do's and Don'ts
 
-- Use the semantic color and size tokens instead of copying values into component styles. The UI
-  gate (`pnpm run lint:ui`) allows only what `scripts/ui-lint/registry.mjs` registers: each
-  property's value domain (tokens of that domain plus a few keywords), the registered functions
-  and at-rules, and system colors only under `forced-colors`. `tokens.css` holds only custom
-  property definitions, and no other stylesheet defines a token name or a local variable that is
-  not an alias of a token (an `env()` fallback is checked like a `var()` fallback); an animation
-  runs only keyframes its own stylesheet defines. A registered art stylesheet is held to its own
-  class prefix (every rule's subject is an element of that prefix, its keyframes carry it) and
-  defines no token; its values take the same value checks as any stylesheet, with no exempt
-  zone. A `url()` references only a registered asset by a relative path from a stylesheet (the
-  bundle graph follows it) or a fragment of the document (`#id`); `data:` and remote URLs are
-  rejected. Existing exceptions are recorded in `ui-gate-baseline.json` and may only shrink.
+- Use the semantic color and size tokens instead of copying values into component styles.
+  Stylelint (`pnpm run lint:css`) rejects raw colors, corners, z-index, spacing, type and shadows
+  outside `tokens.css` and any custom property no stylesheet declares and the theme does not
+  publish; `tokens.css` holds only `:root`/`.admin-console` definitions and an art stylesheet's
+  selectors keep its prefix. Existing exceptions are recorded in `stylelint-suppressions.json`
+  and `eslint-suppressions.json` and may only shrink.
 - Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
 - Do not replace meaningful game art or faction semantics with decorative styling.
 - Do not reintroduce gradients or colored side stripes merely as decoration.

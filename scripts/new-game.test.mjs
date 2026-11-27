@@ -2,7 +2,7 @@
  * Generator tests: run the real generator against a fixture repository
  * assembled from the real shared files it edits, across representative feature
  * profiles. A real-tree copy validates representative selections with the
- * generated output's formatting, lint (including the UI gate's rules), types and package tests. Run with
+ * generated output's formatting, lint (ESLint and Stylelint), types and package tests. Run with
  * `corepack pnpm run test scripts/new-game.test.mjs`.
  */
 
@@ -13,7 +13,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { afterAll, it } from 'vitest';
 
 import {
@@ -107,9 +107,7 @@ function generateNewGame(options) {
  * to run in parallel with other suites.
  */
 function makeRealRepoCopy() {
-  // Beside the repository, on its file system, so the assets below hard-link (a tmpfs /tmp
-  // cannot hold a copy of them), and outside it, so no repository walk sees the copy.
-  const root = fs.mkdtempSync(path.join(path.dirname(REPO_ROOT), '.wgj-new-game-real-repo-'));
+  const root = fs.mkdtempSync(path.join(tmpdir(), 'wgj-new-game-real-repo-'));
   fixtureRoots.add(root);
   for (const name of fs.readdirSync(REPO_ROOT)) {
     if (
@@ -127,13 +125,8 @@ function makeRealRepoCopy() {
         !path.relative(REPO_ROOT, source).split(path.sep).includes('node_modules'),
     });
   }
-  // Assets are files the web bundle graph reaches, and the UI gate rejects a graph file reached
-  // through a symbolic link: hard-link them (515 MB; the copy root sits beside the repository,
-  // on its file system, so a failed link is a broken setup and fails the run, QA12 nit 9).
-  execFileSync('cp', ['-al', path.join(REPO_ROOT, 'assets'), path.join(root, 'assets')], {
-    stdio: 'pipe',
-  });
   for (const linked of [
+    'assets',
     'node_modules',
     'packages/game-engine/node_modules',
     'packages/api-worker/node_modules',
@@ -1615,7 +1608,7 @@ it('missing documentation index anchors fail before registering or creating any 
 
 it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
   'generated output passes format, lint, typecheck, engine and client tests with tooling present',
-  async () => {
+  () => {
     // The fixture-repo cases above structurally cannot catch shaping
     // defects: without node_modules both shaping passes skip silently.
     // This case generates in a copy of the real tree (dependencies
@@ -1677,35 +1670,19 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
         },
       });
 
-      // Generated files meet the UI gate with no recorded debt, judged by the gate itself: its
-      // scope is the copy's bundle graph and its own configurations, so this test holds no
-      // second definition of either. A generated source outside the graph is one Vite does not
-      // bundle (a module of types only, or one only tests import, as in the shipped games): that
-      // the graph holds every module Vite bundles is a property of `bundle.mjs`, checked against
-      // Vite's own build in `scripts/ui-lint/gate.test.mjs` (P1 QA7 F1, QA8 should-fix 5).
-      execFileSync('git', ['init', '-q'], { cwd: root, stdio: 'pipe' });
-      execFileSync('git', ['add', '-A'], { cwd: root, stdio: 'pipe' });
-      const { runGate } = await import(
-        pathToFileURL(path.join(root, 'scripts/ui-lint/gate.mjs')).href
+      // Generated stylesheets meet the Stylelint rules with no recorded debt: the copy's
+      // stylelint-suppressions.json has no entry for a file that did not exist.
+      const stylelintBin = path.join(
+        path.dirname(require.resolve('stylelint/package.json')),
+        'bin',
+        'stylelint.mjs',
       );
-      const webSources = createdFiles.filter(
-        (file) =>
-          file.startsWith('packages/web/src/') &&
-          /\.(?:ts|tsx|css)$/.test(file) &&
-          !/(?:^|\/)__tests__\/|\.test\.tsx?$/.test(file),
-      );
-      assert.ok(
-        webSources.some((file) => file.endsWith('.css')),
-        'the generator emits stylesheets',
-      );
-      const gate = await runGate({ root, only: new Set(webSources) });
-      assert.deepEqual(gate.problems, []);
-      const scope = new Set([...gate.graph.scripts, ...gate.graph.styles]);
-      assert.ok(
-        webSources.some((file) => scope.has(file) && file.endsWith('.tsx')),
-        'the graph reaches the generated screens',
-      );
-      assert.deepEqual(gate.files, {});
+      const styleTargets = createdFiles.filter((file) => file.endsWith('.css'));
+      assert.ok(styleTargets.length > 0, 'the generator emits stylesheets');
+      execFileSync(process.execPath, [stylelintBin, '--max-warnings', '0', ...styleTargets], {
+        cwd: root,
+        stdio: 'pipe',
+      });
 
       const webTestPaths = [
         ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),

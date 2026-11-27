@@ -44,36 +44,35 @@ The application release version is authoritative in the root `package.json`; `pa
 
 ## Commands
 
-| Task              | Exact command                                                            | Scope                                                                              |
-| ----------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Root tests        | `pnpm run test` (Vitest contracts and generator tests)                   | Local, scoped by path filter                                                       |
-| Web tests         | `pnpm --filter @game-judge/web run test`                                 | Local, scoped by path filter                                                       |
-| UI gate tests     | `pnpm run test:ui-lint`                                                  | Local, scoped by path filter; CI lint job                                          |
-| All tests         | `pnpm run test:all`                                                      | Full run; CI only                                                                  |
-| Engine build      | `pnpm --filter @game-judge/game-engine run build`                        | As needed; CI builds it first                                                      |
-| Web build         | `pnpm --filter @game-judge/web run build`                                | Vite build plus per-route gzip budgets                                             |
-| Root typecheck    | `pnpm run typecheck`                                                     | Pages types, `contracts/`, `functions/`, `e2e/`                                    |
-| Web typecheck     | `pnpm --filter @game-judge/web run typecheck`                            | Local, scoped where possible                                                       |
-| Worker typecheck  | `pnpm --filter @game-judge/api-worker run typecheck`                     | Local, scoped where possible                                                       |
-| Lint              | `pnpm exec eslint <changed files>`                                       | Local, changed files only; full run in CI                                          |
-| Format check      | `pnpm exec prettier --check <changed files>`                             | Local, changed files only; full run in CI                                          |
-| Unused code       | `pnpm run knip`                                                          | Local                                                                              |
-| UI gate           | `pnpm run lint:ui`                                                       | Local and CI; `pnpm run lint:ui:baseline` rewrites the baseline, CI rejects growth |
-| Agent files check | `pnpm run validate:agents`                                               | Local and CI                                                                       |
-| Full gate         | `pnpm run quality`                                                       | Full run; CI only                                                                  |
-| E2E               | `pnpm run e2e`                                                           | Full run; CI only                                                                  |
-| Single E2E spec   | `gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>` | One spec at a time; verify the run with `gh api` (see `e2e/AGENTS.md`)             |
-| Local dev         | `pnpm run dev`                                                           | Worker plus Vite; Worker uses 127.0.0.1:8787 or an available port                  |
-| Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                                    |
-| Local D1 seed     | `pnpm --filter @game-judge/api-worker run db:seed:local`                 | After local migrations; seeds the local development account                        |
-| New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                                  |
-| Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Release script                                                                     |
+| Task              | Exact command                                                            | Scope                                                                  |
+| ----------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Root tests        | `pnpm run test` (Vitest contracts and generator tests)                   | Local, scoped by path filter                                           |
+| Web tests         | `pnpm --filter @game-judge/web run test`                                 | Local, scoped by path filter                                           |
+| All tests         | `pnpm run test:all`                                                      | Full run; CI only                                                      |
+| Engine build      | `pnpm --filter @game-judge/game-engine run build`                        | As needed; CI builds it first                                          |
+| Web build         | `pnpm --filter @game-judge/web run build`                                | Vite build plus per-route gzip budgets                                 |
+| Root typecheck    | `pnpm run typecheck`                                                     | Pages types, `contracts/`, `functions/`, `e2e/`                        |
+| Web typecheck     | `pnpm --filter @game-judge/web run typecheck`                            | Local, scoped where possible                                           |
+| Worker typecheck  | `pnpm --filter @game-judge/api-worker run typecheck`                     | Local, scoped where possible                                           |
+| Lint              | `pnpm exec eslint <changed files>`                                       | Local, changed files only; full run in CI                              |
+| Format check      | `pnpm exec prettier --check <changed files>`                             | Local, changed files only; full run in CI                              |
+| Unused code       | `pnpm run knip`                                                          | Local                                                                  |
+| Stylelint         | `pnpm run lint:css`                                                      | Local and CI; `pnpm run lint:css:suppress` rewrites its suppressions   |
+| Agent files check | `pnpm run validate:agents`                                               | Local and CI                                                           |
+| Full gate         | `pnpm run quality`                                                       | Full run; CI only                                                      |
+| E2E               | `pnpm run e2e`                                                           | Full run; CI only                                                      |
+| Single E2E spec   | `gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>` | One spec at a time; verify the run with `gh api` (see `e2e/AGENTS.md`) |
+| Local dev         | `pnpm run dev`                                                           | Worker plus Vite; Worker uses 127.0.0.1:8787 or an available port      |
+| Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                        |
+| Local D1 seed     | `pnpm --filter @game-judge/api-worker run db:seed:local`                 | After local migrations; seeds the local development account            |
+| New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                      |
+| Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Release script                                                         |
 
 `pnpm run dev` applies local migrations and seeds missing data before starting either server; initialization failures terminate startup. The local D1 seed creates `dev@test.local` with password `dev123` (level 99, all reward items unlocked), preserving existing accounts, progress and word edits on reruns, including recovery after interruption. It explicitly uses Wrangler `--local` in this worktree's Worker directory; run it only against the local database, never production.
 
 The dev launcher skips occupied Worker/Vite/inspector ports, sets Vite's API URL to the selected Worker, and stops both servers when either exits. It preserves configured `JWT_SECRET` values and persists a missing local auth key in the Worker's gitignored `.env.local` (or an existing `.dev.vars`); never commit these files or print the key.
 
-`pnpm run quality` runs `turbo run build typecheck lint knip format test && pnpm run validate:agents && pnpm run lint:ui`. In CI the same work is split: one job runs Turbo build/typecheck/knip plus the agent-files check, lint/format/the UI gate run as a parallel job, root-contract, engine, web, and worker tests run sharded, and `ci-gate` requires all of them plus E2E. E2E is not part of `quality`; it serves the `packages/web/dist` build from the `build-web` job, and the `e2e` matrix in `.github/workflows/ci.yml` runs every spec exactly once, pinned by `runs every E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`. Locally, run the scoped form of the failing area (path-filtered tests, the changed package's typecheck) plus `tsc --noEmit` and `knip`; do not present a local full `quality` run as the gate.
+`pnpm run quality` runs `turbo run build typecheck lint knip format test && pnpm run validate:agents && pnpm run lint:css`. In CI the same work is split: one job runs Turbo build/typecheck/knip plus the agent-files check, ESLint/Stylelint/format run as a parallel job, root-contract, engine, web, and worker tests run sharded, and `ci-gate` requires all of them plus E2E. E2E is not part of `quality`; it serves the `packages/web/dist` build from the `build-web` job, and the `e2e` matrix in `.github/workflows/ci.yml` runs every spec exactly once, pinned by `runs every E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`. Locally, run the scoped form of the failing area (path-filtered tests, the changed package's typecheck) plus `tsc --noEmit` and `knip`; do not present a local full `quality` run as the gate.
 
 ## Architecture boundaries
 
@@ -97,7 +96,7 @@ A new game is registered in the engine registry, the engine catalog, the worker 
 - `console.*` is a `no-console` error in `eslint.config.mjs`, exempt only in the web logger `packages/web/src/utils/logger.ts`, `e2e/helpers/diagnostics.ts`, and the worker logger `packages/api-worker/src/platform/observability/logger.ts`.
 - In the worker, permissive `z.object` appears only in the 8 files listed by `uses permissive Zod objects only for external provider payloads` in `contracts/architecture.contract.test.ts`, all external provider payloads; internal data uses `z.strictObject`.
 - Production code in the web client, engine, and worker allows only `as const` assertions, pinned by `Production types: no ordinary assertions` in `contracts/architecture.contract.test.ts` and `game-engine production type honesty` in `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts`.
-- Web style values are CSS custom properties from `packages/web/src/theme/tokens.css` and `packages/web/src/theme/colors.ts`. The UI gate (`pnpm run lint:ui`, `scripts/ui-lint/gate.mjs`; never bare `stylelint`) checks the files the web build bundles — its bundle graph, not a directory — with its own Stylelint and ESLint configurations: CSS values and TSX elements, inline style keys and DOM write entry points pass only if registered in `scripts/ui-lint/registry.mjs` (the token sheet, the art sheets and the DOM writers are pinned there by `registry.test.mjs`). Existing violations are fingerprints in `ui-gate-baseline.json`, kept exact and shrink-only. Only plain `.css` is allowed in `packages/web`.
+- Web style values are CSS custom properties from `packages/web/src/theme/tokens.css` and `packages/web/src/theme/colors.ts`, enforced by community rules only: Stylelint (`stylelint.config.mjs`: `stylelint-declaration-strict-value` for colors, corners, z-index, spacing, type and shadows; `stylelint-value-no-unknown-custom-properties`) and ESLint (`eslint.config.mjs`, UI drift lock section: inline `style` objects carry only `--custom` properties, script writes only custom properties, no `CSSProperties` objects, no prop spreading onto DOM elements, and `no-restricted-imports` lets each page-writing package through only its adapter file). Existing violations are recorded by each tool's bulk suppressions (`eslint-suppressions.json`, `stylelint-suppressions.json`); fixing one means pruning its entry (`pnpm exec eslint . --prune-suppressions`, `pnpm run lint:css:suppress`), never adding one. No custom lint rules. Only plain `.css` is allowed in `packages/web`.
 - Renamed identifiers (`roomCode`, `seat`, `hostUserId`, `isPityTriggered`, `userId`) are enforced by `no-restricted-syntax` in `eslint.config.mjs`, and commit headers are capped at 100 characters by `commitlint.config.js`.
 
 ## Output rule

@@ -18,7 +18,7 @@
 }
 
 .ui-gallery-row,
-/* The avatar block's row is the avatars' host (avatarShape contract): it lays them out and
+/* The avatar block's row is the avatars' host (avatar rules in stylelint.config.mjs): it lays them out and
    sets no corners. */
 .ui-gallery-avatars {
   display: flex;

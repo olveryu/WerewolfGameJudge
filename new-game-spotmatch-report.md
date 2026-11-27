@@ -184,7 +184,7 @@ corepack pnpm run validate:agents
 .agents/skills/new-e2e-spec/scripts/check-e2e.sh .
 ```
 
-（`noHardcodedStyleValues.contract.test.ts` 已由 UI gate（`pnpm run lint:ui`，PR #519）取代并删除，上面是当时的原命令与结果。）
+（`noHardcodedStyleValues.contract.test.ts` 已由 Stylelint 与 ESLint 的 UI 规则（PR #519）取代并删除，上面是当时的原命令与结果。）
 
 changed-file集合保存在会话`spotmatch-changed-files.json`；
 使用`corepack pnpm exec eslint --max-warnings=0 <changed ts/tsx>`与

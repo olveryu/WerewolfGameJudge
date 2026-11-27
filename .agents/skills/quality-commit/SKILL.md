@@ -108,4 +108,4 @@ A change that alters what any screen shows (styles, tokens, shared components, l
 ## Pitfalls
 
 1. A plain `as` cast fails `contracts/architecture.contract.test.ts` ('Production types: no ordinary assertions'; only `as const` is allowed).
-2. The push-time checks are exactly `npx tsc --noEmit`, `npx knip` and `npm run --silent lint:ui`, in that order (`.husky/pre-push`); a local scoped pass does not replace them. The root `tsc --noEmit` covers only `contracts/` and the root configs, so a web change also needs `pnpm --filter @game-judge/web run typecheck`.
+2. The push-time checks are exactly `npx tsc --noEmit`, `npx knip` and `npm run --silent lint:css`, in that order (`.husky/pre-push`); a local scoped pass does not replace them. The root `tsc --noEmit` covers only `contracts/` and the root configs, so a web change also needs `pnpm --filter @game-judge/web run typecheck`.

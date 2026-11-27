@@ -5,4 +5,4 @@ fi
 
 npx tsc --noEmit
 npx knip
-npm run --silent lint:ui
+npm run --silent lint:css
