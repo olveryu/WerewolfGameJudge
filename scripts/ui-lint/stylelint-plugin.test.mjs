@@ -37,6 +37,7 @@ const GREEN = [
   'a { z-index: var(--layer-hand); font: inherit; font-weight: normal; }',
   'a { width: 100%; max-width: var(--size-max-content-width); min-height: 100dvh; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }',
   'a { transform: translateY(-50%) rotate(45deg) scale(1.05); transform-origin: center top; }',
+  'a { scale: 1.05; transform: scaleX(-1); }',
   'a { top: calc(100% - var(--space-small)); inset: 0; opacity: 1; flex: 1 1 auto; vertical-align: middle; }',
   'a { fill: url(#g); stroke: currentColor; background: url(./x.png) no-repeat; }',
   'a { -webkit-line-clamp: 2; -webkit-tap-highlight-color: transparent; }',
@@ -75,6 +76,13 @@ const RED = [
   'a { cursor: url(./x.png) 13 13, pointer; cursor: default; grid-row: 2px; }',
   'a { clip: rect(0, 0, 0, 0); }',
   'a { width: calc(100vw - var(--space-small)); }',
+  // `url()` references only a relative asset (a bundle graph edge) or a fragment (P1 QA17 F5).
+  "a { background-image: url('data:image/svg+xml,<svg fill=%22red%22/>'); }",
+  'a { background-image: url(https://a.example/x.png); }',
+  'a { background-image: url(/x.png); }',
+  // A plain number in a transform is a factor only in `scale` (P1 QA17 N1).
+  'a { transform: translate(37, 12); }',
+  'a { transform: rotate(45); }',
   // Ordinary drift (S1/S2).
   'a { border-radius: 13px; }',
   'a { padding: 4px 8px; }',

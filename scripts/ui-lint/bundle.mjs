@@ -3,7 +3,7 @@
  *
  * The entries are every page under the Vite root plus the entries a build plugin adds. From
  * them the graph follows every runtime import (`import`, `export … from`, literal `import()`,
- * `import.meta.glob`, `new URL('./x', import.meta.url)`, CSS `@import`; a worker takes only the
+ * `import.meta.glob`, `new URL('./x', import.meta.url)`, CSS `@import` and relative `url()`; a worker takes only the
  * latter). Each specifier must land on something the gate checks or a registered kind of leaf:
  * a repository `.ts`/`.tsx` or `.css` file (checked), an asset with a registered extension, a
  * virtual icon module, or the resolved script entry of a package registered in `PACKAGES`
@@ -16,6 +16,7 @@ import path from 'node:path';
 
 import { parse } from 'parse5';
 import postcss from 'postcss';
+import valueParser from 'postcss-value-parser';
 import ts from 'typescript';
 
 import {
@@ -527,6 +528,21 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
       const match = rule.params.match(/^(['"])(\.{1,2}\/[^'"]+\.css)\1$/);
       if (!match) problems.push(`${at}: \`@import\` takes a quoted relative path to a .css file`);
       else leaf(path.resolve(path.dirname(file), match[2]), match[2], at);
+    });
+    // A relative `url()` is an edge to the asset Vite bundles (P1 QA17 F5); the value check
+    // reports every other `url()` (`data:`, remote, absolute), so only these are followed here.
+    sheet.walkDecls((decl) => {
+      valueParser(decl.value).walk((node) => {
+        if (node.type !== 'function' || node.value.toLowerCase() !== 'url') return;
+        const argument = node.nodes.find((child) => child.type !== 'space');
+        const target = argument?.value ?? '';
+        if (/^\.{1,2}\//.test(target))
+          leaf(
+            path.resolve(path.dirname(file), target),
+            target,
+            `${relative(file)}:${decl.source.start.line}`,
+          );
+      });
     });
   };
 

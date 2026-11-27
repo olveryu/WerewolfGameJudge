@@ -302,12 +302,6 @@ exports[`UI gate registry > pins ATTRIBUTES exactly 1`] = `
 }
 `;
 
-exports[`UI gate registry > pins BITMAP_ELEMENTS exactly 1`] = `
-[
-  "HTMLCanvasElement",
-]
-`;
-
 exports[`UI gate registry > pins BREAKPOINTS exactly 1`] = `[]`;
 
 exports[`UI gate registry > pins BUILD_ENTRIES exactly 1`] = `
@@ -914,7 +908,18 @@ exports[`UI gate registry > pins DOMAINS exactly 1`] = `
     "keywords": [
       "none",
     ],
-    "unitless": true,
+    "unitless": {
+      "functions": [
+        "scale",
+        "scaleX",
+        "scaleY",
+        "scaleZ",
+        "scale3d",
+      ],
+      "properties": [
+        "scale",
+      ],
+    },
     "units": [
       "%",
       "deg",
@@ -1673,12 +1678,29 @@ exports[`UI gate registry > pins SIZE_ATTRIBUTES exactly 1`] = `
 ]
 `;
 
-exports[`UI gate registry > pins SIZED_ELEMENTS exactly 1`] = `
-[
-  "iframe",
-  "img",
-  "svg",
-]
+exports[`UI gate registry > pins SIZE_HOSTS exactly 1`] = `
+{
+  "canvas": {
+    "element": "HTMLCanvasElement",
+    "meaning": "bitmap",
+    "react": "CanvasHTMLAttributes",
+  },
+  "iframe": {
+    "element": "HTMLIFrameElement",
+    "meaning": "box",
+    "react": "IframeHTMLAttributes",
+  },
+  "img": {
+    "element": "HTMLImageElement",
+    "meaning": "box",
+    "react": "ImgHTMLAttributes",
+  },
+  "svg": {
+    "element": "SVGSVGElement",
+    "meaning": "box",
+    "react": "SVGAttributes",
+  },
+}
 `;
 
 exports[`UI gate registry > pins STYLE_DECLARATIONS exactly 1`] = `

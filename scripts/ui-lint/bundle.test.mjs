@@ -335,6 +335,20 @@ describe('bundle graph allow list', () => {
     ).toBe(true);
   });
 
+  it('follows a stylesheet url() to the asset it references (P1 QA17 F5)', () => {
+    expect(
+      graph({
+        'packages/web/src/a.css': '.a { background-image: url(./missing.svg); }',
+      }).problems.some((line) => line.includes('`./missing.svg` resolves to no file')),
+    ).toBe(true);
+    expect(
+      graph({
+        'packages/web/src/a.css': '.a { background-image: url(./b.css); }',
+        'packages/web/src/b.css': '',
+      }).styles,
+    ).toContain('packages/web/src/b.css');
+  });
+
   it('accepts icons only from a registered collection (QA14 F7)', () => {
     expect(graph(main("import A from '~icons/ion/add';")).problems).toEqual([]);
     expect(graph(main("import A from '~icons/noto/apple';")).problems).toEqual([

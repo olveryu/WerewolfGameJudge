@@ -384,6 +384,8 @@
       "ui/inline-style-keys\tvalue\tCONTAINER_STYLE > zIndex\tzIndex: 10,",
       "ui/inline-style-keys\tvalue\tHINT_STYLE > fontSize\tfontSize: 20,",
       "ui/inline-style-keys\tvalue\tHINT_STYLE > fontWeight\tfontWeight: 700,",
+      "ui/inline-style-keys\tvalue\tHintWithWarning > <div> > <p> > <IonHourglassOutline>\t<IonHourglassOutline width={18} height={18} style={{ verticalAlign: 'text-bottom' }} />{' '}",
+      "ui/inline-style-keys\tvalue\tHintWithWarning > <div> > <p> > <IonHourglassOutline>\t<IonHourglassOutline width={18} height={18} style={{ verticalAlign: 'text-bottom' }} />{' '}",
       "ui/inline-style-keys\tvalue\tWARNING_STYLE > fontSize\tfontSize: 18,",
       "ui/inline-style-keys\tvalue\tWARNING_STYLE > fontWeight\tfontWeight: 600,"
     ],
@@ -1114,6 +1116,9 @@
       "ui/inline-style-keys\tvalue\tHalfArt > <path>\tstrokeWidth={3}",
       "ui/inline-style-keys\tvalue\tHalfArt > <path>\tstrokeWidth={3}",
       "ui/inline-style-keys\tvalue\tHalfArt > <path>\tstrokeWidth={3}",
+      "ui/inline-style-keys\tvalue\tMythicCollectionReveal > <MythicRevealLayout> > <div> > <svg> > <g>\t<g ref={centerRef} transform=\"translate(100 150)\">",
+      "ui/inline-style-keys\tvalue\tMythicCollectionReveal > <MythicRevealLayout> > <div> > <svg> > <g>\t<g ref={centerRef} transform=\"translate(100 150)\">",
+      "ui/inline-style-keys\tvalue\tMythicCollectionReveal > <MythicRevealLayout> > <div> > <svg> > <g> > <g>\t<g transform=\"translate(200 0) scale(-1 1)\">",
       "ui/inline-style-keys\tvalue\tStarSegmentArt > <path>\tstrokeWidth={1.5}",
       "ui/inline-style-keys\tvalue\tStarSegmentArt > <path>\tstrokeWidth={2}"
     ],
@@ -1998,7 +2003,10 @@
       "ui/inline-style-keys\tuntracked\tQuotaRing > <div.admin-quota-ring> > <svg> > <circle.admin-ring-value>\tstrokeDasharray={`${Math.min(100, percent)} 100`}",
       "ui/inline-style-keys\tvalue\tAreaChart > <div.admin-area-chart> > <svg> > <defs> > <linearGradient> > <stop>\t<stop offset=\"0%\" stopColor=\"var(--admin-accent)\" stopOpacity=\"0.22\" />",
       "ui/inline-style-keys\tvalue\tAreaChart > <div.admin-area-chart> > <svg> > <defs> > <linearGradient> > <stop>\t<stop offset=\"100%\" stopColor=\"var(--admin-accent)\" stopOpacity=\"0.01\" />",
-      "ui/inline-style-keys\tvalue\tAreaChart > <div.admin-area-chart> > <svg> > <path>\t<path d={path} fill=\"none\" stroke=\"var(--admin-accent)\" strokeWidth=\"2\" />"
+      "ui/inline-style-keys\tvalue\tAreaChart > <div.admin-area-chart> > <svg> > <path>\t<path d={path} fill=\"none\" stroke=\"var(--admin-accent)\" strokeWidth=\"2\" />",
+      "ui/inline-style-keys\tvalue\tQuotaRing > <div.admin-quota-ring> > <svg> > <circle.admin-ring-value>\ttransform=\"rotate(-90 60 60)\"",
+      "ui/inline-style-keys\tvalue\tQuotaRing > <div.admin-quota-ring> > <svg> > <circle.admin-ring-value>\ttransform=\"rotate(-90 60 60)\"",
+      "ui/inline-style-keys\tvalue\tQuotaRing > <div.admin-quota-ring> > <svg> > <circle.admin-ring-value>\ttransform=\"rotate(-90 60 60)\""
     ],
     "packages/web/src/routes/admin/words/wordSubmissions.css": [
       "ui/value-allowlist\t\t.admin-drawer-footer\tborder-top: 1px solid var(--admin-border);",

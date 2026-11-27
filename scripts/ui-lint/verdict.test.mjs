@@ -262,6 +262,19 @@ const ENTRIES = [
   'declare function g(x: object): void; g(el.style);',
   'export const s: Partial<CSSProperties> = { color: u as string };',
   "export const s: Omit<CSSProperties, 'width'> = { color: u as string };",
+  // …in every position that is not typed as one, not a listed set of parents (P1 QA17 F4).
+  'export class C { s: { opacity: string } = el.style; }',
+  'export function f(s: { opacity: string } = el.style) { s.opacity = u as string; }',
+  "export const s: { opacity: string } = u ? el.style : { opacity: '' };",
+  '[el.style].forEach((s: { opacity: string }) => { s.opacity = u as string; });',
+  'declare function g(...x: object[]): void; g(...[el.style]);',
+  'export function* gen(): Generator<object> { yield el.style; }',
+  'export function get() { return el.style; }',
+  // A component prop that React's DOM attribute types declare lands on a native element: an
+  // icon component, an Ark SVG part (P1 QA17 F1, F3).
+  "declare function Icon(p: import('react').SVGProps<SVGSVGElement>): null; export const a = <Icon width={u as number} />;",
+  "declare function Icon(p: import('react').SVGProps<SVGSVGElement>): null; export const a = <Icon fill={u as string} />;",
+  "declare function Img(p: import('react').ImgHTMLAttributes<HTMLImageElement>): null; export const a = <Img height={u as number} />;",
   ...[...SVG_ATTRIBUTES.keys()].map(
     (name) => `export const a = <svg><g ${name}={u as string} /></svg>;`,
   ),

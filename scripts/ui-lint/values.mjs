@@ -30,6 +30,12 @@ export const valueMessages = {
   measure: (word, prop) =>
     `\`${word}\` is not allowed in \`${prop}\`: it takes keywords and counts only (UI gate S1).`,
   property: (prop) => `\`${prop}\` is not a registered property (UI gate S1).`,
+  url: (target, graph) =>
+    `\`url(${target})\` references what the gate does not check: ${
+      graph
+        ? 'reference a registered asset by a relative path (`./x.svg`), which the bundle graph follows, or a fragment of the document (`#id`)'
+        : 'an inline value may reference only a fragment of the document (`#id`); reference an asset from a stylesheet'
+    } (UI gate S1, §3).`,
   func: (name) => `\`${name}()\` is not a registered CSS function (UI gate S2).`,
   atom: (word, prop, domain) =>
     `\`${word}\` is not allowed in \`${prop}\`: the ${domain} domain takes var(--token) and registered keywords (UI gate S1).`,
@@ -81,13 +87,22 @@ function isZero(word) {
  * with offsets into `value`. `forced` is true inside `@media (forced-colors: active)`;
  * `keyframes` holds the keyframes names the same stylesheet defines (none for inline styles).
  */
-function valueProblems(value, prop, domainName, { forced = false, keyframes = new Set() } = {}) {
+function valueProblems(
+  value,
+  prop,
+  domainName,
+  { forced = false, keyframes = new Set(), urls = 'fragment' } = {},
+) {
   const problems = [];
   const animation = ANIMATION_NAMES.has(prop.replace(VENDOR_PREFIX, ''));
   const problem = (node, message) =>
     problems.push({ index: node.sourceIndex, endIndex: node.sourceEndIndex, message });
 
-  const atom = (node, domain, inMath) => {
+  // `unitless`: `true`, or the functions and properties in which a plain number is a factor.
+  const unitless = (domain, fn) =>
+    domain.unitless === true ||
+    Boolean(domain.unitless?.functions.includes(fn) || domain.unitless?.properties.includes(prop));
+  const atom = (node, domain, inMath, fn) => {
     const text = node.value;
     const lower = text.toLowerCase();
     if (isZero(text)) return true;
@@ -98,7 +113,7 @@ function valueProblems(value, prop, domainName, { forced = false, keyframes = ne
     if (forced && domain.colors && SYSTEM_COLORS.has(lower)) return true;
     const number = valueParser.unit(text);
     if (number) {
-      if (number.unit === '') return Boolean(domain.unitless) && !inMath;
+      if (number.unit === '') return !inMath && unitless(domain, fn);
       return Boolean(domain.units?.includes(number.unit.toLowerCase()));
     }
     if (!domain.idents || text.startsWith('#') || !IDENT.test(text)) return false;
@@ -106,6 +121,22 @@ function valueProblems(value, prop, domainName, { forced = false, keyframes = ne
       problem(node, valueMessages.keyframes(text));
     }
     return true;
+  };
+
+  /**
+   * What `url()` may reference (P1 QA17 F5): a fragment of the document (`url(#g)`, a gradient
+   * or filter whose own values are checked where it is written) anywhere; a relative path
+   * (`./x.svg`) only in a stylesheet (`urls: 'graph'`), where the bundle graph follows it to a
+   * registered asset as an edge. Anything else (`data:`, a remote or absolute URL, a path in an
+   * inline value, which the page fetches from its own address outside the graph) is reported:
+   * its content is not checked.
+   */
+  const reference = (node) => {
+    const argument = node.nodes.find((child) => child.type !== 'space');
+    const target = argument?.type === 'word' || argument?.type === 'string' ? argument.value : '';
+    if (/^#[\w-]+$/.test(target)) return;
+    if (urls === 'graph' && /^\.{1,2}\//.test(target)) return;
+    problem(node, valueMessages.url(target, urls === 'graph'));
   };
 
   /** Every function in `nodes` (at any depth) is registered; nothing else is checked. */
@@ -120,7 +151,8 @@ function valueProblems(value, prop, domainName, { forced = false, keyframes = ne
       if (node.type !== 'function') continue;
       if (node.value !== '' && !FUNCTIONS.has(node.value))
         problem(node, valueMessages.func(node.value));
-      else if (!REFERENCES.has(node.value)) registeredOnly(node.nodes);
+      else if (REFERENCES.has(node.value.toLowerCase())) reference(node);
+      else registeredOnly(node.nodes);
     }
   };
 
@@ -135,13 +167,14 @@ function valueProblems(value, prop, domainName, { forced = false, keyframes = ne
       } else if (node.type === 'function') {
         if (node.value !== '' && !FUNCTIONS.has(node.value))
           problem(node, valueMessages.func(node.value));
-        else if (!REFERENCES.has(node.value)) shape(node.nodes);
+        else if (REFERENCES.has(node.value.toLowerCase())) reference(node);
+        else shape(node.nodes);
       }
     }
   };
 
   /** Walk value nodes in a token domain: every word is an atom of it. */
-  const walk = (nodes, domain, name, inMath = false) => {
+  const walk = (nodes, domain, name, inMath = false, fn = undefined) => {
     for (const node of nodes) {
       if (node.type === 'space' || node.type === 'comment' || node.type === 'div') continue;
       if (node.type === 'string') {
@@ -149,12 +182,13 @@ function valueProblems(value, prop, domainName, { forced = false, keyframes = ne
         continue;
       }
       if (node.type === 'word' || node.type === 'unicode-range') {
-        if (!atom(node, domain, inMath)) problem(node, valueMessages.atom(node.value, prop, name));
+        if (!atom(node, domain, inMath, fn))
+          problem(node, valueMessages.atom(node.value, prop, name));
         continue;
       }
       const lower = node.value.toLowerCase();
       if (lower === '') {
-        walk(node.nodes, domain, name, inMath);
+        walk(node.nodes, domain, name, inMath, fn);
         continue;
       }
       if (!FUNCTIONS.has(node.value)) {
@@ -178,9 +212,12 @@ function valueProblems(value, prop, domainName, { forced = false, keyframes = ne
         walk(fallback.flat(), domain, name, inMath);
         continue;
       }
-      if (lower === 'url') continue;
+      if (REFERENCES.has(lower)) {
+        reference(node);
+        continue;
+      }
       // Math reads its operands as atoms; a domain function (gradient, filter, easing) its arguments.
-      walk(node.nodes, domain, name, inMath || MATH.has(lower));
+      walk(node.nodes, domain, name, inMath || MATH.has(lower), MATH.has(lower) ? fn : node.value);
     }
   };
 
@@ -219,6 +256,7 @@ export function verdict(
     domain = prop === null ? undefined : domainOf(prop),
     forced,
     keyframes,
+    urls,
     tokens = TOKEN_CONSTANTS,
     runtimeSources = RUNTIME_SOURCES,
   } = {},
@@ -280,7 +318,7 @@ export function verdict(
       throw new Error(
         `UI gate E4: a reading of \`${prop}\` has no kind: ${JSON.stringify(reading)}`,
       );
-    for (const problem of valueProblems(reading.text, prop, domain, { forced, keyframes }))
+    for (const problem of valueProblems(reading.text, prop, domain, { forced, keyframes, urls }))
       rejected.push({
         messageId: 'value',
         message: problem.message,

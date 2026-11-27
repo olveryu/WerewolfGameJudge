@@ -112,9 +112,22 @@ tester.run('ui/dom-allowlist', uiLint.rules['dom-allowlist'], {
         'declare const link: HTMLLinkElement; link.href = "/x.css";',
         'void Document.parseHTMLUnsafe("<style>");',
         'void Element.prototype;',
+        // SVG's live attribute values are attribute writes (P1 QA17 F2).
+        'declare const r: SVGRectElement; r.rx.baseVal.value = 8;',
+        'declare const svg: SVGSVGElement; svg.width.baseVal.value = 300;',
+        'declare const svg: SVGSVGElement; svg.viewBox.baseVal.width = 300;',
       ],
       'member',
     ),
+    // A live SVG list hands out live items: the list's method and the item's write (P1 QA17 F2).
+    ...[
+      'declare const g: SVGGElement; g.transform.baseVal.getItem(0).setTranslate(37, 0);',
+      'declare const p: SVGPolygonElement; p.points.getItem(0).x = 3;',
+    ].map((code) => ({
+      filename,
+      code,
+      errors: [{ messageId: 'member' }, { messageId: 'member' }],
+    })),
     // The structure: any reference to an unregistered method, however it is reached.
     ...red(
       [
@@ -344,8 +357,23 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     // What is not a style position is not read.
     "import { goodCard } from './styles'; const Box = (_: { data: object }) => null; export const a = <Box data={goodCard} />;",
     'const Box = (_: { style: Record<string, string> }) => null; declare const r: Record<string, string>; export const a = <Box style={r} />;',
+    // A component's own props are its API; only React's DOM attribute types land on an element.
+    'const Meter = (_: { width: number; fill: string }) => null; export const a = <Meter width={37} fill="red" />;',
+    // A canvas's size is its bitmap's whatever the entry point (P1 QA17 S1).
+    "declare function C(p: import('react').CanvasHTMLAttributes<HTMLCanvasElement>): null; export const a = <C width={480} />;",
+    'declare function Icon(p: import(\'react\').SVGProps<SVGSVGElement>): null; export const a = <Icon width="var(--size-icon)" fill="currentColor" />;',
+    // A fragment of the document is the one reference an inline value may make (P1 QA17 F5).
+    "export const a = <div style={{ maskImage: 'url(#m)' }} />;",
+    "declare const el: HTMLElement; const s = el.style; s.opacity = '1'; getComputedStyle(el).getPropertyValue('--a');",
   ]),
   invalid: [
+    // A plain number in a transform is a factor only in `scale`: SVG user units are lengths
+    // (P1 QA17 N1); both coordinates are reported.
+    {
+      filename,
+      code: 'export const a = <svg><g transform="translate(37 12)" /></svg>;',
+      errors: [{ messageId: 'value' }, { messageId: 'value' }],
+    },
     // Literals take the stylesheet value checker (QA5 K6).
     ...red(
       [
@@ -375,6 +403,11 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         'export const a = <svg width={16} />;',
         'export const a = <img height="16" />;',
         `${REACT}declare function Avatar(p: { style: CSSProperties }): null; export const a = <Avatar style={{ width: 13 }} />;`,
+        "declare function Icon(p: import('react').SVGProps<SVGSVGElement>): null; export const a = <Icon width={37} />;",
+        'declare function Icon(p: import(\'react\').SVGProps<SVGSVGElement>): null; export const a = <Icon color="#f00" />;',
+        "export const a = <div style={{ backgroundImage: 'url(data:image/svg+xml,x)' }} />;",
+        "export const a = <div style={{ backgroundImage: 'url(https://a.example/x.png)' }} />;",
+        "export const a = <div style={{ backgroundImage: 'url(./x.png)' }} />;",
       ],
       'value',
     ),

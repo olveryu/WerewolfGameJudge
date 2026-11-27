@@ -341,9 +341,10 @@ const POSITION_KEYWORDS = ['center', 'top', 'bottom', 'left', 'right'];
  * same domain), a global keyword, zero, a domain keyword, a domain literal, or a math function
  * over atoms where the only bare number is the sign flip `-1`. `units` lists the literal units a
  * domain accepts (layout ratios, angles), also inside math; `unitless` accepts plain numbers
- * outside math (counts, factors, flex weights); `idents` accepts custom identifiers (animation
- * and property names); `literals` lists exact words (opacity `1`). The arguments of `url()` and
- * `env()` are references, not values.
+ * outside math (counts, factors, flex weights), everywhere (`true`) or only in the listed
+ * functions and properties; `idents` accepts custom identifiers (animation and property names);
+ * `literals` lists exact words (opacity `1`). The first argument of `env()` is a reference; what
+ * `url()` may reference is fixed in `values.mjs`.
  */
 export const DOMAINS = Object.freeze({
   radius: { keywords: [] },
@@ -362,7 +363,12 @@ export const DOMAINS = Object.freeze({
   offset: { keywords: ['auto'], units: RATIO_UNITS, functions: ['env'] },
   transform: {
     keywords: ['none'],
-    unitless: true,
+    // A plain number is a factor only in `scale` (P1 QA17 N1): elsewhere it is a length or an
+    // angle written without its unit, as SVG's `transform="translate(37 12)"` writes user units.
+    unitless: {
+      functions: ['scale', 'scaleX', 'scaleY', 'scaleZ', 'scale3d'],
+      properties: ['scale'],
+    },
     units: ['%', 'deg', 'turn', 'rad'],
     functions: [
       'translate',
@@ -845,7 +851,7 @@ export const ELEMENTS = Object.freeze(
 
 /**
  * The attributes a native element may carry besides the ones whose value `ui/inline-style-keys`
- * judges (`style`, `SVG_ATTRIBUTES`, and `SIZE_ATTRIBUTES` on `SIZED_ELEMENTS`) and the open
+ * judges (`style`, `SVG_ATTRIBUTES`, and `SIZE_ATTRIBUTES` on `SIZE_HOSTS`) and the open
  * families `aria-*`, `data-*` and React's `on*` handlers: attribute → the elements that take it
  * (`*`: every element). Their values are content, behaviour, or an SVG element's geometry in its
  * own user units, never a style value. Any other attribute, written or spread, is reported, so a
@@ -1057,14 +1063,22 @@ export const DOM_VALUE_WRITERS = Object.freeze(
 );
 
 /**
- * Elements whose `width`/`height` attributes size their box, judged in the size domain. A
- * canvas is not one: its `width`/`height` are the bitmap's resolution in pixels, not a box size
- * (CSS sizes its box), so they are not style values (P1 QA16 F2).
+ * What `width`/`height` mean on each element that takes them as attributes, keyed by tag with
+ * the element's DOM interface and React attribute interface, so a JSX attribute, a DOM write and
+ * a component prop that lands on the element read one answer (P1 QA17 S1). `box` sizes the
+ * element's box: a style value, judged in the size domain. `bitmap` is a canvas bitmap's
+ * resolution in pixels (CSS sizes its box), content rather than style (P1 QA16 F2). An element
+ * not listed takes no `width`/`height` attribute in JSX; written through the DOM or a component
+ * prop where the element is not known, they are judged as `box`.
  */
-export const SIZED_ELEMENTS = Object.freeze(new Set(['iframe', 'img', 'svg']));
-
-/** Element interfaces whose `width`/`height` set a bitmap's resolution, not a box (P1 QA16 F2). */
-export const BITMAP_ELEMENTS = Object.freeze(new Set(['HTMLCanvasElement']));
+export const SIZE_HOSTS = Object.freeze(
+  new Map([
+    ['iframe', { meaning: 'box', element: 'HTMLIFrameElement', react: 'IframeHTMLAttributes' }],
+    ['img', { meaning: 'box', element: 'HTMLImageElement', react: 'ImgHTMLAttributes' }],
+    ['svg', { meaning: 'box', element: 'SVGSVGElement', react: 'SVGAttributes' }],
+    ['canvas', { meaning: 'bitmap', element: 'HTMLCanvasElement', react: 'CanvasHTMLAttributes' }],
+  ]),
+);
 
 // ---------------------------------------------------------------------------------------------
 // DOM write entry points (§2 E5)
@@ -1385,5 +1399,5 @@ export const DECLARATION_FILE = /\.d\.ts$/;
 export const WORKER_CONSTRUCTORS = Object.freeze(new Set(['Worker', 'SharedWorker']));
 /** The only `react-dom/client` export the app may import (E11). */
 export const REACT_DOM_CLIENT_IMPORTS = Object.freeze(['createRoot']);
-/** Attributes that size the box of a `SIZED_ELEMENTS` element (E4). */
+/** The attributes whose meaning `SIZE_HOSTS` gives per element (E4). */
 export const SIZE_ATTRIBUTES = Object.freeze(new Set(['width', 'height']));

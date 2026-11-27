@@ -42,8 +42,7 @@ import {
   ROOT_INTERFACES,
   SAFE_PRODUCTS,
   SIZE_ATTRIBUTES,
-  SIZED_ELEMENTS,
-  BITMAP_ELEMENTS,
+  SIZE_HOSTS,
   STYLE_TYPE_WRAPPERS,
   ANIMATION_OPTIONS,
   KEYFRAME_META,
@@ -113,6 +112,50 @@ function managedInterfaces(program, checker) {
       contributors(type);
     }
   }
+  // SVG's DOM data types (P1 QA17 F2): an SVG element exposes its attributes as live objects
+  // (`rect.rx.baseVal.value = 8`, `g.transform.baseVal.getItem(0).setTranslate(37, 0)`), so a
+  // write through one is an attribute write. The family is computed, not listed: the `SVG…`
+  // types of the SVG elements' properties, closed over everything they hold or return (the
+  // `SVGLength`, `SVGTransform`, `DOMMatrix`, `DOMPoint`, `DOMRect` they hand out).
+  const domTypes = (type) =>
+    (type.isUnionOrIntersection() ? type.types : [type])
+      .map((part) => part.getSymbol() ?? part.aliasSymbol)
+      .filter((symbol) => {
+        const declaration = symbol?.declarations?.[0];
+        return (
+          declaration &&
+          ts.isInterfaceDeclaration(declaration) &&
+          isDomLibrary(declaration.getSourceFile())
+        );
+      })
+      .map((symbol) => symbol.getName());
+  const held = (name, { methods }) => {
+    const out = [];
+    const type = checker.getDeclaredTypeOfSymbol(required(name));
+    for (const property of checker.getPropertiesOfType(type)) {
+      const declaration = property.declarations?.[0];
+      if (!declaration || !isDomLibrary(declaration.getSourceFile())) continue;
+      const value = checker.getTypeOfSymbolAtLocation(property, declaration);
+      const signatures = value.getCallSignatures();
+      if (signatures.length > 0 && !methods) continue;
+      for (const part of signatures.length > 0 ? signatures.map((s) => s.getReturnType()) : [value])
+        out.push(...domTypes(part));
+    }
+    return out;
+  };
+  const elements = new Set(managed);
+  const svg = [...elements]
+    .filter((name) => /^SVG\w*Element$/.test(name))
+    .flatMap((name) => held(name, { methods: false }))
+    .filter((name) => name.startsWith('SVG') && !elements.has(name));
+  const queue = [...new Set(svg)];
+  for (const name of queue) managed.add(name);
+  while (queue.length > 0)
+    for (const name of held(queue.pop(), { methods: true }))
+      if (!managed.has(name) && !UNMANAGED.has(name)) {
+        managed.add(name);
+        queue.push(name);
+      }
   for (const name of UNMANAGED) managed.delete(name);
   managedCache.set(program, managed);
   return managed;
@@ -475,13 +518,54 @@ function isAttribute(name, tag) {
   return isPlainAttribute(name, tag) || isValueAttribute(name, tag) || HTML_KEYS.has(name);
 }
 
-/** Whether the value of `name` on `<tag>` is judged as a style value (E4). */
+/**
+ * Whether `name` on `<tag>` is an attribute `ui/inline-style-keys` reads: `style`, an SVG
+ * presentation attribute, or a `width`/`height` whose meaning `SIZE_HOSTS` gives (E4).
+ */
 function isValueAttribute(name, tag) {
   return (
     name === 'style' ||
     SVG_ATTRIBUTES.has(name) ||
-    (SIZED_ELEMENTS.has(tag) && SIZE_ATTRIBUTES.has(name))
+    (SIZE_HOSTS.has(tag) && SIZE_ATTRIBUTES.has(name))
   );
+}
+
+/** `width`/`height` on an element whose tag (`null`: not known) or DOM interface is given. */
+const sizeMeaning = {
+  ofTag: (tag) => (tag === null ? 'box' : SIZE_HOSTS.get(tag)?.meaning),
+  ofElement: (name) =>
+    [...SIZE_HOSTS.values()].find((host) => host.element === name)?.meaning ?? 'box',
+  ofReact: (name) => [...SIZE_HOSTS.values()].find((host) => host.react === name)?.meaning ?? 'box',
+};
+
+/**
+ * The style property a written attribute's value is judged as, or undefined: the one definition
+ * for a JSX attribute on a native element, a component prop that lands on one, and
+ * `setAttribute`. `meanings` are the `sizeMeaning`s of the elements it may land on.
+ */
+function attributeProp(name, meanings) {
+  const camel = name.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+  if (SVG_ATTRIBUTES.has(camel)) return SVG_ATTRIBUTES.get(camel);
+  return SIZE_ATTRIBUTES.has(name) && meanings.includes('box') ? name : undefined;
+}
+
+/**
+ * The React DOM attribute interface (`SVGAttributes`, `ImgHTMLAttributes`, …) that declares a
+ * component prop, or undefined. A prop declared there is handed to a native element by the
+ * component (an icon component's `width`, Ark's `QrCode.Frame` `fill`), so its value is judged as
+ * the element's attribute (P1 QA17 F1, F3).
+ */
+function reactDomAttribute(symbol) {
+  for (const declaration of symbol?.declarations ?? []) {
+    const owner = declaration.parent;
+    if (
+      ts.isInterfaceDeclaration(owner) &&
+      /Attributes$/.test(owner.name.text) &&
+      /[\\/]@types[\\/]react[\\/]/.test(declaration.getSourceFile().fileName)
+    )
+      return owner.name.text;
+  }
+  return undefined;
 }
 
 const elementAllowlist = {
@@ -727,9 +811,24 @@ const inlineStyleKeys = {
       strip(node).type === 'ObjectExpression' ? checkObject(strip(node)) : wholeObject(node);
     // Which expressions are style targets is told by their declared type (an entry point, not a
     // value: what they are assigned is read from syntax only).
+    // A style declaration is any value of which some part is one (`CSSStyleDeclaration |
+    // undefined` included); a position receives one only if every part it allows is one.
+    const parts = (type) => (type.isUnion() ? type.types : [type]);
+    const isDeclarationType = (type) => STYLE_DECLARATIONS.has(checker.typeToString(type));
     const isStyleDeclaration = (node) =>
-      STYLE_DECLARATIONS.has(checker.typeToString(services.getTypeAtLocation(node)));
+      parts(services.getTypeAtLocation(node)).some(isDeclarationType);
+    const nullish = ts.TypeFlags.Null | ts.TypeFlags.Undefined | ts.TypeFlags.Void;
+    const receivesDeclaration = (type) =>
+      parts(type)
+        .filter((part) => !(part.flags & nullish))
+        .every(isDeclarationType);
     const isStyleObject = (node) => isCssProperties(services.getTypeAtLocation(node));
+    // The declared prop a JSX attribute sets: the member of the props type its element expects
+    // (the checker's symbol for the attribute itself is only the attribute).
+    const propOf = (attribute, name) => {
+      const props = checker.getContextualType(toTs(attribute).parent);
+      return props && checker.getPropertyOfType(checker.getApparentType(props), name);
+    };
     const isCssPropertiesLiteral = (node) => {
       const contextual = checker.getContextualType(toTs(node));
       return contextual !== undefined && isCssProperties(contextual);
@@ -741,16 +840,38 @@ const inlineStyleKeys = {
       if (node === null || node === undefined) return;
       if (['ObjectExpression', 'SpreadElement', 'JSXEmptyExpression'].includes(strip(node).type))
         return;
-      // A live style declaration handed to a position not typed as one: its members are then
-      // written under a type the gate does not read as a style (P1 QA16 S2). Judged here, at the
-      // hand-over, by the two types alone; the value is not followed.
-      if (isStyleDeclaration(node)) {
-        const contextual = checker.getContextualType(toTs(node));
-        if (contextual !== undefined && !STYLE_DECLARATIONS.has(checker.typeToString(contextual)))
-          context.report({ node, messageId: 'alias' });
-        return;
-      }
+      // A style declaration is judged where it is handed over (`checkHandOver`).
+      if (isStyleDeclaration(node)) return;
       if (isCssPropertiesLiteral(node)) wholeObject(node);
+    };
+    /**
+     * A live style declaration (`el.style`, a variable holding it, `getComputedStyle(el)`) handed
+     * to a position not typed as one: its members are then written under a type the gate does
+     * not read as a style (P1 QA16 S2, QA17 F4). Judged at every expression that yields one, by
+     * the position it lands in, not by a list of parents: it may be the object of a member
+     * access, a `const`/`let` initializer without a type annotation (the binding takes its type),
+     * or the value of a position whose type is a style declaration; anywhere else (a class field,
+     * a default, a branch of a condition, an array or object entry, a spread, `yield`, a
+     * callback's annotated parameter by way of an array) it is reported as `alias`.
+     */
+    const checkHandOver = (node) => {
+      let at = node;
+      while (at.parent.type === 'TSNonNullExpression' || at.parent.type === 'ChainExpression')
+        at = at.parent;
+      const parent = at.parent;
+      if (parent.type === 'MemberExpression' && parent.object === at) return;
+      if (
+        parent.type === 'VariableDeclarator' &&
+        parent.init === at &&
+        parent.id.typeAnnotation === undefined
+      )
+        return;
+      // Re-exported or discarded, it keeps its own type.
+      if (parent.type === 'ExpressionStatement' || parent.type === 'ExportSpecifier') return;
+      if (!isStyleDeclaration(node)) return;
+      const contextual = checker.getContextualType(toTs(at));
+      if (contextual !== undefined && receivesDeclaration(contextual)) return;
+      context.report({ node, messageId: 'alias' });
     };
     // Any write to a member of a style declaration or a `CSSProperties` object (`writeOf`: `=`,
     // a compound operator, `++`, a destructuring or `for…of` target).
@@ -864,14 +985,10 @@ const inlineStyleKeys = {
         // A `style` attribute is CSS text: its declarations are not written as properties here.
         if (written.name.toLowerCase() === 'style')
           return context.report({ node: call, messageId: 'styleText' });
-        // Presentation attributes take the inline check, as their JSX form does; so do the
-        // `width`/`height` that size a box (any element but a canvas, whose are its bitmap).
-        const prop =
-          SVG_ATTRIBUTES.get(written.name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())) ??
-          (SIZE_ATTRIBUTES.has(written.name) &&
-          !BITMAP_ELEMENTS.has(checker.typeToString(services.getTypeAtLocation(callee.object)))
-            ? written.name
-            : undefined);
+        // Presentation attributes and box sizes take the inline check, as their JSX form does.
+        const prop = attributeProp(written.name, [
+          sizeMeaning.ofElement(checker.typeToString(services.getTypeAtLocation(callee.object))),
+        ]);
         if (prop !== undefined) judge(value, prop, read(value, String));
         return;
       }
@@ -926,6 +1043,7 @@ const inlineStyleKeys = {
         intoStyle(node.expression);
       },
       CallExpression(node) {
+        checkHandOver(node);
         const [target, ...sources] = node.arguments;
         // `Object.assign(style, …)` writes its sources' entries into a style target.
         if (
@@ -945,6 +1063,7 @@ const inlineStyleKeys = {
       // directly, and any other reference to one (`.call`, `.bind`, a variable, destructuring)
       // hands it on unjudged and is reported (P1 QA14 F4).
       MemberExpression(node) {
+        checkHandOver(node);
         const write = writeOf(node);
         if (write !== null) checkMemberWrite(node, write);
         const access = toTs(node);
@@ -967,6 +1086,14 @@ const inlineStyleKeys = {
         const member = checker.getTypeAtLocation(binding.parent).getProperty(names[0]);
         if (valueWriter(member) !== undefined) context.report({ node, messageId: 'indirect' });
       },
+      AwaitExpression: checkHandOver,
+      // Every read of a variable (scope analysis gives exactly the value positions).
+      'Program:exit'() {
+        for (const scope of context.sourceCode.scopeManager.scopes)
+          for (const reference of scope.references)
+            if (reference.isValueReference && reference.isRead() && !reference.isWrite())
+              checkHandOver(reference.identifier);
+      },
       // A style object literal anywhere (a typed constant, a component's `style` prop, a return
       // value): checked where it is written.
       ObjectExpression(node) {
@@ -974,8 +1101,11 @@ const inlineStyleKeys = {
       },
       JSXAttribute(node) {
         if (node.name.type !== 'JSXIdentifier') return;
+        const name = node.name.name;
         const tags = nativeTags(node.parent.name, services);
-        if (tags === undefined) return;
+        // A component's prop is an attribute only where React's DOM attribute types declare it.
+        const host = tags === undefined ? reactDomAttribute(propOf(node, name)) : undefined;
+        if (tags === undefined && host === undefined) return;
         const value = node.value;
         if (value === null) return;
         const expression =
@@ -985,16 +1115,19 @@ const inlineStyleKeys = {
               : value.expression
             : value;
         if (expression === null) return;
-        if (node.name.name === 'style') return checkStyle(expression);
-        // SVG presentation attributes (a number is in user units, so it stays a bare number), and
-        // the width and height of the elements whose box they size.
-        const prop =
-          SVG_ATTRIBUTES.get(node.name.name) ??
-          // A tag that cannot be enumerated could be any sized element.
-          ((tags === null || tags.some((tag) => SIZED_ELEMENTS.has(tag))) &&
-          SIZE_ATTRIBUTES.has(node.name.name)
-            ? node.name.name
-            : undefined);
+        if (name === 'style') {
+          // A component's `style` is a position typed as a style object (`intoStyle`).
+          if (tags !== undefined) checkStyle(expression);
+          return;
+        }
+        // An SVG presentation attribute (a number is in user units, so it stays a bare number),
+        // or a `width`/`height` that sizes a box.
+        const prop = attributeProp(
+          name,
+          tags === undefined
+            ? [sizeMeaning.ofReact(host)]
+            : (tags ?? [null]).map(sizeMeaning.ofTag),
+        );
         if (prop !== undefined) judge(expression, prop, read(expression, String));
       },
     };

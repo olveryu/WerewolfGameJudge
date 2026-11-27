@@ -314,10 +314,12 @@ over every avatar site its census finds; the frame geometry tests
   and at-rules, and system colors only under `forced-colors`. `tokens.css` holds only custom
   property definitions, and no other stylesheet defines a token name or a local variable that is
   not an alias of a token (an `env()` fallback is checked like a `var()` fallback); an animation
-  runs only keyframes its own stylesheet defines. Each registered art stylesheet is exempt from
-  the value rules only for rules whose subject is an element of its own class prefix; it still
-  defines no token, and its keyframes carry its prefix. Existing exceptions are recorded in `ui-gate-baseline.json` and may only
-  shrink.
+  runs only keyframes its own stylesheet defines. A registered art stylesheet is held to its own
+  class prefix (every rule's subject is an element of that prefix, its keyframes carry it) and
+  defines no token; its values take the same value checks as any stylesheet, with no exempt
+  zone. A `url()` references only a registered asset by a relative path from a stylesheet (the
+  bundle graph follows it) or a fragment of the document (`#id`); `data:` and remote URLs are
+  rejected. Existing exceptions are recorded in `ui-gate-baseline.json` and may only shrink.
 - Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
 - Do not replace meaningful game art or faction semantics with decorative styling.
 - Do not reintroduce gradients or colored side stripes merely as decoration.

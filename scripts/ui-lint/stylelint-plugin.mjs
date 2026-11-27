@@ -168,6 +168,8 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
       domain,
       forced: inForcedColors(decl),
       keyframes,
+      // The bundle graph follows a stylesheet's relative `url()` to a registered asset.
+      urls: 'graph',
     })) {
       report({
         result,
