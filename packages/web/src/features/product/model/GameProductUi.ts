@@ -8,7 +8,7 @@ export type RevealEffectSelectionId = RoleRevealEffectId | 'none' | 'random';
 
 export interface RevealEffectPreviewProps {
   readonly effectId: RoleRevealEffectId;
-  /** Called once the effect has played; the preview has no other way to end. */
+  /** Called once the effect has played, or from the 「查看身份」 fallback when no scene can play it. */
   readonly onComplete: () => void;
 }
 
