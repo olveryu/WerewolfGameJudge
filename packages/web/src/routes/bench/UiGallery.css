@@ -27,6 +27,22 @@
   gap: var(--space-small);
 }
 
+.ui-gallery-avatar-host {
+  display: block;
+  inline-size: var(--size-avatar-lg);
+  block-size: var(--size-avatar-lg);
+}
+
+.ui-gallery-avatar-box {
+  --avatar-inset: calc(var(--border-width) + var(--space-tight));
+  display: block;
+  box-sizing: border-box;
+  inline-size: var(--size-avatar-xl);
+  block-size: var(--size-avatar-xl);
+  padding: var(--space-tight);
+  border: var(--border-width) solid var(--color-border);
+}
+
 .ui-gallery-progress {
   inline-size: 100%;
 }

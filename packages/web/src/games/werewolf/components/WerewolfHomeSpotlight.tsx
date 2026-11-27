@@ -100,6 +100,7 @@ export function WerewolfHomeSpotlight() {
 
         <div
           className="werewolf-spotlight-face werewolf-spotlight-front"
+          data-testid={TESTIDS.homeSpotlightFront}
           aria-hidden={!showsFront}
           inert={!showsFront}
         >

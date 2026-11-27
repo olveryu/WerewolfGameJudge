@@ -526,6 +526,8 @@ export const TESTIDS = {
   homeGuideButton: 'home-guide-button',
   /** Home werewolf spotlight: the randomly picked role (avatar, name, summary). */
   homeSpotlightRole: 'home-spotlight-role',
+  /** Home werewolf spotlight: the card's front face (aria-hidden until it has flipped in). */
+  homeSpotlightFront: 'home-spotlight-front',
 
   // Feedback (AnnouncementModal)
   feedbackInput: 'feedback-input',

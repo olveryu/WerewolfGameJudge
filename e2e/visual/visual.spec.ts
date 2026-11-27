@@ -67,6 +67,14 @@ function randomRegions(page: Page): Locator[] {
 /** Hides what varies run to run on app pages: avatars and transient toasts (see the file). */
 const APP_PAGE_SCREENSHOT_STYLE = path.join(__dirname, 'app-page-screenshot.css');
 
+/** Home's spotlight flips its front in on a timer after mount; the capture waits for it. */
+async function waitForSpotlightFlip(page: Page): Promise<void> {
+  await expect(page.getByTestId(TESTIDS.homeSpotlightFront)).toHaveAttribute(
+    'aria-hidden',
+    'false',
+  );
+}
+
 async function expectPage(page: Page, name: string): Promise<void> {
   await expect(page).toHaveScreenshot(`${name}.png`, {
     fullPage: true,
@@ -112,6 +120,7 @@ test.describe('Visual — signed-out entry', () => {
     await suppressVersionAnnouncement(page);
     await gotoWithRetry(page, '/');
     await waitForAppReady(page);
+    await waitForSpotlightFlip(page);
     await expectPage(page, 'home-signed-out');
     await page.getByTestId(TESTIDS.homeEnterRoomButton).click();
     await expect(page.getByTestId(TESTIDS.loginDialog)).toHaveAccessibleName('登录');
@@ -129,6 +138,7 @@ test.describe('Visual — signed-out entry', () => {
 appTest.describe('Visual — signed-in pages', () => {
   appTest('home, join dialog and settings', async ({ app }) => {
     const { page } = app;
+    await waitForSpotlightFlip(page);
     await expectPage(page, 'home');
     await openJoinRoomDialog(page);
     await expectPage(page, 'join-room-dialog');

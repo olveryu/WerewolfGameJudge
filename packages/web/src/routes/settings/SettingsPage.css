@@ -66,6 +66,7 @@
   justify-content: center;
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
+  /* stylelint-disable-next-line rule-selector-property-disallowed-list -- a badge beside the avatar, not the avatar */
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);

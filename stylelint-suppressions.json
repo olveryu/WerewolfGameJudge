@@ -6,7 +6,13 @@
   },
   "packages/web/src/boot/bootSplash.css": {
     "scale-unlimited/declaration-strict-value": {
+      "count": 3
+    },
+    "color-no-hex": {
       "count": 2
+    },
+    "function-disallowed-list": {
+      "count": 1
     }
   },
   "packages/web/src/components/FactionChip.css": {
@@ -26,6 +32,12 @@
   },
   "packages/web/src/theme/nightArt.css": {
     "scale-unlimited/declaration-strict-value": {
+      "count": 5
+    },
+    "color-no-hex": {
+      "count": 2
+    },
+    "function-disallowed-list": {
       "count": 4
     }
   },
@@ -54,7 +66,10 @@
   },
   "packages/web/src/routes/bench/SceneBench.css": {
     "scale-unlimited/declaration-strict-value": {
-      "count": 8
+      "count": 9
+    },
+    "color-no-hex": {
+      "count": 2
     }
   },
   "packages/web/src/routes/gacha/GachaPage.css": {
@@ -208,6 +223,11 @@
   },
   "packages/web/src/boot/WechatBrowserGuide.css": {
     "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleCard.css": {
+    "color-named": {
       "count": 1
     }
   }

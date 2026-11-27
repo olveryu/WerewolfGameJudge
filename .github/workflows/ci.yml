@@ -59,6 +59,13 @@ jobs:
       - name: Stylelint
         run: pnpm run lint:css
 
+      # Stylelint does not fail on suppressions a fix left unused (ESLint does): rewriting the
+      # file must change nothing, so a fixed entry is removed in the same pull request.
+      - name: Stylelint suppressions are current
+        run: |
+          pnpm run lint:css:suppress
+          git diff --exit-code -- stylelint-suppressions.json
+
       - name: Format check
         run: pnpm run format
 

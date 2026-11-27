@@ -5,6 +5,8 @@ import { useState } from 'react';
 import approveImage from '@/assets/avalon-vote/approve.webp';
 import rejectImage from '@/assets/avalon-vote/reject.webp';
 import { Avatar } from '@/components/avatar/Avatar';
+import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
+import { makeBuiltinAvatarUrl, pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { FactionChip } from '@/components/FactionChip';
@@ -21,8 +23,16 @@ import IconSettings from '~icons/ion/settings-outline';
 
 const BUTTON_VARIANTS = ['primary', 'secondary', 'danger', 'ghost', 'outline', 'soft'] as const;
 const BUTTON_SIZES = ['sm', 'md', 'lg'] as const;
-/** Fixed user ids, so every generated avatar draws the same face on every run. */
+/** Fixed user ids, so every fallback avatar draws the same tint on every run. */
 const AVATAR_SEEDS = ['gallery-a', 'gallery-b', 'gallery-c'] as const;
+/** One avatar of every source: fallback (no avatar), generated (common, rare), hand-drawn portrait. */
+const AVATAR_SOURCES: readonly (string | null)[] = [
+  null,
+  makeBuiltinAvatarUrl('genC-gallery'),
+  makeBuiltinAvatarUrl('genR-gallery'),
+  ...pickHandDrawnAvatarUrls(1),
+];
+const AVATAR_SIZES = [24, 48, 80] as const;
 
 /**
  * Every shared component in every variant, size and state, drawn from fixed data with no
@@ -146,6 +156,33 @@ export function UiGallery() {
           {AVATAR_SEEDS.map((seed) => (
             <Avatar key={seed} userId={seed} avatarUrl={null} size={48} />
           ))}
+        </div>
+        <div className="ui-gallery-avatars">
+          {AVATAR_SOURCES.map((avatarUrl) => (
+            <Avatar
+              key={avatarUrl ?? 'fallback'}
+              userId="gallery-a"
+              avatarUrl={avatarUrl}
+              size={48}
+            />
+          ))}
+        </div>
+        <div className="ui-gallery-avatars">
+          {AVATAR_SIZES.map((size) => (
+            <Avatar
+              key={size}
+              userId="gallery-b"
+              avatarUrl={AVATAR_SOURCES[1] ?? null}
+              size={size}
+            />
+          ))}
+          {/* `fill` in a sized host, and in a concentric box (border plus padding as its inset). */}
+          <span className="ui-gallery-avatar-host">
+            <Avatar userId="gallery-c" avatarUrl={AVATAR_SOURCES[3] ?? null} size="fill" />
+          </span>
+          <span className={`ui-gallery-avatar-box ${AVATAR_CONCENTRIC_CLASS}`}>
+            <Avatar userId="gallery-c" avatarUrl={AVATAR_SOURCES[3] ?? null} size="fill" />
+          </span>
         </div>
       </section>
 

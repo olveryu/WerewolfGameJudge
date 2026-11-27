@@ -44,10 +44,11 @@ const ART_SHEETS = {
 /**
  * One avatar shape (config/avatarShape.ts, plan §3 P9). `Avatar` sets its own corners; the
  * elements hosting it and the stages it enters through cut nothing; a square box around it takes
- * its corners from the shared `avatar-concentric` rule alone. A new host is added here; the
- * rendered result is pinned by the visual gate's avatar gallery and room screens.
+ * its corners from the shared `avatar-concentric` rule alone. Any class named with an `avatar`
+ * segment (`seat-avatar`, `lobby-player-avatar`) is held to this by its name; a host or box named
+ * otherwise is listed below. The rendered shapes are pinned by the visual gate's avatar gallery.
  */
-const AVATAR_CLASSES = ['avatar', 'avatar-fallback'];
+const AVATAR_NAMED = '[\\w-]*avatar[\\w-]*';
 const AVATAR_HOSTS_AND_STAGES = [
   'account-entry',
   'appearance-avatar-preview',
@@ -113,6 +114,8 @@ export default {
         'box-shadow',
       ],
       {
+        // `border: 1px solid #ddd` is checked as its `border-color`.
+        expandShorthand: true,
         ignoreValues: [
           '0',
           'auto',
@@ -133,6 +136,21 @@ export default {
         ],
       },
     ],
+    // Literal colors anywhere in a value (gradients, text-shadow, filters): colors come from tokens.
+    'color-no-hex': true,
+    'color-named': 'never',
+    'function-disallowed-list': [
+      'rgb',
+      'rgba',
+      'hsl',
+      'hsla',
+      'hwb',
+      'lab',
+      'lch',
+      'oklab',
+      'oklch',
+      'color',
+    ],
     'csstools/value-no-unknown-custom-properties': [
       true,
       { importFrom: [...globSync('packages/web/src/**/*.css'), await publishedProperties()] },
@@ -147,7 +165,7 @@ export default {
     ],
     'rule-selector-property-disallowed-list': [
       {
-        [classSelector(AVATAR_CLASSES)]: SHAPING,
+        [classSelector([AVATAR_NAMED])]: SHAPING,
         [classSelector(AVATAR_HOSTS_AND_STAGES)]: SHAPING,
         [classSelector(AVATAR_CONCENTRIC_BOXES)]: SHAPING,
       },
@@ -170,6 +188,9 @@ export default {
       files: [TOKEN_SHEET],
       rules: {
         'scale-unlimited/declaration-strict-value': null,
+        'color-no-hex': null,
+        'color-named': null,
+        'function-disallowed-list': null,
         'selector-disallowed-list': [['/^(?!:root$|\\.admin-console$)/'], { splitList: true }],
       },
     },
