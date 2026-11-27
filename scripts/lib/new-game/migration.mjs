@@ -160,13 +160,15 @@ function wordCategoryProblems(gameId, categories) {
   );
 }
 
-/** Every reason the registration cannot be a plain insert against this schema. */
+/**
+ * Every reason the registration cannot be generated, split by remedy: `input` is a malformed
+ * --word-category list (fix the arguments), `schema` needs a hand-written migration.
+ */
 export function registrationPreflightProblems(
   database,
   { gameId, codeGameTypes, includeStatsTable, wordCategories },
 ) {
   const problems = [];
-  const wordLibrary = wordCategories !== null;
   if (!hasColumns(database, 'game_types', ['id', 'sort_order'])) {
     problems.push('lookup table game_types (id, sort_order) is missing');
   } else {
@@ -187,8 +189,6 @@ export function registrationPreflightProblems(
       }
     }
   }
-  // The list becomes the generated wordCategories.ts; its D1 rows are written in step 7.
-  if (wordLibrary) problems.push(...wordCategoryProblems(gameId, wordCategories));
   const statsTable = `${gameId}_user_stats`;
   if (tableColumns(database, statsTable).length > 0) {
     problems.push(`table ${statsTable} already exists`);
@@ -201,7 +201,9 @@ export function registrationPreflightProblems(
       `${object} hard-codes a game list in its SQL; registering would need a constraint change and a table rebuild`,
     );
   }
-  return problems;
+  // The list becomes the generated wordCategories.ts; its D1 rows are written in step 7.
+  const input = wordCategories === null ? [] : wordCategoryProblems(gameId, wordCategories);
+  return { input, schema: problems };
 }
 
 /**
@@ -305,19 +307,19 @@ export function planRegistrationMigration({
   const options = { gameId, codeGameTypes, includeStatsTable, wordCategories };
   const database = replayMigrations(migrationsDir);
   try {
-    const problems = registrationPreflightProblems(database, options);
-    if (problems.length > 0) {
-      // A malformed --word-category list is an input error: fix the input, not the schema.
-      const inputProblems = new Set(
-        wordCategories === null ? [] : wordCategoryProblems(gameId, wordCategories),
-      );
-      const guidance = problems.some((problem) => !inputProblems.has(problem))
-        ? HAND_WRITTEN_GUIDANCE
-        : INPUT_GUIDANCE;
-      throw new Error(
-        `Registration migration for '${gameId}' cannot be generated against the current schema:\n  - ${problems.join('\n  - ')}\n  ${guidance}`,
+    const { input, schema } = registrationPreflightProblems(database, options);
+    const sections = [];
+    if (input.length > 0) {
+      sections.push(
+        `The --word-category list for '${gameId}' is invalid:\n  - ${input.join('\n  - ')}\n  ${INPUT_GUIDANCE}`,
       );
     }
+    if (schema.length > 0) {
+      sections.push(
+        `Registration migration for '${gameId}' cannot be generated against the current schema:\n  - ${schema.join('\n  - ')}\n  ${HAND_WRITTEN_GUIDANCE}`,
+      );
+    }
+    if (sections.length > 0) throw new Error(sections.join('\n'));
     const sql = buildRegistrationSql({ gameId, displayName, codeGameTypes, includeStatsTable });
     verifyAppliedRegistration(database, sql, options);
     return sql;

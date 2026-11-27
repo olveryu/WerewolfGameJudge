@@ -250,7 +250,9 @@ describe('D1 catalog projection', () => {
       for (const name of ['\ud800', '名\udfff', '\udc00名']) {
         expect(isWellFormedCatalogName(name)).toBe(false);
         insertCategory.run('probe', name);
-        expect(readName.get()).not.toEqual({ name });
+        const row = readName.get();
+        expect(row).toBeDefined();
+        expect(row).not.toEqual({ name });
         deleteCategories.run();
       }
       for (const name of ['\u{1F600}名', '\u{20000}']) {

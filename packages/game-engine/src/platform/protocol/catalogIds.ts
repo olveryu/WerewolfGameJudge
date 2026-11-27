@@ -23,7 +23,7 @@ export const WORD_CATEGORY_ID_RULE =
 // NUL truncates SQLite text (length(), GLOB and trim stop at it), so no key or name carries it.
 const NUL = '\u0000';
 // A lone surrogate is not Unicode text and cannot round-trip through SQLite's UTF-8 storage
-// (node:sqlite stores U+FFFD, workerd's D1 stores invalid UTF-8), so the name would change.
+// (node:sqlite stores U+FFFD; local workerd D1 was seen storing invalid UTF-8), so the name would change.
 const LONE_SURROGATE = /\p{Cs}/u;
 
 export const CATALOG_NAME_RULE =

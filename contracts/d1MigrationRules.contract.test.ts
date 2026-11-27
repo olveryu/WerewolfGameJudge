@@ -604,28 +604,42 @@ it('migration files match the recorded sha256 manifest', () => {
  * built at run time cannot be measured here, so every pattern must be a literal.
  */
 const D1_PATTERN_MAX_BYTES = 50;
+/**
+ * The SQL as tokens that matter for patterns: string literals kept verbatim, comments dropped and
+ * quoted identifiers ("x", `x`, [x]) replaced by a bare placeholder, so a keyword inside or touching
+ * a quoted name is judged exactly like the unquoted spelling.
+ */
+const SQL_TOKEN =
+  /'(?:[^']|'')*'|--[^\n]*|\/\*[\s\S]*?\*\/|"(?:[^"]|"")*"|\x60(?:[^\x60]|\x60\x60)*\x60|\[[^\]]*\]/g;
+const QUOTED_IDENTIFIER = ' quoted_identifier ';
+
+function patternTokens(sql: string): string {
+  return sql.replace(SQL_TOKEN, (token) => {
+    if (token.startsWith("'")) return token;
+    if (token.startsWith('--') || token.startsWith('/*')) return ' ';
+    return QUOTED_IDENTIFIER;
+  });
+}
+
 /** `x GLOB '…'` operator form; `glob(…)`, `like(…)` and `GLOB ('…')` all capture `(`. */
-const PATTERN_OPERAND = /(?<!["\x60[])\b(GLOB|LIKE)\b(?!["\x60\]])\s*(\(|'(?:[^']|'')*'|\S+)/gi;
+const PATTERN_OPERAND = /\b(GLOB|LIKE)\b\s*(\(|'(?:[^']|'')*'|[^\s(),']+)/gi;
 
 function patternProblems(sql: string): string[] {
   const problems: string[] = [];
-  for (const match of stripComments(sql).matchAll(PATTERN_OPERAND)) {
+  for (const match of patternTokens(sql).matchAll(PATTERN_OPERAND)) {
+    const keyword = captured(match, 1);
     const operand = captured(match, 2);
     if (operand === '(') {
-      problems.push(
-        `${captured(match, 1)}(…) hides its pattern; write x ${captured(match, 1)} '<literal>'`,
-      );
+      problems.push(`${keyword}(…) hides its pattern; write x ${keyword} '<literal>'`);
       continue;
     }
     if (!operand.startsWith("'")) {
-      problems.push(`${captured(match, 1)} ${operand} is not a literal pattern`);
+      problems.push(`${keyword} ${operand} is not a literal pattern`);
       continue;
     }
     const bytes = Buffer.byteLength(operand.slice(1, -1).replaceAll("''", "'"), 'utf8');
     if (bytes > D1_PATTERN_MAX_BYTES) {
-      problems.push(
-        `${captured(match, 1)} pattern of ${bytes} bytes exceeds D1's ${D1_PATTERN_MAX_BYTES}`,
-      );
+      problems.push(`${keyword} pattern of ${bytes} bytes exceeds D1's ${D1_PATTERN_MAX_BYTES}`);
     }
   }
   return problems;
@@ -647,15 +661,28 @@ it('flags a computed pattern and a literal over 50 bytes', () => {
     "like(…) hides its pattern; write x like '<literal>'",
     "GLOB(…) hides its pattern; write x GLOB '<literal>'",
   ]);
+  // Identifiers that merely contain the word, quoted on one side, both sides or not at all.
   expect(
     patternProblems(
-      'CREATE TABLE t (likes_count INTEGER, globals TEXT, likelihood REAL, "like" TEXT)',
+      'CREATE TABLE t (likes_count INTEGER, globals TEXT, likelihood REAL, "like" TEXT, "like me" TEXT, "my like" TEXT, [glob] TEXT, \x60glob\x60 TEXT)',
     ),
   ).toEqual([]);
-  expect(patternProblems("CHECK (n LIKE'a%')")).toEqual([]);
+  expect(patternProblems("CHECK (n LIKE'a%' AND n NOT LIKE 'b%' ESCAPE '!')")).toEqual([]);
   expect(patternProblems('CHECK (id GLOB\n  name)')).toEqual([
-    'GLOB name) is not a literal pattern',
+    'GLOB name is not a literal pattern',
   ]);
+  // A keyword touching a quoted name is checked like the spaced spelling.
+  expect(
+    patternProblems(`CHECK ("col"GLOB ${"'" + '[0-9]'.repeat(11) + "'"} AND \x60c\x60LIKE 'a%')`),
+  ).toEqual(["GLOB pattern of 55 bytes exceeds D1's 50"]);
+  expect(patternProblems('CHECK (x GLOB"col" AND y LIKE\x60c\x60)')).toEqual([
+    'GLOB quoted_identifier is not a literal pattern',
+    'LIKE quoted_identifier is not a literal pattern',
+  ]);
+  // A string holding -- is data, not a comment.
+  expect(
+    patternProblems(`CHECK (a <> '--' AND code GLOB ${"'" + '[0-9]'.repeat(11) + "'"})`),
+  ).toEqual(["GLOB pattern of 55 bytes exceeds D1's 50"]);
   expect(patternProblems(`CHECK (code GLOB '${'[0-9]'.repeat(11)}')`)).toEqual([
     "GLOB pattern of 55 bytes exceeds D1's 50",
   ]);
