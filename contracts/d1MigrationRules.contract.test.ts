@@ -452,6 +452,15 @@ describe('rebuild guard probes on the current schema', () => {
     expect(problems('DROP TABLE rooms;')).toEqual(missingFromRooms(roomsDescendants));
   });
 
+  it('sees a drop after a string that holds comment markers', () => {
+    for (const sql of [
+      "UPDATE game_types SET id = '--' WHERE 0; DROP TABLE rooms;",
+      "SELECT ('/*'); DROP TABLE rooms; SELECT ('*/');",
+    ]) {
+      expect(problems(sql)).toEqual(missingFromRooms(roomsDescendants));
+    }
+  });
+
   it('sees a parent drop however the table name is spelled', () => {
     for (const spelling of [
       'DROP TABLE main.rooms;',
@@ -719,4 +728,9 @@ it('flags a computed pattern and a literal over 50 bytes', () => {
     "GLOB pattern of 55 bytes exceeds D1's 50",
   ]);
   expect(patternProblems("CHECK (id NOT GLOB '*[^a-z0-9]*' AND n LIKE 'it''s%')")).toEqual([]);
+  // '' is one byte of pattern: 49 quotes plus 'x' fit, 50 quotes plus 'x' do not.
+  expect(patternProblems(`CHECK (n LIKE '${"''".repeat(49)}x')`)).toEqual([]);
+  expect(patternProblems(`CHECK (n LIKE '${"''".repeat(50)}x')`)).toEqual([
+    "LIKE pattern of 51 bytes exceeds D1's 50",
+  ]);
 });
