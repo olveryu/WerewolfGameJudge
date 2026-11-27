@@ -284,7 +284,7 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
   valid: green([
     "declare const el: HTMLElement; el.style.width = 'var(--size-card)'; el.style.opacity = '1';",
     "declare const el: HTMLElement; el.style.setProperty('--seat-progress', '0');",
-    "declare const el: HTMLElement; el.animate([{ opacity: 0, offset: 0, easing: 'ease-out' }, { opacity: 1 }], 200);",
+    "declare const el: HTMLElement; el.animate([{ opacity: 0, offset: 0, easing: 'ease-out' }, { opacity: 1 }], 0);",
     "declare const el: SVGElement; el.setAttribute('cx', '13'); el.setAttribute('fill', 'var(--a)');",
     'export const a = <div style={{ opacity: 1 }} />;',
     "declare const progress: number; export const a = <div style={{ ['--seat-progress']: progress }} />;",
@@ -301,7 +301,6 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "import { tokenShorthandCard } from './styles'; export const a = <div style={tokenShorthandCard} />;",
     "import { notAStyle } from './styles'; const Box = (_: { data: object }) => null; export const a = <Box data={notAStyle} />;",
     'const card = { padding: 12 }; const Box = (_: { style: object }) => null; export const a = <Box style={card} />;',
-    `${REACT}declare const fromProps: CSSProperties; export const a = <div style={fromProps} />;`,
     'declare const on: boolean; const card = { opacity: 1 }; export const a = <div style={on ? card : { opacity: 0 }} />;',
     "const sizes = { card: 'var(--space-3)' }; export const a = <div style={{ padding: sizes.card }} />;",
     // A typed style literal in another file is judged where it is written, not again here (N3).
@@ -319,6 +318,10 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "declare const el: HTMLElement; declare const w: number; el.style.setProperty('--seat-width', `${w}px`);",
     'declare const n: number; export const a = <div style={{ gridRow: n, flexGrow: n }} />;',
     'declare const n: number | undefined; declare const on: boolean; export const a = <div style={{ flexGrow: on && n }} />;',
+    // P1 QA13: an element callback reads every element of the literal list it walks; a member
+    // written on a `CSSProperties` object is checked where it is written.
+    "const C = [{ c: 'var(--a)' }]; export const a = C.map(({ c }) => <div style={{ color: c }} />);",
+    `${REACT}const style: CSSProperties = { color: 'var(--a)' }; style.width = 'var(--w)'; export const a = <span style={style} />;`,
   ]),
   // DOM style writes (QA11 F2): what the registered entry points write takes the same check.
   // (The values below are probes, not registrations: which writes a file may make is E5's.)
@@ -328,15 +331,15 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "declare const el: HTMLElement; el.style.width = '137px';",
         "declare const el: HTMLElement; el.style.setProperty('padding', '13px');",
         "declare const el: SVGElement; el.setAttribute('fill', '#f00');",
-        "declare const el: HTMLElement; el.animate([{ color: '#f00' }, { opacity: 1 }], 200);",
-        "declare const el: HTMLElement; el.animate({ color: ['#f00', 'var(--a)'] }, 200);",
+        "declare const el: HTMLElement; el.animate([{ color: '#f00' }, { opacity: 1 }], 0);",
+        "declare const el: HTMLElement; el.animate({ color: ['#f00', 'var(--a)'] }, 0);",
       ],
       'value',
     ),
     ...red(
       [
-        'declare const el: HTMLElement; declare const k: Keyframe[]; el.animate(k, 200);',
-        'declare const el: HTMLElement; declare const k: Keyframe; el.animate([k], 200);',
+        'declare const el: HTMLElement; declare const k: Keyframe[]; el.animate(k, 0);',
+        'declare const el: HTMLElement; declare const k: Keyframe; el.animate([k], 0);',
       ],
       'keyframes',
     ),
@@ -442,8 +445,59 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         'declare const c: string; export const a = <svg><rect fill={c} /></svg>;',
         'declare const x: number; export const a = <div style={{ transform: `translateX(${x}px)` }} />;',
         "declare const el: HTMLElement; declare const c: string; el.style.setProperty('color', c);",
-        'declare const el: HTMLElement; declare const o: number; el.animate([{ opacity: o }], 200);',
+        'declare const el: HTMLElement; declare const o: number; el.animate([{ opacity: o }], 0);',
         'declare const open: number | undefined; export const a = <div style={{ width: open ?? 0 }} />;',
+      ],
+      'untracked',
+    ),
+    // P1 QA13 F2: a member read where the receiver is a parameter, a branch with no literal, or
+    // a callback element of a parameter holds what its callers pass, not only the literal of
+    // its type.
+    ...red(
+      [
+        "const D = { width: 'var(--a)' }; export function Box({ cfg }: { cfg: typeof D }) { return <div style={{ width: cfg.width }} />; }",
+        "const T = { w: 'var(--a)' }; export function A(o: typeof T) { return <div style={{ width: o.w }} />; }",
+        "const T = { w: 'var(--a)' }; export function A(list: (typeof T)[]) { return list.map((x) => <div style={{ width: x.w }} />); }",
+        "declare const p: { width: number }; declare const on: boolean; const S = on ? { width: 'var(--a)' } : p; export const a = <div style={{ width: S.width }} />;",
+        "declare const p: { width: number }; const S = p.width ? { width: 'var(--a)' } : p; export const a = <div style={{ width: S.width }} />;",
+      ],
+      'untracked',
+    ),
+    // P1 QA13: a style object the gate cannot follow (a library `CSSProperties`, a prop passed
+    // down) is one runtime object: rejected, never passed as checked elsewhere (U9 is debt).
+    ...red(
+      [
+        `${REACT}declare const fromProps: CSSProperties; export const a = <div style={fromProps} />;`,
+        `${REACT}export const A = ({ style }: { style: CSSProperties }) => <div style={{ ...style, color: 'var(--a)' }} />;`,
+      ],
+      'untracked',
+    ),
+    // `animate` timing takes the motion domain: a written duration is not a token.
+    ...red(
+      [
+        'declare const el: HTMLElement; el.animate([{ opacity: 0 }], 200);',
+        'declare const el: HTMLElement; el.animate([{ opacity: 0 }], { duration: 300 });',
+        "declare const el: HTMLElement; el.animate([{ opacity: 0 }], { pseudoElement: '::after' });",
+      ],
+      'value',
+    ),
+    // P1 QA13 F1: a write into a `CSSProperties` value is checked where it is written, whether
+    // the object is annotated, flows in without a contextual type, or is mutated.
+    ...red(
+      [
+        `${REACT}const style: CSSProperties = { color: 'var(--a)' }; style.width = '13px'; export const a = <span style={style} />;`,
+        `${REACT}const o = { width: 13 }; const s: CSSProperties = o; export const a = <div style={s} />;`,
+        `${REACT}function mk(): CSSProperties { const o = { width: 13 }; return o; } export const a = <div style={mk()} />;`,
+        `${REACT}import { useMemo } from 'react'; export function A() { const s = useMemo((): CSSProperties => { const o = { width: 13 }; return o; }, []); return <div style={s} />; }`,
+        `${REACT}const style: CSSProperties = {}; Object.assign(style, { width: 13 }); export const a = <div style={style} />;`,
+        `${REACT}declare function Avatar(p: { style: CSSProperties }): null; const o = { width: 13 }; export const a = <Avatar style={o} />;`,
+      ],
+      'value',
+    ),
+    ...red(
+      [
+        `${REACT}declare const s: string; const style: CSSProperties = { color: 'var(--a)' }; style.textShadow = s; export const a = <span style={style} />;`,
+        `${REACT}declare const n: number; const o = { width: n }; const s: CSSProperties = o; export const a = <div style={s} />;`,
       ],
       'untracked',
     ),

@@ -114,10 +114,35 @@ export const VIRTUAL_MODULE_PREFIXES = Object.freeze(['~icons/']);
  * with the manifest field it must be declared in and what it brings to the page. A package the
  * web manifest declares in `dependencies` and does not register here, or a registered package
  * the manifest does not declare in that field, is a graph problem. A package with `entries`
- * may be imported only by those specifiers.
+ * may be imported only by those specifiers; an entry listed in `importers` only by those modules
+ * (a type-only import loads nothing and is not one).
  */
 export const PACKAGES = Object.freeze({
-  '@ark-ui/react': { field: 'dependencies', why: 'headless components; styles come from us' },
+  // Ark's parts that open a dismissable layer are imported only by the shared module that owns
+  // them: zag closes every layer above one that is removed, and only the owner handles that.
+  // The package root (`@ark-ui/react`, which re-exports every part) is not an entry, so a static,
+  // dynamic (`import('@ark-ui/react').then((m) => m.Dialog)`) or re-exported import of it is
+  // rejected; an alias or a relative path into the package imports a file from a package and is
+  // rejected by the graph (#524 QA11 M1).
+  '@ark-ui/react': {
+    field: 'dependencies',
+    why: 'headless components; styles come from us',
+    entries: [
+      '@ark-ui/react/color-picker',
+      '@ark-ui/react/dialog',
+      '@ark-ui/react/portal',
+      '@ark-ui/react/qr-code',
+      '@ark-ui/react/tabs',
+    ],
+    importers: {
+      '@ark-ui/react/color-picker': [
+        'packages/web/src/features/drawing/components/DrawingToolbar.tsx',
+      ],
+      // zag closes every layer above a removed one; AppDialog's root blocks that cascade, so it
+      // is Ark's one dialog root (#524).
+      '@ark-ui/react/dialog': ['packages/web/src/components/AppDialog.tsx'],
+    },
+  },
   '@sentry/react': { field: 'dependencies', why: 'error reporting; renders no UI' },
   '@tanstack/react-query': { field: 'dependencies', why: 'data fetching; renders no UI' },
   '@zumer/snapdom': { field: 'dependencies', why: 'screenshot capture of our own DOM' },
@@ -151,7 +176,31 @@ export const RUNTIME_TOKEN_FAMILIES = Object.freeze(['--color-', '--report-']);
 export const TOKEN_PUBLISHER = 'packages/web/src/theme/colors.ts';
 
 /** Keyframe members that are not CSS properties (`Element.animate`, Web Animations). */
-export const KEYFRAME_META = Object.freeze(new Set(['offset', 'easing', 'composite']));
+export const KEYFRAME_META = Object.freeze(
+  new Map([
+    // A keyframe's position is a fraction of the run: a count, no length.
+    ['offset', 'free'],
+    ['easing', 'motion'],
+    ['composite', 'motion'],
+  ]),
+);
+
+/**
+ * `animate` timing options and the animation property whose domain judges each (a duration or
+ * delay is milliseconds, written as `ms`). A key not listed is judged as an unregistered
+ * property (P1 QA13: every value `animate` takes is checked).
+ */
+export const ANIMATION_OPTIONS = Object.freeze(
+  new Map([
+    ['duration', 'animation-duration'],
+    ['delay', 'animation-delay'],
+    ['endDelay', 'animation-delay'],
+    ['easing', 'animation-timing-function'],
+    ['iterations', 'animation-iteration-count'],
+    ['direction', 'animation-direction'],
+    ['fill', 'animation-fill-mode'],
+  ]),
+);
 
 /** Style declaration interfaces whose members and `setProperty` write CSS properties. */
 export const STYLE_DECLARATIONS = Object.freeze(
@@ -402,23 +451,24 @@ export const SYSTEM_COLORS = Object.freeze(
 export const FORCED_COLORS_MEDIA = '(forced-colors:active)';
 
 /**
- * `@media` and `@container` conditions (P1 QA12 nit 8): the features they may test (a keyword
- * value, or a length that is a registered breakpoint) and the words between them. A breakpoint
+ * `@media` and `@container` conditions (P1 QA12 nit 8): the features they may test, each with
+ * the keywords it may be tested for (a range feature takes a length that is a registered
+ * breakpoint) and the words between them. A breakpoint
  * cannot be a `var()`, so the breakpoint scale is a registered list; P3 sets it with the other
  * semantic tokens, and until then every length in a condition is debt the baseline holds.
  */
 export const CONDITION_FEATURES = Object.freeze(
-  new Set([
-    'hover',
-    'pointer',
-    'prefers-reduced-motion',
-    'forced-colors',
-    'width',
-    'height',
-    'min-width',
-    'max-width',
-    'min-height',
-    'max-height',
+  new Map([
+    // Discrete features: the keywords each may be tested for (P1 QA13 nit N2).
+    ['hover', Object.freeze(new Set(['hover', 'none']))],
+    ['pointer', Object.freeze(new Set(['coarse', 'fine', 'none']))],
+    ['prefers-reduced-motion', Object.freeze(new Set(['no-preference', 'reduce']))],
+    ['forced-colors', Object.freeze(new Set(['active', 'none']))],
+    // Range features: a registered breakpoint, never a keyword.
+    ...['width', 'height', 'min-width', 'max-width', 'min-height', 'max-height'].map((feature) => [
+      feature,
+      Object.freeze(new Set()),
+    ]),
   ]),
 );
 export const CONDITION_WORDS = Object.freeze(new Set(['and', 'not', 'only', 'or']));
@@ -794,25 +844,73 @@ export const REACT_UNITLESS = Object.freeze(
   ]),
 );
 
-/** SVG presentation attributes (JSX name) and the CSS property whose domain judges them. */
+/**
+ * SVG presentation attributes (JSX name) and the CSS property whose domain judges them: every
+ * presentation attribute SVG 2 defines (P1 QA13 F3), so an attribute that styles is never left
+ * unchecked. `rx`/`ry` round a box, so they take the radius domain. The geometry attributes
+ * (`x`, `cx`, `r`, `d`, `points`, `viewBox`, `x1`…) are not here: they place the drawing in its
+ * own user coordinates, which no token measures.
+ */
 export const SVG_ATTRIBUTES = Object.freeze(
   new Map([
-    ['fill', 'fill'],
-    ['stroke', 'stroke'],
+    ['alignmentBaseline', 'alignment-baseline'],
+    ['baselineShift', 'baseline-shift'],
+    ['clipPath', 'clip-path'],
+    ['clipRule', 'clip-rule'],
     ['color', 'color'],
-    ['stopColor', 'stop-color'],
-    ['floodColor', 'flood-color'],
-    ['strokeWidth', 'stroke-width'],
-    ['opacity', 'opacity'],
+    ['colorInterpolation', 'color-interpolation'],
+    ['colorInterpolationFilters', 'color-interpolation-filters'],
+    ['cursor', 'cursor'],
+    ['direction', 'direction'],
+    ['display', 'display'],
+    ['dominantBaseline', 'dominant-baseline'],
+    ['fill', 'fill'],
     ['fillOpacity', 'fill-opacity'],
-    ['strokeOpacity', 'stroke-opacity'],
-    ['stopOpacity', 'stop-opacity'],
+    ['fillRule', 'fill-rule'],
+    ['filter', 'filter'],
+    ['floodColor', 'flood-color'],
+    ['floodOpacity', 'flood-opacity'],
+    ['fontFamily', 'font-family'],
+    ['fontSize', 'font-size'],
+    ['fontSizeAdjust', 'font-size-adjust'],
+    ['fontStretch', 'font-stretch'],
+    ['fontStyle', 'font-style'],
+    ['fontVariant', 'font-variant'],
+    ['fontWeight', 'font-weight'],
+    ['imageRendering', 'image-rendering'],
+    ['letterSpacing', 'letter-spacing'],
+    ['lightingColor', 'lighting-color'],
+    ['markerEnd', 'marker-end'],
+    ['markerMid', 'marker-mid'],
+    ['markerStart', 'marker-start'],
+    ['mask', 'mask'],
+    ['opacity', 'opacity'],
+    ['overflow', 'overflow'],
+    ['paintOrder', 'paint-order'],
+    ['pointerEvents', 'pointer-events'],
     ['rx', 'border-radius'],
     ['ry', 'border-radius'],
-    ['fontSize', 'font-size'],
-    ['fontWeight', 'font-weight'],
-    ['fontFamily', 'font-family'],
-    ['letterSpacing', 'letter-spacing'],
+    ['shapeRendering', 'shape-rendering'],
+    ['stopColor', 'stop-color'],
+    ['stopOpacity', 'stop-opacity'],
+    ['stroke', 'stroke'],
+    ['strokeDasharray', 'stroke-dasharray'],
+    ['strokeDashoffset', 'stroke-dashoffset'],
+    ['strokeLinecap', 'stroke-linecap'],
+    ['strokeLinejoin', 'stroke-linejoin'],
+    ['strokeMiterlimit', 'stroke-miterlimit'],
+    ['strokeOpacity', 'stroke-opacity'],
+    ['strokeWidth', 'stroke-width'],
+    ['textAnchor', 'text-anchor'],
+    ['textDecoration', 'text-decoration'],
+    ['textRendering', 'text-rendering'],
+    ['transform', 'transform'],
+    ['transformOrigin', 'transform-origin'],
+    ['unicodeBidi', 'unicode-bidi'],
+    ['vectorEffect', 'vector-effect'],
+    ['visibility', 'visibility'],
+    ['wordSpacing', 'word-spacing'],
+    ['writingMode', 'writing-mode'],
   ]),
 );
 

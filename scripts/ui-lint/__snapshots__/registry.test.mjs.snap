@@ -30,6 +30,18 @@ exports[`UI gate registry > pins ANIMATION_NAMES exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins ANIMATION_OPTIONS exactly 1`] = `
+{
+  "delay": "animation-delay",
+  "direction": "animation-direction",
+  "duration": "animation-duration",
+  "easing": "animation-timing-function",
+  "endDelay": "animation-delay",
+  "fill": "animation-fill-mode",
+  "iterations": "animation-iteration-count",
+}
+`;
+
 exports[`UI gate registry > pins ART_SHEETS exactly 1`] = `
 {
   "packages/web/src/boot/bootSplash.css": "boot",
@@ -86,18 +98,31 @@ exports[`UI gate registry > pins COLOR_KEYWORDS exactly 1`] = `
 `;
 
 exports[`UI gate registry > pins CONDITION_FEATURES exactly 1`] = `
-[
-  "forced-colors",
-  "height",
-  "hover",
-  "max-height",
-  "max-width",
-  "min-height",
-  "min-width",
-  "pointer",
-  "prefers-reduced-motion",
-  "width",
-]
+{
+  "forced-colors": [
+    "active",
+    "none",
+  ],
+  "height": [],
+  "hover": [
+    "hover",
+    "none",
+  ],
+  "max-height": [],
+  "max-width": [],
+  "min-height": [],
+  "min-width": [],
+  "pointer": [
+    "coarse",
+    "fine",
+    "none",
+  ],
+  "prefers-reduced-motion": [
+    "no-preference",
+    "reduce",
+  ],
+  "width": [],
+}
 `;
 
 exports[`UI gate registry > pins CONDITION_WORDS exactly 1`] = `
@@ -826,11 +851,11 @@ exports[`UI gate registry > pins IDENTITY_CALLS exactly 1`] = `
 `;
 
 exports[`UI gate registry > pins KEYFRAME_META exactly 1`] = `
-[
-  "composite",
-  "easing",
-  "offset",
-]
+{
+  "composite": "motion",
+  "easing": "motion",
+  "offset": "free",
+}
 `;
 
 exports[`UI gate registry > pins MATH exactly 1`] = `
@@ -879,7 +904,22 @@ exports[`UI gate registry > pins OPERATORS exactly 1`] = `
 exports[`UI gate registry > pins PACKAGES exactly 1`] = `
 {
   "@ark-ui/react": {
+    "entries": [
+      "@ark-ui/react/color-picker",
+      "@ark-ui/react/dialog",
+      "@ark-ui/react/portal",
+      "@ark-ui/react/qr-code",
+      "@ark-ui/react/tabs",
+    ],
     "field": "dependencies",
+    "importers": {
+      "@ark-ui/react/color-picker": [
+        "packages/web/src/features/drawing/components/DrawingToolbar.tsx",
+      ],
+      "@ark-ui/react/dialog": [
+        "packages/web/src/components/AppDialog.tsx",
+      ],
+    },
     "why": "headless components; styles come from us",
   },
   "@sentry/react": {
@@ -1459,22 +1499,64 @@ exports[`UI gate registry > pins STYLE_INTERFACES exactly 1`] = `
 
 exports[`UI gate registry > pins SVG_ATTRIBUTES exactly 1`] = `
 {
+  "alignmentBaseline": "alignment-baseline",
+  "baselineShift": "baseline-shift",
+  "clipPath": "clip-path",
+  "clipRule": "clip-rule",
   "color": "color",
+  "colorInterpolation": "color-interpolation",
+  "colorInterpolationFilters": "color-interpolation-filters",
+  "cursor": "cursor",
+  "direction": "direction",
+  "display": "display",
+  "dominantBaseline": "dominant-baseline",
   "fill": "fill",
   "fillOpacity": "fill-opacity",
+  "fillRule": "fill-rule",
+  "filter": "filter",
   "floodColor": "flood-color",
+  "floodOpacity": "flood-opacity",
   "fontFamily": "font-family",
   "fontSize": "font-size",
+  "fontSizeAdjust": "font-size-adjust",
+  "fontStretch": "font-stretch",
+  "fontStyle": "font-style",
+  "fontVariant": "font-variant",
   "fontWeight": "font-weight",
+  "imageRendering": "image-rendering",
   "letterSpacing": "letter-spacing",
+  "lightingColor": "lighting-color",
+  "markerEnd": "marker-end",
+  "markerMid": "marker-mid",
+  "markerStart": "marker-start",
+  "mask": "mask",
   "opacity": "opacity",
+  "overflow": "overflow",
+  "paintOrder": "paint-order",
+  "pointerEvents": "pointer-events",
   "rx": "border-radius",
   "ry": "border-radius",
+  "shapeRendering": "shape-rendering",
   "stopColor": "stop-color",
   "stopOpacity": "stop-opacity",
   "stroke": "stroke",
+  "strokeDasharray": "stroke-dasharray",
+  "strokeDashoffset": "stroke-dashoffset",
+  "strokeLinecap": "stroke-linecap",
+  "strokeLinejoin": "stroke-linejoin",
+  "strokeMiterlimit": "stroke-miterlimit",
   "strokeOpacity": "stroke-opacity",
   "strokeWidth": "stroke-width",
+  "textAnchor": "text-anchor",
+  "textDecoration": "text-decoration",
+  "textRendering": "text-rendering",
+  "transform": "transform",
+  "transformOrigin": "transform-origin",
+  "unicodeBidi": "unicode-bidi",
+  "vectorEffect": "vector-effect",
+  "visibility": "visibility",
+  "wordSpacing": "word-spacing",
+  "writingMode": "writing-mode",
 }
 `;
 

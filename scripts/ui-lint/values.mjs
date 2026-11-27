@@ -16,7 +16,9 @@ import {
   OPERATORS,
   PROPERTIES,
   REFERENCES,
+  RUNTIME_TOKEN_FAMILIES,
   SYSTEM_COLORS,
+  TOKEN_PUBLISHER,
 } from './registry.mjs';
 
 const VENDOR_PREFIX = /^-(?:webkit|moz|ms|o)-/;
@@ -62,6 +64,10 @@ export const valueMessages = {
     `\`${word}\` in an \`@${rule}\` condition is not a registered breakpoint (UI gate S1).`,
   runtime: (prop, kind) =>
     `This \`${prop}\` value is a runtime ${kind}: the gate cannot show it is a token, so pass it through a custom property (\`--x\`, read by a stylesheet's \`var()\`) or write a token (UI gate E4, D15).`,
+  unread: (prop) =>
+    `No value of this \`${prop}\` could be read: the gate cannot show it is a token, so write a token or pass the value through a custom property (UI gate E4, D15).`,
+  styleObject: () =>
+    `This style object comes from where the gate cannot follow (a parameter, a library type, a call it cannot read): none of its values can be shown to be tokens, so write the object where it is used (UI gate E4, D15).`,
   keyframes: (name) =>
     `\`${name}\` is not a keyframes rule of this stylesheet; an animation runs only keyframes its own sheet defines (UI gate S1).`,
 };
@@ -96,12 +102,7 @@ function isZero(word) {
  * with offsets into `value`. `forced` is true inside `@media (forced-colors: active)`;
  * `keyframes` holds the keyframes names the same stylesheet defines (none for inline styles).
  */
-export function valueProblems(
-  value,
-  prop,
-  domainName,
-  { forced = false, keyframes = new Set() } = {},
-) {
+function valueProblems(value, prop, domainName, { forced = false, keyframes = new Set() } = {}) {
   const problems = [];
   const animation = ANIMATION_NAMES.has(prop.replace(VENDOR_PREFIX, ''));
   const problem = (node, message) =>
@@ -220,10 +221,91 @@ export function valueProblems(
  * runtime string, a number in a token domain, never do. `text` is the number as it is written
  * (`1px` or `1`), so the unit decision is the writer's, as for a literal.
  */
-export function runtimeFits({ runtime, text }, prop, domainName) {
+function runtimeFits({ runtime, text }, prop, domainName) {
   if (domainName === 'custom') return true;
   if (runtime !== 'number') return false;
   const unitless = valueParser.unit(text)?.unit === '';
   if (domainName === 'free' || DOMAINS[domainName].shape) return unitless;
   return unitless && Boolean(DOMAINS[domainName].unitless);
+}
+
+/**
+ * The one verdict on a style value (plan v3.9 §2 E4, P1 QA13): every entry point that writes a
+ * value — a stylesheet declaration or `@supports` test, a JSX `style` or SVG presentation
+ * attribute, a `CSSProperties` object, `el.style.x =`, `setProperty`, `setAttribute`, `animate`
+ * keyframes and options — hands what it read here, and nothing else decides that a value passes.
+ * A value passes only when it is shown to be tokens: every reading is a literal that the domain
+ * of `prop` allows, a runtime value whose kind fits that domain whatever it holds (any value of
+ * a custom property, a unitless number where counts are free), a registered source, or a type
+ * part that writes no declaration (`null`, `undefined`, a boolean). Everything else is reported:
+ * an unregistered property, a runtime string or object, and no reading at all (an entry point
+ * that could not read its value rejects, it never skips).
+ *
+ * `readings`: `{ text, origins, untraced? }` (a literal), `{ runtime: 'number' | 'string' |
+ * 'object', text?, origins }`, `{ none: true }`, or `{ registered: file, origins }` (a write by `file`, which passes only
+ * when it is the registered token publisher writing one of its families). Returns
+ * `[{ messageId: 'value' | 'untraced' | 'untracked', message, origins, index?, endIndex? }]`
+ * (`index` into a literal's text). `options.domain` names the domain when `prop` is a label
+ * (a custom property in a sheet, a keyframe offset); `forced` and `keyframes` are the
+ * stylesheet context `valueProblems` takes.
+ */
+export function verdict(
+  readings,
+  prop,
+  { domain = prop === null ? undefined : domainOf(prop), forced, keyframes } = {},
+) {
+  if (prop === null) {
+    // A whole style object (`prop` null) is only ever a runtime object reading: rejected.
+    if (readings.some((reading) => reading.runtime !== 'object'))
+      throw new Error('UI gate E4: a style object reading must be a runtime object');
+    return readings.map((reading) => ({
+      messageId: 'untracked',
+      message: valueMessages.styleObject(),
+      origins: reading.origins,
+    }));
+  }
+  if (domain === undefined)
+    return [{ messageId: 'value', message: valueMessages.property(prop), origins: [] }];
+  if (readings.length === 0)
+    return [{ messageId: 'untracked', message: valueMessages.unread(prop), origins: [] }];
+  const rejected = [];
+  for (const reading of readings) {
+    if (reading.none === true) continue;
+    if (reading.registered !== undefined) {
+      // The one registered runtime source: `colors.ts` publishing its token families.
+      if (
+        reading.registered === TOKEN_PUBLISHER &&
+        RUNTIME_TOKEN_FAMILIES.some((family) => prop.startsWith(family))
+      )
+        continue;
+      rejected.push({
+        messageId: 'untracked',
+        message: valueMessages.runtime(prop, 'value'),
+        origins: reading.origins ?? [],
+      });
+      continue;
+    }
+    if (reading.runtime !== undefined) {
+      if (!runtimeFits(reading, prop, domain))
+        rejected.push({
+          messageId: 'untracked',
+          message: valueMessages.runtime(prop, reading.runtime),
+          origins: reading.origins,
+        });
+      continue;
+    }
+    if (typeof reading.text !== 'string')
+      throw new Error(
+        `UI gate E4: a reading of \`${prop}\` has no kind: ${JSON.stringify(reading)}`,
+      );
+    for (const problem of valueProblems(reading.text, prop, domain, { forced, keyframes }))
+      rejected.push({
+        messageId: reading.untraced ? 'untraced' : 'value',
+        message: problem.message,
+        origins: reading.origins ?? [],
+        index: problem.index,
+        endIndex: problem.endIndex,
+      });
+  }
+  return rejected;
 }

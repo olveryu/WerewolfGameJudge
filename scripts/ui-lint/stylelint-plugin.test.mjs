@@ -63,6 +63,9 @@ const RED = [
   '@media (width >= 768px) { a { opacity: 1; } }',
   '@container card (min-width: 20rem) { a { opacity: 1; } }',
   '@media (orientation: landscape) { a { opacity: 1; } }',
+  // A discrete feature takes only its registered keywords (P1 QA13 N2).
+  '@media (hover: banana) { a { opacity: 1; } }',
+  '@media (prefers-reduced-motion: fast) { a { opacity: 1; } }',
   '@supports (padding: 13px) { a { opacity: 1; } }',
   // `vh`/`vw` break when mobile browser UI shows or hides: `dvh`/`dvw` (Modern Web Guidance
   // `responsive-design`).

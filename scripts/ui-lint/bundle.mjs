@@ -413,6 +413,8 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
   ];
   const scripts = new Set();
   const styles = new Set();
+  // `specifier\0module` for each registered importer seen importing its entry.
+  const importing = new Set();
 
   const leaf = (target, specifier, at) => {
     const [file, query = ''] = target.split(/(?=\?)/);
@@ -478,7 +480,12 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
           problems.push(`${at}: \`${specifier}\` is not a registered package of the web client`);
         else if (packages[packageName(specifier)].entries?.includes(specifier) === false)
           problems.push(`${at}: \`${specifier}\` is not a registered entry of its package`);
-        else if (/\.css(\?|$)/.test(specifier))
+        else if (packages[packageName(specifier)].importers?.[specifier] !== undefined) {
+          const listed = packages[packageName(specifier)].importers[specifier];
+          if (listed.includes(relative(file))) importing.add(`${specifier}\u0000${relative(file)}`);
+          else
+            problems.push(`${at}: \`${specifier}\` may be imported only by ${listed.join(', ')}`);
+        } else if (/\.css(\?|$)/.test(specifier))
           problems.push(`${at}: package stylesheets bypass the gate`);
         else if (!resolved) problems.push(`${at}: \`${specifier}\` does not resolve`);
         else if (!resolved.isExternalLibraryImport) leaf(resolved.resolvedFileName, specifier, at);
@@ -523,6 +530,14 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
       followScript(file);
     }
   }
+  // The importer lists are exact: a listed module that no longer imports the entry is stale.
+  for (const [name, { importers = {} }] of Object.entries(packages))
+    for (const [specifier, listed] of Object.entries(importers))
+      for (const module of listed)
+        if (!importing.has(`${specifier}\u0000${module}`))
+          problems.push(
+            `registry: \`${module}\` is listed as an importer of \`${specifier}\` (${name}) but does not import it`,
+          );
   return {
     scripts: [...scripts].sort(),
     styles: [...styles].sort(),

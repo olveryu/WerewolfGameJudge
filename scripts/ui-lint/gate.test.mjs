@@ -218,22 +218,54 @@ describe('base worktree (P1 QA12 nit 6)', () => {
     expect(residue()).toEqual({ trees: [], registered: 1 });
   });
 
-  it('removes the tree when an interrupt ends the run, then ends with that signal', () => {
-    const gate = pathToFileURL(path.join(import.meta.dirname, 'gate.mjs')).href;
-    const script = `import { findingsAt } from ${JSON.stringify(gate)};
+  // A child Node process loads the whole gate (TypeScript, ESLint, Stylelint) before it runs,
+  // which alone can take longer than the default 5 s on a shared runner.
+  const CHILD_GATE_TIMEOUT = 60_000;
+  it(
+    'removes the tree when an interrupt ends the run, then ends with that signal',
+    () => {
+      const gate = pathToFileURL(path.join(import.meta.dirname, 'gate.mjs')).href;
+      const script = `import { findingsAt } from ${JSON.stringify(gate)};
 await findingsAt(${JSON.stringify(root)}, ${JSON.stringify(commit)}, new Set(), () => {
   process.kill(process.pid, 'SIGTERM');
   // The gate is busy while it measures: a pending timer keeps the process up, as its work does.
   return new Promise(() => setInterval(() => {}, 1000));
 });`;
-    let ended;
-    try {
-      execFileSync(process.execPath, ['--input-type=module', '-e', script], { stdio: 'pipe' });
-    } catch (error) {
-      ended = error;
-    }
-    expect(ended?.signal).toBe('SIGTERM');
-    expect(String(ended?.stderr)).toContain('SIGTERM while measuring the base');
-    expect(residue()).toEqual({ trees: [], registered: 1 });
-  });
+      let ended;
+      try {
+        execFileSync(process.execPath, ['--input-type=module', '-e', script], { stdio: 'pipe' });
+      } catch (error) {
+        ended = error;
+      }
+      expect(ended?.signal).toBe('SIGTERM');
+      expect(String(ended?.stderr)).toContain('SIGTERM while measuring the base');
+      expect(residue()).toEqual({ trees: [], registered: 1 });
+    },
+    CHILD_GATE_TIMEOUT,
+  );
+
+  it(
+    'still ends with the signal and names the tree when removing it fails',
+    () => {
+      const gate = pathToFileURL(path.join(import.meta.dirname, 'gate.mjs')).href;
+      // The tree is already gone when the interrupt arrives, so `git worktree remove` fails.
+      const script = `import { execFileSync } from 'node:child_process';
+import { findingsAt } from ${JSON.stringify(gate)};
+await findingsAt(${JSON.stringify(root)}, ${JSON.stringify(commit)}, new Set(), (tree) => {
+  execFileSync('git', ['-C', ${JSON.stringify(root)}, 'worktree', 'remove', '--force', tree]);
+  process.kill(process.pid, 'SIGTERM');
+  return new Promise(() => setInterval(() => {}, 1000));
+});`;
+      let ended;
+      try {
+        execFileSync(process.execPath, ['--input-type=module', '-e', script], { stdio: 'pipe' });
+      } catch (error) {
+        ended = error;
+      }
+      expect(ended?.signal).toBe('SIGTERM');
+      expect(String(ended?.stderr)).toMatch(/could not remove .*\.ui-gate-base-/);
+      expect(residue()).toEqual({ trees: [], registered: 1 });
+    },
+    CHILD_GATE_TIMEOUT,
+  );
 });

@@ -10,6 +10,7 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { bundleGraph } from './bundle.mjs';
+import { PACKAGES as REGISTERED } from './registry.mjs';
 
 const roots = [];
 afterAll(() => {
@@ -164,6 +165,96 @@ describe('bundle graph allow list', () => {
       const { problems } = graph(main(text), packages);
       expect(problems.some((line) => line.includes('is not a registered entry'))).toBe(true);
     }
+  });
+
+  it('accepts an entry listed in `importers` only from those modules (#524 AppDialog)', () => {
+    const packages = {
+      dep: {
+        field: 'dependencies',
+        why: 'fixture',
+        entries: ['dep'],
+        importers: { dep: ['packages/web/src/b.ts'] },
+      },
+    };
+    const owner = { 'packages/web/src/b.ts': "import 'dep';" };
+    expect(graph({ ...main("import './b';"), ...owner }, packages).problems).toEqual([]);
+    const { problems } = graph({ ...main("import './b'; import 'dep';"), ...owner }, packages);
+    expect(problems).toEqual([
+      'packages/web/src/main.ts:1: `dep` may be imported only by packages/web/src/b.ts',
+    ]);
+    // The list is exact: an owner that stops importing the entry is stale.
+    expect(
+      graph({ ...main("import './b';"), 'packages/web/src/b.ts': '' }, packages).problems,
+    ).toEqual([
+      'registry: `packages/web/src/b.ts` is listed as an importer of `dep` (dep) but does not import it',
+    ]);
+    // A type-only import loads nothing.
+    expect(
+      graph({ ...main("import './b'; import type {} from 'dep';"), ...owner }, packages).problems,
+    ).toEqual([]);
+  });
+
+  // #524 QA11 M1: Ark's Dialog reaches the bundle only through AppDialog, whatever the path.
+  describe("Ark's dialog only in AppDialog (the registry's own entry)", () => {
+    const OWNER = 'packages/web/src/components/AppDialog.tsx';
+    const ark = {
+      'packages/web/package.json': JSON.stringify({ dependencies: { '@ark-ui/react': '5.0.0' } }),
+      'packages/web/node_modules/@ark-ui/react/package.json': JSON.stringify({
+        name: '@ark-ui/react',
+        exports: {
+          '.': { types: './index.d.ts', default: './index.js' },
+          './*': { types: './*.d.ts', default: './*.js' },
+        },
+      }),
+      ...Object.fromEntries(
+        ['index', 'dialog', 'color-picker'].flatMap((name) => [
+          [`packages/web/node_modules/@ark-ui/react/${name}.js`, 'export const Dialog = {};'],
+          [
+            `packages/web/node_modules/@ark-ui/react/${name}.d.ts`,
+            'export declare const Dialog: {};',
+          ],
+        ]),
+      ),
+      [OWNER]: "import { Dialog } from '@ark-ui/react/dialog'; export const AppDialog = Dialog;",
+    };
+    const packages = {
+      '@ark-ui/react': {
+        ...REGISTERED['@ark-ui/react'],
+        importers: {
+          '@ark-ui/react/dialog': REGISTERED['@ark-ui/react'].importers['@ark-ui/react/dialog'],
+        },
+      },
+    };
+    const run = (text) =>
+      graph({ ...ark, ...main(`import './components/AppDialog'; ${text}`) }, packages).problems;
+
+    it('registers AppDialog alone', () => {
+      expect(REGISTERED['@ark-ui/react'].importers['@ark-ui/react/dialog']).toEqual([OWNER]);
+      expect(run('')).toEqual([]);
+    });
+
+    it.each([
+      ["import { Dialog } from '@ark-ui/react/dialog';", 'may be imported only by'],
+      ["void import('@ark-ui/react/dialog');", 'may be imported only by'],
+      ["export { Dialog } from '@ark-ui/react/dialog';", 'may be imported only by'],
+      ["export * from '@ark-ui/react/dialog';", 'may be imported only by'],
+      ["import { Dialog } from '@ark-ui/react';", 'is not a registered entry'],
+      ["import * as Ark from '@ark-ui/react'; void Ark;", 'is not a registered entry'],
+      ["void import('@ark-ui/react').then((m) => m.Dialog);", 'is not a registered entry'],
+      ["export * from '@ark-ui/react';", 'is not a registered entry'],
+      ["import '@ark-ui/react/dialog.js';", 'is not a registered entry'],
+      ["import '../node_modules/@ark-ui/react/dialog.js';", 'imports a file from a package'],
+      ["import '@/../node_modules/@ark-ui/react/dialog.js';", 'imports a file from a package'],
+      ["void import.meta.glob('../node_modules/@ark-ui/react/*.js');", 'only `*` and'],
+      ["void import.meta.glob('../node_modules/*/react/dialog.js');", 'only `*` and'],
+      ["void import(`@ark-ui/react/${'dialog'}`);", 'takes a literal specifier'],
+    ])('rejects %s', (text, problem) => {
+      const problems = run(text);
+      expect(
+        problems.some((line) => line.includes(problem)),
+        problems.join('\n'),
+      ).toBe(true);
+    });
   });
 
   it('rejects an import through a symbolic link', () => {

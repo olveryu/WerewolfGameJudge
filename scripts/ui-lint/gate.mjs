@@ -297,7 +297,14 @@ export async function findingsAt(root, commit, rules, measure = (tree) => runGat
   const interrupted = (signal) => {
     process.stderr.write(`UI gate: ${signal} while measuring the base; removing ${tree}\n`);
     for (const name of INTERRUPTS) process.off(name, interrupted);
-    remove();
+    // The run still ends with its signal when the removal fails; what is left is named.
+    try {
+      remove();
+    } catch (error) {
+      process.stderr.write(
+        `UI gate: could not remove ${tree} (${error.message}); run \`git worktree remove --force ${tree}\`\n`,
+      );
+    }
     process.kill(process.pid, signal);
   };
   git(root, ['worktree', 'add', '--detach', '--quiet', tree, commit]);

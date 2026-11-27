@@ -43,9 +43,9 @@ import {
   SIZED_ELEMENTS,
   STATE_HOOKS,
   IDENTITY_CALLS,
+  ANIMATION_OPTIONS,
   KEYFRAME_META,
   MEMO_HOOKS,
-  RUNTIME_TOKEN_FAMILIES,
   STYLE_DECLARATIONS,
   TOKEN_PUBLISHER,
   STYLE_INTERFACES,
@@ -53,7 +53,7 @@ import {
   TAG_MAPS,
   UNMANAGED,
 } from './registry.mjs';
-import { domainOf, runtimeFits, valueMessages, valueProblems, withOrigins } from './values.mjs';
+import { verdict, withOrigins } from './values.mjs';
 
 function typedServices(context) {
   const services = context.sourceCode.parserServices;
@@ -620,8 +620,11 @@ function typeReadings(type, unit, origins, at) {
   const readings = [];
   let runtime;
   for (const part of type.isUnion() ? type.types : [type]) {
-    if (part.flags & (ts.TypeFlags.Nullable | ts.TypeFlags.Void | ts.TypeFlags.BooleanLike))
+    if (part.flags & (ts.TypeFlags.Nullable | ts.TypeFlags.Void | ts.TypeFlags.BooleanLike)) {
+      // Shown to write nothing: `verdict` passes it as such.
+      if (!readings.some((reading) => reading.none)) readings.push({ none: true, origins: [] });
       continue;
+    }
     if (part.isStringLiteral() || part.isNumberLiteral()) {
       readings.push({
         text: part.isStringLiteral() ? part.value : unit(part.value),
@@ -643,17 +646,23 @@ function typeReadings(type, unit, origins, at) {
   return readings;
 }
 
+/** A number of milliseconds as CSS (`animate` timing). */
+const ms = (number) => (number === 0 ? '0' : `${number}ms`);
+
 /** The texts of readings that are all literal, else null (a key or name read for lookup). */
 const literalTexts = (readings) =>
   readings.every((reading) => reading.runtime === undefined)
-    ? readings.map((reading) => reading.text)
+    ? readings.filter((reading) => !reading.none).map((reading) => reading.text)
     : null;
 
-/** Lists together; null only when none of them is a list (no container, no returned value). */
-const either = (...lists) => {
-  const known = lists.filter((list) => list !== null);
-  return known.length === 0 ? null : known.flat();
-};
+/**
+ * A value the gate cannot follow to what is written (a parameter's callers, a branch with no
+ * literal behind it, a spread or entry it cannot read). It stands beside whatever is read, never
+ * in place of it, and is read from the type of the expression that holds it (P1 QA13 F2).
+ */
+const UNREAD = Symbol('unread');
+
+const readable = (containers) => containers.some((container) => container !== UNREAD);
 
 const strip = (node) =>
   ts.isParenthesizedExpression(node) ||
@@ -778,7 +787,7 @@ function returnedExpressions(fn) {
  * `unit` turns a number into it; `origins` are the nodes it was written in). Never empty for an
  * expression that writes a declaration: what cannot be read as a literal is a runtime reading
  * `{ runtime: 'number' | 'string', origins: [expression] }`, which the rule reports unless the
- * value checker shows it fits (`runtimeFits`), so no value is left out.
+ * verdict shows it fits, so no value is left out.
  *
  * A name is followed to everything that gives it a value, because TypeScript widens a written
  * literal to `number`/`string` wherever it is not `const` (P1 QA7 F4): initializers (a `const`,
@@ -821,7 +830,8 @@ function readLiteralValues(node, checker, unit, visiting) {
     let runtime = false;
     for (const span of node.templateSpans) {
       const parts = recurse(span.expression, String);
-      const literal = parts.filter((part) => part.runtime === undefined);
+      // A part that writes nothing is interpolated as text (`undefined`, `false`): not a token.
+      const literal = parts.filter((part) => part.runtime === undefined && !part.none);
       if (literal.length < parts.length) runtime = true;
       values = values.flatMap((head) =>
         literal.map((part) => ({
@@ -853,33 +863,45 @@ function readLiteralValues(node, checker, unit, visiting) {
   ) {
     const sources = valueSources(node, checker, visiting);
     if (sources !== null) {
-      const written = sources.flatMap((source) => recurse(source));
-      return takesArguments(node, checker)
-        ? [
-            ...written,
-            ...typeReadings(
-              checker.getTypeAtLocation(node),
-              unit,
-              typeOrigins(node, checker),
-              node,
-            ),
-          ]
-        : written;
+      // One type reading however many sources are unread: they all hold what the type allows.
+      const written = sources.filter((source) => source !== UNREAD).flatMap((s) => recurse(s));
+      return sources.includes(UNREAD) ? [...written, ...readType(node)] : written;
     }
   }
-  return typeReadings(checker.getTypeAtLocation(node), unit, typeOrigins(node, checker), node);
+  return readType(node);
+
+  function readType(at) {
+    return typeReadings(checker.getTypeAtLocation(at), unit, typeOrigins(at, checker), at);
+  }
 }
 
+/** Array methods whose callback's first parameter is each element of the receiver. */
+const ELEMENT_CALLBACKS = new Set([
+  'every',
+  'filter',
+  'find',
+  'findLast',
+  'flatMap',
+  'forEach',
+  'map',
+  'some',
+]);
+
 /**
- * Whether a name is a parameter (or a binding inside one): its callers write its value, so a
- * default is only one of the values it holds.
+ * The receiver whose elements a parameter takes: the array of `X.map((element) => …)` when the
+ * parameter is the callback's first one, else undefined (its callers write it).
  */
-function takesArguments(node, checker) {
-  if (!ts.isIdentifier(node)) return false;
-  let declaration = targetSymbol(node, checker)?.valueDeclaration;
-  while (declaration !== undefined && ts.isBindingElement(declaration))
-    declaration = declaration.parent.parent;
-  return declaration !== undefined && ts.isParameter(declaration);
+function elementsReceiver(parameter) {
+  const fn = parameter.parent;
+  if (fn.parameters?.[0] !== parameter) return undefined;
+  if (!ts.isArrowFunction(fn) && !ts.isFunctionExpression(fn)) return undefined;
+  let call = fn.parent;
+  while (ts.isParenthesizedExpression(call)) call = call.parent;
+  if (!ts.isCallExpression(call) || strip(call.arguments[0] ?? call) !== fn) return undefined;
+  const callee = call.expression;
+  return ts.isPropertyAccessExpression(callee) && ELEMENT_CALLBACKS.has(callee.name.text)
+    ? callee.expression
+    : undefined;
 }
 
 /**
@@ -924,20 +946,28 @@ function targetSymbol(name, checker) {
     : symbol;
 }
 
-/** The expressions that give a name, member or element its value, or null when none is written. */
+/**
+ * The expressions that give a name, member or element its value, or null when none is written.
+ * `UNREAD` among them stands for values written where the gate cannot follow.
+ */
 function valueSources(node, checker, visiting) {
   if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
     const keys = ts.isPropertyAccessExpression(node)
       ? [node.name.text]
       : literalTexts(literalValues(node.argumentExpression, checker, String, visiting));
     const containers = containersOf(node.expression, checker, visiting);
-    if (containers !== null) return entriesOf(containers, keys, checker, visiting);
+    if (readable(containers)) return entriesOf(containers, keys, checker, visiting);
     if (ts.isPropertyAccessExpression(node)) {
-      // No literal behind the receiver (a callback parameter, a namespace import): every
-      // declaration of the member is read (P1 QA9 FIX-FIRST-1, should-fix 1).
-      const declarations = targetSymbol(node.name, checker)?.declarations ?? [];
+      // No literal behind the receiver: a member that is one symbol (an export read through a
+      // namespace import, a class field) is read from its declaration. A member of an object
+      // literal is not: any object of the same shape has it, so its literal is only one of the
+      // values the access holds, and the type is read (P1 QA13 F2).
+      const declarations = (targetSymbol(node.name, checker)?.declarations ?? []).filter(
+        (declaration) =>
+          !ts.isPropertyAssignment(declaration) && !ts.isShorthandPropertyAssignment(declaration),
+      );
       const sources = declarations.flatMap(
-        (declaration) => memberSources(declaration, checker, visiting) ?? [],
+        (declaration) => sourcesOfDeclaration(declaration, checker, visiting) ?? [],
       );
       return sources.length === 0 ? null : sources;
     }
@@ -949,24 +979,6 @@ function valueSources(node, checker, visiting) {
   if (ts.isShorthandPropertyAssignment(declaration)) {
     const target = checker.getShorthandAssignmentValueSymbol(declaration)?.valueDeclaration;
     return target ? sourcesOfDeclaration(target, checker, visiting) : null;
-  }
-  return sourcesOfDeclaration(declaration, checker, visiting);
-}
-
-/**
- * The values of one member declaration. An object literal that is an element of an array literal
- * stands for every element: TypeScript reduces the elements' identical object types to the first
- * one, so the same key of every sibling is read too (`CHIPS.map((chip) => chip.color)`).
- */
-function memberSources(declaration, checker, visiting) {
-  if (ts.isPropertyAssignment(declaration) || ts.isShorthandPropertyAssignment(declaration)) {
-    const object = declaration.parent;
-    const array = strip(object).parent;
-    const siblings =
-      array && ts.isArrayLiteralExpression(array)
-        ? array.elements.filter((element) => ts.isObjectLiteralExpression(strip(element)))
-        : [object];
-    return entriesOf(siblings.map(strip), [declaration.name.getText()], checker, visiting);
   }
   return sourcesOfDeclaration(declaration, checker, visiting);
 }
@@ -990,23 +1002,31 @@ function sourcesOfDeclaration(declaration, checker, visiting) {
     sources.push(...(memberWrites(checker).get(declaration) ?? []));
   if (symbol !== undefined && !ts.isPropertyAssignment(declaration))
     sources.push(...(writes.assigned.get(symbol) ?? []));
+  if (ts.isParameter(declaration)) sources.push(...argumentsOf(declaration, checker, visiting));
   if (ts.isBindingElement(declaration)) {
     const pattern = declaration.parent;
     const holder = pattern.parent;
+    const key = ts.isObjectBindingPattern(pattern)
+      ? (declaration.propertyName ?? declaration.name).getText()
+      : declaration.dotDotDotToken
+        ? null
+        : String(pattern.elements.indexOf(declaration));
     const init = ts.isVariableDeclaration(holder) ? holder.initializer : undefined;
-    const index = pattern.elements.indexOf(declaration);
-    const tuple =
-      init && ts.isArrayBindingPattern(pattern) ? containersOf(init, checker, visiting) : null;
-    if (tuple !== null && !declaration.dotDotDotToken) {
-      // `const [w, h] = [320, 240]`: the element at the same index (QA9 should-fix 1).
-      sources.push(...(entriesOf(tuple, [String(index)], checker, visiting) ?? []));
-    } else if (init && ts.isArrayBindingPattern(pattern) && ts.isCallExpression(init)) {
+    const callee =
+      init && ts.isCallExpression(init)
+        ? ts.isPropertyAccessExpression(init.expression)
+          ? init.expression.name
+          : init.expression
+        : undefined;
+    if (
+      ts.isArrayBindingPattern(pattern) &&
+      callee &&
+      ts.isIdentifier(callee) &&
+      STATE_HOOKS.has(callee.text)
+    ) {
       // `const [size, setSize] = useState(16)`: the initial value (or what a lazy initializer
       // returns) and every value passed to the setter.
-      const callee = ts.isPropertyAccessExpression(init.expression)
-        ? init.expression.name
-        : init.expression;
-      if (ts.isIdentifier(callee) && STATE_HOOKS.has(callee.text) && index === 0) {
+      if (key === '0') {
         const [initial] = init.arguments;
         if (initial) sources.push(...(returnedExpressions(strip(initial)) ?? [initial]));
         const setter = pattern.elements[1];
@@ -1015,73 +1035,116 @@ function sourcesOfDeclaration(declaration, checker, visiting) {
             sources.push(...(returnedExpressions(strip(value)) ?? [value]));
         }
       }
-    } else if (init && ts.isObjectBindingPattern(pattern)) {
-      // `const { gap } = sizes`: the `gap` entry of the object behind `sizes`.
-      const key = (declaration.propertyName ?? declaration.name).getText();
-      const containers = containersOf(init, checker, visiting);
-      if (containers !== null)
-        sources.push(...(entriesOf(containers, [key], checker, visiting) ?? []));
+    } else {
+      // `const { gap } = sizes`, `const [w, h] = [320, 240]`, `({ size }) => …`: the entry of
+      // the object or array behind the pattern (a parameter's is what its callers pass).
+      const whole = ts.isParameter(holder)
+        ? argumentsOf(holder, checker, visiting)
+        : init
+          ? [init]
+          : [UNREAD];
+      const containers = whole.flatMap((value) =>
+        value === UNREAD ? [UNREAD] : containersOf(value, checker, visiting),
+      );
+      sources.push(...entriesOf(containers, key === null ? null : [key], checker, visiting));
     }
   }
   return sources.length === 0 ? null : sources;
 }
 
-/** The object and array literals an expression can evaluate to, or null. */
+/**
+ * What a parameter takes besides its default: each element of the receiver for an array
+ * method's element callback (`CHIPS.map((chip) => …)`), else what its callers pass, which the
+ * gate does not follow (`UNREAD`).
+ */
+function argumentsOf(parameter, checker, visiting) {
+  const receiver = elementsReceiver(parameter);
+  if (receiver === undefined) return [UNREAD];
+  return entriesOf(containersOf(receiver, checker, visiting), null, checker, visiting);
+}
+
+/**
+ * The object and array literals an expression can evaluate to; `UNREAD` stands for each branch
+ * or source that is not one (P1 QA13 F2: an unread branch is never dropped).
+ */
 function containersOf(expression, checker, visiting) {
+  if (expression === UNREAD) return [UNREAD];
   const node = strip(expression);
   if (ts.isObjectLiteralExpression(node) || ts.isArrayLiteralExpression(node)) return [node];
-  if (visiting.has(node)) return null;
+  if (visiting.has(node)) return [UNREAD];
   visiting.add(node);
   try {
     if (ts.isConditionalExpression(node))
-      return either(
-        containersOf(node.whenTrue, checker, visiting),
-        containersOf(node.whenFalse, checker, visiting),
-      );
-    // `Object.freeze({ … })` returns its argument.
-    if (
-      ts.isCallExpression(node) &&
-      IDENTITY_CALLS.has(node.expression.getText()) &&
-      node.arguments.length === 1
-    )
-      return containersOf(node.arguments[0], checker, visiting);
+      return [
+        ...containersOf(node.whenTrue, checker, visiting),
+        ...containersOf(node.whenFalse, checker, visiting),
+      ];
+    if (ts.isBinaryExpression(node)) {
+      const operator = node.operatorToken.kind;
+      if (operator === ts.SyntaxKind.AmpersandAmpersandToken)
+        return containersOf(node.right, checker, visiting);
+      if (
+        operator === ts.SyntaxKind.BarBarToken ||
+        operator === ts.SyntaxKind.QuestionQuestionToken
+      )
+        return [
+          ...containersOf(node.left, checker, visiting),
+          ...containersOf(node.right, checker, visiting),
+        ];
+    }
+    if (ts.isCallExpression(node)) {
+      // `Object.freeze({ … })` returns its argument; a function written in the program returns
+      // what it returns.
+      if (IDENTITY_CALLS.has(node.expression.getText()) && node.arguments.length === 1)
+        return containersOf(node.arguments[0], checker, visiting);
+      const returned = calledFunctions(node, checker).map((fn) => returnedExpressions(fn));
+      if (returned.length === 0 || returned.some((list) => list === null || list.length === 0))
+        return [UNREAD];
+      return returned.flat().flatMap((value) => containersOf(value, checker, visiting));
+    }
     if (
       !ts.isIdentifier(node) &&
       !ts.isPropertyAccessExpression(node) &&
       !ts.isElementAccessExpression(node)
     )
-      return null;
+      return [UNREAD];
     const sources = valueSources(node, checker, visiting);
     return sources === null
-      ? null
-      : either(...sources.map((source) => containersOf(source, checker, visiting)));
+      ? [UNREAD]
+      : sources.flatMap((source) => containersOf(source, checker, visiting));
   } finally {
     visiting.delete(node);
   }
 }
 
 /**
- * The value expressions of `keys` (every entry when null) in object or array literals. An entry
- * the gate cannot read (a getter, a method, a computed key, a spread it cannot follow) gives
- * null: the container has no complete literal reading.
+ * The value expressions of `keys` (every entry when null) in object or array literals. An
+ * unread container, and an entry the gate cannot read (a getter, a method, a computed key, a
+ * spread it cannot follow), give `UNREAD` beside what is read.
  */
 function entriesOf(containers, keys, checker, visiting) {
   const found = [];
+  const unread = () => {
+    if (!found.includes(UNREAD)) found.push(UNREAD);
+  };
   for (const container of containers) {
+    if (container === UNREAD) {
+      unread();
+      continue;
+    }
     if (ts.isArrayLiteralExpression(container)) {
       for (const [index, element] of container.elements.entries()) {
-        if (ts.isSpreadElement(element)) return null;
-        if (keys === null || keys.includes(String(index))) found.push(element);
+        if (ts.isSpreadElement(element)) {
+          const inner = containersOf(element.expression, checker, visiting);
+          found.push(...entriesOf(inner, null, checker, visiting));
+        } else if (keys === null || keys.includes(String(index))) found.push(element);
       }
       continue;
     }
     for (const property of container.properties) {
       if (ts.isSpreadAssignment(property)) {
         const inner = containersOf(property.expression, checker, visiting);
-        if (inner === null) return null;
-        const entries = entriesOf(inner, keys, checker, visiting);
-        if (entries === null) return null;
-        found.push(...entries);
+        found.push(...entriesOf(inner, keys, checker, visiting));
         continue;
       }
       const name =
@@ -1091,14 +1154,17 @@ function entriesOf(containers, keys, checker, visiting) {
           ts.isNumericLiteral(property.name))
           ? property.name.text
           : undefined;
-      if (name === undefined) return null;
+      if (name === undefined) {
+        unread();
+        continue;
+      }
       if (keys !== null && !keys.includes(name)) continue;
       if (ts.isPropertyAssignment(property)) {
         found.push(property.initializer);
         // An entry written after the literal (`S.box.padding = 23`, P1 QA10 S1).
         found.push(...(memberWrites(checker).get(property) ?? []));
       } else if (ts.isShorthandPropertyAssignment(property)) found.push(property.name);
-      else return null;
+      else unread();
     }
   }
   return found;
@@ -1139,50 +1205,29 @@ const inlineStyleKeys = {
         const end = sourceFile.getLineAndCharacterOfPosition(origin.getEnd()).line + 1;
         return `${fileKey(context, sourceFile.fileName)}:${start}${end === start ? '' : `-${end}`}`;
       });
-    const judge = (node, prop, values, keyOrigin) => {
-      const domain = domainOf(prop);
-      if (domain === undefined)
-        return context.report({
-          node,
-          messageId: 'value',
-          data: {
-            message: withOrigins(valueMessages.property(prop), where(keyOrigin ? [keyOrigin] : [])),
-          },
-        });
+    // Every value check ends here, and only `verdict` decides that a value passes (P1 QA13):
+    // this reports what it rejects, each report naming where its value is written.
+    const judge = (node, prop, values, keyOrigin, options) => {
       // The same text from the same lines is one value (a list whose entries share a constant).
       const unique = new Map(
         values.map((value) => [
-          `${value.runtime ?? ''}\u0000${value.text}\u0000${where(value.origins).join(',')}`,
+          `${value.runtime ?? ''}\u0000${value.none ?? ''}\u0000${value.text}\u0000${where(value.origins ?? []).join(',')}`,
           value,
         ]),
       );
-      for (const value of unique.values()) {
-        if (value.runtime !== undefined) {
-          // D15 ②: a value the gate cannot read is reported unless its kind fits the domain
-          // whatever it holds (a runtime number where counts are free, any value of a custom
-          // property, which is how a runtime value reaches a stylesheet's `var()`).
-          if (!runtimeFits(value, prop, domain))
-            context.report({
-              node,
-              messageId: 'untracked',
-              data: {
-                message: withOrigins(
-                  valueMessages.runtime(prop, value.runtime),
-                  where(value.origins),
-                ),
-              },
-            });
-          continue;
-        }
-        for (const { message } of valueProblems(value.text, prop, domain))
-          context.report({
-            node,
-            // A literal type whose declaration cannot be located has no source line for the
-            // fingerprint: reported under its own message ID instead of degrading silently.
-            messageId: value.untraced ? 'untraced' : 'value',
-            data: { message: withOrigins(message, where(value.origins)) },
-          });
-      }
+      for (const problem of verdict([...unique.values()], prop, options))
+        context.report({
+          node,
+          // A literal type whose declaration cannot be located has no source line for the
+          // fingerprint: reported under its own message ID instead of degrading silently.
+          messageId: problem.messageId,
+          data: {
+            message: withOrigins(
+              problem.message,
+              where(problem.origins.length > 0 ? problem.origins : keyOrigin ? [keyOrigin] : []),
+            ),
+          },
+        });
     };
     const unitFor = (key) => (number) =>
       number === 0 || key.startsWith('--') || REACT_UNITLESS.has(key)
@@ -1194,72 +1239,116 @@ const inlineStyleKeys = {
     };
     const file = services.program.getSourceFile(context.filename);
     const seen = new Set();
-    // A style value that is not an object literal here (a variable, a member, a memo, a branch)
-    // is judged through its type: each property declared by an object literal is checked where
-    // it is written, in this file through `checkObject`, in another file at this use.
-    const checkDeclarations = (use, type) => {
-      const tsUse = services.esTreeNodeToTSNodeMap.get(use);
+    // A style object that is not an object literal here (a variable, a member, a memo, a call, a
+    // branch) is read from the object literals behind it (`containersOf`), the same reading as a
+    // value: each literal in this file is checked as written (`checkObject`), one in another
+    // file at this use. Where the gate cannot follow (`UNREAD`: a parameter, a library call), the
+    // object's type is read: each property it names gives a type reading, except React's
+    // `CSSProperties` (which names every property that may be written) and a type with no
+    // properties, which give one runtime object reading that `verdict` rejects (P1 QA13: no branch passes a value by not reading it).
+    const checkStyleObject = (use, tsNode) => {
+      const containers = new Set(containersOf(tsNode, checker, new Set()));
+      if (containers.has(UNREAD))
+        checkStyleType(use, checker.getTypeAtLocation(tsNode), tsNode, containers);
+      for (const container of containers) {
+        if (container === UNREAD) continue;
+        if (ts.isArrayLiteralExpression(container)) {
+          judge(use, null, [{ runtime: 'object', origins: [container] }]);
+          continue;
+        }
+        if (container.getSourceFile() === file) {
+          const object = services.tsNodeToESTreeNodeMap.get(container);
+          if (object?.type !== 'ObjectExpression')
+            throw new Error(
+              `UI gate E4: no ESTree object literal for a style object in ${context.filename}`,
+            );
+          checkObject(object);
+          continue;
+        }
+        // A typed style literal (`satisfies CSSProperties`) is checked in its own file by the
+        // contextual visitor; judging it again here would record the same debt twice.
+        if (seen.has(container) || isCssPropertiesLiteral(container)) continue;
+        seen.add(container);
+        checkForeignObject(use, container);
+      }
+    };
+    // An object literal in another file: each entry is judged at this use.
+    const checkForeignObject = (use, container) => {
+      for (const property of container.properties) {
+        if (ts.isSpreadAssignment(property)) {
+          checkStyleObject(use, property.expression);
+          continue;
+        }
+        const key =
+          property.name &&
+          (ts.isIdentifier(property.name) ||
+            ts.isStringLiteral(property.name) ||
+            ts.isNumericLiteral(property.name))
+            ? property.name.text
+            : undefined;
+        if (
+          key === undefined ||
+          !(ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))
+        ) {
+          context.report({ node: use, messageId: 'computed' });
+          continue;
+        }
+        const value = ts.isPropertyAssignment(property) ? property.initializer : property.name;
+        judge(
+          use,
+          cssName(key),
+          [
+            ...literalValues(value, checker, unitFor(key)),
+            ...(memberWrites(checker).get(property) ?? []).flatMap((write) =>
+              literalValues(write, checker, unitFor(key)),
+            ),
+          ],
+          property,
+        );
+      }
+    };
+    // `read`: the literals already read beside the unread part; a union member that is one of
+    // their types is not read again from its type.
+    const checkStyleType = (use, type, at, read) => {
       for (const part of type.isUnion() ? type.types : [type]) {
-        for (const symbol of checker.getPropertiesOfType(part)) {
+        if (part.flags & (ts.TypeFlags.Nullable | ts.TypeFlags.Void | ts.TypeFlags.BooleanLike))
+          continue;
+        const declaration = part.getSymbol()?.valueDeclaration;
+        if (declaration !== undefined && read.has(declaration)) continue;
+        if (isOpaque(part, checker)) {
+          context.report({ node: use, messageId: 'indexed' });
+          continue;
+        }
+        const properties = checker.getPropertiesOfType(part);
+        // An open custom property signature (`[key: \`--${string}\`]`): every value it holds is a
+        // custom property's.
+        const custom = checker.getIndexInfosOfType(part);
+        for (const info of custom)
+          judge(
+            use,
+            `${info.keyType.texts[0]}*`,
+            typeReadings(info.type, String, [info.declaration ?? at], at),
+          );
+        if (custom.length > 0 && properties.length === 0) continue;
+        // React's `CSSProperties` lists every property that may be written, not which are.
+        if (properties.length === 0 || isCssProperties(part)) {
+          judge(use, null, [{ runtime: 'object', origins: [at] }]);
+          continue;
+        }
+        for (const symbol of properties) {
           const key = symbol.getName();
           const declarations = symbol.declarations ?? [];
-          // A property declared by a library type (React's `CSSProperties`) says which properties
-          // may be written, not which are: the object literal is checked where it is written (the
-          // contextual `CSSProperties` visitor), any other source is a runtime value.
-          if (
-            declarations.length > 0 &&
-            declarations.every((d) => d.getSourceFile().isDeclarationFile)
-          )
-            continue;
-          const literals = declarations.filter(
-            (d) => ts.isPropertyAssignment(d) || ts.isShorthandPropertyAssignment(d),
+          judge(
+            use,
+            cssName(key),
+            typeReadings(
+              checker.getTypeOfSymbolAtLocation(symbol, at),
+              unitFor(key),
+              declarations.map((d) => d.type ?? d),
+              at,
+            ),
+            declarations[0],
           );
-          if (literals.length === 0) {
-            // A mapped or declared property (`Record<'padding', number>`, an interface member, an
-            // accessor): its name is judged; its values are read from the object literal behind
-            // the style value when there is one (an annotated table), else from its type.
-            const containers = containersOf(tsUse, checker, new Set());
-            const entries =
-              containers === null ? null : entriesOf(containers, [key], checker, new Set());
-            const written =
-              entries === null || entries.length === 0
-                ? null
-                : entries.flatMap((entry) => literalValues(entry, checker, unitFor(key)));
-            judge(
-              use,
-              cssName(key),
-              written ??
-                typeReadings(
-                  checker.getTypeOfSymbolAtLocation(symbol, tsUse),
-                  unitFor(key),
-                  declarations.map((d) => d.type ?? d),
-                  tsUse,
-                ),
-              declarations[0],
-            );
-            continue;
-          }
-          for (const declaration of literals) {
-            if (seen.has(declaration)) continue;
-            seen.add(declaration);
-            if (declaration.getSourceFile() === file) {
-              const object = services.tsNodeToESTreeNodeMap.get(declaration.parent);
-              if (object?.type !== 'ObjectExpression')
-                throw new Error(
-                  `UI gate E4: no ESTree object literal for the style property \`${key}\` in ${context.filename}`,
-                );
-              checkObject(object);
-              continue;
-            }
-            // A typed style literal (`satisfies CSSProperties`) is checked in its own file by the
-            // contextual visitor; judging it again here would record the same debt twice.
-            if (isCssPropertiesLiteral(declaration.parent)) continue;
-            // Another file: `{ padding: 12 }` and `{ padding }` (const padding = 12) alike.
-            const values = ts.isPropertyAssignment(declaration)
-              ? literalValues(declaration.initializer, checker, unitFor(key))
-              : literalValues(declaration.name, checker, unitFor(key));
-            judge(use, cssName(key), values, declaration);
-          }
         }
       }
     };
@@ -1289,25 +1378,11 @@ const inlineStyleKeys = {
       }
     };
     const checkValue = (node) => {
-      switch (node.type) {
-        case 'ObjectExpression':
-          return checkObject(node);
-        case 'ConditionalExpression':
-          checkValue(node.consequent);
-          return checkValue(node.alternate);
-        case 'LogicalExpression':
-          checkValue(node.left);
-          return checkValue(node.right);
-        case 'TSSatisfiesExpression':
-        case 'TSAsExpression':
-        case 'TSNonNullExpression':
-          return checkValue(node.expression);
-        default: {
-          const type = services.getTypeAtLocation(node);
-          if (isOpaque(type, checker)) return context.report({ node, messageId: 'indexed' });
-          checkDeclarations(node, type);
-        }
-      }
+      if (node.type === 'ObjectExpression') return checkObject(node);
+      const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+      if (isOpaque(checker.getTypeAtLocation(tsNode), checker))
+        return context.report({ node, messageId: 'indexed' });
+      checkStyleObject(node, tsNode);
     };
     // DOM style writes take the same value check as `style` (P1 QA11 F2): which writes a file
     // may make at all is `ui/dom-allowlist`'s; what they write is judged here.
@@ -1322,9 +1397,6 @@ const inlineStyleKeys = {
       const parent = symbol?.declarations?.[0]?.parent;
       return parent !== undefined && ts.isInterfaceDeclaration(parent) ? parent.name.text : null;
     };
-    const publishes = (names) =>
-      fileKey(context, context.filename) === TOKEN_PUBLISHER &&
-      names.every((name) => RUNTIME_TOKEN_FAMILIES.some((family) => name.startsWith(family)));
     const checkKeyframe = (object) => {
       for (const property of object.properties) {
         if (property.type === 'SpreadElement') {
@@ -1337,22 +1409,128 @@ const inlineStyleKeys = {
           continue;
         }
         for (const key of names) {
-          if (KEYFRAME_META.has(key)) continue;
           // Property-indexed keyframes give a list of values per property.
           const values =
             property.value.type === 'ArrayExpression'
               ? property.value.elements.flatMap((element) => literal(element))
               : literal(property.value);
-          judge(property.value, cssName(key), values);
+          // `offset`, `easing` and `composite` time the keyframe; their values take the domain
+          // of the animation property they stand for.
+          const meta = KEYFRAME_META.get(key);
+          if (meta === undefined) judge(property.value, cssName(key), values);
+          else judge(property.value, key, values, undefined, { domain: meta });
         }
       }
     };
+    // The timing of `animate` (a duration in ms, or an options object): each value takes the
+    // domain of the animation property it stands for; a key not registered is reported.
+    const checkTiming = (timing) => {
+      if (timing.type !== 'ObjectExpression') {
+        const tsNode = services.esTreeNodeToTSNodeMap.get(timing);
+        if (checker.getTypeAtLocation(tsNode).flags & ts.TypeFlags.NumberLike)
+          return judge(timing, 'animation-duration', literalValues(tsNode, checker, ms));
+        return context.report({ node: timing, messageId: 'keyframes' });
+      }
+      for (const property of timing.properties) {
+        const names = property.type === 'SpreadElement' ? null : keyNames(property, services);
+        if (names === null) {
+          context.report({ node: property, messageId: 'computed' });
+          continue;
+        }
+        for (const key of names) {
+          const prop = ANIMATION_OPTIONS.get(key);
+          const tsValue = services.esTreeNodeToTSNodeMap.get(property.value);
+          if (prop === undefined)
+            judge(property.value, key, literalValues(tsValue, checker, String));
+          else
+            judge(
+              property.value,
+              prop,
+              literalValues(
+                tsValue,
+                checker,
+                prop.endsWith('-duration') || prop.endsWith('-delay') ? ms : String,
+              ),
+            );
+        }
+      }
+    };
+    const isStyleObject = (node) => isCssProperties(services.getTypeAtLocation(node));
+    // A value that becomes a `CSSProperties` without being an object literal (`const s:
+    // CSSProperties = o`, `return o`, `f(o)`, `<Avatar style={o} />`): its own type is judged,
+    // so an object literal written without a contextual type is checked where it flows in.
+    const intoStyle = (node) => {
+      if (node === null || node === undefined || node.type === 'ObjectExpression') return;
+      if (node.type === 'SpreadElement' || node.type === 'JSXEmptyExpression') return;
+      const contextual = checker.getContextualType(services.esTreeNodeToTSNodeMap.get(node));
+      if (contextual === undefined || !isCssProperties(contextual)) return;
+      checkValue(node);
+    };
     return {
       AssignmentExpression(node) {
-        if (node.left.type !== 'MemberExpression' || !isStyleDeclaration(node.left.object)) return;
-        const names = memberName(node.left);
-        if (names === null) return context.report({ node: node.left, messageId: 'name' });
-        for (const name of names) judge(node.right, cssName(name), literal(node.right));
+        if (node.left.type !== 'MemberExpression') return intoStyle(node.right);
+        if (isStyleDeclaration(node.left.object)) {
+          const names = memberName(node.left);
+          if (names === null) return context.report({ node: node.left, messageId: 'name' });
+          for (const name of names) judge(node.right, cssName(name), literal(node.right));
+          return;
+        }
+        if (isStyleObject(node.left.object)) {
+          const names = memberName(node.left);
+          if (names === null) return context.report({ node: node.left, messageId: 'computed' });
+          for (const name of names)
+            judge(
+              node.right,
+              cssName(name),
+              literalValues(services.esTreeNodeToTSNodeMap.get(node.right), checker, unitFor(name)),
+            );
+          return;
+        }
+        intoStyle(node.right);
+      },
+      VariableDeclarator(node) {
+        intoStyle(node.init);
+      },
+      ReturnStatement(node) {
+        intoStyle(node.argument);
+      },
+      ArrowFunctionExpression(node) {
+        if (node.body.type !== 'BlockStatement') intoStyle(node.body);
+      },
+      'CallExpression, NewExpression'(node) {
+        const [target, ...rest] = node.arguments;
+        // `Object.assign(style, o)` writes `o`'s entries into a `CSSProperties` object.
+        if (
+          node.callee.type === 'MemberExpression' &&
+          node.callee.object.type === 'Identifier' &&
+          node.callee.object.name === 'Object' &&
+          node.callee.property.name === 'assign' &&
+          target !== undefined &&
+          isStyleObject(target)
+        )
+          for (const source of rest)
+            if (source.type === 'SpreadElement')
+              context.report({ node: source, messageId: 'indexed' });
+            else checkValue(source);
+        for (const argument of node.arguments) intoStyle(argument);
+      },
+      Property(node) {
+        if (node.parent.type === 'ObjectExpression') intoStyle(node.value);
+      },
+      ArrayExpression(node) {
+        for (const element of node.elements) intoStyle(element);
+      },
+      JSXExpressionContainer(node) {
+        const attribute = node.parent;
+        // A native element's `style` is judged by `JSXAttribute`.
+        if (
+          attribute.type === 'JSXAttribute' &&
+          attribute.name.name === 'style' &&
+          attribute.parent.name.type === 'JSXIdentifier' &&
+          /^[a-z]/.test(attribute.parent.name.name)
+        )
+          return;
+        intoStyle(node.expression);
       },
       CallExpression(node) {
         const callee = node.callee;
@@ -1363,14 +1541,20 @@ const inlineStyleKeys = {
           const names = possibleStrings(name, services);
           const prefixes = names ?? possiblePrefixes(name, services);
           if (prefixes === null) return context.report({ node, messageId: 'name' });
-          if (publishes(prefixes)) return;
-          for (const prop of prefixes) judge(value, prop, literal(value));
+          const writer = fileKey(context, context.filename);
+          for (const prop of prefixes)
+            judge(
+              value,
+              prop,
+              writer === TOKEN_PUBLISHER ? [{ registered: writer, origins: [] }] : literal(value),
+            );
           return;
         }
         if (method === 'setAttribute' && declaringInterface(callee) === 'Element') {
           const [name, value] = node.arguments;
           const names = possibleStrings(name, services);
-          if (names === null) return;
+          // An attribute name the gate cannot enumerate could be a presentation attribute.
+          if (names === null) return context.report({ node, messageId: 'name' });
           // Presentation attributes take the inline check, as their JSX form does.
           for (const attribute of names) {
             const prop = SVG_ATTRIBUTES.get(
@@ -1381,7 +1565,8 @@ const inlineStyleKeys = {
           return;
         }
         if (method === 'animate' && declaringInterface(callee) === 'Animatable') {
-          const [keyframes] = node.arguments;
+          const [keyframes, timing] = node.arguments;
+          if (timing !== undefined) checkTiming(timing);
           if (keyframes.type === 'ArrayExpression') {
             for (const element of keyframes.elements) {
               if (element?.type === 'ObjectExpression') checkKeyframe(element);

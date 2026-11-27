@@ -20,7 +20,7 @@ import {
   CONDITION_WORDS,
   FORCED_COLORS_MEDIA,
 } from './registry.mjs';
-import { domainOf, valueMessages, valueProblems } from './values.mjs';
+import { domainOf, valueMessages, verdict } from './values.mjs';
 
 const {
   createPlugin,
@@ -72,19 +72,16 @@ function conditionProblems(rule) {
         }
         const prop = valueParser.stringify(node.nodes.slice(0, colon)).trim();
         const value = valueParser.stringify(node.nodes.slice(colon + 1)).trim();
-        const domain = domainOf(prop);
-        if (domain === undefined) {
-          flag(node, valueMessages.property(prop));
-          continue;
-        }
         const start = node.nodes[colon + 1]?.sourceIndex ?? node.sourceIndex;
         const offset = start + valueParser.stringify(node.nodes.slice(colon + 1)).search(/\S/);
-        for (const problem of valueProblems(value, prop.toLowerCase(), domain))
-          problems.push({
-            index: offset + problem.index,
-            endIndex: offset + problem.endIndex,
-            message: problem.message,
-          });
+        for (const problem of verdict([{ text: value, origins: [] }], prop.toLowerCase()))
+          if (problem.index === undefined) flag(node, problem.message);
+          else
+            problems.push({
+              index: offset + problem.index,
+              endIndex: offset + problem.endIndex,
+              message: problem.message,
+            });
       }
     };
     test(nodes);
@@ -92,7 +89,8 @@ function conditionProblems(rule) {
   }
   // A word is a feature, a joining word, a range operator or a length; inside
   // `(feature: value)` the value is a keyword of its feature (`hover`, `reduce`) or a length.
-  const word = (node, featureValue) => {
+  // `feature` is the feature whose value the word is (`(hover: none)`), else undefined.
+  const word = (node, feature) => {
     const text = node.value.toLowerCase();
     const number = valueParser.unit(text);
     if (number) {
@@ -100,16 +98,23 @@ function conditionProblems(rule) {
         flag(node, valueMessages.breakpoint(node.value, name));
       return;
     }
-    if (featureValue || /^[<>=]+$/.test(text) || CONDITION_WORDS.has(text)) return;
+    if (feature !== undefined) {
+      if (!CONDITION_FEATURES.get(feature)?.has(text))
+        flag(node, valueMessages.feature(`${feature}: ${node.value}`, name));
+      return;
+    }
+    if (/^[<>=]+$/.test(text) || CONDITION_WORDS.has(text)) return;
     if (!CONDITION_FEATURES.has(text)) flag(node, valueMessages.feature(node.value, name));
   };
   const condition = (group) => {
     const colon = group.findIndex((child) => child.type === 'div' && child.value === ':');
+    const feature = colon > 0 ? group[colon - 1].value.toLowerCase() : undefined;
     group.forEach((node, index) => {
       if (node.type === 'function') {
         if (node.value !== '') flag(node, valueMessages.func(node.value));
         else condition(node.nodes);
-      } else if (node.type === 'word') word(node, colon !== -1 && index > colon);
+      } else if (node.type === 'word')
+        word(node, colon !== -1 && index > colon ? feature : undefined);
     });
   };
   const leading = name === 'container' && nodes[0]?.type === 'word' ? 1 : 0;
@@ -150,10 +155,6 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
   root.walkDecls((decl) => {
     const raw = decl.prop;
     const domain = domainOf(raw);
-    if (domain === undefined) {
-      report({ result, ruleName: VALUE, node: decl, message: messages.property(raw), word: raw });
-      return;
-    }
     if (tokens.has(raw) || families.some((family) => raw.startsWith(family))) {
       report({ result, ruleName: VALUE, node: decl, message: messages.token(raw), word: raw });
     }
@@ -163,7 +164,8 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
     // declaration is reported as a whole (its whole span is the fingerprint, P1 QA10).
     const exact = decl.raws.value === undefined;
     const valueStart = exact ? decl.toString().indexOf(decl.value, decl.prop.length) : 0;
-    for (const problem of valueProblems(decl.value, prop, domain, {
+    for (const problem of verdict([{ text: decl.value, origins: [] }], prop, {
+      domain,
       forced: inForcedColors(decl),
       keyframes,
     })) {
@@ -172,9 +174,11 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
         ruleName: VALUE,
         node: decl,
         message: problem.message,
-        ...(exact
-          ? { index: valueStart + problem.index, endIndex: valueStart + problem.endIndex }
-          : {}),
+        ...(problem.index === undefined
+          ? { word: raw }
+          : exact
+            ? { index: valueStart + problem.index, endIndex: valueStart + problem.endIndex }
+            : {}),
       });
     }
   });
