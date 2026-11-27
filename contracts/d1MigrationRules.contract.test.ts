@@ -604,12 +604,19 @@ it('migration files match the recorded sha256 manifest', () => {
  * built at run time cannot be measured here, so every pattern must be a literal.
  */
 const D1_PATTERN_MAX_BYTES = 50;
-const PATTERN_OPERAND = /\b(GLOB|LIKE)\s+('(?:[^']|'')*'|\S+)/gi;
+/** `x GLOB '…'` operator form; `glob(…)`, `like(…)` and `GLOB ('…')` all capture `(`. */
+const PATTERN_OPERAND = /\b(GLOB|LIKE)\s*(\(|'(?:[^']|'')*'|\S+)/gi;
 
 function patternProblems(sql: string): string[] {
   const problems: string[] = [];
   for (const match of stripComments(sql).matchAll(PATTERN_OPERAND)) {
     const operand = captured(match, 2);
+    if (operand === '(') {
+      problems.push(
+        `${captured(match, 1)}(…) hides its pattern; write x ${captured(match, 1)} '<literal>'`,
+      );
+      continue;
+    }
     if (!operand.startsWith("'")) {
       problems.push(`${captured(match, 1)} ${operand} is not a literal pattern`);
       continue;
@@ -633,7 +640,15 @@ it("every LIKE and GLOB pattern is a literal within D1's 50-byte limit", () => {
 
 it('flags a computed pattern and a literal over 50 bytes', () => {
   expect(patternProblems("CHECK (name NOT GLOB ('[' || char(9, 32) || ']*'))")).toEqual([
-    "GLOB ('[' is not a literal pattern",
+    "GLOB(…) hides its pattern; write x GLOB '<literal>'",
+  ]);
+  expect(patternProblems("CHECK (glob('[a-z]*', id) AND like('a%', n) AND id GLOB('x'))")).toEqual([
+    "glob(…) hides its pattern; write x glob '<literal>'",
+    "like(…) hides its pattern; write x like '<literal>'",
+    "GLOB(…) hides its pattern; write x GLOB '<literal>'",
+  ]);
+  expect(patternProblems('CHECK (id GLOB\n  name)')).toEqual([
+    'GLOB name) is not a literal pattern',
   ]);
   expect(patternProblems(`CHECK (code GLOB '${'[0-9]'.repeat(11)}')`)).toEqual([
     "GLOB pattern of 55 bytes exceeds D1's 50",

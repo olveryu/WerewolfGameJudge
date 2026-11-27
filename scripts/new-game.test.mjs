@@ -2085,7 +2085,7 @@ it('preflight reports an existing id, a stale stats table, drift and an inconsis
       "'fibking' is already registered in game_types",
       `word category list of 'fibking' repeats id "animals"`,
       `word category list of 'fibking' repeats name "动物"`,
-      `word category list of 'fibking' has a malformed name " " for id "blank" (non-empty, no leading or trailing whitespace, no NUL)`,
+      `word category list of 'fibking' has a malformed name " " for id "blank" (non-empty, no leading or trailing whitespace, no NUL, no lone surrogate)`,
       'table fibking_user_stats already exists',
     ]);
     assert.match(
