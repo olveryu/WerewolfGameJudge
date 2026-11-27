@@ -2,6 +2,8 @@
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
+import { containsIgnoringAsciiCase } from '../../platform/storage/substringSearch';
+
 const sortSchema = z.enum(['created_at', 'updated_at', 'level', 'games_played']);
 const querySchema = z.strictObject({
   sort: sortSchema.default('created_at'),
@@ -107,9 +109,14 @@ export async function queryUserDirectory(db: D1Database, input: Record<string, s
     bindings.push(query.country);
   }
   if (query.q !== undefined) {
-    const isEmail = query.q.includes('@');
-    conditions.push(isEmail ? 'u.email = ?' : "u.display_name LIKE ? ESCAPE '\\'");
-    bindings.push(isEmail ? query.q.toLowerCase() : `%${query.q.replace(/[\\%_]/g, '\\$&')}%`);
+    if (query.q.includes('@')) {
+      conditions.push('u.email = ?');
+      bindings.push(query.q.toLowerCase());
+    } else {
+      const nickname = containsIgnoringAsciiCase('u.display_name', query.q);
+      conditions.push(nickname.sql);
+      bindings.push(...nickname.bindings);
+    }
   }
   if (cursor !== null) {
     conditions.push(`(${column}, ${idColumn}) ${query.order === 'asc' ? '>' : '<'} (?, ?)`);

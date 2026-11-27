@@ -563,7 +563,7 @@ describe('GET /admin/words/:game/library-items', () => {
     expect(internet.items.map((item) => item.title)).toEqual(['已发布词']);
   });
 
-  it('searches titles with LIKE and treats wildcards literally', async () => {
+  it('searches titles as literal substrings', async () => {
     await seedLibrary();
     const found = await listLibraryItems(env.DB, { game: 'fibking', search: '秋审' });
     expect(found.items.map((item) => item.title)).toEqual(['秋审']);
@@ -574,6 +574,39 @@ describe('GET /admin/words/:game/library-items', () => {
     expect(categoryIsNotSearch.items).toEqual([]);
     const wildcard = await listLibraryItems(env.DB, { game: 'fibking', search: '%' });
     expect(wildcard.items).toEqual([]);
+  });
+
+  it('searches titles past the D1 LIKE pattern limit, literally and ASCII case-insensitively', async () => {
+    await seedLibrary();
+    const longTitle = '秋'.repeat(30);
+    const titles = [longTitle, 'a%b', 'a_b', 'axb', 'a\\b', 'Mixed Case', 'Élan'];
+    await env.DB.batch(
+      titles.map((title, index) =>
+        env.DB.prepare(
+          `INSERT INTO word_submission_items (id, batch_id, game, client_item_id, identity, content_hash,
+             title, category, material_json, status, duplicate_of, revision)
+           VALUES (?, 'batch-1', 'fibking', ?, ?, ?, ?, 'plants', '{}', 'pending', NULL, 0)`,
+        ).bind(
+          `20000000-0000-4000-8000-00000000000${index}`,
+          `search-${index}`,
+          title,
+          String(index).repeat(64),
+          title,
+        ),
+      ),
+    );
+    const titlesFor = async (search: string) =>
+      (await listLibraryItems(env.DB, { game: 'fibking', search })).items.map((item) => item.title);
+
+    // 30 CJK characters are 90 bytes: as a LIKE pattern D1 rejects it as too complex.
+    expect(await titlesFor(longTitle)).toEqual([longTitle]);
+    expect(await titlesFor('秋'.repeat(20))).toEqual([longTitle]);
+    expect(await titlesFor('a%b')).toEqual(['a%b']);
+    expect(await titlesFor('a_b')).toEqual(['a_b']);
+    expect(await titlesFor('a\\b')).toEqual(['a\\b']);
+    expect(await titlesFor('mixed CASE')).toEqual(['Mixed Case']);
+    // LIKE folds ASCII letters only; the search keeps that rule.
+    expect(await titlesFor('élan')).toEqual([]);
   });
 
   it('builds the undercover definition line from submission material', async () => {
