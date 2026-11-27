@@ -1193,19 +1193,20 @@ describe('Client dialogs: one Ark dialog root', () => {
   };
 
   it('imports Ark and zag only through their shared owners or parts that open no layer', () => {
-    const offenders = srcFiles.flatMap((filePath) => {
-      const source = fs.readFileSync(filePath, 'utf-8');
-      // Every Ark or zag specifier contains one of these strings; skip parsing the rest.
-      if (!source.includes('@ark-ui/') && !source.includes('@zag-js/')) return [];
-      return getModuleSpecifiers(filePath, source)
-        .filter((specifier) => /^@(?:ark-ui|zag-js)\//.test(specifier))
+    const previewFiles = getAllProductionFiles(
+      path.join(process.cwd(), 'packages', 'web', 'preview'),
+    );
+    const offenders = [...srcFiles, ...previewFiles].flatMap((filePath) =>
+      getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'))
+        // A bare package name or a path into the installed package (`…/node_modules/@ark-ui/…`).
+        .filter((specifier) => /(?:^|\/)@(?:ark-ui|zag-js)\//.test(specifier))
         .filter(
           (specifier) =>
             !LAYERLESS_ARK_PARTS.includes(specifier) &&
             OWNED_ARK_PARTS[specifier] !== repoPath(filePath),
         )
-        .map((specifier) => `${repoPath(filePath)}: ${specifier}`);
-    });
+        .map((specifier) => `${repoPath(filePath)}: ${specifier}`),
+    );
 
     expect(offenders).toEqual([]);
   });

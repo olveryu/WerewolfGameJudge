@@ -93,7 +93,10 @@ export function RoleRevealAnimator({
                 ref={fallbackButtonRef}
                 onClick={() => {
                   // The effect never played: keep the skip visible next to the `[Scene]` loss.
-                  revealLog.warn('Reveal completed without the effect', { effectType });
+                  revealLog.warn('Reveal ended by the fallback button without the effect', {
+                    effectType,
+                    reason: 'sceneUnavailable',
+                  });
                   onComplete();
                 }}
               >
