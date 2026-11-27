@@ -6,7 +6,13 @@
 
 export interface SqlToken {
   /** `unterminated` is a string literal whose closing quote never comes. */
-  readonly kind: 'space' | 'comment' | 'string' | 'unterminated' | 'quoted' | 'word' | 'other';
+  /**
+   * `parameter` is a bind parameter: `?` or `?NNN`, the only forms D1 binds (Cloudflare D1
+   * "Prepared statement methods": named `:name`/`@name`/`$name` are not supported), so `:`, `@` and
+   * `$` stay ordinary characters and prose such as "like: a" or "like @bob" is not SQL.
+   */
+  readonly kind:
+    'space' | 'comment' | 'string' | 'unterminated' | 'quoted' | 'parameter' | 'word' | 'other';
   readonly text: string;
 }
 
@@ -15,7 +21,7 @@ export interface SqlToken {
  * data, and a quoted identifier ("x", `x`, [x]) is never a keyword.
  */
 const SQL_LEXEME =
-  /(\s+)|(--[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^']|'')*')|('(?:[^']|'')*)|("(?:[^"]|"")*"?|\x60(?:[^\x60]|\x60\x60)*\x60?|\[[^\]]*\]?)|([A-Za-z_][A-Za-z0-9_$]*)|([\s\S])/g;
+  /(\s+)|(--[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^']|'')*')|('(?:[^']|'')*)|("(?:[^"]|"")*"?|\x60(?:[^\x60]|\x60\x60)*\x60?|\[[^\]]*\]?)|(\?[0-9]*)|([A-Za-z_][A-Za-z0-9_$]*)|([\s\S])/g;
 
 export function sqlTokens(sql: string): SqlToken[] {
   return Array.from(sql.matchAll(SQL_LEXEME), (match): SqlToken => {
@@ -25,7 +31,8 @@ export function sqlTokens(sql: string): SqlToken[] {
     if (match[3] !== undefined) return { kind: 'string', text };
     if (match[4] !== undefined) return { kind: 'unterminated', text };
     if (match[5] !== undefined) return { kind: 'quoted', text };
-    if (match[6] !== undefined) return { kind: 'word', text };
+    if (match[6] !== undefined) return { kind: 'parameter', text };
+    if (match[7] !== undefined) return { kind: 'word', text };
     return { kind: 'other', text };
   });
 }
@@ -78,9 +85,6 @@ const D1_PATTERN_MAX_BYTES = 50;
 export const RUNTIME_VALUE = '__runtime_value__';
 const PATTERN_KEYWORDS = new Set(['GLOB', 'LIKE']);
 
-/** Bind parameters: `?`, `?1`, `:name`, `@name`, `$name`. */
-const BIND_PARAMETER_STARTS = new Set(['?', ':', '@', '$']);
-
 /** The code tokens of `sql`: no whitespace or comments. */
 function codeTokens(sql: string): SqlToken[] {
   return sqlTokens(sql).filter((token) => token.kind !== 'space' && token.kind !== 'comment');
@@ -89,11 +93,12 @@ function codeTokens(sql: string): SqlToken[] {
 /**
  * Whether `text`, a string found in source code, uses LIKE or GLOB as SQL. An upper-case keyword
  * always counts (SQL keywords are written upper case). A keyword in any other case counts when
- * what follows can only be a pattern operand — a bind parameter, a string literal, `(` or a
- * function call — so lower-case `like ?`, `like '%…%'` and `like lower(?)` are caught while prose
- * such as "looks like a bot" or `'looks like ' + name` is not. The one shape left to the
- * upper-case rule is a lower-case keyword followed straight by an interpolated value, which reads
- * the same as prose.
+ * what follows can only be a pattern operand — a `?`/`?NNN` bind parameter, a string literal,
+ * `(` or a function call — so lower-case `like ?`, `like '%…%'` and `like lower(?)` are caught
+ * while prose such as "looks like a bot" or `'looks like ' + name` is not. Inside a `sql` tagged
+ * template a substitution is a bind parameter, so `like ${x}` there reads as `like ?`. Left to the
+ * upper-case rule: a lower-case keyword followed by a column, a quoted identifier, a blob or an
+ * untagged interpolated value, all of which read the same as prose.
  */
 export function usesPatternOperator(text: string): boolean {
   const tokens = codeTokens(text);
@@ -103,7 +108,7 @@ export function usesPatternOperator(text: string): boolean {
     const operand = tokens[index + 1];
     if (operand === undefined) return false;
     if (operand.kind === 'string' || operand.kind === 'unterminated') return true;
-    if (operand.text === '(' || BIND_PARAMETER_STARTS.has(operand.text)) return true;
+    if (operand.text === '(' || operand.kind === 'parameter') return true;
     return operand.kind === 'word' && tokens[index + 2]?.text === '(';
   });
 }
