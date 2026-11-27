@@ -22,6 +22,8 @@ import {
 } from '@game-judge/game-engine/games/registry';
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import ts from 'typescript';
+import { parse } from 'yaml';
+import { z } from 'zod';
 
 import {
   getModuleSpecifiers,
@@ -1209,6 +1211,47 @@ describe('Client dialogs: one Ark dialog root', () => {
     );
 
     expect(offenders).toEqual([]);
+  });
+
+  it('reaches zag only through Ark, with no bundler or TypeScript alias to either', () => {
+    // A zag-based UI library shares zag's layer stack and would bring the cascade back under a
+    // package name the import gate does not know, so Ark must be zag's only outside dependent.
+    const lockfile: unknown = parse(
+      fs.readFileSync(path.join(process.cwd(), 'pnpm-lock.yaml'), 'utf-8'),
+    );
+    const snapshots = z
+      .object({
+        snapshots: z.record(
+          z.string(),
+          z
+            .object({
+              dependencies: z.record(z.string(), z.string()).optional(),
+              optionalDependencies: z.record(z.string(), z.string()).optional(),
+            })
+            .nullable(),
+        ),
+      })
+      .parse(lockfile).snapshots;
+    const zagDependents = Object.entries(snapshots)
+      .filter(([key]) => !key.startsWith('@zag-js/'))
+      .filter(([, entry]) =>
+        Object.keys({ ...entry?.dependencies, ...entry?.optionalDependencies }).some((name) =>
+          name.startsWith('@zag-js/'),
+        ),
+      )
+      .map(([key]) => key.slice(0, key.indexOf('@', 1)));
+
+    expect([...new Set(zagDependents)]).toEqual(['@ark-ui/react']);
+    const aliasFiles = [
+      'packages/web/vite.config.ts',
+      'packages/web/tsconfig.json',
+      'tsconfig.json',
+    ];
+    expect(
+      aliasFiles.filter((file) =>
+        /@(?:ark-ui|zag-js)\//.test(fs.readFileSync(path.join(process.cwd(), file), 'utf-8')),
+      ),
+    ).toEqual([]);
   });
 });
 

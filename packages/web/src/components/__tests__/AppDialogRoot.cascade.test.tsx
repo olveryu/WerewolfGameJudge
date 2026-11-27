@@ -125,6 +125,8 @@ async function openFromConfirmation(dialog: Case) {
   expect(alertStore.getSnapshot()).toBeNull();
   // zag starts listening for outside presses a tick after the dialog mounts.
   await settle();
+  // Still open, so a later close can only come from the Escape or outside press under test.
+  expect(onClose).not.toHaveBeenCalled();
   return { onClose, user };
 }
 

@@ -24,8 +24,7 @@ type AppDialogRootProps = Omit<DialogRootProps, 'onRequestDismiss'>;
  * Names a layer (a dialog's content node) for the log: its test id, else its accessible name
  * (`aria-label`, else the text of the title it is labelled by), else its generated Ark id.
  */
-function layerName(node: HTMLElement | undefined): string | null {
-  if (node === undefined) return null;
+function layerName(node: HTMLElement): string {
   const labelledBy = node.getAttribute('aria-labelledby');
   const title = labelledBy === null ? null : node.ownerDocument.getElementById(labelledBy);
   return node.dataset.testid || node.getAttribute('aria-label') || title?.textContent || node.id;
@@ -33,9 +32,14 @@ function layerName(node: HTMLElement | undefined): string | null {
 
 function preventCascadeDismiss(event: LayerDismissEvent) {
   event.preventDefault();
+  const { originalLayer, targetLayer } = event.detail;
+  // zag types the removed layer as optional, but `layerStack.remove` always passes it.
+  if (targetLayer === undefined) {
+    throw new Error('[FAIL-FAST] A cascade dismiss arrived without the layer that was removed');
+  }
   dialogLog.debug('Kept a dialog open after the layer below it was removed', {
-    dialog: layerName(event.detail.originalLayer),
-    removedLayer: layerName(event.detail.targetLayer),
+    dialog: layerName(originalLayer),
+    removedLayer: layerName(targetLayer),
   });
 }
 
