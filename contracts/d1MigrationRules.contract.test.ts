@@ -28,26 +28,9 @@ function named(name: string): string {
   return String.raw`${SCHEMA_PREFIX}(?:"${name}"|\x60${name}\x60|\[${name}\]|${name}\b)`;
 }
 
-/**
- * `PRAGMA [schema.]defer_foreign_keys` set to any of SQLite's false spellings, in either the
- * `= value` or the function-call `(value)` form, with the pragma name and value optionally quoted.
- */
-const DEFER_FOREIGN_KEYS_RESET = new RegExp(
-  String.raw`PRAGMA\s+${SCHEMA_PREFIX}["\x60\[]?defer_foreign_keys["\x60\]]?\s*(?:=\s*|\(\s*)['"]?(?:false|off|no|0)['"]?\s*\)?\s*(?:;|$)`,
-  'im',
-);
-
 interface RebuildViolation {
   migration: string;
   problem: string;
-}
-
-function captured(match: RegExpMatchArray, group: number): string {
-  const value = match[group];
-  if (value === undefined) {
-    throw new Error(`Pattern ${match[0]} has no capture group ${group}`);
-  }
-  return value;
 }
 
 interface SqlToken {
@@ -72,6 +55,39 @@ function sqlTokens(sql: string): SqlToken[] {
     if (match[5] !== undefined) return { kind: 'word', text };
     return { kind: 'other', text };
   });
+}
+
+interface SqlStatement {
+  /** Code tokens only: no whitespace or comments. */
+  readonly tokens: readonly SqlToken[];
+  /** The statement's source with each comment replaced by a space, without the `;`. */
+  readonly text: string;
+}
+
+/** The statements of `sql`, split at each `;` outside strings, identifiers and comments. */
+function sqlStatements(sql: string): SqlStatement[] {
+  const statements: SqlStatement[] = [];
+  let tokens: SqlToken[] = [];
+  let text = '';
+  for (const token of sqlTokens(sql)) {
+    if (token.text === ';') {
+      statements.push({ tokens, text });
+      tokens = [];
+      text = '';
+      continue;
+    }
+    text += token.kind === 'comment' ? ' ' : token.text;
+    if (token.kind !== 'space' && token.kind !== 'comment') tokens.push(token);
+  }
+  statements.push({ tokens, text });
+  return statements.filter((statement) => statement.tokens.length > 0);
+}
+
+/** A bare or quoted identifier token's name, lower-cased; any other token has none. */
+function identifierName(token: SqlToken | undefined): string | undefined {
+  if (token?.kind === 'word') return token.text.toLowerCase();
+  if (token?.kind === 'quoted') return token.text.slice(1, -1).toLowerCase();
+  return undefined;
 }
 
 /** SQL without `--` line or block comments, so commented-out statements never count. */
@@ -532,13 +548,42 @@ describe('rebuild guard probes on the current schema', () => {
   });
 });
 
+/**
+ * Every `PRAGMA [schema.]defer_foreign_keys` statement in `sql` that leaves the pragma off.
+ * SQLite itself judges the value: a statement is run on a scratch connection with the pragma on,
+ * and offends when the pragma reads back 0. Any value SQLite does not read as true (`false`,
+ * `'off'`, `0.5`, `full`, …) turns it off, so no list of false spellings is kept here.
+ */
+function deferForeignKeysResets(sql: string): string[] {
+  return sqlStatements(sql)
+    .filter(({ tokens: [keyword, ...rest] }) => {
+      if (identifierName(keyword) !== 'pragma') return false;
+      const name = rest[1]?.text === '.' ? rest[2] : rest[0];
+      return identifierName(name) === 'defer_foreign_keys';
+    })
+    .map((statement) => statement.text.trim())
+    .filter((statement) => {
+      const scratch = new DatabaseSync(':memory:');
+      try {
+        scratch.exec(`BEGIN; PRAGMA defer_foreign_keys = ON; ${statement};`);
+        const row = scratch.prepare('PRAGMA defer_foreign_keys').get();
+        if (row === undefined) throw new Error('PRAGMA defer_foreign_keys returned no row');
+        return row.defer_foreign_keys === 0;
+      } finally {
+        scratch.close();
+      }
+    });
+}
+
 it('new migrations never reset defer_foreign_keys', () => {
   // Turning defer_foreign_keys off inside a transaction discards unresolved violations, so COMMIT
   // succeeds and foreign_key_check reports them afterwards; the next test pins that behaviour.
   // SQLite resets the pragma at COMMIT, so the reset is never needed.
   const offenders = listMigrationNames()
     .filter((name) => name > RULES_BASELINE)
-    .filter((name) => DEFER_FOREIGN_KEYS_RESET.test(readMigration(name)));
+    .flatMap((name) =>
+      deferForeignKeysResets(readMigration(name)).map((statement) => `${name}: ${statement}`),
+    );
   expect(offenders).toEqual([]);
 });
 
@@ -578,16 +623,12 @@ it('resetting defer_foreign_keys inside a transaction lets a violation commit', 
   }
 });
 
-it('the defer_foreign_keys guard recognises every false spelling', () => {
-  for (const value of ['false', 'FALSE', 'off', 'Off', 'no', 'NO', '0', "'false'", '"off"']) {
-    expect(DEFER_FOREIGN_KEYS_RESET.test(`PRAGMA defer_foreign_keys = ${value};`), value).toBe(
-      true,
-    );
+it('the defer_foreign_keys guard finds every statement that turns the pragma off', () => {
+  for (const value of ['false', 'FALSE', 'off', 'no', '0', '00', "'false'", '"off"', 'full']) {
+    expect(deferForeignKeysResets(`PRAGMA defer_foreign_keys = ${value};`), value).toHaveLength(1);
   }
-  for (const value of ['true', 'on', 'yes', '1']) {
-    expect(DEFER_FOREIGN_KEYS_RESET.test(`PRAGMA defer_foreign_keys = ${value};`), value).toBe(
-      false,
-    );
+  for (const value of ['true', 'on', 'yes', '1', "'on'"]) {
+    expect(deferForeignKeysResets(`PRAGMA defer_foreign_keys = ${value};`), value).toEqual([]);
   }
   for (const statement of [
     'PRAGMA main.defer_foreign_keys = false;',
@@ -595,29 +636,83 @@ it('the defer_foreign_keys guard recognises every false spelling', () => {
     'PRAGMA defer_foreign_keys (0);',
     'PRAGMA "defer_foreign_keys" = 0;',
     'pragma "main".defer_foreign_keys = OFF',
+    'PRAGMA defer_foreign_keys = /* c */ false;',
+    'PRAGMA /* c */ defer_foreign_keys = false;',
+    'PRAGMA\n  defer_foreign_keys\n  = false',
+    'CREATE TABLE t (id TEXT);\nPRAGMA defer_foreign_keys = false -- end',
   ]) {
-    expect(DEFER_FOREIGN_KEYS_RESET.test(statement), statement).toBe(true);
+    expect(deferForeignKeysResets(statement), statement).toHaveLength(1);
   }
-  expect(DEFER_FOREIGN_KEYS_RESET.test('PRAGMA main.defer_foreign_keys(true);')).toBe(false);
+  for (const statement of [
+    'PRAGMA main.defer_foreign_keys(true);',
+    'PRAGMA defer_foreign_keys;',
+    '-- PRAGMA defer_foreign_keys = false;',
+    '/* PRAGMA defer_foreign_keys = false; */',
+    "INSERT INTO notes (body) VALUES ('PRAGMA defer_foreign_keys = off;');",
+    'PRAGMA foreign_keys = false;',
+  ]) {
+    expect(deferForeignKeysResets(statement), statement).toEqual([]);
+  }
 });
 
+/**
+ * String literals naming a catalogued game or category inside any `CHECK (…)`, however the list
+ * is written: `IN (…)`, `=`/`OR` chains, comments or nested parentheses in between.
+ */
+function cataloguedCheckValues(sql: string, catalogued: ReadonlySet<string>): string[] {
+  const found: string[] = [];
+  for (const { tokens } of sqlStatements(sql)) {
+    tokens.forEach((token, index) => {
+      if (identifierName(token) !== 'check' || tokens[index + 1]?.text !== '(') return;
+      let depth = 0;
+      for (const inner of tokens.slice(index + 1)) {
+        if (inner.text === '(') depth += 1;
+        if (inner.text === ')') depth -= 1;
+        const value = inner.kind === 'string' ? inner.text.slice(1, -1).replaceAll("''", "'") : '';
+        if (catalogued.has(value)) found.push(`CHECK names '${value}'`);
+        if (depth === 0) break;
+      }
+    });
+  }
+  return found;
+}
+
+const CATALOGUED_IDS: ReadonlySet<string> = new Set([
+  ...GAME_TYPES,
+  ...Object.values(WORD_CATEGORY_CATALOGS).flatMap((catalog) => catalog.ids),
+]);
+
 it('new migrations never encode game or category lists in CHECK constraints', () => {
-  const catalogued = new Set<string>([
-    ...GAME_TYPES,
-    ...Object.values(WORD_CATEGORY_CATALOGS).flatMap((catalog) => catalog.ids),
-  ]);
   const offenders = listMigrationNames()
     .filter((name) => name > RULES_BASELINE)
     .flatMap((name) =>
-      [...readMigration(name).matchAll(/CHECK\s*\([^;]*?\bIN\s*\(([^)]*)\)/gi)]
-        .filter((match) =>
-          [...captured(match, 1).matchAll(/'([^']*)'/g)].some((value) =>
-            catalogued.has(captured(value, 1)),
-          ),
-        )
-        .map((match) => `${name}: ${match[0].slice(0, 80)}`),
+      cataloguedCheckValues(readMigration(name), CATALOGUED_IDS).map(
+        (problem) => `${name}: ${problem}`,
+      ),
     );
   expect(offenders).toEqual([]);
+});
+
+it('the CHECK list guard reads the constraint as SQLite lexes it', () => {
+  for (const sql of [
+    "CREATE TABLE t (game TEXT CHECK (game IN ('werewolf')));",
+    "CREATE TABLE t (game TEXT CHECK (game IN /* c */ ('werewolf')));",
+    "CREATE TABLE t (game TEXT CHECK -- c\n  (game IN ('werewolf')));",
+    "CREATE TABLE t (game TEXT, CHECK (game = 'werewolf' OR game = 'avalon'));",
+    "CREATE TABLE t (game TEXT CONSTRAINT g CHECK ((game) IN ('werewolf', 'avalon')));",
+    "CREATE TABLE t (category TEXT CHECK\n  (category IN (\n  'food' -- first\n  )));",
+  ]) {
+    expect(cataloguedCheckValues(sql, CATALOGUED_IDS), sql).not.toEqual([]);
+  }
+  for (const sql of [
+    "-- CREATE TABLE t (game TEXT CHECK (game IN ('werewolf')));",
+    "INSERT INTO notes (body) VALUES ('CHECK (game IN (''werewolf''))');",
+    "CREATE TABLE t (game TEXT REFERENCES game_types(id), CHECK (game <> ''));",
+    "CREATE TABLE t (game TEXT CHECK (length(game) > 0), note TEXT DEFAULT 'werewolf');",
+    "INSERT INTO game_types (id, sort_order) VALUES ('werewolf', 0);",
+  ]) {
+    expect(cataloguedCheckValues(sql, CATALOGUED_IDS), sql).toEqual([]);
+  }
 });
 
 it('migration files match the recorded sha256 manifest', () => {
