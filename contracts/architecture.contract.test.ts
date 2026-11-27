@@ -1195,10 +1195,11 @@ describe('Client dialogs: one Ark dialog root', () => {
   };
 
   it('imports Ark and zag only through their shared owners or parts that open no layer', () => {
-    const previewFiles = getAllProductionFiles(
-      path.join(process.cwd(), 'packages', 'web', 'preview'),
+    // Every other web directory TypeScript compiles (`packages/web/tsconfig.json` include).
+    const otherWebFiles = ['preview', 'build-plugins'].flatMap((dir) =>
+      getAllProductionFiles(path.join(process.cwd(), 'packages', 'web', dir)),
     );
-    const offenders = [...srcFiles, ...previewFiles].flatMap((filePath) =>
+    const offenders = [...srcFiles, ...otherWebFiles].flatMap((filePath) =>
       getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'))
         // A bare package name or a path into the installed package (`…/node_modules/@ark-ui/…`).
         .filter((specifier) => /(?:^|\/)@(?:ark-ui|zag-js)\//.test(specifier))
