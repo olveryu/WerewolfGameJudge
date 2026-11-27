@@ -130,19 +130,25 @@ export const ICON_COLLECTION_PACKAGE = /^@iconify-json\/|^@iconify\/json$/;
  * with the manifest field it must be declared in and what it brings to the page. A package the
  * web manifest declares in `dependencies` and does not register here, or a registered package
  * the manifest does not declare in that field, is a graph problem. A package with `entries`
- * may be imported only by those specifiers; an entry listed in `importers` only by those modules
- * (a type-only import loads nothing and is not one).
+ * may be imported only by those specifiers.
+ *
+ * `adapters` (plan E12): a package that writes the page from values we hand it (renders
+ * elements, draws a canvas, injects styles, paints a capture) is reached only through one module
+ * of ours per entry, its adapter, which exposes our types alone. Every entry of such a package
+ * is listed; the import of an entry anywhere else is reported (`ui/package-adapter`), whatever
+ * form it takes (static, dynamic `import()`, re-export, `import =`); a type-only import loads
+ * nothing and is not one. `null`: no adapter is made yet, so every import of the entry is debt
+ * the baseline holds until one is (plan §4 P4, P6, P8). What a package's API does with a value
+ * is not judged key by key: the gate holds only that it is handed over in one place.
  */
 export const PACKAGES = Object.freeze({
-  // Ark's parts that open a dismissable layer are imported only by the shared module that owns
-  // them: zag closes every layer above one that is removed, and only the owner handles that.
-  // The package root (`@ark-ui/react`, which re-exports every part) is not an entry, so a static,
-  // dynamic (`import('@ark-ui/react').then((m) => m.Dialog)`) or re-exported import of it is
-  // rejected; an alias or a relative path into the package imports a file from a package and is
-  // rejected by the graph (#524 QA11 M1).
   '@ark-ui/react': {
     field: 'dependencies',
-    why: 'headless components; styles come from us',
+    why: 'headless components that render our props as elements',
+    // The package root re-exports every part and is not an entry, so a static, dynamic
+    // (`import('@ark-ui/react').then((m) => m.Dialog)`) or re-exported import of it is rejected;
+    // an alias or a relative path into the package imports a file from a package and is rejected
+    // by the graph (#524 QA11 M1).
     entries: [
       '@ark-ui/react/color-picker',
       '@ark-ui/react/dialog',
@@ -150,30 +156,81 @@ export const PACKAGES = Object.freeze({
       '@ark-ui/react/qr-code',
       '@ark-ui/react/tabs',
     ],
-    importers: {
-      '@ark-ui/react/color-picker': [
+    adapters: {
+      '@ark-ui/react/color-picker':
         'packages/web/src/features/drawing/components/DrawingToolbar.tsx',
-      ],
       // zag closes every layer above a removed one; AppDialog's root blocks that cascade, so it
       // is Ark's one dialog root (#524).
-      '@ark-ui/react/dialog': ['packages/web/src/components/AppDialog.tsx'],
+      '@ark-ui/react/dialog': 'packages/web/src/components/AppDialog.tsx',
+      // The dialog and sheet shells own their portal (P6).
+      '@ark-ui/react/portal': null,
+      '@ark-ui/react/qr-code': 'packages/web/src/features/room/components/RoomShareDialog.tsx',
+      // One shared tabs component (P8).
+      '@ark-ui/react/tabs': null,
     },
   },
-  '@sentry/react': { field: 'dependencies', why: 'error reporting; renders no UI' },
+  '@sentry/react': {
+    field: 'dependencies',
+    why: 'error reporting; its integrations can render a widget',
+    entries: ['@sentry/react', '@sentry/react/react-router'],
+    // One reporting module (P4).
+    adapters: { '@sentry/react': null, '@sentry/react/react-router': null },
+  },
   '@tanstack/react-query': { field: 'dependencies', why: 'data fetching; renders no UI' },
-  '@zumer/snapdom': { field: 'dependencies', why: 'screenshot capture of our own DOM' },
+  '@zumer/snapdom': {
+    field: 'dependencies',
+    why: 'screenshot capture of our own DOM, painted on its own canvas',
+    entries: ['@zumer/snapdom'],
+    adapters: { '@zumer/snapdom': 'packages/web/src/features/room/services/captureElementPng.ts' },
+  },
   'pinyin-pro': { field: 'dependencies', why: 'text conversion; renders no UI' },
-  'pixi.js': { field: 'dependencies', why: 'canvas renderer (D13: its own style writes)' },
+  'pixi.js': {
+    field: 'dependencies',
+    why: 'canvas renderer (D13: its own style writes)',
+    // `browser` and `unsafe-eval` are PixiJS's environment modules, loaded for their effect.
+    entries: ['pixi.js', 'pixi.js/browser', 'pixi.js/unsafe-eval'],
+    // One drawing kit for the scene and the reveal effects (P4).
+    adapters: { 'pixi.js': null, 'pixi.js/browser': null, 'pixi.js/unsafe-eval': null },
+  },
   // `entries`: the only specifiers of the package the bundle may import. React DOM's resource
   // APIs (`preinit`, `preload`) insert <link>/<script> past the gate, and JSX goes through the
   // compiler, not `react/jsx-runtime` (E11).
   react: { field: 'dependencies', why: 'UI runtime', entries: ['react'] },
   'react-dom': { field: 'dependencies', why: 'createRoot only', entries: ['react-dom/client'] },
-  'react-router': { field: 'dependencies', why: 'routing; renders no UI' },
-  sonner: { field: 'dependencies', why: 'toasts (D13: injects its own <style>)' },
+  // Its elements are `<a>` taking React's DOM props, judged where written (E4, E11).
+  'react-router': { field: 'dependencies', why: 'routing; renders anchors from our props' },
+  sonner: {
+    field: 'dependencies',
+    why: 'toasts (D13: injects its own <style>)',
+    entries: ['sonner'],
+    // One toast module (P4).
+    adapters: { sonner: null },
+  },
   zod: { field: 'dependencies', why: 'validation; renders no UI' },
   msw: { field: 'devDependencies', why: 'admin mock worker, started only in the admin-mock mode' },
 });
+
+/**
+ * The adapter rule for a bare specifier: `{ pkg, adapter }` (`adapter` a repository path, or null
+ * when none is made yet) for an entry of a package that has adapters, else undefined.
+ */
+export function adapterOf(specifier, packages = PACKAGES) {
+  const parts = specifier.split('/');
+  const pkg = specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+  const adapters = packages[pkg]?.adapters;
+  if (adapters === undefined) return undefined;
+  // A specifier that is not an entry is the bundle graph's problem (the adapters of a package are
+  // exactly its entries, checked by the graph).
+  if (!Object.hasOwn(adapters, specifier)) return undefined;
+  return { pkg, adapter: adapters[specifier] };
+}
+
+/**
+ * Packages whose types an adapter may expose (E12): React's own, which describe elements and
+ * styles we write. Any other type declared in a package, reachable from an adapter's exports,
+ * hands the package's API on.
+ */
+export const EXPOSABLE_TYPE_PACKAGES = Object.freeze(new Set(['@types/react', 'csstype']));
 
 // ---------------------------------------------------------------------------------------------
 // CSS (§2 S1, S2, S4, S7, S10)
@@ -1100,486 +1157,6 @@ export const DOM_VALUE_WRITERS = Object.freeze(
     ['AnimationEffect.updateTiming', 'updateTiming'],
   ]),
 );
-
-/**
- * What a third-party package does with each key we hand it, by the package whose declaration
- * holds the key (P1 QA17 F1/F3, QA18 F1, QA19 F1/F2). A package renders our values where the gate
- * does not see them (sonner writes `offset` into `--offset-*`, snapdom paints `backgroundColor`),
- * so a key it declares and this table does not list is reported (`prop`). A key is named by the
- * declaration holding it: `Holder.key` for a property, `Holder.fn(param)` for a positional
- * argument (`fn(param)` for a free function), so one name that means two things in a package
- * (Pixi's `width` of a stroke and of a renderer) is registered once per meaning. Each key is
- * `plain` (behaviour or content, never a style value), `options` (an object literal whose keys
- * are judged where written) or the CSS property its value is judged as. A whole package is
- * `all: 'plain'` only when it renders nothing; a package that renders lists its keys, so every
- * key of an API not used yet is reported until registered. A value whose keys are not written
- * out where it is handed to a package's type (a spread, a variable, a computed key) is reported
- * (`handover`). React's DOM attribute interfaces (`SVGAttributes`, …) are judged as the
- * attributes they become (`SIZE_HOSTS`, `SVG_ATTRIBUTES`), and `CSSProperties` as style
- * declarations, not here.
- */
-const plain = (keys) => Object.fromEntries(keys.map((key) => [key, 'plain']));
-
-export const PACKAGE_PROPS = Object.freeze({
-  '@tanstack/query-core': { all: 'plain', why: 'data fetching; renders nothing' },
-  '@tanstack/react-query': { all: 'plain', why: 'data fetching; renders nothing' },
-  zod: { all: 'plain', why: 'validation; renders nothing' },
-  'pinyin-pro': { all: 'plain', why: 'text conversion; renders nothing' },
-  msw: { all: 'plain', why: 'admin mock worker; renders nothing' },
-  '@mswjs/interceptors': {
-    all: 'plain',
-    why: 'the responses the msw admin mock worker answers with; renders nothing',
-  },
-  vite: { all: 'plain', why: '`import.meta.glob` options, read at build time' },
-  '@types/node': { all: 'plain', why: 'timers; render nothing' },
-  '@types/react-dom': { all: 'plain', why: '`createRoot`; renders what we render' },
-  '@zag-js/color-utils': { all: 'plain', why: 'colour conversion of a value judged where written' },
-  colord: {
-    all: 'plain',
-    why: 'colour objects (`HslColor`, …) Pixi accepts as fill colours: canvas content (U7)',
-  },
-  uqr: { all: 'plain', why: 'QR matrix encoding; the code is drawn by Ark from our CSS' },
-  // Hooks, context, refs, `memo`, `lazy`, `Suspense`. `createElement`'s props are an options
-  // object: each key is judged as a prop of the component it is handed to.
-  '@types/react': {
-    keys: {
-      ...plain([
-        // The module record `lazy` loads: a component, judged where it renders.
-        'default',
-        'ActionDispatch(args)',
-        'Dispatch(value)',
-        'ProviderProps.value',
-        'RefObject.current',
-        'SuspenseProps.fallback',
-        'createContext(defaultValue)',
-        'createElement(type)',
-        'lazy(load)',
-        'memo(Component)',
-        'use(usable)',
-        'useCallback(callback)',
-        'useCallback(deps)',
-        'useContext(context)',
-        'useEffect(deps)',
-        'useEffect(effect)',
-        'useEffectEvent(callback)',
-        'useImperativeHandle(deps)',
-        'useImperativeHandle(init)',
-        'useImperativeHandle(ref)',
-        'useLayoutEffect(deps)',
-        'useLayoutEffect(effect)',
-        'useMemo(deps)',
-        'useMemo(factory)',
-        'useReducer(initialState)',
-        'useReducer(reducer)',
-        'useRef(initialValue)',
-        'useState(initialState)',
-        'useSyncExternalStore(getServerSnapshot)',
-        'useSyncExternalStore(getSnapshot)',
-        'useSyncExternalStore(subscribe)',
-      ]),
-      'createElement(props)': 'options',
-      // A React element handed on as content (`element={<Page />}`), judged where written.
-      ...plain([
-        'ReactElement.key',
-        'ReactElement.props',
-        'ReactElement.type',
-        'ReactPortal.children',
-        // A promise handed to `use`, whose settlement React reads.
-        'FulfilledReactPromise.status',
-        'FulfilledReactPromise.value',
-        'PendingReactPromise.status',
-        'RejectedReactPromise.reason',
-        'RejectedReactPromise.status',
-        'UntrackedReactPromise.reason',
-        'UntrackedReactPromise.status',
-        'UntrackedReactPromise.value',
-      ]),
-    },
-  },
-  // Error reporting. The Feedback widget (`feedbackIntegration`), which paints our colours into
-  // its own DOM, is not registered: its options are reported.
-  '@sentry/core': {
-    keys: plain([
-      'ClientOptions.denyUrls',
-      'ClientOptions.dsn',
-      'ClientOptions.enabled',
-      'ClientOptions.environment',
-      'ClientOptions.ignoreErrors',
-      'ClientOptions.release',
-      'ClientOptions.tracesSampleRate',
-      'CoreOptions.integrations',
-      'Scope.setFingerprint(fingerprint)',
-      'Scope.setTag(key)',
-      'Scope.setTag(value)',
-      'ScopeContext.mutationKey',
-      'ScopeContext.queryKey',
-      'ScopeContext.tags',
-      'User.id',
-      'captureException(exception)',
-      'captureException(hint)',
-      'error(attributes)',
-      'error(message)',
-      'setUser(user)',
-      'withScope(callback)',
-    ]),
-  },
-  '@sentry/react': {
-    keys: plain([
-      'CreateRouterFunction(routes)',
-      'init(options)',
-      'wrapCreateBrowserRouter(createRouterFunction)',
-    ]),
-  },
-  // Pixi draws into its own canvas: shape geometry, colours and filters are canvas content (U7).
-  // Not registered, so reported: `ViewSystemOptions.autoDensity` and `AbstractRenderer.resize`,
-  // which with it write the canvas element's CSS box size; and `DOMContainer`'s options and
-  // `element`, the element of ours whose `transform`/`opacity` it writes.
-  'pixi.js': {
-    keys: plain([
-      // A canvas, fill style or fill pattern of ours handed to Pixi as a surface or fill: canvas
-      // content (U7). A canvas's `style` is written only with `autoDensity`, not registered.
-      'FillStyle.alpha',
-      'FillStyle.matrix',
-      'FillStyle.texture',
-      'FillStyle.textureSpace',
-      'OffscreenCanvas.getContext',
-      'StrokeAttributes.pixelLine',
-      'FillPattern._texture',
-      'FillPattern._tick',
-      'FillPattern.destroy',
-      'FillPattern.setTransform',
-      'FillPattern.styleKey',
-      'FillPattern.texture',
-      'FillPattern.textureSpace',
-      'FillPattern.transform',
-      'FillPattern.uid',
-      'HTMLCanvasElement.getContext',
-      'ICanvas.addEventListener',
-      'ICanvas.convertToBlob',
-      'ICanvas.dispatchEvent',
-      'ICanvas.getBoundingClientRect',
-      'ICanvas.getContext',
-      'ICanvas.height',
-      'ICanvas.parentNode',
-      'ICanvas.removeEventListener',
-      'ICanvas.style',
-      'ICanvas.toBlob',
-      'ICanvas.toDataURL',
-      'ICanvas.width',
-      'AbstractRenderer.destroy(options)',
-      'AbstractRenderer.init(options)',
-      'AbstractRenderer.render(options)',
-      'AlphaFilter(options)',
-      'AlphaFilter.alpha',
-      'AlphaFilterOptions.alpha',
-      'BackgroundSystemOptions.backgroundAlpha',
-      'BaseDestroyOptions.children',
-      'BaseGradientOptions.colorStops',
-      'BaseGradientOptions.textureSpace',
-      'BlurFilter(options)',
-      'BlurFilter.strength',
-      'BlurFilterOptions.strength',
-      'Color(value)',
-      'Color.alpha',
-      'Container(options)',
-      'Container.addChild(children)',
-      'Container.alpha',
-      'Container.blendMode',
-      'Container.destroy(options)',
-      'Container.removeChild(children)',
-      'Container.rotation',
-      'Container.visible',
-      'Container.x',
-      'ContainerOptions.tint',
-      'ContainerOptions.visible',
-      'ContextSystemOptions.preferWebGLVersion',
-      'EffectsMixin.filters',
-      'EffectsMixin.mask',
-      'EffectsMixin.setMask(options)',
-      'FillGradient(options)',
-      'FillStyle.color',
-      'FillStyle.fill',
-      'Filter.blendMode',
-      'Filter.enabled',
-      'Filter.padding',
-      'FilterOptions.antialias',
-      'FilterOptions.resolution',
-      'Graphics(options)',
-      'Graphics.arc(endAngle)',
-      'Graphics.arc(radius)',
-      'Graphics.arc(startAngle)',
-      'Graphics.arc(x)',
-      'Graphics.arc(y)',
-      'Graphics.circle(radius)',
-      'Graphics.circle(x)',
-      'Graphics.circle(y)',
-      'Graphics.context',
-      'Graphics.ellipse(radiusX)',
-      'Graphics.ellipse(radiusY)',
-      'Graphics.ellipse(x)',
-      'Graphics.ellipse(y)',
-      'Graphics.fill(style)',
-      'Graphics.lineTo(x)',
-      'Graphics.lineTo(y)',
-      'Graphics.moveTo(x)',
-      'Graphics.moveTo(y)',
-      'Graphics.path(path)',
-      'Graphics.poly(points)',
-      'Graphics.quadraticCurveTo(cpx)',
-      'Graphics.quadraticCurveTo(cpy)',
-      'Graphics.quadraticCurveTo(x)',
-      'Graphics.quadraticCurveTo(y)',
-      'Graphics.rect(h)',
-      'Graphics.rect(w)',
-      'Graphics.rect(x)',
-      'Graphics.rect(y)',
-      'Graphics.roundRect(h)',
-      'Graphics.roundRect(radius)',
-      'Graphics.roundRect(w)',
-      'Graphics.roundRect(x)',
-      'Graphics.roundRect(y)',
-      'Graphics.stroke(args)',
-      'Graphics.translateTransform(x)',
-      'Graphics.translateTransform(y)',
-      'GraphicsContext.arc(endAngle)',
-      'GraphicsContext.arc(radius)',
-      'GraphicsContext.arc(startAngle)',
-      'GraphicsContext.arc(x)',
-      'GraphicsContext.arc(y)',
-      'GraphicsContext.circle(radius)',
-      'GraphicsContext.circle(x)',
-      'GraphicsContext.circle(y)',
-      'GraphicsContext.ellipse(radiusX)',
-      'GraphicsContext.ellipse(radiusY)',
-      'GraphicsContext.ellipse(x)',
-      'GraphicsContext.ellipse(y)',
-      'GraphicsContext.fill(style)',
-      'GraphicsContext.lineTo(x)',
-      'GraphicsContext.lineTo(y)',
-      'GraphicsContext.moveTo(x)',
-      'GraphicsContext.moveTo(y)',
-      'GraphicsContext.path(path)',
-      'GraphicsContext.rect(h)',
-      'GraphicsContext.rect(w)',
-      'GraphicsContext.rect(x)',
-      'GraphicsContext.rect(y)',
-      'GraphicsContext.roundRect(h)',
-      'GraphicsContext.roundRect(radius)',
-      'GraphicsContext.roundRect(w)',
-      'GraphicsContext.roundRect(x)',
-      'GraphicsContext.roundRect(y)',
-      'GraphicsContext.setTransform(a)',
-      'GraphicsContext.setTransform(b)',
-      'GraphicsContext.setTransform(c)',
-      'GraphicsContext.setTransform(d)',
-      'GraphicsContext.setTransform(dx)',
-      'GraphicsContext.setTransform(dy)',
-      'GraphicsContext.stroke(style)',
-      'GraphicsContext.translate(x)',
-      'GraphicsContext.translate(y)',
-      'GraphicsPath(instructions)',
-      'ImageSource(options)',
-      'LinearGradientOptions.end',
-      'LinearGradientOptions.start',
-      'LinearGradientOptions.type',
-      'MaskOptions.inverse',
-      'MaskOptionsAndMask.mask',
-      'ObservablePoint.set(x)',
-      'ObservablePoint.set(y)',
-      'PointData.x',
-      'PointData.y',
-      'RadialGradientOptions.center',
-      'RadialGradientOptions.innerRadius',
-      'RadialGradientOptions.outerCenter',
-      'RadialGradientOptions.outerRadius',
-      'RenderOptions.container',
-      'SharedRendererOptions.skipExtensionImports',
-      'SortMixinConstructor.sortableChildren',
-      'SortMixinConstructor.zIndex',
-      'Sprite(options)',
-      'Sprite.texture',
-      'SpriteOptions.anchor',
-      'SpriteOptions.texture',
-      'StrokeAttributes.alignment',
-      'StrokeAttributes.cap',
-      'StrokeAttributes.join',
-      'StrokeAttributes.miterLimit',
-      'StrokeAttributes.width',
-      'SystemRunner.add(item)',
-      'SystemRunner.remove(item)',
-      'Text(options)',
-      'TextOptions.style',
-      'TextOptions.text',
-      'TextStyle.fill',
-      'TextStyle.fontSize',
-      'Texture(0)',
-      'Texture.destroy(destroySource)',
-      'TextureOptions.source',
-      'TextureSourceOptions.alphaMode',
-      'TextureSourceOptions.autoGenerateMipmaps',
-      'TextureSourceOptions.resolution',
-      'TextureSourceOptions.resource',
-      'Ticker.add(fn)',
-      'Ticker.maxFPS',
-      'ViewSystemDestroyOptions.removeView',
-      'ViewSystemOptions.antialias',
-      'ViewSystemOptions.canvas',
-      'ViewSystemOptions.resolution',
-    ]),
-  },
-  sonner: {
-    keys: {
-      'toast(data)': 'options',
-      ...plain([
-        'toast(message)',
-        'ExternalToast.id',
-        'ToastT.closeButton',
-        'ToastT.description',
-        'ToastT.duration',
-        'ToasterProps.position',
-        'dismiss(id)',
-        'error(message)',
-        'info(message)',
-        'success(message)',
-        'warning(message)',
-      ]),
-      'info(data)': 'options',
-      'success(data)': 'options',
-      'warning(data)': 'options',
-    },
-  },
-  '@zumer/snapdom': {
-    keys: {
-      // The element captured, and the capture rectangle and pixel ratio of our own DOM: the
-      // image's geometry, not a style.
-      ...plain([
-        'snapdom(element)',
-        'toCanvas(element)',
-        'CanvasCrop.x',
-        'CanvasCrop.y',
-        'CanvasCrop.width',
-        'CanvasCrop.height',
-        'SnapdomOptions.dpr',
-      ]),
-      'toCanvas(options)': 'options',
-      'CaptureResult.toCanvas(options)': 'options',
-      'CanvasExportOptions.crop': 'options',
-    },
-  },
-  // Routing: paths, navigation options, route elements and a NavLink's class name.
-  'react-router': {
-    keys: plain([
-      // Navigation options and the router object `createBrowserRouter` makes.
-      'NavigateOptions.defaultShouldRevalidate',
-      'NavigateOptions.mask',
-      'NavigateOptions.preventScrollReset',
-      'NavigateOptions.relative',
-      'NavigateOptions.viewTransition',
-      'Router._internalFetchControllers',
-      'Router._internalSetRoutes',
-      'Router._internalSetStateDoNotUseOrYouWillBreakYourApp',
-      'Router.basename',
-      'Router.createHref',
-      'Router.createURL',
-      'Router.deleteBlocker',
-      'Router.deleteFetcher',
-      'Router.dispose',
-      'Router.enableScrollRestoration',
-      'Router.encodeLocation',
-      'Router.fetch',
-      'Router.future',
-      'Router.getBlocker',
-      'Router.getFetcher',
-      'Router.initialize',
-      'Router.manifest',
-      'Router.match',
-      'Router.navigate',
-      'Router.patchRoutes',
-      'Router.resetFetcher',
-      'Router.revalidate',
-      'Router.routes',
-      'Router.state',
-      'Router.subscribe',
-      'Router.window',
-      'BaseRouteObject.Component',
-      'BaseRouteObject.ErrorBoundary',
-      'BaseRouteObject.element',
-      'BaseRouteObject.errorElement',
-      'BaseRouteObject.path',
-      'LinkProps.replace',
-      'LinkProps.to',
-      'MemoryRouterProps.initialEntries',
-      'NavLinkProps.className',
-      'NavLinkProps.end',
-      'NavigateFunction(delta)',
-      'NavigateFunction(options)',
-      'NavigateFunction(to)',
-      'NavigateOptions.flushSync',
-      'NavigateOptions.replace',
-      'NavigateOptions.state',
-      'NavigateProps.replace',
-      'NavigateProps.to',
-      // A route literal's discriminant: TypeScript may resolve its keys to either member.
-      'IndexRouteObject.children',
-      'IndexRouteObject.index',
-      'NonIndexRouteObject.children',
-      'NonIndexRouteObject.index',
-      'PathRouteProps.element',
-      'PathRouteProps.path',
-      'Router.subscribe(fn)',
-      'RouterProviderProps.router',
-      'SetURLSearchParams(navigateOpts)',
-      'SetURLSearchParams(nextInit)',
-      'isRouteErrorResponse(error)',
-    ]),
-  },
-  '@ark-ui/react': {
-    keys: plain(['RenderStrategyProps.lazyMount', 'RenderStrategyProps.unmountOnExit']),
-  },
-  '@zag-js/dialog': {
-    keys: plain([
-      'DialogProps.closeOnEscape',
-      'DialogProps.closeOnInteractOutside',
-      'DialogProps.onOpenChange',
-      'DialogProps.open',
-      'DialogProps.role',
-    ]),
-  },
-  '@zag-js/dismissable': {
-    keys: plain([
-      'DismissableElementHandlers.onEscapeKeyDown',
-      'DismissableElementHandlers.onRequestDismiss',
-    ]),
-  },
-  '@zag-js/interact-outside': { keys: plain(['InteractOutsideHandlers.onInteractOutside']) },
-  '@zag-js/tabs': {
-    keys: plain([
-      'ContentProps.value',
-      'TabsProps.activationMode',
-      'TabsProps.onValueChange',
-      'TabsProps.value',
-      'TriggerProps.value',
-    ]),
-  },
-  '@zag-js/color-picker': {
-    keys: {
-      // The picker paints its swatches from this colour.
-      'parse(colorString)': 'color',
-      // A colour made by `parseColor`, whose string is judged there.
-      ...plain([
-        'ChannelProps.channel',
-        'ColorPickerProps.defaultValue',
-        'ColorPickerProps.inline',
-        'ColorPickerProps.onValueChangeEnd',
-      ]),
-    },
-  },
-  '@zag-js/qr-code': { keys: plain(['QrCodeProps.encoding', 'QrCodeProps.value']) },
-});
-
-/** What `pkg` does with `name` (`PACKAGE_PROPS`), undefined when not registered. */
-export const packageProp = (pkg, name) =>
-  PACKAGE_PROPS[pkg]?.all ?? PACKAGE_PROPS[pkg]?.keys?.[name];
 
 /**
  * What `width`/`height` mean on each element that takes them as attributes, keyed by tag with

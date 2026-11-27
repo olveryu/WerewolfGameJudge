@@ -12,16 +12,32 @@
     "ui/dom-allowlist",
     "ui/element-allowlist",
     "ui/inline-style-keys",
+    "ui/package-adapter",
     "ui/sheet-scope",
     "ui/value-allowlist"
   ],
   "files": {
+    "packages/web/preview/main.tsx": ["ui/package-adapter\tnone\t\timport 'pixi.js/unsafe-eval';"],
     "packages/web/preview/preview.css": [
       "ui/value-allowlist\t\t.preview-controls\tz-index: 1;",
       "ui/value-allowlist\t\t.preview-controls input\twidth: 5rem;"
     ],
+    "packages/web/src/app/AdminRoot.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';",
+      "ui/package-adapter\tnone\t\timport { Toaster } from 'sonner';"
+    ],
+    "packages/web/src/app/AppRoot.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';",
+      "ui/package-adapter\tnone\t\timport { Toaster } from 'sonner';"
+    ],
+    "packages/web/src/app/RouteErrorPage.tsx": [
+      "ui/package-adapter\tnone\t\timport { captureException } from '@sentry/react';"
+    ],
+    "packages/web/src/app/queryClient.ts": [
+      "ui/package-adapter\tnone\t\timport { captureException } from '@sentry/react';"
+    ],
     "packages/web/src/app/router.ts": [
-      "ui/inline-style-keys\thandover\trouter\texport const router = createSentryBrowserRouter(routes);"
+      "ui/package-adapter\tnone\t\timport { wrapCreateBrowserRouter } from '@sentry/react/react-router';"
     ],
     "packages/web/src/boot/WechatBrowserGuide.css": [
       "ui/value-allowlist\t\t.wechat-guide-arrow\tanimation: wechat-guide-bounce 1.5s ease-in-out infinite;",
@@ -42,13 +58,19 @@
     "packages/web/src/boot/bootSplash.ts": [
       "ui/inline-style-keys\tuntracked\ttrackProgress > record\tprogressBar.style.transform = `scaleX(${fraction})`;"
     ],
+    "packages/web/src/components/AlertHost.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
+    ],
     "packages/web/src/components/AppDialog.tsx": [
-      "ui/inline-style-keys\thandover\tAppDialogRoot > <Dialog.Root>\treturn <Dialog.Root {...props} onRequestDismiss={preventCascadeDismiss} />;"
+      "ui/package-adapter\texposes\tAppDialog\texport const AppDialog = { Root: AppDialogRoot, Backdrop: Dialog.Backdrop, Positioner: Dialog.Positioner, Content: Dialog.Content, Title: Dialog.Title, Description: Dialog.Description, CloseTrigger: Dialog.CloseTrigger, } as const;"
     ],
     "packages/web/src/components/BottomSheet.css": [
       "ui/value-allowlist\t\t.bottom-sheet\tmax-height: 85vh;",
       "ui/value-allowlist\t\t.bottom-sheet-backdrop[data-state='open']\tanimation: bottom-sheet-fade 180ms ease-out;",
       "ui/value-allowlist\t\t.bottom-sheet[data-state='open']\tanimation: bottom-sheet-slide 220ms cubic-bezier(0.2, 0.8, 0.2, 1);"
+    ],
+    "packages/web/src/components/BottomSheet.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/components/Button.css": [
       "ui/value-allowlist\t\t.button\tbackground-color 100ms ease-out,",
@@ -67,6 +89,9 @@
       "ui/value-allowlist\t\t.center-dialog-backdrop[data-state='open']\tanimation: center-dialog-fade 150ms ease-out;",
       "ui/value-allowlist\t\t.center-dialog[data-state='closed']\tanimation: center-dialog-pop 120ms ease-in reverse;",
       "ui/value-allowlist\t\t.center-dialog[data-state='open']\tanimation: center-dialog-pop 150ms ease-out;"
+    ],
+    "packages/web/src/components/CenterDialog.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/components/ChoiceCard.css": [
       "ui/value-allowlist\t\t.choice-card\tbox-shadow 120ms ease-out;",
@@ -177,9 +202,6 @@
       "ui/value-allowlist\t\t.avatar-concentric\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *",
       "ui/value-allowlist\t\t.avatar-concentric\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *"
     ],
-    "packages/web/src/components/icons/IonIcon.tsx": [
-      "ui/inline-style-keys\thandover\tIonIcon > <Icon>\treturn <Icon aria-hidden={props['aria-label'] === undefined} {...props} />;"
-    ],
     "packages/web/src/components/nameStyles/NameStyleText.tsx": [
       "ui/inline-style-keys\tcomputed\tbuildStyle\tstyle[`--name-style-filter-${index}`] = filter;",
       "ui/inline-style-keys\tuntracked\tNameStyleText > <span>\tstyle={styleFor(config)}",
@@ -216,9 +238,18 @@
       "ui/inline-style-keys\tuntracked\tgetRarityCellStyle > boxShadow\treturn glow === undefined ? undefined : { boxShadow: glow };",
       "ui/inline-style-keys\tuntracked\tgetRaritySelectedStyle > backgroundColor\treturn { backgroundColor: withAlpha(color, 0.03) };"
     ],
+    "packages/web/src/features/account/AccountInboxHost.tsx": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
+    "packages/web/src/features/admin/queries/useAdminRewardGrant.ts": [
+      "ui/package-adapter\tnone\t\timport * as Sentry from '@sentry/react';"
+    ],
     "packages/web/src/features/auth/LoginDialog.css": [
       "ui/value-allowlist\t\t.login-method-caption\topacity: 0.85;",
       "ui/value-allowlist\t\t.login-method-caption-muted\topacity: 0.7;"
+    ],
+    "packages/web/src/features/auth/LoginDialog.tsx": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
     ],
     "packages/web/src/features/auth/WechatLoginEntry.css": [
       "ui/value-allowlist\t\t.wechat-entry-hint\topacity: 0.5;"
@@ -229,7 +260,6 @@
       "ui/value-allowlist\t\t@media (min-width: 768px)\t@media (min-width: 768px) {"
     ],
     "packages/web/src/features/drawing/components/DrawingToolbar.tsx": [
-      "ui/inline-style-keys\tuntracked\tColorPickerPanel > <ColorPicker.Root.drawing-color-picker>\tdefaultValue={parseColor(color)}",
       "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <AppDialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot>\twidth,",
       "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <AppDialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot> > backgroundColor\tprops.tool === 'eraser' ? 'var(--color-text-muted)' : props.color,",
       "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <AppDialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot> > height\theight: width,",
@@ -242,7 +272,7 @@
       "ui/inline-style-keys\tuntracked\tcolorPanelStyle > bottom\tbottom: `calc(${window.innerHeight - placement.anchorTop}px + var(--space-small))`,",
       "ui/inline-style-keys\tuntracked\tcolorPanelStyle > left\tleft: `clamp(var(--space-small), ${placement.anchorLeft}px, calc(100vw - var(--drawing-color-popover-width) - var(--space-small)))`,",
       "ui/inline-style-keys\tuntracked\tcolorPanelStyle > maxHeight\tmaxHeight: `calc(${placement.anchorTop}px - env(safe-area-inset-top) - var(--space-medium))`,",
-      "ui/inline-style-keys\tuntracked\tisDarkColor\treturn parseColor(value).toFormat('hsla').getChannelValue('lightness') < 50;"
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/features/encyclopedia/Encyclopedia.css": [
       "ui/value-allowlist\t\t.encyclopedia-filter-chip\tbackground-color 100ms ease-out,",
@@ -257,6 +287,9 @@
       "ui/value-allowlist\t\t.encyclopedia-segment\tbackground-color 100ms ease-out,",
       "ui/value-allowlist\t\t.encyclopedia-segment\tbox-shadow 100ms ease-out,",
       "ui/value-allowlist\t\t.encyclopedia-segment\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/features/encyclopedia/EncyclopediaShell.tsx": [
+      "ui/package-adapter\tnone\t\timport { Tabs } from '@ark-ui/react/tabs';"
     ],
     "packages/web/src/features/feedback/components/FeedbackTab.css": [
       "ui/value-allowlist\t\t.feedback-filter-pill\tbackground-color 100ms ease-out,",
@@ -277,6 +310,9 @@
       "ui/value-allowlist\t\t.feedback-submit, .feedback-new-button\tbox-shadow 100ms ease-out;",
       "ui/value-allowlist\t\t.feedback-submit, .feedback-new-button\ttransform 100ms ease-out,"
     ],
+    "packages/web/src/features/feedback/components/FeedbackTab.tsx": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
     "packages/web/src/features/gacha/machine/CapsuleMachine.css": [
       "ui/value-allowlist\t\t.capsule-machine\twidth: min(100cqw, 100cqh * 2 / 3);",
       "ui/value-allowlist\t\t.capsule-machine\twidth: min(100cqw, 100cqh * 2 / 3);",
@@ -290,6 +326,15 @@
       "ui/inline-style-keys\tuntracked\tCapsuleMachine > <div.capsule-machine> > <div.capsule-machine__shake> > <div>\t<div ref={hostRef} style={HOST_STYLE} />",
       "ui/inline-style-keys\tuntracked\tCapsuleMachine > <div.capsule-machine> > <div.capsule-machine__shake> > <span.capsule-machine__label> > color\tstyle={{ color: golden ? LABEL_COLOR.golden : LABEL_COLOR.normal }}",
       "ui/inline-style-keys\tuntracked\tMachineController > frame\tthis.shakeTarget.style.transform = `translate(${shakeX}px, ${shakeY}px)`;"
+    ],
+    "packages/web/src/features/gacha/machine/capsuleMachineRenderer.ts": [
+      "ui/package-adapter\tnone\t\timport { type Container, Graphics } from 'pixi.js';"
+    ],
+    "packages/web/src/features/gacha/queries/useAutoClaimDailyReward.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
+    "packages/web/src/features/maintenance/MaintenanceGate.tsx": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
     ],
     "packages/web/src/features/maintenance/MaintenancePage.css": [
       "ui/value-allowlist\t\t.maintenance-orbit\theight: calc(var(--size-avatar-xl) * 2);",
@@ -352,6 +397,9 @@
       "ui/value-allowlist\t\t.role-card-placeholder\tfont-size: calc(38cqi * 0.4);",
       "ui/value-allowlist\t\t.role-card::after\topacity: 0.25;"
     ],
+    "packages/web/src/features/room/components/RoleCard.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
+    ],
     "packages/web/src/features/room/components/RoleRevealEffects/RevealEffectStage.tsx": [
       "ui/inline-style-keys\tuntracked\tCANVAS_HOST_STYLE > zIndex\tzIndex: REVEAL_DOM_LAYER.canvas,",
       "ui/inline-style-keys\tuntracked\tRevealEffectStage > <RevealSceneContext> > <div>\t<div ref={canvasHostRef} style={CANVAS_HOST_STYLE} />"
@@ -360,7 +408,8 @@
       "ui/inline-style-keys\tuntracked\tRoleRevealAnimator > <AppDialog.Root> > <Portal> > <AppDialog.Content>\t<AppDialog.Content data-testid={`${testIDPrefix}-modal`} style={REVEAL_ROOT_STYLE}>",
       "ui/inline-style-keys\tuntracked\tRoleRevealAnimator > <AppDialog.Root> > <Portal> > <AppDialog.Content> > <div>\t<div style={REVEAL_TITLE_ROW_STYLE}>",
       "ui/inline-style-keys\tuntracked\tRoleRevealAnimator > <AppDialog.Root> > <Portal> > <AppDialog.Content> > <div> > <AppDialog.Title>\t<AppDialog.Title style={REVEAL_TITLE_STYLE}>{revealTitle(effectType)}</AppDialog.Title>",
-      "ui/inline-style-keys\tvalue\tRoleRevealAnimator > <AppDialog.Root> > <Portal> > <AppDialog.Content> > <div> > zIndex\tzIndex: 101,"
+      "ui/inline-style-keys\tvalue\tRoleRevealAnimator > <AppDialog.Root> > <Portal> > <AppDialog.Content> > <div> > zIndex\tzIndex: 101,",
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/common/AtmosphericBackground.tsx": [
       "ui/inline-style-keys\tuntracked\tAtmosphere\telement.style.opacity = String(0.15 + 0.15 * Math.sin(c * 1.3 + particle.phase));",
@@ -917,7 +966,8 @@
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > <div> > width\t<div style={{ width: 120, height: 8, backgroundColor: '#333355', borderRadius: 4 }} />",
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > <div> > width\twidth: 40,",
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > <div> > width\twidth: 80,",
-      "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > bottom\tbottom: 40,"
+      "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > bottom\tbottom: 40,",
+      "ui/package-adapter\tnone\t\timport { Container } from 'pixi.js';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/GachaMachine.tsx": [
       "ui/inline-style-keys\tuntracked\tGachaMachine > <div> > <div> > <button> > <div> > <div>\t<div style={capsuleHalfShine} />",
@@ -1270,7 +1320,8 @@
       "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > fontWeight\tfontWeight: 500,",
       "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > letterSpacing\tletterSpacing: 2,",
       "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > opacity\t<span style={{ ...captionStyle, bottom: 12, fontSize: 10, opacity: 0.4 }}>",
-      "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > opacity\topacity: 0.5,"
+      "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > opacity\topacity: 0.5,",
+      "ui/package-adapter\tnone\t\timport { Container, Graphics, Text } from 'pixi.js';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/SealBreak.tsx": [
       "ui/inline-style-keys\tuntracked\tChargeArt\tString(interpolate(cycle, [0, 0.2, 0.7, 1], [0, 0.8 * level, 0.3, 0])),",
@@ -1526,9 +1577,10 @@
       "ui/inline-style-keys\tuntracked\tVortexCollapse > <div> > background\tstyle={{ position: 'absolute', inset: 0, background: BG_GRADIENT }}"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/pixi/kit.ts": [
-      "ui/inline-style-keys\thandover\tlinearGradient > colorStops\tcolorStops: colorStops(colors, offsets),",
-      "ui/inline-style-keys\thandover\tradialGradient > colorStops\tcolorStops: colorStops(colors, offsets),",
-      "ui/inline-style-keys\thandover\tshapeRadialGradient > colorStops\tcolorStops: colorStops(colors, offsets),"
+      "ui/package-adapter\tnone\t\timport { BlurFilter, type Container, FillGradient, Graphics } from 'pixi.js';"
+    ],
+    "packages/web/src/features/room/components/RoleRevealEffects/pixiLayer.ts": [
+      "ui/package-adapter\tnone\t\timport { Container, Graphics } from 'pixi.js';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/runtime.ts": [
       "ui/inline-style-keys\tuntracked\tuseFrameStyle\tif (style.opacity !== undefined) element.style.opacity = String(style.opacity);",
@@ -1550,6 +1602,9 @@
     "packages/web/src/features/room/components/RoomActionStatus.tsx": [
       "ui/inline-style-keys\tuntracked\tRoomProgressIndicator > <div.room-progress> > <div.room-progress-track> > <span.room-progress-fill> > width\t<span className=\"room-progress-fill\" style={{ width: `${percent}%` }} />"
     ],
+    "packages/web/src/features/room/components/RoomAudioResumeDialog.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
+    ],
     "packages/web/src/features/room/components/RoomBottomActionPanel.css": [
       "ui/value-allowlist\t\t.bottom-action-message[data-animate='true']\tanimation: bottom-message-in 150ms ease-out;",
       "ui/value-allowlist\t\t.room-progress-fill\ttransition: width 200ms ease-out;",
@@ -1562,7 +1617,8 @@
       "ui/value-allowlist\t\t.room-dialog[data-state='open']\tanimation: center-dialog-pop 150ms ease-out;"
     ],
     "packages/web/src/features/room/components/RoomDialog.tsx": [
-      "ui/inline-style-keys\tuntracked\tRoomDialog > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.room-dialog-positioner> > <AppDialog.Content.room-dialog>\t<AppDialog.Content className=\"room-dialog\" style={{ width }} data-testid={testId}>"
+      "ui/inline-style-keys\tuntracked\tRoomDialog > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.room-dialog-positioner> > <AppDialog.Content.room-dialog>\t<AppDialog.Content className=\"room-dialog\" style={{ width }} data-testid={testId}>",
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/features/room/components/RoomGameSummary.css": [
       "ui/value-allowlist\t\t.room-game-summary-toggle\tbackground-color 100ms ease-out,",
@@ -1629,6 +1685,18 @@
     "packages/web/src/features/room/config/GameConfigPage.css": [
       "ui/value-allowlist\t\t.game-config-page\theight: 100vh;"
     ],
+    "packages/web/src/features/room/controllers/useLastActionToast.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
+    "packages/web/src/features/room/controllers/useRoleViewing.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
+    "packages/web/src/features/room/controllers/useRoomCommandSubmission.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
+    "packages/web/src/features/room/controllers/useRoomShareController.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
     "packages/web/src/features/room/review/components/ReviewImageBlock.tsx": [
       "ui/inline-style-keys\tuntracked\tReviewImageBlock > <button.review-image-frame>\tstyle={frameStyle}",
       "ui/inline-style-keys\tuntracked\tReviewImageBlock > <div.review-image-frame>\t<div className=\"review-image-frame\" data-placeholder=\"true\" style={frameStyle}>",
@@ -1638,14 +1706,26 @@
     "packages/web/src/features/room/review/components/RoomReviewExportStage.tsx": [
       "ui/inline-style-keys\tuntracked\tRoomReviewExportStage > <div.review-export-stage> > <ReviewExportGateContext> > <div>\tstyle={{ width }}"
     ],
+    "packages/web/src/features/room/review/components/RoomReviewProgressModal.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
+    ],
     "packages/web/src/features/room/review/components/review.css": [
       "ui/value-allowlist\t\t.review-export-stage\tleft: -10000px;",
       "ui/value-allowlist\t\t.review-image-spinner\tanimation: review-spin 800ms linear infinite;",
       "ui/value-allowlist\t\t.review-timeline-step:not(:last-child)::before\tleft: calc((var(--space-small) + var(--space-tight)) / 2);"
     ],
+    "packages/web/src/features/room/review/useRoomReviewExport.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
     "packages/web/src/features/room/steps/StepCardPicker.css": [
       "ui/value-allowlist\t\t.step-card-picker-option\tbox-shadow 100ms ease-out,",
       "ui/value-allowlist\t\t.step-card-picker-option\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/features/room/steps/useStepInteraction.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
+    "packages/web/src/games/avalon/room/components/AvalonAlertDialog.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/games/avalon/room/components/AvalonRecord.css": [
       "ui/value-allowlist\t\t.avalon-rejected-header\tbackground-color 100ms ease-out,",
@@ -1654,9 +1734,15 @@
     "packages/web/src/games/avalon/room/components/AvalonRecordProposal.tsx": [
       "ui/inline-style-keys\tuntracked\tVoteRatioBar > <div.avalon-vote-bar> > <span.avalon-vote-bar-segment> > flexGrow\tstyle={{ flexGrow: count }}"
     ],
+    "packages/web/src/games/avalon/room/components/AvalonResultDialog.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
+    ],
     "packages/web/src/games/avalon/room/components/AvalonResultPanel.css": [
       "ui/value-allowlist\t\t.avalon-result-banner-image\theight: calc(var(--size-button-lg) * 3);",
       "ui/value-allowlist\t\t.avalon-vote-result-eyebrow\tletter-spacing: 0.1em;"
+    ],
+    "packages/web/src/games/decrypto/room/DecryptoHistory.tsx": [
+      "ui/package-adapter\tnone\t\timport { Tabs } from '@ark-ui/react/tabs';"
     ],
     "packages/web/src/games/decrypto/room/DecryptoRoomScreen.css": [
       "ui/value-allowlist\t\t.decrypto-history-card\tmin-height: calc(var(--size-min-touch-target) * 2);",
@@ -1670,6 +1756,9 @@
       "ui/value-allowlist\t\t@media (prefers-reduced-motion: no-preference) > .decrypto-reveal-result[data-latest]\topacity 240ms ease-out,",
       "ui/value-allowlist\t\t@media (prefers-reduced-motion: no-preference) > .decrypto-reveal-result[data-latest]\ttranslate 240ms ease-out;",
       "ui/value-allowlist\t\t@supports (appearance: base-select) > .decrypto-encryptor-select::picker(select)\tmax-inline-size: min(var(--size-max-content-width), calc(100vw - var(--space-large)));"
+    ],
+    "packages/web/src/games/decrypto/room/DecryptoStage.tsx": [
+      "ui/package-adapter\tnone\t\timport { Tabs } from '@ark-ui/react/tabs';"
     ],
     "packages/web/src/games/drawguess/room/components/DrawGuessStage.css": [
       "ui/value-allowlist\t\t.drawguess-canvas-fit\twidth: min(100cqw, calc(100cqh * 4 / 3));",
@@ -1690,6 +1779,9 @@
       "ui/value-allowlist\t\t@keyframes drawguess-shake > 50%\ttransform: translateX(6px);",
       "ui/value-allowlist\t\t@keyframes drawguess-shake > 75%\ttransform: translateX(-3px);",
       "ui/value-allowlist\t\t@keyframes drawguess-toast-in > from\ttransform: translate(-50%, -8px);"
+    ],
+    "packages/web/src/games/pictionary/room/components/PictionaryDrawingImage.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/games/pictionary/room/components/PictionaryStage.css": [
       "ui/value-allowlist\t\t.pictionary-context-block\tflex: 1 1 120px;",
@@ -1753,6 +1845,9 @@
     "packages/web/src/games/toolbox/config/ToolboxIdentityEditor.css": [
       "ui/value-allowlist\t\t.toolbox-identity-tab\tmax-width: 12rem;"
     ],
+    "packages/web/src/games/toolbox/config/ToolboxIdentityEditor.tsx": [
+      "ui/package-adapter\tnone\t\timport { Tabs } from '@ark-ui/react/tabs';"
+    ],
     "packages/web/src/games/toolbox/room/ToolboxDiceCup.css": [
       "ui/value-allowlist\t\t.toolbox-dice-cup-band\tborder-radius: 0 0 50% 50%;",
       "ui/value-allowlist\t\t.toolbox-dice-cup-band\tborder-radius: 0 0 50% 50%;",
@@ -1809,6 +1904,9 @@
     "packages/web/src/games/toolbox/room/ToolboxRoomScreen.css": [
       "ui/value-allowlist\t\t.toolbox-room-status\tmin-height: 20rem;"
     ],
+    "packages/web/src/games/undercover/room/hooks/useUndercoverRoundControls.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
     "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.css": [
       "ui/value-allowlist\t\t.ai-chat-backdrop[data-state='open']\tanimation: ai-chat-fade 150ms ease-out;",
       "ui/value-allowlist\t\t.ai-chat-bubble\ttransition: transform 100ms ease-out;",
@@ -1834,7 +1932,8 @@
     "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.tsx": [
       "ui/inline-style-keys\tuntracked\tAIChatBubble > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.ai-chat-positioner> > paddingBottom\tstyle={{ paddingBottom: `calc(${chat.keyboardHeight}px + var(--space-small))` }}",
       "ui/inline-style-keys\tuntracked\tAIChatBubble > <div.ai-chat-bubble-anchor> > left\tstyle={{ left: chat.bubble.position.x, top: chat.bubble.position.y }}",
-      "ui/inline-style-keys\tuntracked\tAIChatBubble > <div.ai-chat-bubble-anchor> > top\tstyle={{ left: chat.bubble.position.x, top: chat.bubble.position.y }}"
+      "ui/inline-style-keys\tuntracked\tAIChatBubble > <div.ai-chat-bubble-anchor> > top\tstyle={{ left: chat.bubble.position.x, top: chat.bubble.position.y }}",
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/games/werewolf/components/BoardStrategy/BoardStrategy.css": [
       "ui/value-allowlist\t\t.board-strategy-accordion-header\tbox-shadow 100ms ease-out;",
@@ -1865,12 +1964,18 @@
       "ui/value-allowlist\t\t.werewolf-spotlight-flipper\ttransition: transform 600ms ease-in-out;",
       "ui/value-allowlist\t\t.werewolf-spotlight-flipper[data-phase='out'], .werewolf-spotlight-flipper[data-phase='in']\ttransition-duration: 300ms;"
     ],
+    "packages/web/src/games/werewolf/room/WerewolfRoomScreen.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
+    ],
     "packages/web/src/games/werewolf/room/components/BoardNominationList.css": [
       "ui/value-allowlist\t\t.nomination-action\tbox-shadow 100ms ease-out,",
       "ui/value-allowlist\t\t.nomination-action\ttransform 100ms ease-out;",
       "ui/value-allowlist\t\t.nomination-card-header\tbackground-color 100ms ease-out,",
       "ui/value-allowlist\t\t.nomination-card-header\ttransform 100ms ease-out;",
       "ui/value-allowlist\t\t.nomination-dialog\tmax-height: 80vh;"
+    ],
+    "packages/web/src/games/werewolf/room/components/BoardNominationList.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/games/werewolf/room/components/MvpSelectionModal.css": [
       "ui/value-allowlist\t\t.mvp-dialog\theight: 85vh;",
@@ -1879,11 +1984,17 @@
       "ui/value-allowlist\t\t.mvp-row\tbox-shadow 120ms ease-out;",
       "ui/value-allowlist\t\t.mvp-row\ttransform 120ms ease-out,"
     ],
+    "packages/web/src/games/werewolf/room/components/MvpSelectionModal.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
+    ],
     "packages/web/src/games/werewolf/room/components/ShareReviewModal.css": [
       "ui/value-allowlist\t\t.share-review-dialog\tmax-height: 70vh;",
       "ui/value-allowlist\t\t.share-review-seat\tbackground-color 100ms ease-out,",
       "ui/value-allowlist\t\t.share-review-seat\tbox-shadow 100ms ease-out,",
       "ui/value-allowlist\t\t.share-review-seat\ttransform 100ms ease-out;"
+    ],
+    "packages/web/src/games/werewolf/room/components/ShareReviewModal.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/games/werewolf/room/components/SheriffElection.css": [
       "ui/value-allowlist\t\t.sheriff-ballot-choice\tbox-shadow 120ms ease-out;",
@@ -1893,6 +2004,9 @@
     "packages/web/src/games/werewolf/room/components/SheriffElectionReadOnly.tsx": [
       "ui/inline-style-keys\tuntracked\tSheriffElectionCompletedRound > <section.sheriff-round> > <div.sheriff-tally-card> > <div.sheriff-tally-group> > <div.sheriff-tally-row> > <span.sheriff-tally-track> > <span.sheriff-tally-fill> > flexGrow\t<span className=\"sheriff-tally-fill\" style={{ flexGrow: candidate.votes }} />",
       "ui/inline-style-keys\tuntracked\tSheriffElectionCompletedRound > <section.sheriff-round> > <div.sheriff-tally-card> > <div.sheriff-tally-group> > <div.sheriff-tally-row> > <span.sheriff-tally-track> > <span> > flexGrow\t<span style={{ flexGrow: totalVotes - candidate.votes }} />"
+    ],
+    "packages/web/src/games/werewolf/room/components/WerewolfRoleCardModal.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen.css": [
       "ui/value-allowlist\t\t.board-picker-custom\tbox-shadow 100ms ease-out;",
@@ -1906,6 +2020,15 @@
       "ui/value-allowlist\t\t.config-role-chip-body\ttransform 120ms ease-out,",
       "ui/value-allowlist\t\t.config-role-chip-variant-mark\tline-height: 1;",
       "ui/value-allowlist\t\t.config-role-chip-variant-mark\tz-index: 1;"
+    ],
+    "packages/web/src/games/werewolf/screens/ConfigScreen/ConfigScreen.tsx": [
+      "ui/package-adapter\tnone\t\timport { Tabs } from '@ark-ui/react/tabs';"
+    ],
+    "packages/web/src/games/werewolf/screens/ConfigScreen/components/FactionTabs.tsx": [
+      "ui/package-adapter\tnone\t\timport { Tabs } from '@ark-ui/react/tabs';"
+    ],
+    "packages/web/src/games/werewolf/screens/ConfigScreen/useConfigScreenState.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
     ],
     "packages/web/src/games/werewolf/screens/NotepadScreen/NotepadScreen.css": [
       "ui/value-allowlist\t\t.notepad-ai-button\tbox-shadow 100ms ease-out,",
@@ -1928,7 +2051,14 @@
       "ui/value-allowlist\t\tbody\tsystem-ui,"
     ],
     "packages/web/src/instrument.ts": [
-      "ui/inline-style-keys\thandover\tintegrations\tintegrations: [reactRouterBrowserTracingIntegration()],"
+      "ui/package-adapter\tnone\t\timport { init } from '@sentry/react';",
+      "ui/package-adapter\tnone\t\timport { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';"
+    ],
+    "packages/web/src/main.tsx": [
+      "ui/package-adapter\tnone\t\timport { reactErrorHandler } from '@sentry/react';"
+    ],
+    "packages/web/src/platform/realtime/RoomLinkFactory.ts": [
+      "ui/package-adapter\tnone\t\timport * as Sentry from '@sentry/react';"
     ],
     "packages/web/src/routes/admin/AdminShell.tsx": [
       "ui/inline-style-keys\tuntracked\tAdminShell > measure\t`${element.getBoundingClientRect().height}px`,"
@@ -2029,6 +2159,9 @@
       "ui/inline-style-keys\tvalue\tQuotaRing > <div.admin-quota-ring> > <svg> > <circle.admin-ring-value>\ttransform=\"rotate(-90 60 60)\"",
       "ui/inline-style-keys\tvalue\tQuotaRing > <div.admin-quota-ring> > <svg> > <circle.admin-ring-value>\ttransform=\"rotate(-90 60 60)\""
     ],
+    "packages/web/src/routes/admin/pages/D1UsagePage.tsx": [
+      "ui/package-adapter\tnone\t\timport { Tabs } from '@ark-ui/react/tabs';"
+    ],
     "packages/web/src/routes/admin/words/wordSubmissions.css": [
       "ui/value-allowlist\t\t.admin-drawer-footer\tborder-top: 1px solid var(--admin-border);",
       "ui/value-allowlist\t\t.admin-library-card\tborder: 1px solid var(--admin-border);",
@@ -2059,6 +2192,9 @@
       "ui/inline-style-keys\tuntracked\tNameStyleGrid > <PickerCell> > <span.appearance-cell-name-style> > opacity\tstyle={item.unlocked ? undefined : { opacity: LOCKED_OPACITY }}",
       "ui/inline-style-keys\tuntracked\tPickerCell > <button>\tstyle={style}"
     ],
+    "packages/web/src/routes/appearance/useAppearanceSave.ts": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
     "packages/web/src/routes/bench/SceneBench.css": [
       "ui/value-allowlist\t\t.bench-grid\tgap: 12px;",
       "ui/value-allowlist\t\t.bench-name\tfont-size: 12px;",
@@ -2086,7 +2222,8 @@
     ],
     "packages/web/src/routes/gacha/GachaPage.tsx": [
       "ui/inline-style-keys\tuntracked\tGachaSession > <div.gacha-page>\t<div className=\"gacha-page\" style={GACHA_PALETTE_VARS} data-testid=\"gacha-screen\">",
-      "ui/inline-style-keys\tuntracked\tGachaSession > <div.gacha-page>\t<div className=\"gacha-page\" style={GACHA_PALETTE_VARS} data-testid=\"gacha-screen\">"
+      "ui/inline-style-keys\tuntracked\tGachaSession > <div.gacha-page>\t<div className=\"gacha-page\" style={GACHA_PALETTE_VARS} data-testid=\"gacha-screen\">",
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
     ],
     "packages/web/src/routes/gacha/components/DrawButton.css": [
       "ui/value-allowlist\t\t.draw-button-icon\topacity: 0.9;",
@@ -2146,7 +2283,8 @@
       "ui/inline-style-keys\tuntracked\tSingleResultReveal > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > '--rarity-color'\t'--rarity-color': visual.color,",
       "ui/inline-style-keys\tuntracked\tSingleResultReveal > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > '--rarity-glow'\t'--rarity-glow': withAlpha(visual.color, 0.15),",
       "ui/inline-style-keys\tuntracked\tSingleResultReveal > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > <AppDialog.Content.single-reveal-card> > borderWidth\tborderWidth: BORDER_WIDTHS[rarity],",
-      "ui/inline-style-keys\tuntracked\tSingleResultReveal > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > <AppDialog.Content.single-reveal-card> > boxShadow\tglow === null ? undefined : `var(--shadow-lg), 0 0 ${glow.blur}px ${withAlpha(visual.color, glow.alpha)}`,"
+      "ui/inline-style-keys\tuntracked\tSingleResultReveal > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > <AppDialog.Content.single-reveal-card> > boxShadow\tglow === null ? undefined : `var(--shadow-lg), 0 0 ${glow.blur}px ${withAlpha(visual.color, glow.alpha)}`,",
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/routes/gacha/components/TenResultOverlay.css": [
       "ui/value-allowlist\t\t.ten-result-card\tmax-width: 400px;",
@@ -2178,7 +2316,8 @@
       "ui/inline-style-keys\tuntracked\tTenResultOverlay > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > <AppDialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span.ten-result-group-count> > backgroundColor\tbackgroundColor: withAlpha(visual.color, 0.15),",
       "ui/inline-style-keys\tuntracked\tTenResultOverlay > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > <AppDialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span.ten-result-group-count> > color\tcolor: visual.color,",
       "ui/inline-style-keys\tuntracked\tTenResultOverlay > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > <AppDialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span.ten-result-group-dot> > backgroundColor\tstyle={{ backgroundColor: visual.color }}",
-      "ui/inline-style-keys\tuntracked\tTenResultOverlay > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > <AppDialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span> > color\t<span style={{ color: visual.color }}>{visual.label}</span>"
+      "ui/inline-style-keys\tuntracked\tTenResultOverlay > <AppDialog.Root> > <Portal> > <AppDialog.Positioner.gacha-result-positioner> > <AppDialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span> > color\t<span style={{ color: visual.color }}>{visual.label}</span>",
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';"
     ],
     "packages/web/src/routes/gacha/components/TicketTabBar.css": [
       "ui/value-allowlist\t\t.ticket-tab\tcolor 100ms ease-out,",
@@ -2221,6 +2360,10 @@
       "ui/inline-style-keys\tuntracked\tGameOptionRow > <button.picker-option> > <span.picker-option-art> > <span.picker-option-icon> > backgroundColor\t<span className=\"picker-option-icon\" style={{ backgroundColor: option.gradient[1] }}>",
       "ui/inline-style-keys\tuntracked\tGameOptionRow > <button.picker-option> > <span.picker-option-art> > background\tbackground: `linear-gradient(135deg, ${option.gradient[0]}, ${option.gradient[1]})`,"
     ],
+    "packages/web/src/routes/home/AnnouncementModal.tsx": [
+      "ui/package-adapter\tnone\t\timport { Portal } from '@ark-ui/react/portal';",
+      "ui/package-adapter\tnone\t\timport { Tabs } from '@ark-ui/react/tabs';"
+    ],
     "packages/web/src/routes/home/HomePage.css": [
       "ui/value-allowlist\t\t.home-action\ttransition: transform 100ms ease-out;",
       "ui/value-allowlist\t\t.home-body\tmax-width: 960px;",
@@ -2258,6 +2401,9 @@
       "ui/value-allowlist\t\t.settings-status-dot\theight: 8px;",
       "ui/value-allowlist\t\t.settings-status-dot\twidth: 8px;"
     ],
+    "packages/web/src/routes/settings/SettingsPage.tsx": [
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
     "packages/web/src/routes/shardExchange/ShardExchangePage.css": [
       "ui/value-allowlist\t\t.shard-cell-dot\theight: 6px;",
       "ui/value-allowlist\t\t.shard-cell-dot\twidth: 6px;",
@@ -2266,7 +2412,8 @@
       "ui/value-allowlist\t\t@media (width >= 768px)\t@media (width >= 768px) {"
     ],
     "packages/web/src/routes/shardExchange/ShardExchangePage.tsx": [
-      "ui/inline-style-keys\tuntracked\tExchangeCell > <li.shard-cell> > <span.shard-cell-dot> > backgroundColor\tstyle={{ backgroundColor: visual.color }}"
+      "ui/inline-style-keys\tuntracked\tExchangeCell > <li.shard-cell> > <span.shard-cell-dot> > backgroundColor\tstyle={{ backgroundColor: visual.color }}",
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
     ],
     "packages/web/src/routes/unlocks/UnlocksPage.css": [
       "ui/value-allowlist\t\t.unlocks-cell-badge\tz-index: 2;",
@@ -2285,13 +2432,21 @@
       "ui/inline-style-keys\tuntracked\tapplyPose\telement.style.transform = cssTransform(pose);",
       "ui/inline-style-keys\tuntracked\tapplyPose\tpose.clipTop === 0 && pose.clipRight === 0 ? '' : `inset(${pose.clipTop * 100}% ${pose.clipRight * 100}% 0 0)`;"
     ],
+    "packages/web/src/scene/art.ts": [
+      "ui/package-adapter\tnone\t\timport { type GraphicsContext, GraphicsPath, Polygon, type StrokeInput } from 'pixi.js';"
+    ],
     "packages/web/src/scene/stage.ts": [
-      "ui/inline-style-keys\tprop\tSceneStage > fitCanvas\tthis.surface.renderer.resize(target.clientWidth, target.clientHeight);",
-      "ui/inline-style-keys\tprop\tSceneStage > fitCanvas\tthis.surface.renderer.resize(target.clientWidth, target.clientHeight);",
-      "ui/inline-style-keys\tprop\tcreateSceneRenderer > autoDensity\tautoDensity: true,"
+      "ui/package-adapter\tnone\t\timport 'pixi.js/browser';",
+      "ui/package-adapter\tnone\t\timport { Color, Container, Graphics, GraphicsContext, ImageSource, Sprite, Texture, Ticker, WebGLRenderer, } from 'pixi.js';"
     ],
     "packages/web/src/scene/stageEntrance.ts": [
-      "ui/inline-style-keys\thandover\tLayerView > view\treadonly view = new Graphics(this.context);"
+      "ui/package-adapter\tnone\t\timport { AlphaFilter, Container, Graphics, GraphicsContext, Sprite, type Texture } from 'pixi.js';"
+    ],
+    "packages/web/src/scene/svgTexture.ts": [
+      "ui/package-adapter\tnone\t\timport { ImageSource, Texture } from 'pixi.js';"
+    ],
+    "packages/web/src/services/cloudflare/CFAuthService.ts": [
+      "ui/package-adapter\tnone\t\timport * as Sentry from '@sentry/react';"
     ],
     "packages/web/src/theme/colors.ts": [
       "ui/dom-allowlist\tname\tapplyColorTokens\troot.style.setProperty(",
@@ -2318,6 +2473,13 @@
       "ui/value-allowlist\t\t.night-art-title h1\ttext-shadow: 0 4px 12px rgb(0 0 0 / 80%);",
       "ui/value-allowlist\t\t.night-art-title h1\ttext-shadow: 0 4px 12px rgb(0 0 0 / 80%);",
       "ui/value-allowlist\t\t.night-art-title h1\ttext-shadow: 0 4px 12px rgb(0 0 0 / 80%);"
+    ],
+    "packages/web/src/utils/errorPipeline.ts": [
+      "ui/package-adapter\tnone\t\timport * as Sentry from '@sentry/react';",
+      "ui/package-adapter\tnone\t\timport { toast } from 'sonner';"
+    ],
+    "packages/web/src/utils/logger.ts": [
+      "ui/package-adapter\tnone\t\timport { logger as sentryLogger } from '@sentry/react';"
     ]
   }
 }

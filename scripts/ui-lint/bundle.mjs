@@ -20,6 +20,7 @@ import valueParser from 'postcss-value-parser';
 import ts from 'typescript';
 
 import {
+  adapterOf,
   ASSET_EXTENSIONS,
   ASSET_QUERIES,
   BUILD_ENTRIES,
@@ -498,15 +499,14 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
           problems.push(`${at}: \`${specifier}\` is not a registered package of the web client`);
         else if (packages[packageName(specifier)].entries?.includes(specifier) === false)
           problems.push(`${at}: \`${specifier}\` is not a registered entry of its package`);
-        else if (packages[packageName(specifier)].importers?.[specifier] !== undefined) {
-          const listed = packages[packageName(specifier)].importers[specifier];
-          if (listed.includes(relative(file))) importing.add(`${specifier}\u0000${relative(file)}`);
-          else
-            problems.push(`${at}: \`${specifier}\` may be imported only by ${listed.join(', ')}`);
-        } else if (/\.css(\?|$)/.test(specifier))
+        else if (/\.css(\?|$)/.test(specifier))
           problems.push(`${at}: package stylesheets bypass the gate`);
         else if (!resolved) problems.push(`${at}: \`${specifier}\` does not resolve`);
         else if (!resolved.isExternalLibraryImport) leaf(resolved.resolvedFileName, specifier, at);
+        // Who may import an entry is `ui/package-adapter`'s; the graph records the adapters it
+        // sees importing theirs, so a registration is never stale.
+        else if (adapterOf(specifier, packages)?.adapter === relative(file))
+          importing.add(`${specifier}\u0000${relative(file)}`);
         continue;
       }
       if (!resolved) problems.push(`${at}: \`${specifier}\` does not resolve`);
@@ -563,14 +563,21 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
       followScript(file);
     }
   }
-  // The importer lists are exact: a listed module that no longer imports the entry is stale.
-  for (const [name, { importers = {} }] of Object.entries(packages))
-    for (const [specifier, listed] of Object.entries(importers))
-      for (const module of listed)
-        if (!importing.has(`${specifier}\u0000${module}`))
-          problems.push(
-            `registry: \`${module}\` is listed as an importer of \`${specifier}\` (${name}) but does not import it`,
-          );
+  // An adapter is exact: a registered module that does not import its entry is stale, and a
+  // package with adapters registers one (or null) for each of its entries.
+  for (const [name, { entries = [], adapters }] of Object.entries(packages)) {
+    if (adapters === undefined) continue;
+    const listed = Object.keys(adapters).sort();
+    if (JSON.stringify(listed) !== JSON.stringify([...entries].sort()))
+      problems.push(
+        `registry: ${name} registers adapters for ${listed.join(', ')}, not its entries`,
+      );
+    for (const [specifier, module] of Object.entries(adapters))
+      if (module !== null && !importing.has(`${specifier}\u0000${module}`))
+        problems.push(
+          `registry: \`${module}\` is the adapter of \`${specifier}\` (${name}) but does not import it`,
+        );
+  }
   return {
     scripts: [...scripts].sort(),
     styles: [...styles].sort(),

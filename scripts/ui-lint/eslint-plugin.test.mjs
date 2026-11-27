@@ -436,68 +436,8 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         // Pixi's canvas `style` is the element's live style declaration (P1 QA22 F2).
         "import type { ICanvas } from 'pixi.js'; declare const c: ICanvas; Object.assign(c.style ?? {}, { width: '37px' });",
         "import type { ICanvas } from 'pixi.js'; declare const c: ICanvas; c.style!.width = '37px';",
-        // A package's key registered as a CSS property is judged as that property (P1 QA18 F1).
-        "import { parseColor } from '@ark-ui/react/color-picker'; export const c = parseColor('#f00');",
       ],
       'value',
-    ),
-    // A key, option or argument a package declares and `PACKAGE_PROPS` does not register: the
-    // package renders it where the gate does not see it (sonner's `offset` into `--offset-*`,
-    // snapdom's `backgroundColor`) (P1 QA18 F1).
-    ...red(
-      [
-        "import { Toaster } from 'sonner'; export const a = <Toaster offset={37} />;",
-        "import { Toaster } from 'sonner'; export const a = <Toaster gap={14} />;",
-        "import { Toaster } from 'sonner'; export const a = <Toaster mobileOffset={13} />;",
-        "import { toast } from 'sonner'; toast('x', { className: 'a' });",
-        "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; void snapdom.toCanvas(el, { backgroundColor: '#f00' });",
-      ],
-      'prop',
-    ),
-    // A value handed to a package's type without its keys written out where it is handed (a
-    // spread, a binding, a computed key, an assertion): none of its keys can be judged (P1 QA19
-    // F1).
-    ...red(
-      [
-        "import { Toaster } from 'sonner'; const cfg = { offset: 37, gap: 14 }; export const a = <Toaster {...cfg} />;",
-        "import { toast } from 'sonner'; const T = { style: { background: '#f00' } }; toast('a', { ...T });",
-        "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; const S = { backgroundColor: '#f00' }; void snapdom.toCanvas(el, { ...S });",
-        "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; declare const K: 'backgroundColor'; void snapdom.toCanvas(el, { [K]: '#f00' });",
-        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; const cfg = { autoDensity: true, width: 400 }; void r.init(cfg);",
-        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; declare const o: object; void r.init(o);",
-        // Where the object came from is never followed: an instance, an object filled by
-        // `Object.assign`, a typed binding or a forwarding function all hide its keys (P1 QA20 F1).
-        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; class Opts { autoDensity = true; } void r.init(new Opts());",
-        "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; const o: Partial<AutoDetectOptions> = {}; Object.assign(o, { autoDensity: true }); void r.init(o);",
-        "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; const base = { autoDensity: true }; const o: Partial<AutoDetectOptions> = base; void r.init(o);",
-        "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; function go(o: Partial<AutoDetectOptions>) { void r.init(o); } go({});",
-        // A container is looked through to what it hands on: a spread array or tuple, an array
-        // element, a callback's returned value (P1 QA21 F1).
-        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; const base = { autoDensity: true }; void r.init(...[base]);",
-        "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; declare const t: [Partial<AutoDetectOptions>]; void r.init(...t);",
-        "import { init } from '@sentry/react'; const integ = { name: 'q', setupOnce() {} }; init({ dsn: '', integrations: [integ] });",
-        "import { init } from '@sentry/react'; const integ = { name: 'q', setupOnce() {} }; init({ dsn: '', integrations: () => [integ] });",
-        // An assertion or `satisfies` gives a literal a type other than the receiving one, so
-        // its keys are not judged where written (P1 QA22 F4).
-        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; void r.init({ autoDensity: true } satisfies object);",
-        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; void r.init({ autoDensity: true } as Record<string, boolean>);",
-        "import { FillGradient } from 'pixi.js'; const stops = [{ offset: 0, color: 'red' }]; export const g = new FillGradient({ colorStops: stops });",
-        "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; declare const raw: unknown; export const a = <Toaster position={(raw as ComponentProps<typeof Toaster>).position} />;",
-      ],
-      'handover',
-    ),
-    // A package's function or component handed to a position typed by another declaration:
-    // what is later passed to it there is not seen as handed to the package (P1 QA23 F1).
-    ...red(
-      [
-        "import type { FC } from 'react'; import { Toaster } from 'sonner'; const T: FC<{ gap?: number }> = Toaster; export const a = <T />;",
-        "import { snapdom } from '@zumer/snapdom'; const f: (el: HTMLElement, o: { backgroundColor?: string }) => Promise<HTMLCanvasElement> = snapdom.toCanvas; void f;",
-        "import { toast } from 'sonner'; const show: (m: string, d?: { style?: { width?: number } }) => void = toast; show('x');",
-        "import type { FC } from 'react'; import { Toaster } from 'sonner'; const Render = ({ C }: { C: FC<{ gap?: number }> }) => <C />; export const a = <Render C={Toaster} />;",
-        "import { toast } from 'sonner'; export const notifier: { show: (m: string, d?: { style?: { width?: number } }) => void } = { show: toast };",
-        "import type { FC } from 'react'; import { Toaster, type ToasterProps } from 'sonner'; const T: FC<Pick<ToasterProps, 'offset'> & { gap?: number }> = Toaster; export const a = <T />;",
-      ],
-      'callable',
     ),
     // A name with no declaration in the receiving type is reported; only the open families
     // (`aria-*`, `data-*`, handlers) are attributes handed on (P1 QA22 F3).
@@ -507,41 +447,6 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         'function I(p: { title?: string }) { return <svg {...p} />; } export const a = <I fill-opacity="0.3" />;',
       ],
       'undeclared',
-    ),
-    // A package's key not registered, whatever it is called elsewhere in the package: keys are
-    // registered per declaration (Pixi's renderer `autoDensity` and `resize`, `DOMContainer`,
-    // the Sentry Feedback widget) (P1 QA19 F2).
-    ...red(
-      [
-        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; void r.init({ autoDensity: true });",
-        "import { DOMContainer } from 'pixi.js'; export const d = new DOMContainer({});",
-        "import { DOMContainer } from 'pixi.js'; declare const div: HTMLDivElement; const d = new DOMContainer(); d.element = div;",
-        "import { feedbackIntegration } from '@sentry/react'; export const f = feedbackIntegration({});",
-        "import { createElement } from 'react'; import { Toaster } from 'sonner'; export const a = createElement(Toaster, { offset: 37 });",
-      ],
-      'prop',
-    ),
-    // Each argument of the renderer's `resize` (its CSS box with `autoDensity`) is reported.
-    {
-      filename,
-      code: "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; r.resize(400, 300, 1);",
-      errors: [{ messageId: 'prop' }, { messageId: 'prop' }, { messageId: 'prop' }],
-    },
-    // `createElement`'s props are an options object: not a literal, its keys are hidden.
-    ...red(
-      [
-        // A literal asserted to another type is not the object written for the option.
-        "import { toast } from 'sonner'; toast('x', { style: { width: 37, background: '#f00' } } as object);",
-        "import { createElement } from 'react'; import { Toaster } from 'sonner'; const cfg = { offset: 37 }; export const a = createElement(Toaster, cfg);",
-      ],
-      'options',
-    ),
-    // A registered options argument that is not an object literal hides its keys (P1 QA18 F1).
-    ...red(
-      [
-        "import { toast } from 'sonner'; declare const o: Parameters<typeof toast>[1]; toast('x', o);",
-      ],
-      'options',
     ),
     ...red(
       [
@@ -631,6 +536,86 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         'declare const el: HTMLElement; export const { animate } = el;',
       ],
       'indirect',
+    ),
+  ],
+});
+
+// E12: a package that writes the page is imported only by its adapter, judged by the import's
+// syntax; the adapter hands it on neither by re-export nor through its exports' types.
+const ADAPTED = [
+  {
+    packages: {
+      sonner: {
+        field: 'dependencies',
+        why: 'fixture',
+        entries: ['sonner'],
+        adapters: { sonner: PROBE },
+      },
+    },
+  },
+];
+tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
+  valid: [
+    ...green([
+      "import type { Graphics } from 'pixi.js'; export type G = Graphics;",
+      "export type { ToasterProps } from 'sonner';",
+      "import { z } from 'zod'; export const s = z.string();",
+      "import { useNavigate } from 'react-router'; export const useGo = () => useNavigate();",
+      "import type sonner = require('sonner'); export type S = typeof sonner;",
+    ]),
+    ...green(
+      [
+        "import { toast } from 'sonner'; export function notify(message: string) { toast(message); }",
+        'import { Toaster } from \'sonner\'; export function AppToaster() { return <Toaster position="top-center" />; }',
+        "import { toast } from 'sonner'; export const notifier = { show: (message: string) => void toast(message) };",
+      ],
+      ADAPTED,
+    ),
+  ],
+  invalid: [
+    // No adapter is made yet: every import is debt.
+    ...red(
+      [
+        "import { toast } from 'sonner'; toast('x');",
+        "import 'sonner';",
+        "void import('sonner');",
+        'void import(`pixi.js`);',
+        "export { toast } from 'sonner';",
+        "export * from 'pixi.js';",
+        "import * as Sentry from '@sentry/react'; void Sentry;",
+        "import { Portal } from '@ark-ui/react/portal'; void Portal;",
+        "import sonner = require('sonner'); void sonner;",
+      ],
+      'none',
+    ),
+    // Another module is the adapter.
+    ...red(
+      [
+        "import { Dialog } from '@ark-ui/react/dialog'; void Dialog;",
+        "void import('@ark-ui/react/dialog').then((m) => m.Dialog);",
+        "export { Dialog } from '@ark-ui/react/dialog';",
+        "export * from '@ark-ui/react/dialog';",
+        "void import('@ark-ui/react/dialog');",
+        "import { snapdom } from '@zumer/snapdom'; void snapdom;",
+      ],
+      'adapter',
+    ),
+    // The adapter hands the package on.
+    ...red(["export { toast } from 'sonner';", "export * from 'sonner';"], 'reexport', ADAPTED),
+    ...red(
+      [
+        "import { toast } from 'sonner'; export const notify = toast;",
+        "import { toast } from 'sonner'; export { toast };",
+        "import { toast as t } from 'sonner'; export { t as show };",
+        "import { toast } from 'sonner'; export default toast;",
+        "import { toast } from 'sonner'; export const notifier = { show: toast };",
+        "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; export type Props = ComponentProps<typeof Toaster>;",
+        "import { Toaster } from 'sonner'; import type { FC } from 'react'; export const T: FC<{ gap?: number }> = Toaster; export const U = Toaster;",
+        "import { toast, type ExternalToast } from 'sonner'; export function notify(message: string, options: ExternalToast) { toast(message, options); }",
+        "import { toast } from 'sonner'; export function make() { return toast; }",
+      ],
+      'exposes',
+      ADAPTED,
     ),
   ],
 });

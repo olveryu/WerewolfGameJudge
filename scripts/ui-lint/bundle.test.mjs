@@ -167,31 +167,38 @@ describe('bundle graph allow list', () => {
     }
   });
 
-  it('accepts an entry listed in `importers` only from those modules (#524 AppDialog)', () => {
+  it('keeps each registered adapter importing its entry (E12)', () => {
     const packages = {
       dep: {
         field: 'dependencies',
         why: 'fixture',
         entries: ['dep'],
-        importers: { dep: ['packages/web/src/b.ts'] },
+        adapters: { dep: 'packages/web/src/b.ts' },
       },
     };
     const owner = { 'packages/web/src/b.ts': "import 'dep';" };
     expect(graph({ ...main("import './b';"), ...owner }, packages).problems).toEqual([]);
-    const { problems } = graph({ ...main("import './b'; import 'dep';"), ...owner }, packages);
-    expect(problems).toEqual([
-      'packages/web/src/main.ts:1: `dep` may be imported only by packages/web/src/b.ts',
-    ]);
-    // The list is exact: an owner that stops importing the entry is stale.
+    // Who else imports the entry is `ui/package-adapter`'s, not the graph's.
+    expect(graph({ ...main("import './b'; import 'dep';"), ...owner }, packages).problems).toEqual(
+      [],
+    );
+    // The registration is exact: an adapter that stops importing its entry is stale.
     expect(
       graph({ ...main("import './b';"), 'packages/web/src/b.ts': '' }, packages).problems,
     ).toEqual([
-      'registry: `packages/web/src/b.ts` is listed as an importer of `dep` (dep) but does not import it',
+      'registry: `packages/web/src/b.ts` is the adapter of `dep` (dep) but does not import it',
     ]);
-    // A type-only import loads nothing.
+    // A type-only import loads nothing, so it does not keep the adapter fresh.
     expect(
-      graph({ ...main("import './b'; import type {} from 'dep';"), ...owner }, packages).problems,
-    ).toEqual([]);
+      graph(
+        { ...main("import './b';"), 'packages/web/src/b.ts': "import type {} from 'dep';" },
+        packages,
+      ).problems,
+    ).toHaveLength(1);
+    // Every entry of an adapted package names its adapter, or null while none is made.
+    expect(
+      graph(main(''), { dep: { ...packages.dep, entries: ['dep', 'dep/x'] } }).problems,
+    ).toContain('registry: dep registers adapters for dep, not its entries');
   });
 
   // #524 QA11 M1: Ark's Dialog reaches the bundle only through AppDialog, whatever the path.
@@ -223,24 +230,23 @@ describe('bundle graph allow list', () => {
     const packages = {
       '@ark-ui/react': {
         ...REGISTERED['@ark-ui/react'],
-        importers: {
-          '@ark-ui/react/dialog': REGISTERED['@ark-ui/react'].importers['@ark-ui/react/dialog'],
+        entries: ['@ark-ui/react/dialog'],
+        adapters: {
+          '@ark-ui/react/dialog': REGISTERED['@ark-ui/react'].adapters['@ark-ui/react/dialog'],
         },
       },
     };
     const run = (text) =>
       graph({ ...ark, ...main(`import './components/AppDialog'; ${text}`) }, packages).problems;
 
-    it('registers AppDialog alone', () => {
-      expect(REGISTERED['@ark-ui/react'].importers['@ark-ui/react/dialog']).toEqual([OWNER]);
+    // Who imports `/dialog` is `ui/package-adapter`'s (eslint-plugin.test.mjs); the graph keeps
+    // every other path to Ark's dialog closed.
+    it('registers AppDialog as the adapter', () => {
+      expect(REGISTERED['@ark-ui/react'].adapters['@ark-ui/react/dialog']).toBe(OWNER);
       expect(run('')).toEqual([]);
     });
 
     it.each([
-      ["import { Dialog } from '@ark-ui/react/dialog';", 'may be imported only by'],
-      ["void import('@ark-ui/react/dialog');", 'may be imported only by'],
-      ["export { Dialog } from '@ark-ui/react/dialog';", 'may be imported only by'],
-      ["export * from '@ark-ui/react/dialog';", 'may be imported only by'],
       ["import { Dialog } from '@ark-ui/react';", 'is not a registered entry'],
       ["import * as Ark from '@ark-ui/react'; void Ark;", 'is not a registered entry'],
       ["void import('@ark-ui/react').then((m) => m.Dialog);", 'is not a registered entry'],

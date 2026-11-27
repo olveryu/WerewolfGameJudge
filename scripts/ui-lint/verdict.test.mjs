@@ -48,8 +48,16 @@ describe('UI gate value exit (static)', () => {
     const written = source('written.mjs').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
     expect(written).not.toMatch(/^import /m);
     expect(written).not.toMatch(/checker|getType|program|symbol|services/i);
-    const rule = source('eslint-plugin.mjs').slice(
-      source('eslint-plugin.mjs').indexOf('const inlineStyleKeys = {'),
+    // The value rule runs up to `ui/package-adapter`, which reads an adapter's exported types
+    // (its API surface), never a written value.
+    const plugin = source('eslint-plugin.mjs');
+    const rule = plugin.slice(
+      plugin.indexOf('const inlineStyleKeys = {'),
+      plugin.indexOf('const packageAdapter = {'),
+    );
+    expect(rule).toContain('const inlineStyleKeys = {');
+    expect(plugin.indexOf('const packageAdapter = {')).toBeGreaterThan(
+      plugin.indexOf('const inlineStyleKeys = {'),
     );
     // A literal reading is built only by `writtenValue`; the rule builds only the readings that
     // never pass a value (`runtime`) and the registered publisher's.

@@ -33,6 +33,7 @@ export function gateConfig(repoRoot) {
         'ui/dom-allowlist': 'error',
         'ui/element-allowlist': 'error',
         'ui/inline-style-keys': 'error',
+        'ui/package-adapter': 'error',
         'no-eval': 'error',
         'no-new-func': 'error',
         '@typescript-eslint/no-implied-eval': 'error',
@@ -41,7 +42,8 @@ export function gateConfig(repoRoot) {
         '@typescript-eslint/no-unsafe-argument': 'error',
         '@typescript-eslint/no-unsafe-assignment': 'error',
         // Which package specifiers may be imported at all is the bundle graph's (`PACKAGES`
-        // entries); this keeps the one named import of the one React DOM entry.
+        // entries), and by which module `ui/package-adapter`'s; this keeps the one named import
+        // of the one React DOM entry.
         'no-restricted-imports': [
           'error',
           {
