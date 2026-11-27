@@ -2,10 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 
-import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
-import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
-import { FIBKING_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/fibking/public';
-import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/undercover/public';
+import { WORD_CATEGORY_CATALOGS } from '@game-judge/game-engine/games/wordCategoryCatalogs';
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -19,9 +16,26 @@ import {
 /** Last migration written before these rules existed; later files must follow every rule. */
 const RULES_BASELINE = '0094_toolbox_presets.sql';
 const MANIFEST_PATH = 'contracts/d1MigrationManifest.json';
-/** `PRAGMA defer_foreign_keys` set to any of SQLite's false spellings, optionally quoted. */
-const DEFER_FOREIGN_KEYS_RESET =
-  /PRAGMA\s+defer_foreign_keys\s*=\s*['"]?(?:false|off|no|0)['"]?\s*(?:;|$)/im;
+/** A SQLite identifier in any quoting SQLite accepts: bare, "double", `backtick` or [bracket]. */
+const IDENT = String.raw`(?:"(\w+)"|\x60(\w+)\x60|\[(\w+)\]|(\w+))`;
+/** An optional `main.` (or `temp.`) schema prefix, quoted or not. */
+const SCHEMA_PREFIX = String.raw`(?:(?:"\w+"|\x60\w+\x60|\[\w+\]|\w+)\s*\.\s*)?`;
+/** A table name with optional schema prefix; the name is whichever of four groups matched. */
+const TABLE_NAME = `${SCHEMA_PREFIX}${IDENT}`;
+
+/** Pattern source for the known identifier `name`, schema-prefixed and quoted any way. */
+function named(name: string): string {
+  return String.raw`${SCHEMA_PREFIX}(?:"${name}"|\x60${name}\x60|\[${name}\]|${name}\b)`;
+}
+
+/**
+ * `PRAGMA [schema.]defer_foreign_keys` set to any of SQLite's false spellings, in either the
+ * `= value` or the function-call `(value)` form, with the pragma name and value optionally quoted.
+ */
+const DEFER_FOREIGN_KEYS_RESET = new RegExp(
+  String.raw`PRAGMA\s+${SCHEMA_PREFIX}["\x60\[]?defer_foreign_keys["\x60\]]?\s*(?:=\s*|\(\s*)['"]?(?:false|off|no|0)['"]?\s*\)?\s*(?:;|$)`,
+  'im',
+);
 
 interface RebuildViolation {
   migration: string;
@@ -36,9 +50,18 @@ function captured(match: RegExpMatchArray, group: number): string {
   return value;
 }
 
-/** SQL without `--` line comments, so commented-out statements never count. */
+/** SQL without `--` line or block comments, so commented-out statements never count. */
 function stripComments(sql: string): string {
-  return sql.replace(/--[^\n]*/g, '');
+  return sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, '');
+}
+
+/** The identifier a TABLE_NAME match captured, starting at group `first`. */
+function identifier(match: RegExpMatchArray, first: number): string | undefined {
+  for (let group = first; group < first + 4; group += 1) {
+    const value = match[group];
+    if (value !== undefined) return value;
+  }
+  return undefined;
 }
 
 interface TableEffects {
@@ -65,10 +88,20 @@ function tableEffects(database: DatabaseSync, sql: string): TableEffects {
     [...existing].map((name) => [name, { existing: name }]),
   );
   const dropped = new Set<string>();
-  const statement =
-    /\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?"?(\w+)"?|\bALTER\s+TABLE\s+"?(\w+)"?\s+RENAME\s+TO\s+"?(\w+)"?|\bDROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?"?(\w+)"?/gi;
+  // Groups: 1–4 created, 5–8 renamed from, 9–12 renamed to, 13–16 dropped.
+  const statement = new RegExp(
+    [
+      String.raw`\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?${TABLE_NAME}`,
+      String.raw`\bALTER\s+TABLE\s+${TABLE_NAME}\s+RENAME\s+TO\s+${IDENT}`,
+      String.raw`\bDROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?${TABLE_NAME}`,
+    ].join('|'),
+    'gi',
+  );
   for (const match of stripComments(sql).matchAll(statement)) {
-    const [, createdName, renamedFrom, renamedTo, droppedName] = match;
+    const createdName = identifier(match, 1);
+    const renamedFrom = identifier(match, 5);
+    const renamedTo = identifier(match, 9);
+    const droppedName = identifier(match, 13);
     if (createdName !== undefined) {
       current.set(createdName, { created: createdName });
     } else if (renamedFrom !== undefined && renamedTo !== undefined) {
@@ -93,7 +126,7 @@ function tableEffects(database: DatabaseSync, sql: string): TableEffects {
 /** The parenthesised body of `CREATE TABLE <table> (…)`, matched by depth rather than layout. */
 function createTableBody(sql: string, table: string): string {
   const start = stripComments(sql).search(
-    new RegExp(`CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?"?${table}"?\\s*\\(`, 'i'),
+    new RegExp(String.raw`CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?${named(table)}\s*\(`, 'i'),
   );
   if (start < 0) return '';
   const text = stripComments(sql);
@@ -150,7 +183,9 @@ function normalizedSql(sql: string): string {
 
 function createTriggerStatement(sql: string, trigger: string): string | undefined {
   const text = stripComments(sql);
-  const start = text.search(new RegExp(`CREATE\\s+TRIGGER\\s+"?${trigger}"?\\b`, 'i'));
+  const start = text.search(
+    new RegExp(String.raw`CREATE\s+TRIGGER\s+(?:IF\s+NOT\s+EXISTS\s+)?${named(trigger)}`, 'i'),
+  );
   if (start < 0) return undefined;
   const end = text.slice(start).search(/\bEND\s*;/i);
   return end < 0 ? text.slice(start) : text.slice(start, start + end + 3);
@@ -192,7 +227,7 @@ function checkRebuild(database: DatabaseSync, migration: string, sql: string): R
       const body = createTableBody(sql, descendantStaging);
       if (
         parentStaging !== parent &&
-        new RegExp(`REFERENCES\\s+"?${parent}"?\\s*\\(`, 'i').test(body)
+        new RegExp(String.raw`REFERENCES\s+${named(parent)}\s*\(`, 'i').test(body)
       ) {
         violations.push({
           migration,
@@ -203,9 +238,10 @@ function checkRebuild(database: DatabaseSync, migration: string, sql: string): R
     for (const trigger of referencingTriggers(database, parent)) {
       const dropsTrigger =
         trigger.onTable === parent ||
-        new RegExp(`DROP\\s+TRIGGER\\s+(?:IF\\s+EXISTS\\s+)?"?${trigger.name}"?\\b`, 'i').test(
-          stripComments(sql),
-        );
+        new RegExp(
+          String.raw`DROP\s+TRIGGER\s+(?:IF\s+EXISTS\s+)?${named(trigger.name)}`,
+          'i',
+        ).test(stripComments(sql));
       const recreated = createTriggerStatement(sql, trigger.name);
       if (!dropsTrigger || recreated === undefined) {
         violations.push({
@@ -234,19 +270,54 @@ function databaseThrough(last: string): DatabaseSync {
   return database;
 }
 
+/** Every table's b-tree root page: a table SQLite dropped and recreated gets a new one. */
+function tableRootPages(database: DatabaseSync): Map<string, number> {
+  return new Map(
+    database
+      .prepare("SELECT name, rootpage FROM sqlite_master WHERE type = 'table'")
+      .all()
+      .map((row) => [String(row.name), Number(row.rootpage)]),
+  );
+}
+
+/**
+ * Tables SQLite itself dropped while applying a file: gone afterwards, or present on a new root
+ * page. Ground truth for the text parse above, which must have seen every one of them.
+ */
+function structurallyDropped(
+  before: ReadonlyMap<string, number>,
+  after: ReadonlyMap<string, number>,
+): string[] {
+  return [...before]
+    .filter(([name, rootpage]) => after.get(name) !== rootpage)
+    .map(([name]) => name)
+    .sort();
+}
+
 it('every rebuilt parent table rebuilds all foreign-key descendants and referencing triggers', () => {
   const database = new DatabaseSync(':memory:');
   try {
     database.exec('PRAGMA foreign_keys = ON');
     const violations: RebuildViolation[] = [];
+    const unparsedDrops: string[] = [];
     for (const name of listMigrationNames()) {
       // Applied migrations are immutable (manifest below); 0036 and 0087 rebuilt children in a
       // later step against the renamed parent, an ordering this structural check does not model.
-      if (name > RULES_BASELINE)
-        violations.push(...checkRebuild(database, name, readMigration(name)));
+      const checked = name > RULES_BASELINE;
+      const sql = readMigration(name);
+      const parsed = checked ? tableEffects(database, sql).dropped : new Set<string>();
+      if (checked) violations.push(...checkRebuild(database, name, sql));
+      const before = tableRootPages(database);
       applyMigration(database, name);
+      if (checked) {
+        for (const table of structurallyDropped(before, tableRootPages(database))) {
+          if (!parsed.has(table)) unparsedDrops.push(`${name}: ${table}`);
+        }
+      }
     }
     expect(violations).toEqual([]);
+    // A DROP spelled in a way the parse misses would skip the descendant check; fail instead.
+    expect(unparsedDrops).toEqual([]);
   } finally {
     database.close();
   }
@@ -346,6 +417,19 @@ describe('rebuild guard probes on the current schema', () => {
     expect(problems('DROP TABLE rooms;')).toEqual(missingFromRooms(roomsDescendants));
   });
 
+  it('sees a parent drop however the table name is spelled', () => {
+    for (const spelling of [
+      'DROP TABLE main.rooms;',
+      'DROP TABLE "main"."rooms";',
+      'DROP TABLE \x60rooms\x60;',
+      'DROP TABLE [rooms];',
+      'DROP /* rebuild */ TABLE IF EXISTS rooms;',
+    ]) {
+      expect(problems(spelling), spelling).toEqual(missingFromRooms(roomsDescendants));
+    }
+    expect(problems('-- DROP TABLE rooms;\n/* DROP TABLE rooms; */')).toEqual([]);
+  });
+
   it('flags a rename-away rebuild that leaves descendants on the renamed copy', () => {
     const sql = [
       'ALTER TABLE rooms RENAME TO rooms_old;',
@@ -404,13 +488,30 @@ describe('rebuild guard probes on the current schema', () => {
 });
 
 it('new migrations never reset defer_foreign_keys', () => {
-  // SQLite itself (not only D1): turning defer_foreign_keys off inside a transaction discards
-  // unresolved violations, so COMMIT succeeds and foreign_key_check then reports them (verified on
-  // SQLite 3.53.4). SQLite resets the pragma at COMMIT, so the reset is never needed.
+  // Turning defer_foreign_keys off inside a transaction discards unresolved violations, so COMMIT
+  // succeeds and foreign_key_check reports them afterwards; the next test pins that behaviour.
+  // SQLite resets the pragma at COMMIT, so the reset is never needed.
   const offenders = listMigrationNames()
     .filter((name) => name > RULES_BASELINE)
     .filter((name) => DEFER_FOREIGN_KEYS_RESET.test(readMigration(name)));
   expect(offenders).toEqual([]);
+});
+
+it('resetting defer_foreign_keys inside a transaction lets a violation commit', () => {
+  const database = new DatabaseSync(':memory:');
+  try {
+    database.exec(`PRAGMA foreign_keys = ON;
+      CREATE TABLE parent (id TEXT PRIMARY KEY);
+      CREATE TABLE child (parent_id TEXT NOT NULL REFERENCES parent(id));`);
+    database.exec(`BEGIN;
+      PRAGMA defer_foreign_keys = true;
+      INSERT INTO child (parent_id) VALUES ('missing');
+      PRAGMA defer_foreign_keys = false;
+      COMMIT;`);
+    expect(database.prepare('PRAGMA foreign_key_check').all()).toHaveLength(1);
+  } finally {
+    database.close();
+  }
 });
 
 it('the defer_foreign_keys guard recognises every false spelling', () => {
@@ -424,15 +525,22 @@ it('the defer_foreign_keys guard recognises every false spelling', () => {
       false,
     );
   }
+  for (const statement of [
+    'PRAGMA main.defer_foreign_keys = false;',
+    'PRAGMA defer_foreign_keys(false);',
+    'PRAGMA defer_foreign_keys (0);',
+    'PRAGMA "defer_foreign_keys" = 0;',
+    'pragma "main".defer_foreign_keys = OFF',
+  ]) {
+    expect(DEFER_FOREIGN_KEYS_RESET.test(statement), statement).toBe(true);
+  }
+  expect(DEFER_FOREIGN_KEYS_RESET.test('PRAGMA main.defer_foreign_keys(true);')).toBe(false);
 });
 
 it('new migrations never encode game or category lists in CHECK constraints', () => {
   const catalogued = new Set<string>([
     ...GAME_TYPES,
-    ...FIBKING_WORD_CATEGORY_CATALOG.ids,
-    ...UNDERCOVER_WORD_CATEGORY_CATALOG.ids,
-    ...DRAWGUESS_WORD_CATEGORY_CATALOG.ids,
-    ...DECRYPTO_WORD_CATEGORY_CATALOG.ids,
+    ...Object.values(WORD_CATEGORY_CATALOGS).flatMap((catalog) => catalog.ids),
   ]);
   const offenders = listMigrationNames()
     .filter((name) => name > RULES_BASELINE)

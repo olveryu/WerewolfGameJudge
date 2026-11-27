@@ -31,6 +31,12 @@ const REMOVED_PACKAGE_EXPORT_PREFIXES = [
 ] as const;
 const GAME_EXPORT_PATTERN = /^\.\/games\/([^/]+)(?:\/(.+))?$/;
 const ALLOWED_GAME_MODULE_ENTRYPOINTS = new Set(['public']);
+/** Exports that compose every game (catalog, registry, word category map) rather than expose one. */
+const CROSS_GAME_COMPOSITION_EXPORTS = new Set([
+  './games/catalog',
+  './games/registry',
+  './games/wordCategoryCatalogs',
+]);
 const EXPECTED_PACKAGE_EXPORTS = [
   './games/catalog',
   './games/avalon/public',
@@ -38,6 +44,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './games/fibking/public',
   './games/pictionary/public',
   './games/registry',
+  './games/wordCategoryCatalogs',
   './games/storyrelay/public',
   './games/toolbox/public',
   './games/undercover/public',
@@ -423,7 +430,7 @@ describe('game-engine ownership layout', () => {
     const invalidGameExports = readPackageExports()
       .map(({ exportPath }) => exportPath)
       .filter((exportPath) => {
-        if (exportPath === './games/catalog' || exportPath === './games/registry') return false;
+        if (CROSS_GAME_COMPOSITION_EXPORTS.has(exportPath)) return false;
         const match = GAME_EXPORT_PATTERN.exec(exportPath);
         if (match === null) return false;
         if (match[1] === 'catalog') return true;

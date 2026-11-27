@@ -1,5 +1,10 @@
-/** One shape for every word game's category catalog; the code is the authority and D1 is its projection. */
-import type { GameWordGame } from './games';
+/**
+ * One shape for every word game's category catalog; the code is the authority and D1 is its
+ * projection. A catalog names the game it belongs to (any GameType); joining the shared supply
+ * contract is a separate, exhaustive registration: GAME_WORD_GAMES plus WORD_CATEGORY_CATALOGS
+ * (games/wordCategoryCatalogs.ts), keyed by GameWordGame.
+ */
+import type { GameType } from '../../platform/protocol/gameTypes';
 
 export interface WordCategoryEntry<Id extends string> {
   readonly id: Id;
@@ -8,7 +13,7 @@ export interface WordCategoryEntry<Id extends string> {
 
 type NonEmpty<T> = readonly [T, ...T[]];
 
-export interface WordCategoryCatalog<Game extends GameWordGame, Id extends string> {
+export interface WordCategoryCatalog<Game extends GameType, Id extends string> {
   readonly game: Game;
   /** Display and storage order; it is the `sort_order` projected into `word_categories`. */
   readonly entries: NonEmpty<WordCategoryEntry<Id>>;
@@ -25,7 +30,7 @@ function hasEveryName<Id extends string>(
 }
 
 /** Builds a catalog, failing at module load on an empty, blank, or duplicate id or name. */
-export function defineWordCategoryCatalog<const Game extends GameWordGame, const Id extends string>(
+export function defineWordCategoryCatalog<const Game extends GameType, const Id extends string>(
   game: Game,
   entries: NonEmpty<WordCategoryEntry<Id>>,
 ): WordCategoryCatalog<Game, Id> {

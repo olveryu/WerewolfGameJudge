@@ -12,6 +12,10 @@
       "types": "./src/games/registry.ts",
       "default": "./dist/games/registry.js"
     },
+    "./games/wordCategoryCatalogs": {
+      "types": "./src/games/wordCategoryCatalogs.ts",
+      "default": "./dist/games/wordCategoryCatalogs.js"
+    },
     "./games/werewolf/public": {
       "types": "./src/games/werewolf/public.ts",
       "default": "./dist/games/werewolf/public.js"

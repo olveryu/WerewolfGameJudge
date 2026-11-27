@@ -132,12 +132,14 @@ disposition in the PR description.
    `references/skeleton-and-wiring.md`, including the explicit
    `workflowName` and `binding` registry metadata, then regenerate
    `worker-configuration.d.ts`. The skeleton carries no workflow body.
-   The word-library catalog (same entries as `--word-category`),
-   `GAME_WORD_GAMES` entry and `CATEGORY_CATALOGS` row are generated from
-   that list by the generator; the registration migration already seeds
-   `word_games` / `word_categories`
-   (`references/registration-checklist.md` item 7). The per-game adapters
-   stay manual; draw rows (`word_draw_index` / `word_draw_ordinals`) are
+   The word-library catalog (same entries as `--word-category`) is
+   generated from that list by the generator; the registration migration
+   already seeds `word_games` / `word_categories`
+   (`references/registration-checklist.md` item 7). Joining the shared
+   supply contract stays manual and lands with its adapters: the
+   `GAME_WORD_GAMES` entry, the `WORD_CATEGORY_CATALOGS` entry
+   (`packages/game-engine/src/games/wordCategoryCatalogs.ts`), and every
+   map keyed by `GameWordGame` that typecheck then names; draw rows (`word_draw_index` / `word_draw_ordinals`) are
    only needed for a pool using the shared draw and land with the supply
    migration, not the registration migration.
 8. Re-run scoped engine/Worker/web tests and affected contracts, root

@@ -39,22 +39,30 @@ dependency: `SHARED_EDITS` performs none.
    `worker-configuration.d.ts`. The architecture contract welds all
    four registry facts to the deployment block and generated binding type.
    If the game has a word library (`wordSupply` other than `none`),
-   the generator writes all of it from the one `--word-category` list:
-   the engine `wordCategories.ts` (`defineWordCategoryCatalog`), its
-   `public.ts` export, the id in `GAME_WORD_GAMES`
-   (`packages/game-engine/src/product/wordSupply/games.ts`), the catalog
-   in `CATEGORY_CATALOGS` of `contracts/d1Catalog.contract.test.ts`, and
-   the registration migration's `word_games` row plus one
-   `word_categories` row per category (item 11). Only the exhaustive
-   word-library adapter tables keyed by `WordGame` stay manual; typecheck
-   names each one. The generator writes no `word_draw_index` /
+   the generator writes, from the one `--word-category` list, the engine
+   `wordCategories.ts` (`defineWordCategoryCatalog`), its `public.ts`
+   export, and the registration migration's `word_games` row plus one
+   `word_categories` row per category (item 11). Joining the shared supply
+   contract is manual and lands with its adapters in one change: the id in
+   `GAME_WORD_GAMES` (`packages/game-engine/src/product/wordSupply/games.ts`),
+   the catalog in `WORD_CATEGORY_CATALOGS` of
+   `packages/game-engine/src/games/wordCategoryCatalogs.ts` (read by the
+   Worker, the admin mock and `contracts/d1Catalog.contract.test.ts`), then
+   every map keyed by `GameWordGame` that typecheck names (Env supply flag,
+   submission adapter, publication/editorial/provider, word deal, admin
+   dashboard tables). The generator leaves those two lists untouched so
+   its output typechecks without the adapters; the D1 catalog contract
+   names the game until they land. The generator writes no `word_draw_index` /
    `word_draw_ordinals` rows: they belong only to pools on the shared
    draw path and ship with the word-table migration that adds the
    `draw_ordinal` column and its triggers. Pinned by
    `word_games rows equal GAME_WORD_GAMES` and
    `word_categories rows equal each engine category catalog` in
-   `contracts/d1Catalog.contract.test.ts`. A later category addition is
-   a catalog edit plus one INSERT migration; changing a display name is
+   `contracts/d1Catalog.contract.test.ts`. A category appended at the end
+   of a catalog is a catalog edit plus one INSERT migration (its
+   `sort_order` is the next index); inserting one mid-list also shifts
+   every later `sort_order` under `UNIQUE (game, sort_order)`, so that
+   migration renumbers them first; changing a display name is
    one `UPDATE` of `name`, while changing an `id` is rejected by the
    child tables' foreign keys and needs a hand-written migration.
 8. `[G]` Home entry in `CLIENT_GAMES`

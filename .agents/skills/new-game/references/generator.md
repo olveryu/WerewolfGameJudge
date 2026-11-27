@@ -121,10 +121,11 @@ starting point, not a template: review it against the current schema and
 this game's requirements before committing, and never copy it or an
 earlier migration mechanically. The same run generates the game's
 `defineWordCategoryCatalog` catalog (`packages/game-engine/src/games/<id>/wordCategories.ts`,
-exported from `public.ts`), its `GAME_WORD_GAMES` entry and its
-`CATEGORY_CATALOGS` row in `contracts/d1Catalog.contract.test.ts`, all from the
-same `--word-category` list as the migration's word rows; only the
-game-specific word-library adapters stay manual (report step 7,
+exported from `public.ts`) from the same `--word-category` list as the
+migration's word rows. `GAME_WORD_GAMES` and `WORD_CATEGORY_CATALOGS`
+(`packages/game-engine/src/games/wordCategoryCatalogs.ts`, the map
+`contracts/d1Catalog.contract.test.ts` pins against D1) are not edited: joining
+them requires every `GameWordGame`-keyed adapter, so it stays manual (report step 7,
 `references/registration-checklist.md` item 7). Draw rows are not generated:
 only a pool using the shared draw needs `word_draw_index` / `word_draw_ordinals`
 rows (see report step 7).

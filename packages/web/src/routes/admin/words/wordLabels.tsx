@@ -1,4 +1,4 @@
-/** Shared word-workspace vocabulary: game/status labels, choice sheets, and
+/** Shared word-workspace vocabulary: status labels, choice sheets, and
  * submission action eligibility. The old section navigation lived here too;
  * it was deleted with the section split (unified page only). */
 import type { WordSubmissionItem } from '@game-judge/game-engine/product/wordSupply';
@@ -9,12 +9,6 @@ import IconChevronDown from '~icons/ion/chevron-down';
 import { DetailDrawer } from '../components/Overlays';
 import { StatusBadge } from '../components/Primitives';
 
-export const WORD_GAME_LABELS = {
-  fibking: '瞎掰王',
-  undercover: '谁是卧底',
-  drawguess: '你画我猜',
-  decrypto: '解码战',
-} as const;
 export const SUBMISSION_STATUS_LABELS = {
   pending: '待启动审核',
   approved: '已批准待审核',
