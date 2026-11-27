@@ -56,6 +56,12 @@ export const valueMessages = {
     `\`${word}\` is not allowed in \`${prop}\`: the ${domain} domain takes var(--token) and registered keywords (UI gate S1).`,
   token: (prop) =>
     `\`${prop}\` is a design token; only tokens.css or colors.ts defines it (UI gate S4).`,
+  feature: (word, rule) =>
+    `\`${word}\` is not a registered \`@${rule}\` feature or word (UI gate S1).`,
+  breakpoint: (word, rule) =>
+    `\`${word}\` in an \`@${rule}\` condition is not a registered breakpoint (UI gate S1).`,
+  runtime: (prop, kind) =>
+    `This \`${prop}\` value is a runtime ${kind}: the gate cannot show it is a token, so pass it through a custom property (\`--x\`, read by a stylesheet's \`var()\`) or write a token (UI gate E4, D15).`,
   keyframes: (name) =>
     `\`${name}\` is not a keyframes rule of this stylesheet; an animation runs only keyframes its own sheet defines (UI gate S1).`,
 };
@@ -203,4 +209,21 @@ export function valueProblems(
   else if (DOMAINS[domainName].shape) shape(nodes);
   else walk(nodes, DOMAINS[domainName], domainName);
   return problems;
+}
+
+/**
+ * Whether a runtime value (`{ runtime, text }`, the reading of an expression the gate cannot read
+ * as a literal) fits `prop` whatever it holds (plan v3.9 D15 ②). Only two kinds do: any value of
+ * a custom property, the one channel by which a computed value reaches CSS (the stylesheet that
+ * reads it through `var()` is checked as any other), and a number where unitless numbers are
+ * free (a count, a grid line, a unitless flex or transform factor). A number written as px, a
+ * runtime string, a number in a token domain, never do. `text` is the number as it is written
+ * (`1px` or `1`), so the unit decision is the writer's, as for a literal.
+ */
+export function runtimeFits({ runtime, text }, prop, domainName) {
+  if (domainName === 'custom') return true;
+  if (runtime !== 'number') return false;
+  const unitless = valueParser.unit(text)?.unit === '';
+  if (domainName === 'free' || DOMAINS[domainName].shape) return unitless;
+  return unitless && Boolean(DOMAINS[domainName].unitless);
 }

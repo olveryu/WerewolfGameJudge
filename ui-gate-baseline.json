@@ -26,6 +26,19 @@
       "ui/value-allowlist\t\t.wechat-guide-steps\tline-height: 2;",
       "ui/value-allowlist\t\t@keyframes wechat-guide-bounce > 50%\ttransform: translateY(-10px);"
     ],
+    "packages/web/src/boot/bootSplash.css": [
+      "ui/value-allowlist\t\t.boot-progress\tbackground: rgb(255 255 255 / 20%);",
+      "ui/value-allowlist\t\t.boot-progress\theight: 4px;",
+      "ui/value-allowlist\t\t.boot-progress-bar\tbackground: #ffffff;",
+      "ui/value-allowlist\t\t.boot-progress-bar\ttransition: transform 200ms ease-out;",
+      "ui/value-allowlist\t\t.boot-refresh\tanimation: boot-refresh-reveal 0s linear 8s forwards;",
+      "ui/value-allowlist\t\t.boot-refresh\tcolor: #ffffff;",
+      "ui/value-allowlist\t\t.boot-splash\ttransition: opacity 300ms ease-out;",
+      "ui/value-allowlist\t\t.boot-status\topacity: 0.7;"
+    ],
+    "packages/web/src/boot/bootSplash.ts": [
+      "ui/inline-style-keys\tuntracked\ttrackProgress > record\tprogressBar.style.transform = `scaleX(${fraction})`;"
+    ],
     "packages/web/src/components/BottomSheet.css": [
       "ui/value-allowlist\t\t.bottom-sheet\tmax-height: 85vh;",
       "ui/value-allowlist\t\t.bottom-sheet-backdrop[data-state='open']\tanimation: bottom-sheet-fade 180ms ease-out;",
@@ -65,6 +78,9 @@
       "ui/value-allowlist\t\t.game-stats-identities > summary\ttransform 100ms ease-out;",
       "ui/value-allowlist\t\t.game-stats-reaction svg\tstroke-width: 1.5;"
     ],
+    "packages/web/src/components/GameStatsPanel.tsx": [
+      "ui/inline-style-keys\tuntracked\tGameStatsBar > <div.game-stats-bar-row> > <span.game-stats-bar-track> > <span.game-stats-bar-fill> > width\t<span className=\"game-stats-bar-fill\" style={{ width: `${percent}%` }} />"
+    ],
     "packages/web/src/components/IndeterminateProgressBar.css": [
       "ui/value-allowlist\t\t@keyframes indeterminate-progress-sweep > to\ttransform: translateX(calc(100% * 10 / 3));",
       "ui/value-allowlist\t\t@keyframes indeterminate-progress-sweep > to\ttransform: translateX(calc(100% * 10 / 3));",
@@ -97,10 +113,37 @@
       "ui/value-allowlist\t\t.switch:checked::after\ttransform: translateX(20px);"
     ],
     "packages/web/src/components/avatar/Avatar.tsx": [
-      "ui/inline-style-keys\tvalue\tAvatar > style > borderRadius\t: { width: size, height: size, borderRadius: AVATAR_CORNER_RADIUS };\tpackages/web/src/components/avatar/Avatar.tsx: const AVATAR_CORNER_RADIUS = `${AVATAR_CORNER_RATIO * 100}%`;",
-      "ui/inline-style-keys\tvalue\tAvatar > style > borderRadius\t? { borderRadius: AVATAR_CORNER_RADIUS }\tpackages/web/src/components/avatar/Avatar.tsx: const AVATAR_CORNER_RADIUS = `${AVATAR_CORNER_RATIO * 100}%`;"
+      "ui/inline-style-keys\tuntracked\tAvatar > <img.avatar>\theight={isFill ? undefined : size}",
+      "ui/inline-style-keys\tuntracked\tAvatar > <img.avatar>\twidth={isFill ? undefined : size}",
+      "ui/inline-style-keys\tuntracked\tAvatar > <span.avatar avatar-fallback> > <span.avatar-fallback-mark> > WebkitMaskImage\tWebkitMaskImage: `url(${source.maskUrl})`,",
+      "ui/inline-style-keys\tuntracked\tAvatar > <span.avatar avatar-fallback> > <span.avatar-fallback-mark> > backgroundColor\tbackgroundColor: source.tint,",
+      "ui/inline-style-keys\tuntracked\tAvatar > <span.avatar avatar-fallback> > <span.avatar-fallback-mark> > maskImage\tmaskImage: `url(${source.maskUrl})`,",
+      "ui/inline-style-keys\tuntracked\tAvatar > style > borderRadius\t: { width: size, height: size, borderRadius: AVATAR_CORNER_RADIUS };\tpackages/web/src/components/avatar/Avatar.tsx: const AVATAR_CORNER_RADIUS = `${AVATAR_CORNER_RATIO * 100}%`;",
+      "ui/inline-style-keys\tuntracked\tAvatar > style > borderRadius\t? { borderRadius: AVATAR_CORNER_RADIUS }\tpackages/web/src/components/avatar/Avatar.tsx: const AVATAR_CORNER_RADIUS = `${AVATAR_CORNER_RATIO * 100}%`;",
+      "ui/inline-style-keys\tuntracked\tAvatar > style > height\t: { width: size, height: size, borderRadius: AVATAR_CORNER_RADIUS };",
+      "ui/inline-style-keys\tuntracked\tAvatar > style > width\t: { width: size, height: size, borderRadius: AVATAR_CORNER_RADIUS };"
     ],
     "packages/web/src/components/avatar/GeneratedAvatar.tsx": [
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg>\t<svg viewBox={`0 0 ${S} ${S}`} width={size} height={size} aria-hidden>",
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg>\t<svg viewBox={`0 0 ${S} ${S}`} width={size} height={size} aria-hidden>",
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg> > <g> > <path>\t<path d={`M13,${19 + data.mouthSpread} a1,0.75 0 0,0 10,0`} fill={data.faceColor} />",
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg> > <g> > <path>\tstroke={data.faceColor}",
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg> > <g> > <rect>\tfill={data.faceColor}",
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg> > <g> > <rect>\tfill={data.faceColor}",
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg> > <rect>\t<rect width={S} height={S} fill={data.backgroundColor} />",
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg> > <rect>\tfill={data.wrapperColor}",
+      "ui/inline-style-keys\tuntracked\tBeamAvatar > <svg> > <rect>\trx={data.isCircle ? S : S / 6}",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg>\t<svg viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`} width={size} height={size} aria-hidden>",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg>\t<svg viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`} width={size} height={size} aria-hidden>",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <circle>\t<circle cx={45} cy={45} r={23} fill={ringColors[8]} />",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <path>\t<path d=\"M0 0h90v45H0z\" fill={ringColors[0]} />",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <path>\t<path d=\"M0 45h90v45H0z\" fill={ringColors[1]} />",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <path>\t<path d=\"M71 45a26 26 0 00-52 0h52z\" fill={ringColors[6]} />",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <path>\t<path d=\"M71 45a26 26 0 01-52 0h52z\" fill={ringColors[7]} />",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <path>\t<path d=\"M77 45a32 32 0 10-64 0h64z\" fill={ringColors[4]} />",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <path>\t<path d=\"M77 45a32 32 0 11-64 0h64z\" fill={ringColors[5]} />",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <path>\t<path d=\"M83 45a38 38 0 00-76 0h76z\" fill={ringColors[2]} />",
+      "ui/inline-style-keys\tuntracked\tRingAvatar > <svg> > <path>\t<path d=\"M83 45a38 38 0 01-76 0h76z\" fill={ringColors[3]} />",
       "ui/inline-style-keys\tvalue\tBeamAvatar > <svg> > <g> > <rect>\trx={1}",
       "ui/inline-style-keys\tvalue\tBeamAvatar > <svg> > <g> > <rect>\trx={1}",
       "ui/inline-style-keys\tvalue\tBeamAvatar > <svg> > <rect>\trx={data.isCircle ? S : S / 6}\tpackages/web/src/components/avatar/GeneratedAvatar.tsx: const BEAM_SIZE = 36;"
@@ -109,6 +152,9 @@
       "ui/value-allowlist\t\t.avatar-concentric\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *",
       "ui/value-allowlist\t\t.avatar-concentric\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *",
       "ui/value-allowlist\t\t.avatar-concentric\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *"
+    ],
+    "packages/web/src/components/nameStyles/NameStyleText.tsx": [
+      "ui/inline-style-keys\tuntracked\tbuildStyle > style > color\tconst style: CSSProperties = { color: config.color };"
     ],
     "packages/web/src/components/nameStyles/nameStyles.css": [
       "ui/sheet-scope\t\t@keyframes goldenScriptCharge\t@keyframes goldenScriptCharge { 0%, 100% { filter: var(--name-style-filter-0); }  46% { filter: var(--name-style-filter-1); } }",
@@ -119,7 +165,12 @@
       "ui/sheet-scope\t\t@keyframes sovereignNameGlow\t@keyframes sovereignNameGlow { 0%, 50%, 100% { filter: var(--name-style-filter-0); }  20%, 70% { filter: var(--name-style-filter-1); }  32%, 82% { filter: var(--name-style-filter-2); } }",
       "ui/sheet-scope\t\t@keyframes sovereignNameSweep\t@keyframes sovereignNameSweep { 0%, 100% { background-position: 100% 50%; }  50% { background-position: 0% 50%; } }",
       "ui/sheet-scope\t\t@keyframes vermilionNameBrush\t@keyframes vermilionNameBrush { 0%, 12% { background-position: 100% 50%; }  48%, 80% { background-position: 0% 50%; }  100% { background-position: 100% 50%; } }",
-      "ui/sheet-scope\t\t@keyframes vermilionNameSeal\t@keyframes vermilionNameSeal { 0%, 44%, 100% { filter: var(--name-style-filter-0); }  52%, 72% { filter: var(--name-style-filter-1); } }"
+      "ui/sheet-scope\t\t@keyframes vermilionNameSeal\t@keyframes vermilionNameSeal { 0%, 44%, 100% { filter: var(--name-style-filter-0); }  52%, 72% { filter: var(--name-style-filter-1); } }",
+      "ui/value-allowlist\t\t.name-style[data-gradient='true']\t-webkit-text-fill-color: transparent;"
+    ],
+    "packages/web/src/config/rarityVisual.ts": [
+      "ui/inline-style-keys\tuntracked\tgetRarityCellStyle > boxShadow\treturn glow === undefined ? undefined : { boxShadow: glow };\tpackages/web/src/config/rarityVisual.ts: const glow = getRarityCellConfig(rarity)?.glow;",
+      "ui/inline-style-keys\tuntracked\tgetRaritySelectedStyle > backgroundColor\treturn { backgroundColor: withAlpha(color, 0.03) };\tpackages/web/src/theme/colorUtils.ts: return `rgb(${r} ${g} ${b} / ${Math.round(alpha * 100)}%)`;"
     ],
     "packages/web/src/features/auth/LoginDialog.css": [
       "ui/value-allowlist\t\t.login-method-caption\topacity: 0.85;",
@@ -130,7 +181,20 @@
     ],
     "packages/web/src/features/drawing/components/DrawingToolbar.css": [
       "ui/value-allowlist\t\t.drawing-color-panel\t--drawing-color-popover-width: 320px;",
-      "ui/value-allowlist\t\t.drawing-color-picker-area\theight: calc(var(--space-xlarge) * 4.5);"
+      "ui/value-allowlist\t\t.drawing-color-picker-area\theight: calc(var(--space-xlarge) * 4.5);",
+      "ui/value-allowlist\t\t@media (min-width: 768px)\t@media (min-width: 768px) {"
+    ],
+    "packages/web/src/features/drawing/components/DrawingToolbar.tsx": [
+      "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <Dialog.Root> > <Portal> > <Dialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <Dialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot>\twidth,",
+      "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <Dialog.Root> > <Portal> > <Dialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <Dialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot> > backgroundColor\tprops.tool === 'eraser' ? 'var(--color-text-muted)' : props.color,",
+      "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <Dialog.Root> > <Portal> > <Dialog.Positioner.drawing-toolbar-positioner drawing-toolbar-sheet-positioner> > <Dialog.Content.drawing-toolbar-sheet> > <div.drawing-toolbar-option-grid> > <button.drawing-width-option> > <span.drawing-width-dot> > height\theight: width,",
+      "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <Dialog.Root> > <Portal> > <Dialog.Positioner.drawing-toolbar-positioner> > <Dialog.Content.drawing-color-panel> > <div.drawing-color-body> > <div.drawing-swatch-grid> > <button.drawing-swatch> > backgroundColor\tstyle={{ backgroundColor: entry.value }}",
+      "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <Dialog.Root> > <Portal> > <Dialog.Positioner.drawing-toolbar-positioner> > <Dialog.Content.drawing-color-panel> > <div.drawing-color-body> > <div.drawing-swatch-grid> > <button.drawing-swatch> > backgroundColor\tstyle={{ backgroundColor: recent }}",
+      "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <Dialog.Root> > <Portal> > <Dialog.Positioner.drawing-toolbar-positioner> > <Dialog.Content.drawing-color-panel> > <div.drawing-toolbar-panel-header> > <span.drawing-color-current> > backgroundColor\tstyle={{ backgroundColor: props.color }}",
+      "ui/inline-style-keys\tuntracked\tDrawingToolbar > <div.drawing-toolbar> > <button.drawing-toolbar-button> > <span.drawing-toolbar-color-dot> > backgroundColor\tstyle={{ backgroundColor: props.color }}",
+      "ui/inline-style-keys\tuntracked\tcolorPanelStyle > bottom\tbottom: `calc(${window.innerHeight - placement.anchorTop}px + var(--space-small))`,",
+      "ui/inline-style-keys\tuntracked\tcolorPanelStyle > left\tleft: `clamp(var(--space-small), ${placement.anchorLeft}px, calc(100vw - var(--drawing-color-popover-width) - var(--space-small)))`,",
+      "ui/inline-style-keys\tuntracked\tcolorPanelStyle > maxHeight\tmaxHeight: `calc(${placement.anchorTop}px - env(safe-area-inset-top) - var(--space-medium))`,"
     ],
     "packages/web/src/features/encyclopedia/Encyclopedia.css": [
       "ui/value-allowlist\t\t.encyclopedia-filter-chip\tbackground-color 100ms ease-out,",
@@ -165,7 +229,17 @@
       "ui/value-allowlist\t\t.feedback-submit, .feedback-new-button\tbox-shadow 100ms ease-out;",
       "ui/value-allowlist\t\t.feedback-submit, .feedback-new-button\ttransform 100ms ease-out,"
     ],
+    "packages/web/src/features/gacha/machine/CapsuleMachine.css": [
+      "ui/value-allowlist\t\t.capsule-machine\twidth: min(100cqw, 100cqh * 2 / 3);",
+      "ui/value-allowlist\t\t.capsule-machine\twidth: min(100cqw, 100cqh * 2 / 3);",
+      "ui/value-allowlist\t\t.capsule-machine__label\tfont-size: 3cqw;",
+      "ui/value-allowlist\t\t.capsule-machine__label\tfont-weight: 900;",
+      "ui/value-allowlist\t\t.capsule-machine__label\tletter-spacing: 0.25em;",
+      "ui/value-allowlist\t\t.capsule-machine__label\ttop: calc(302 / 600 * 100%);",
+      "ui/value-allowlist\t\t.capsule-machine__label\ttop: calc(302 / 600 * 100%);"
+    ],
     "packages/web/src/features/gacha/machine/CapsuleMachine.tsx": [
+      "ui/inline-style-keys\tuntracked\tMachineController > frame\tthis.shakeTarget.style.transform = `translate(${shakeX}px, ${shakeY}px)`;",
       "ui/inline-style-keys\tvalue\tCapsuleMachine > <div.capsule-machine> > <div.capsule-machine__shake> > <span.capsule-machine__label> > color\tstyle={{ color: golden ? LABEL_COLOR.golden : LABEL_COLOR.normal }}\tpackages/web/src/features/gacha/machine/CapsuleMachine.tsx: const LABEL_COLOR = { golden: 'rgba(245,200,80,0.7)', normal: 'rgba(200,200,240,0.5)' } as const;",
       "ui/inline-style-keys\tvalue\tCapsuleMachine > <div.capsule-machine> > <div.capsule-machine__shake> > <span.capsule-machine__label> > color\tstyle={{ color: golden ? LABEL_COLOR.golden : LABEL_COLOR.normal }}\tpackages/web/src/features/gacha/machine/CapsuleMachine.tsx: const LABEL_COLOR = { golden: 'rgba(245,200,80,0.7)', normal: 'rgba(200,200,240,0.5)' } as const;"
     ],
@@ -181,11 +255,17 @@
       "ui/value-allowlist\t\t.rarity-filter\tbox-shadow 100ms ease-out,",
       "ui/value-allowlist\t\t.rarity-filter\ttransform 100ms ease-out;"
     ],
+    "packages/web/src/features/product/components/RarityCellBg.tsx": [
+      "ui/inline-style-keys\tuntracked\tRarityCellBg > <span> > background\tbackground: `linear-gradient(${top}, ${bottom})`,"
+    ],
     "packages/web/src/features/room/components/GalleryAlbumHeading.css": [
       "ui/value-allowlist\t\t.gallery-album-heading-timer\tmin-width: calc(2 * var(--size-min-touch-target));"
     ],
     "packages/web/src/features/room/components/GalleryAlbumStage.css": [
       "ui/value-allowlist\t\t.gallery-album-stage\tmax-width: 430px;"
+    ],
+    "packages/web/src/features/room/components/GalleryAlbumStage.tsx": [
+      "ui/inline-style-keys\tuntracked\talignLatestEntryToTop\tspacer.style.height = `${Math.max(0, shortfall)}px`;"
     ],
     "packages/web/src/features/room/components/PlayerProfileCard.css": [
       "ui/value-allowlist\t\t.center-dialog.player-profile-dialog\tmax-height: 85vh;",
@@ -224,6 +304,19 @@
       "ui/inline-style-keys\tvalue\tRoleRevealAnimator > <Dialog.Root> > <Portal> > <Dialog.Content> > <div> > zIndex\tzIndex: 101,"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/common/AtmosphericBackground.tsx": [
+      "ui/inline-style-keys\tuntracked\tAtmosphere\telement.style.opacity = String(0.15 + 0.15 * Math.sin(c * 1.3 + particle.phase));",
+      "ui/inline-style-keys\tuntracked\tAtmosphere\telement.style.transform = `translate(${dx}px, ${dy}px)`;",
+      "ui/inline-style-keys\tuntracked\tAtmosphere\tif (glowRef.current) glowRef.current.style.opacity = String(0.06 + glowPulse.get() * 0.04);",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > backgroundColor\tbackgroundColor: color,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > backgroundColor\tbackgroundColor: color,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > height\theight: glowRadius * 2,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > height\theight: particle.radius * 2,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > left\tleft: particle.xRatio * width - particle.radius,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > left\tleft: width / 2 - glowRadius,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > top\ttop: height * 0.45 - glowRadius,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > top\ttop: particle.yRatio * height - particle.radius,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > width\twidth: glowRadius * 2,",
+      "ui/inline-style-keys\tuntracked\tAtmosphere > <div> > <div> > width\twidth: particle.radius * 2,",
       "ui/inline-style-keys\tvalue\tAtmosphere > <div> > <div> > borderRadius\tborderRadius: '50%',",
       "ui/inline-style-keys\tvalue\tAtmosphere > <div> > <div> > borderRadius\tborderRadius: '50%',",
       "ui/inline-style-keys\tvalue\tAtmosphere > <div> > <div> > opacity\topacity: 0.06,"
@@ -244,7 +337,29 @@
       "ui/inline-style-keys\tvalue\tWARNING_STYLE > textShadow\ttextShadow: TEXT_SHADOW,\tpackages/web/src/features/room/components/RoleRevealEffects/common/HintWithWarning.tsx: const TEXT_SHADOW = '0 1px 4px rgba(0, 0, 0, 0.6)';",
       "ui/inline-style-keys\tvalue\tWARNING_STYLE > textShadow\ttextShadow: TEXT_SHADOW,\tpackages/web/src/features/room/components/RoleRevealEffects/common/HintWithWarning.tsx: const TEXT_SHADOW = '0 1px 4px rgba(0, 0, 0, 0.6)';"
     ],
+    "packages/web/src/features/room/components/RoleRevealEffects/common/MythicRevealLayout.tsx": [
+      "ui/inline-style-keys\tuntracked\tMythicRevealLayout > <div> > <span> > color\tcolor: titleColor,"
+    ],
     "packages/web/src/features/room/components/RoleRevealEffects/common/RevealCardFace.tsx": [
+      "ui/inline-style-keys\tuntracked\tRevealCardFace\tcardRef.current.style.transform = `translateX(${shakeX.get()}px) rotate(${shakeRotate.get()}deg)`;",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace\tnameRef.current.style.opacity = String(nameOpacity.get());",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace\tnameRef.current.style.transform = `translateY(${nameTranslateY.get()}px)`;",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace\tportraitRef.current.style.transform = `scale(${emojiScale.get()}) rotate(${emojiRotate.get()}deg)`;",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace\tsubRef.current.style.opacity = String(subOpacity.get());",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace\tsubRef.current.style.transform = `translateY(${subTranslateY.get()}px)`;",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div>\theight,",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div>\twidth,",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div> > <p> > fontSize\tfontSize: Math.round(width * 0.071),",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div> > <p> > fontSize\tfontSize: Math.round(width * 0.114),",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div> > <p> > letterSpacing\tletterSpacing: Math.max(1, Math.round(width * 0.007)),",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div> > <p> > letterSpacing\tletterSpacing: Math.round(width * 0.014),",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div> > <p> > margin\tmargin: `${Math.round(width * 0.029)}px 0 0`,",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div> > <span> > fontSize\tfontSize: Math.round(iconSize * 0.4),",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div> > background\tbackground: revealGradientCss( revealGradient, width - BORDER_WIDTH * 2, height - BORDER_WIDTH * 2, ),\tpackages/web/src/features/room/components/RoleRevealEffects/common/RevealCardFace.tsx: return `linear-gradient(${(angle * 180) / Math.PI}deg, ${colors[0]} ${start}%, ${colors[1]} 50%, ${colors[2]} ${end}%)`;",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > <div> > border\tborder: `${BORDER_WIDTH}px solid ${withAlpha(factionColor, 0.5)}`,",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > portraitStyle > height\theight: portraitSize,\tpackages/web/src/features/room/components/RoleRevealEffects/common/RevealCardFace.tsx: const portraitSize = Math.round(width * 0.7);",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > portraitStyle > marginBottom\tmarginBottom: Math.round(width * 0.04),",
+      "ui/inline-style-keys\tuntracked\tRevealCardFace > portraitStyle > width\twidth: portraitSize,\tpackages/web/src/features/room/components/RoleRevealEffects/common/RevealCardFace.tsx: const portraitSize = Math.round(width * 0.7);",
       "ui/inline-style-keys\tvalue\tRevealCardFace > <div> > <p> > color\tcolor: factionColor,\tpackages/web/src/theme/colors.ts: god: '#7B3FBF',",
       "ui/inline-style-keys\tvalue\tRevealCardFace > <div> > <p> > color\tcolor: factionColor,\tpackages/web/src/theme/colors.ts: god: '#7B3FBF',",
       "ui/inline-style-keys\tvalue\tRevealCardFace > <div> > <p> > color\tcolor: factionColor,\tpackages/web/src/theme/colors.ts: textSecondary: '#526779',",
@@ -272,6 +387,10 @@
       "ui/inline-style-keys\tvalue\tRevealCardFace > <div> > padding\tpadding: '0 24px 24px',",
       "ui/inline-style-keys\tvalue\tRevealCardFace > <div> > padding\tpadding: '0 24px 24px',"
     ],
+    "packages/web/src/features/room/components/RoleRevealEffects/common/RevealedCard.tsx": [
+      "ui/inline-style-keys\tuntracked\tRevealedCard > <div>\t<div ref={anchorRef} style={{ position: 'relative', width, height, ...style }}>",
+      "ui/inline-style-keys\tuntracked\tRevealedCard > <div>\t<div ref={anchorRef} style={{ position: 'relative', width, height, ...style }}>"
+    ],
     "packages/web/src/features/room/components/RoleRevealEffects/common/shell.ts": [
       "ui/inline-style-keys\tvalue\tREVEAL_ROOT_STYLE > backgroundColor\tbackgroundColor: 'rgba(0, 0, 0, 0.85)',",
       "ui/inline-style-keys\tvalue\tREVEAL_TITLE_ROW_STYLE > padding\tpadding: '0 24px',",
@@ -290,6 +409,24 @@
       "ui/inline-style-keys\tvalue\tREVEAL_TITLE_STYLE > textShadow\ttextShadow: '0 1px 4px rgba(0, 0, 0, 0.6)',"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/CardPick.tsx": [
+      "ui/inline-style-keys\tuntracked\tCardPick > <div> > <div> > <div> > <div> > height\theight: screenHeight * 0.4,",
+      "ui/inline-style-keys\tuntracked\tCardPick > <div> > <div> > <div> > <div> > height\theight: screenHeight * 0.5,",
+      "ui/inline-style-keys\tuntracked\tCardPick > <div> > <div> > <div> > <div> > top\ttop: screenHeight * 0.25,",
+      "ui/inline-style-keys\tuntracked\tCardPick > <div> > <div> > <div> > <div> > top\ttop: screenHeight * 0.3,",
+      "ui/inline-style-keys\tuntracked\tCardPick > <div> > <div> > height\theight: revealCardHeight,",
+      "ui/inline-style-keys\tuntracked\tCardPick > <div> > <div> > marginLeft\tmarginLeft: -revealCardWidth / 2,",
+      "ui/inline-style-keys\tuntracked\tCardPick > <div> > <div> > marginTop\tmarginTop: -revealCardHeight / 2,",
+      "ui/inline-style-keys\tuntracked\tCardPick > <div> > <div> > width\twidth: revealCardWidth,",
+      "ui/inline-style-keys\tuntracked\tMiniCard > <button>\theight,",
+      "ui/inline-style-keys\tuntracked\tMiniCard > <button>\twidth,",
+      "ui/inline-style-keys\tuntracked\tMiniCard > <button> > marginLeft\tmarginLeft: -width / 2,",
+      "ui/inline-style-keys\tuntracked\tMiniCard > <button> > marginTop\tmarginTop: -height / 2,",
+      "ui/inline-style-keys\tuntracked\tMiniCardBack > <div>\theight,",
+      "ui/inline-style-keys\tuntracked\tMiniCardBack > <div>\twidth,",
+      "ui/inline-style-keys\tuntracked\tcircleStyle > height\theight: r * 2,",
+      "ui/inline-style-keys\tuntracked\tcircleStyle > left\tleft: cx - r,",
+      "ui/inline-style-keys\tuntracked\tcircleStyle > top\ttop: cy - r,",
+      "ui/inline-style-keys\tuntracked\tcircleStyle > width\twidth: r * 2,",
       "ui/inline-style-keys\tvalue\tCardPick > <div> > <HintWithWarning> > color\thintStyle={{ color: TABLE_COLORS.accent, letterSpacing: 1 }}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/CardPick.tsx: accent: '#8b7355',",
       "ui/inline-style-keys\tvalue\tCardPick > <div> > <HintWithWarning> > letterSpacing\thintStyle={{ color: TABLE_COLORS.accent, letterSpacing: 1 }}",
       "ui/inline-style-keys\tvalue\tCardPick > <div> > <div> > <div> > <div> > background\tbackground: TABLE_COLORS.lightBar,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/CardPick.tsx: lightBar: '#ffffff',",
@@ -344,6 +481,37 @@
       "ui/inline-style-keys\tvalue\tcircleStyle > borderRadius\tborderRadius: '50%',"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/ChainShatter.tsx": [
+      "ui/inline-style-keys\tuntracked\tChainShatter > <div> > <div> > <div> > <div> > <div> > top\t<div style={{ ...CENTERED_OVERLAY, top: lock.cy + lock.height / 2 + 30 }}>",
+      "ui/inline-style-keys\tuntracked\tChainShatter > <div> > <div> > <div> > <div> > <div> > top\ttop: lock.cy - lock.height / 2 - lock.width * 0.3 - 40,",
+      "ui/inline-style-keys\tuntracked\tChainShatter > <div> > <div> > <div> > left\tleft: block.x + 2,",
+      "ui/inline-style-keys\tuntracked\tChainShatter > <div> > <div> > <div> > top\ttop: block.y,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/ChainShatter.tsx: y: screenHeight * 0.3 + Math.floor(index / 3) * 80,",
+      "ui/inline-style-keys\tuntracked\tChainShatter > <div> > <div> > <div> > width\twidth: block.width,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/ChainShatter.tsx: width: screenWidth / 3 - 4,",
+      "ui/inline-style-keys\tuntracked\tChainShatter > <div> > <div> > left\tleft: screenWidth / 2 - 20,",
+      "ui/inline-style-keys\tuntracked\tChainShatter > <div> > <span> > left\tleft: torch.x + 8,",
+      "ui/inline-style-keys\tuntracked\tChainShatter > <div> > <span> > top\ttop: torch.y + 26,",
+      "ui/inline-style-keys\tuntracked\tDungeonAmbience\telement.setAttribute('opacity', String(0.08 + Math.sin(phase) * 0.07));",
+      "ui/inline-style-keys\tuntracked\tDungeonAmbience\tflame?.setAttribute('opacity', String(0.7 + flicker * 0.3));",
+      "ui/inline-style-keys\tuntracked\tDungeonAmbience\tflame?.setAttribute('opacity', String(0.8 + flicker * 0.2));",
+      "ui/inline-style-keys\tuntracked\tDungeonAmbience\tglow?.setAttribute('opacity', String(0.15 + flicker * 0.15));",
+      "ui/inline-style-keys\tuntracked\tDungeonAmbience > <svg>\t<svg width={width} height={height} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tDungeonAmbience > <svg>\t<svg width={width} height={height} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tHitArt\tcrackRefs.current[index]?.setAttribute('opacity', String(opacity?.get() ?? 0));",
+      "ui/inline-style-keys\tuntracked\tHitArt\tdebrisRef.current?.setAttribute('opacity', String(debrisVisible.get()));",
+      "ui/inline-style-keys\tuntracked\tHitArt\telement.setAttribute('opacity', String(Math.max(0, 1 - progress * 1.5)));",
+      "ui/inline-style-keys\tuntracked\tHitArt\tlightningRef.current?.setAttribute('opacity', String(lightningFlash.get()));",
+      "ui/inline-style-keys\tuntracked\tHitArt\tshockwaveRef.current.setAttribute('opacity', String(Math.max(0, 0.6 - progress * 0.8)));",
+      "ui/inline-style-keys\tuntracked\tHitArt > <svg>\t<svg width={screenWidth} height={screenHeight} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tHitArt > <svg>\t<svg width={screenWidth} height={screenHeight} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tHitArt > <svg> > <circle>\tfill={spark.color}",
+      "ui/inline-style-keys\tuntracked\tHitArt > <svg> > <g>\tstroke={color}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/ChainShatter.tsx: return `rgba(255, ${Math.round(200 - t * 120)}, ${Math.round(50 - t * 20)}, 0.9)`;",
+      "ui/inline-style-keys\tuntracked\tPadlock > <svg>\t<svg ref={svgRef} width={screenWidth} height={screenHeight} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tPadlock > <svg>\t<svg ref={svgRef} width={screenWidth} height={screenHeight} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tPadlock > <svg> > <path>\tstrokeWidth={width * 0.03}",
+      "ui/inline-style-keys\tuntracked\tPadlock > <svg> > <path>\tstrokeWidth={width * 0.1}",
+      "ui/inline-style-keys\tuntracked\tShatterArt\telement.setAttribute('opacity', String(Math.max(0, 0.5 - burst * 0.7)));",
+      "ui/inline-style-keys\tuntracked\tShatterArt\telement.setAttribute('opacity', String(Math.max(0, 1 - progress * 1.2)));",
+      "ui/inline-style-keys\tuntracked\tShatterArt > <svg>\t<svg width={screenWidth} height={screenHeight} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tShatterArt > <svg>\t<svg width={screenWidth} height={screenHeight} style={FULL_SCREEN}>",
       "ui/inline-style-keys\tvalue\tChainShatter > <div> > <div> > <div> > <div> > <div> > <span> > color\tcolor: COLORS.comboText,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/ChainShatter.tsx: comboText: 'rgba(255, 200, 0, 0.7)',",
       "ui/inline-style-keys\tvalue\tChainShatter > <div> > <div> > <div> > <div> > <div> > <span> > color\tcolor: COLORS.hitText,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/ChainShatter.tsx: hitText: '#FFD700',",
       "ui/inline-style-keys\tvalue\tChainShatter > <div> > <div> > <div> > <div> > <div> > <span> > fontSize\tfontSize: 16,",
@@ -424,6 +592,19 @@
       "ui/inline-style-keys\tvalue\tShatterArt > <svg> > <line>\tstrokeWidth={2}"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx": [
+      "ui/inline-style-keys\tuntracked\tBulb > <div> > <div> > background\tbackground: color,",
+      "ui/inline-style-keys\tuntracked\tBulb > <div> > <div> > borderRadius\tborderRadius: BULB_SIZE / 2,",
+      "ui/inline-style-keys\tuntracked\tBulb > <div> > <div> > boxShadow\tboxShadow: `0 0 ${BULB_SIZE / 2}px ${color}`,",
+      "ui/inline-style-keys\tuntracked\tBulb > <div> > borderRadius\tborderRadius: BULB_SIZE / 2,",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > <div> > <div> > <div> > <div> > <div> > <div> > <span> > textShadow\ttextShadow: textShadow('rgba(0,0,0,0.5)', 1, 1, 2),\tpackages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx: return `${x}px ${y}px ${blur}px ${color}`;",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > <div> > <div> > <div> > <span> > textShadow\ttextShadow: GOLD_TEXT_SHADOW,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx: return `${x}px ${y}px ${blur}px ${color}`;",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > <div> > <div> > <div> > height\theight: containerHeight,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx: const containerHeight = RC.itemHeight * RC.visibleItems;",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > <div> > <div> > <div> > width\twidth: containerWidth,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx: const containerWidth = Math.min(screenWidth * 0.9, 340);",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > <div> > <div> > <span> > textShadow\ttextShadow: GOLD_TEXT_SHADOW,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx: return `${x}px ${y}px ${blur}px ${color}`;",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > <div> > background\tbackground: `linear-gradient(to bottom right, ${SLOT_COLORS.metalGradient.join(', ')})`,",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > <span> > textShadow\ttextShadow: textShadow(SLOT_COLORS.goldDark, 0, 2, 8),\tpackages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx: return `${x}px ${y}px ${blur}px ${color}`;",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > height\theight: containerHeight + 100,",
+      "ui/inline-style-keys\tuntracked\tEnhancedRoulette > <div> > <div> > width\twidth: containerWidth + 40,",
       "ui/inline-style-keys\tvalue\tBulb > <div> > background\tbackground: SLOT_COLORS.bulbOff,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx: bulbOff: '#666666',",
       "ui/inline-style-keys\tvalue\tBulb > <div> > height\theight: BULB_SIZE,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx: const BULB_SIZE = 8;",
       "ui/inline-style-keys\tvalue\tBulb > <div> > margin\tmargin: '0 4px',",
@@ -541,6 +722,14 @@
       "ui/inline-style-keys\tvalue\tSCREW_STYLE > width\twidth: 12,"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/FateDecree.tsx": [
+      "ui/inline-style-keys\tuntracked\tFateDecree\tleftRef.current.style.opacity = halfOpacity;\tpackages/web/src/features/room/components/RoleRevealEffects/effects/FateDecree.tsx: const halfOpacity = String(1 - Math.max(0, (value - 0.9) * 10));",
+      "ui/inline-style-keys\tuntracked\tFateDecree\tleftRef.current.style.transform = `translateX(${-shift}px)`;",
+      "ui/inline-style-keys\tuntracked\tFateDecree\trightRef.current.style.opacity = halfOpacity;\tpackages/web/src/features/room/components/RoleRevealEffects/effects/FateDecree.tsx: const halfOpacity = String(1 - Math.max(0, (value - 0.9) * 10));",
+      "ui/inline-style-keys\tuntracked\tFateDecree\trightRef.current.style.transform = `translateX(${shift}px)`;",
+      "ui/inline-style-keys\tuntracked\tFateDecree\tsealRef.current.style.opacity = String(1 - Math.min(1, value * 3));",
+      "ui/inline-style-keys\tuntracked\tFateDecree\tsealRef.current.style.transform = `scale(${1 + value * 0.3})`;",
+      "ui/inline-style-keys\tuntracked\tFateDecree > <MythicRevealLayout> > <div> > height\theight: cardHeight,",
+      "ui/inline-style-keys\tuntracked\tFateDecree > <MythicRevealLayout> > <div> > width\twidth: cardWidth,",
       "ui/inline-style-keys\tvalue\tFateDecree > <MythicRevealLayout> > <div> > <div> > borderLeft\tborderLeft: `5px solid ${MYTHIC_COLORS.silver}`,\tpackages/web/src/config/mythicVisual.ts: silver: '#DCE5DA',",
       "ui/inline-style-keys\tvalue\tFateDecree > <MythicRevealLayout> > <div> > <div> > borderLeft\tborderLeft: `5px solid ${MYTHIC_COLORS.silver}`,\tpackages/web/src/config/mythicVisual.ts: silver: '#DCE5DA',",
       "ui/inline-style-keys\tvalue\tFateDecree > <MythicRevealLayout> > <div> > <div> > borderRight\tborderRight: `5px solid ${MYTHIC_COLORS.silver}`,\tpackages/web/src/config/mythicVisual.ts: silver: '#DCE5DA',",
@@ -560,6 +749,7 @@
       "ui/inline-style-keys\tvalue\tNightCrownMotif > <g> > <path>\tstrokeWidth={2}"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/FilmRewind.tsx": [
+      "ui/inline-style-keys\tuntracked\tFilmRewind > <div> > <div> > <div> > opacity\topacity: countdownProgress,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/FilmRewind.tsx: phase === 'countdown' ? (FR.countdownFrom - countdownNum) / FR.countdownFrom : 0;",
       "ui/inline-style-keys\tvalue\tFilmRewind > <div> > <div> > <div> > background\t<div style={{ position: 'absolute', width: 1, height: 80, background: COUNTDOWN_LINE }} />\tpackages/web/src/features/room/components/RoleRevealEffects/effects/FilmRewind.tsx: const COUNTDOWN_LINE = 'rgba(200, 180, 140, 0.15)';",
       "ui/inline-style-keys\tvalue\tFilmRewind > <div> > <div> > <div> > background\t<div style={{ position: 'absolute', width: 80, height: 1, background: COUNTDOWN_LINE }} />\tpackages/web/src/features/room/components/RoleRevealEffects/effects/FilmRewind.tsx: const COUNTDOWN_LINE = 'rgba(200, 180, 140, 0.15)';",
       "ui/inline-style-keys\tvalue\tFilmRewind > <div> > <div> > <div> > background\tbackground: 'rgba(200, 180, 140, 0.1)',",
@@ -593,6 +783,19 @@
       "ui/inline-style-keys\tvalue\tFilmRewind > <div> > background\tstyle={{ position: 'absolute', inset: 0, background: BG_GRADIENT }}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/FilmRewind.tsx: const BG_GRADIENT = 'linear-gradient(180deg, #0a0906 0%, #0d0b08 50%, #0a0906 100%)';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/FortuneWheel.tsx": [
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > height\theight: archRadius * 2,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > left\tleft: archCenterX + Math.cos(angle) * rayInner,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > left\tleft: archCenterX - archRadius,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > left\tleft: segment.labelX - LABEL_SIZE / 2,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > top\ttop: archCenterY + Math.sin(angle) * rayInner - 1,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > top\ttop: archCenterY - archRadius,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > top\ttop: segment.labelY - LABEL_SIZE / 2,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > transform\ttransform: `rotate(${angle}rad)`,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > transform\ttransform: `rotate(${segment.labelRotDeg}deg)`,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > width\twidth: archRadius * 2,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > <div> > width\twidth: rayOuter - rayInner,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > left\tleft: cx - 20,",
+      "ui/inline-style-keys\tuntracked\tFortuneWheel > <div> > <div> > <div> > top\ttop: cy - 16,",
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <HintWithWarning> > color\thintStyle={phase === 'stopped' ? { color: HINT_ALIGNED_COLOR } : undefined}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/FortuneWheel.tsx: const HINT_ALIGNED_COLOR = '#4ECDC4';",
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > <div> > <div> > <span> > color\tcolor: '#FFFFFF',",
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > <div> > <div> > <div> > <span> > fontSize\tfontSize: 15,",
@@ -636,6 +839,26 @@
       "ui/inline-style-keys\tvalue\tFortuneWheel > <div> > background\tstyle={{ ...FILL, background: BG_GRADIENT, overflow: 'hidden' }}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/FortuneWheel.tsx: const BG_GRADIENT = 'linear-gradient(180deg, #0a0a1e 0%, #12122a 50%, #0a0a1e 100%)';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/GachaMachine.tsx": [
+      "ui/inline-style-keys\tuntracked\tGachaMachine > <div> > <div> > <div> > borderRadius\tborderRadius: DOME_SIZE / 2,",
+      "ui/inline-style-keys\tuntracked\tGachaMachine > <div> > <div> > left\tleft: `calc(50% - ${CAPSULE_SIZE / 2}px)`,",
+      "ui/inline-style-keys\tuntracked\tGachaMachine > <div> > <div> > top\ttop: `calc(50% - ${CAPSULE_SIZE / 2}px)`,",
+      "ui/inline-style-keys\tuntracked\tRotaryLight > <div> > backgroundColor\tbackgroundColor: color,",
+      "ui/inline-style-keys\tuntracked\tRotaryLight > <div> > left\tleft: x - 6,",
+      "ui/inline-style-keys\tuntracked\tRotaryLight > <div> > opacity\topacity: 0.3 + Math.sin(phase) * 0.3,",
+      "ui/inline-style-keys\tuntracked\tRotaryLight > <div> > top\ttop: y - 6,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > <div> > borderBottomLeftRadius\tborderBottomLeftRadius: size / 2,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > <div> > borderBottomRightRadius\tborderBottomRightRadius: size / 2,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > <div> > height\theight: size * 0.35,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > <div> > height\theight: size * 0.35,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > <div> > left\tleft: size * 0.15,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > <div> > top\ttop: size * 0.12,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > <div> > width\twidth: size * 0.35,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > backgroundColor\tbackgroundColor: color,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > borderRadius\tborderRadius: size / 2,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > height\theight: size,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > left\tleft: DOME_SIZE / 2 + x - size / 2,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > top\ttop: DOME_SIZE / 2 + y - size / 2,",
+      "ui/inline-style-keys\tuntracked\tTinyCapsule > <div> > width\twidth: size,",
       "ui/inline-style-keys\tvalue\tGachaMachine > <div> > <div> > <button> > <div> > <div> > backgroundColor\tbackgroundColor: GACHA_COLORS.dialArm,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/GachaMachine.tsx: dialArm: '#888',",
       "ui/inline-style-keys\tvalue\tGachaMachine > <div> > <div> > <button> > <div> > <div> > backgroundColor\tbackgroundColor: GACHA_COLORS.dialCenter,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/GachaMachine.tsx: dialCenter: '#FFD700',",
       "ui/inline-style-keys\tvalue\tGachaMachine > <div> > <div> > <button> > <div> > <div> > backgroundColor\tbackgroundColor: GACHA_COLORS.dialKnob,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/GachaMachine.tsx: dialKnob: '#E74C3C',",
@@ -798,6 +1021,10 @@
       "ui/inline-style-keys\tvalue\tMeteorStrike > <div> > background\tstyle={{ position: 'absolute', inset: 0, background: BG_GRADIENT }}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/MeteorStrike.tsx: const BG_GRADIENT = 'linear-gradient(180deg, #020010 0%, #0a0025 50%, #050015 100%)';"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/MythicCollectionReveal.tsx": [
+      "ui/inline-style-keys\tuntracked\tMythicCollectionReveal\tcardRef.current.style.opacity = String(Math.min(1, Math.max(0, (value - 0.15) / 0.5)));",
+      "ui/inline-style-keys\tuntracked\tMythicCollectionReveal > <MythicRevealLayout> > <div> > height\theight: cardHeight,",
+      "ui/inline-style-keys\tuntracked\tMythicCollectionReveal > <MythicRevealLayout> > <div> > width\twidth: cardWidth,",
+      "ui/inline-style-keys\tuntracked\tsetSvgFrame\telement.setAttribute('opacity', String(opacity));",
       "ui/inline-style-keys\tvalue\tCenterArt > <circle>\t<circle cx={-4} cy={-4} r={4} fill={palette.secondary} />\tpackages/web/src/config/mythicVisual.ts: secondary: '#DF513F',",
       "ui/inline-style-keys\tvalue\tCenterArt > <circle>\t<circle cx={-4} cy={-4} r={4} fill={palette.secondary} />\tpackages/web/src/config/mythicVisual.ts: secondary: '#FF836F',",
       "ui/inline-style-keys\tvalue\tCenterArt > <circle>\t<circle r={13} fill={palette.pearl} />\tpackages/web/src/config/mythicVisual.ts: pearl: '#F0FFFA',",
@@ -847,6 +1074,19 @@
       "ui/inline-style-keys\tvalue\tStarSegmentArt > <path>\tstrokeWidth={2}"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx": [
+      "ui/inline-style-keys\tuntracked\tAnimal > <div> > transform\ttransform: `translate(${animal.startX - ANIMAL_SIZE / 2}px, ${animal.y - ANIMAL_SIZE / 2}px)`,",
+      "ui/inline-style-keys\tuntracked\tFirefly\tgroup.setAttribute('opacity', String(opacity));",
+      "ui/inline-style-keys\tuntracked\tFirefly > <g>\t<g ref={groupRef} opacity={0} fill={firefly.color}>",
+      "ui/inline-style-keys\tuntracked\tForestArt > <circle>\t<circle cx={moonX} cy={moonY} r={60} fill={`url(#${id}-moon)`} />",
+      "ui/inline-style-keys\tuntracked\tForestArt > <circle>\tfill={`rgba(200, 220, 255, ${star.opacity})`}",
+      "ui/inline-style-keys\tuntracked\tForestArt > <circle>\tfill={`url(#${id}-fog)`}",
+      "ui/inline-style-keys\tuntracked\tForestArt > <rect>\t<rect width={width} height={height} fill={`url(#${id}-sky)`} />",
+      "ui/inline-style-keys\tuntracked\tForestArt > <rect>\t<rect width={width} height={height} fill={`url(#${id}-vignette)`} />",
+      "ui/inline-style-keys\tuntracked\tForestArt > <rect>\t<rect y={groundY} width={width} height={height - groundY} fill={`url(#${id}-ground)`} />",
+      "ui/inline-style-keys\tuntracked\tRoleHunt > <div> > <svg>\t<svg width={screenWidth} height={screenHeight} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tRoleHunt > <div> > <svg>\t<svg width={screenWidth} height={screenHeight} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tShotBurstArt\telement.setAttribute('opacity', String(fade * 0.8));",
+      "ui/inline-style-keys\tuntracked\tShotBurstArt\tshockwaveRef.current?.setAttribute('opacity', String(fade * 0.6));",
       "ui/inline-style-keys\tvalue\tAnimal > <div> > <span> > background\tbackground: HUNT_COLORS.animalNameBg,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: animalNameBg: 'rgba(0, 0, 0, 0.5)',",
       "ui/inline-style-keys\tvalue\tAnimal > <div> > <span> > borderRadius\tborderRadius: 6,",
       "ui/inline-style-keys\tvalue\tAnimal > <div> > <span> > color\tcolor: HUNT_COLORS.animalName,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: animalName: '#ffffff',",
@@ -906,6 +1146,17 @@
       "ui/inline-style-keys\tvalue\tShotBurstArt > <line>\tstrokeWidth={3}"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/ScratchReveal.tsx": [
+      "ui/inline-style-keys\tuntracked\tMetalShaving > <div> > backgroundColor\tbackgroundColor: color,",
+      "ui/inline-style-keys\tuntracked\tMetalShaving > <div> > borderRadius\tborderRadius: size * 0.15,",
+      "ui/inline-style-keys\tuntracked\tMetalShaving > <div> > height\theight: size * 0.35,",
+      "ui/inline-style-keys\tuntracked\tMetalShaving > <div> > transform\ttransform: `translate(${startX}px, ${startY}px)`,",
+      "ui/inline-style-keys\tuntracked\tMetalShaving > <div> > width\twidth: size * 1.8,",
+      "ui/inline-style-keys\tuntracked\tScratchReveal\tprogressFillRef.current.style.width = `${progressWidth.get() * 100}%`;",
+      "ui/inline-style-keys\tuntracked\tScratchReveal > <div> > <div> > borderRadius\tborderRadius: cardWidth,",
+      "ui/inline-style-keys\tuntracked\tScratchReveal > <div> > <div> > height\theight: cardHeight * 1.5,",
+      "ui/inline-style-keys\tuntracked\tScratchReveal > <div> > <div> > height\theight: cardHeight,",
+      "ui/inline-style-keys\tuntracked\tScratchReveal > <div> > <div> > width\twidth: cardWidth * 1.5,",
+      "ui/inline-style-keys\tuntracked\tScratchReveal > <div> > <div> > width\twidth: cardWidth,",
       "ui/inline-style-keys\tvalue\tMetalShaving > <div> > border\tborder: `0.5px solid ${SCRATCH_COLORS.metalLight}`,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/ScratchReveal.tsx: metalLight: '#E8E8E8',",
       "ui/inline-style-keys\tvalue\tMetalShaving > <div> > border\tborder: `0.5px solid ${SCRATCH_COLORS.metalLight}`,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/ScratchReveal.tsx: metalLight: '#E8E8E8',",
       "ui/inline-style-keys\tvalue\tMetalShaving > <div> > zIndex\tzIndex: REVEAL_DOM_LAYER.aboveCanvas,\tpackages/web/src/features/room/components/RoleRevealEffects/common/layers.ts: aboveCanvas: 3,",
@@ -952,6 +1203,29 @@
       "ui/inline-style-keys\tvalue\tScratchReveal > <div> > <span> > opacity\topacity: 0.5,"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/SealBreak.tsx": [
+      "ui/inline-style-keys\tuntracked\tChargeArt\tString(interpolate(cycle, [0, 0.2, 0.7, 1], [0, 0.8 * level, 0.3, 0])),",
+      "ui/inline-style-keys\tuntracked\tChargeArt\tbeamsRef.current?.setAttribute('opacity', String(energyBeamOpacity.get()));",
+      "ui/inline-style-keys\tuntracked\tChargeArt\telement.setAttribute('opacity', String(particleOpacity));",
+      "ui/inline-style-keys\tuntracked\tChargeArt\tsegmentRefs.current[index]?.setAttribute('opacity', String(opacity));",
+      "ui/inline-style-keys\tuntracked\tChargeArt > <svg>\t<svg width={width} height={height} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tChargeArt > <svg>\t<svg width={width} height={height} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tSealBreak\tif (fog) fog.style.opacity = opacity;\tpackages/web/src/features/room/components/RoleRevealEffects/effects/SealBreak.tsx: const opacity = String(fogPulse.get());",
+      "ui/inline-style-keys\tuntracked\tSealBreak > <div> > <div> > <div> > <div> > <div> > height\theight: fog.r * 2,",
+      "ui/inline-style-keys\tuntracked\tSealBreak > <div> > <div> > <div> > <div> > <div> > left\tleft: fog.x - fog.r,",
+      "ui/inline-style-keys\tuntracked\tSealBreak > <div> > <div> > <div> > <div> > <div> > top\ttop: fog.y - fog.r,",
+      "ui/inline-style-keys\tuntracked\tSealBreak > <div> > <div> > <div> > <div> > <div> > width\twidth: fog.r * 2,",
+      "ui/inline-style-keys\tuntracked\tSealText\telement.style.opacity = String(interpolate(rattle, [0, 0.5, 1], [0.5, 0.8, 0.5]));",
+      "ui/inline-style-keys\tuntracked\tSealText\telement.style.transform = `translate(${cx + Math.cos(angle) * radius * 1.05 - 8}px, ${cy + Math.sin(angle) * radius * 1.05 - 8}px)`;",
+      "ui/inline-style-keys\tuntracked\tSealText\telement.style.transform = `translate(${cx + Math.cos(angle) * radius * 1.45 - 10}px, ${cy + Math.sin(angle) * radius * 1.45 - 10}px)`;",
+      "ui/inline-style-keys\tuntracked\tSealText\telement.style.transform = `translate(${x}px, ${y}px)`;",
+      "ui/inline-style-keys\tuntracked\tSealText > <span> > transform\ttransform: `translate(${cx + Math.cos(angle) * radius * 0.65 - 12}px, ${cy + Math.sin(angle) * radius * 0.65 - 12}px)`,",
+      "ui/inline-style-keys\tuntracked\tShards\telement.setAttribute('opacity', String(opacity));",
+      "ui/inline-style-keys\tuntracked\tShards > <svg>\t<svg width={width} height={height} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tShards > <svg>\t<svg width={width} height={height} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tStaticSeal > <svg>\t<svg width={width} height={height} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tStaticSeal > <svg>\t<svg width={width} height={height} style={FULL_SCREEN}>",
+      "ui/inline-style-keys\tuntracked\tStaticSeal > <svg> > <circle>\t<circle cx={cx} cy={cy} r={radius * 1.6} fill={`url(#${id}-aura)`} />",
+      "ui/inline-style-keys\tuntracked\tStaticSeal > <svg> > <circle>\t<circle cx={cx} cy={cy} r={radius} fill={`url(#${id}-wax)`} />",
       "ui/inline-style-keys\tvalue\tChargeArt > <svg> > <circle>\tfill={COLORS.energyParticle}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/SealBreak.tsx: energyParticle: 'rgba(255, 215, 0, 0.6)',",
       "ui/inline-style-keys\tvalue\tChargeArt > <svg> > <g>\t<g ref={beamsRef} opacity={0} stroke={COLORS.energyBeam} strokeWidth={2}>",
       "ui/inline-style-keys\tvalue\tChargeArt > <svg> > <g>\t<g ref={beamsRef} opacity={0} stroke={COLORS.energyBeam} strokeWidth={2}>\tpackages/web/src/features/room/components/RoleRevealEffects/effects/SealBreak.tsx: energyBeam: 'rgba(255, 215, 0, 0.5)',",
@@ -1022,6 +1296,41 @@
       "ui/inline-style-keys\tvalue\tStaticSeal > <svg> > <path>\tstrokeWidth={4}"
     ],
     "packages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx": [
+      "ui/inline-style-keys\tuntracked\tSvgSparkle > <g> > <line>\tstrokeWidth={width * 0.6}",
+      "ui/inline-style-keys\tuntracked\tSvgSparkle > <g> > <line>\tstrokeWidth={width * 0.6}",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop\tString(0.3 + Math.sin(cycle + star.phase) * 0.3),",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop\tString(0.7 + Math.sin(flicker * candle.opacitySpeed + candle.opacityPhase) * 0.2),",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop\tfogRef.current?.setAttribute('opacity', String(0.2 + pulse * 0.15));",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop\tmagicCircle.setAttribute('opacity', String(magicCircleOpacity.get()));",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <div> > height\theight: wheelRadius,",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <div> > left\tleft: width / 2 - 1.5,",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <div> > top\ttop: height / 2 - wheelRadius,",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg>\t<svg width={width} height={height} style={fullScreen}>",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg>\t<svg width={width} height={height} style={fullScreen}>",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg>\t<svg width={width} height={height} style={{ ...fullScreen, mixBlendMode: 'screen' }}>",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg>\t<svg width={width} height={height} style={{ ...fullScreen, mixBlendMode: 'screen' }}>",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg> > <circle>\t<circle cx={crystalX} cy={crystalY} r={22} fill={`url(#${id}-crystal-body)`} />",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg> > <circle>\tfill={`url(#${id}-crystal-fog)`}",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg> > <circle>\tfill={`url(#${id}-crystal-glow)`}",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg> > <g>\topacity={0.3 + Math.sin(star.phase) * 0.3}",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg> > <g> > <circle>\tfill={`url(#${id}-flame-${index})`}",
+      "ui/inline-style-keys\tuntracked\tTarotBackdrop > <svg> > <g> > <circle>\tfill={`url(#${id}-halo-${index})`}",
+      "ui/inline-style-keys\tuntracked\tTarotCardBack > <svg> > <rect>\t<rect width={width} height={height} rx={CARD_RADIUS} fill={`url(#${id}-bg)`} />",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > <div> > height\theight: wheelCardHeight,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx: const wheelCardHeight = cardHeight * WHEEL_CARD_SCALE;",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > <div> > left\tleft: `calc(50% - ${wheelCardWidth / 2}px)`,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > <div> > top\ttop: `calc(50% - ${wheelCardHeight / 2}px)`,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > <div> > transform\ttransform: `translateX(${x}px) translateY(${y}px) rotate(${(angle * 180) / Math.PI}deg)`,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > <div> > width\twidth: wheelCardWidth,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx: const wheelCardWidth = cardWidth * WHEEL_CARD_SCALE;",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > height\theight: cardHeight,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > height\theight: screenHeight * 0.35,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > height\theight: wheelRadius * 2.5,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > left\tleft: screenWidth / 2 - cardWidth / 2,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > left\tleft: screenWidth / 2 - wheelRadius * 1.25,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > top\ttop: screenHeight / 2 - cardHeight / 2,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > top\ttop: screenHeight / 2 - wheelRadius * 1.25,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > transform\ttransform: reducedMotion ? 'perspective(1200px) rotateY(180deg)' : `translateY(${-wheelRadius}px)`,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > width\twidth: cardWidth,",
+      "ui/inline-style-keys\tuntracked\tTarotDraw > <div> > <div> > width\twidth: wheelRadius * 2.5,",
       "ui/inline-style-keys\tvalue\tSvgSparkle > <circle>\t<circle cx={x} cy={y} r={r * 0.5} fill={color} />\tpackages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx: starfield: '#c8c8ff',",
       "ui/inline-style-keys\tvalue\tSvgSparkle > <circle>\t<circle cx={x} cy={y} r={r * 4} fill={color} filter={haloFilter} />\tpackages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx: starfield: '#c8c8ff',",
       "ui/inline-style-keys\tvalue\tSvgSparkle > <g>\t<g stroke={color} strokeLinecap=\"round\">\tpackages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx: starfield: '#c8c8ff',",
@@ -1120,20 +1429,31 @@
       "ui/inline-style-keys\tvalue\tVortexCollapse > <div> > background\tstyle={{ position: 'absolute', inset: 0, background: BG_GRADIENT }}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/VortexCollapse.tsx: const BG_GRADIENT = 'linear-gradient(180deg, #030008 0%, #050012 50%, #030008 100%)';",
       "ui/inline-style-keys\tvalue\tVortexCollapse > <div> > background\tstyle={{ position: 'absolute', inset: 0, background: BG_GRADIENT }}\tpackages/web/src/features/room/components/RoleRevealEffects/effects/VortexCollapse.tsx: const BG_GRADIENT = 'linear-gradient(180deg, #030008 0%, #050012 50%, #030008 100%)';"
     ],
+    "packages/web/src/features/room/components/RoleRevealEffects/runtime.ts": [
+      "ui/inline-style-keys\tuntracked\tuseFrameStyle\tif (style.opacity !== undefined) element.style.opacity = String(style.opacity);",
+      "ui/inline-style-keys\tuntracked\tuseFrameStyle\tif (style.transform !== undefined) element.style.transform = style.transform;"
+    ],
     "packages/web/src/features/room/components/RoomActionHand.css": [
       "ui/value-allowlist\t\t.room-action-card-cell .room-hand-card:active:not([aria-disabled='true'], [aria-busy='true'])\t0 1px 0 var(--hand-ink);",
       "ui/value-allowlist\t\t@media (prefers-reduced-motion: no-preference) > .room-action-card-cell .room-hand-card\trotate 160ms ease-out,",
       "ui/value-allowlist\t\t@media (prefers-reduced-motion: no-preference) > .room-action-card-cell .room-hand-card\ttranslate 160ms ease-out;"
     ],
+    "packages/web/src/features/room/components/RoomActionStatus.tsx": [
+      "ui/inline-style-keys\tuntracked\tRoomProgressIndicator > <div.room-progress> > <div.room-progress-track> > <span.room-progress-fill> > width\t<span className=\"room-progress-fill\" style={{ width: `${percent}%` }} />"
+    ],
     "packages/web/src/features/room/components/RoomBottomActionPanel.css": [
       "ui/value-allowlist\t\t.bottom-action-message[data-animate='true']\tanimation: bottom-message-in 150ms ease-out;",
       "ui/value-allowlist\t\t.room-progress-fill\ttransition: width 200ms ease-out;",
-      "ui/value-allowlist\t\t@keyframes bottom-message-in > from\ttransform: translateY(4px);"
+      "ui/value-allowlist\t\t@keyframes bottom-message-in > from\ttransform: translateY(4px);",
+      "ui/value-allowlist\t\t@media (max-height: 560px)\t@media (max-height: 560px) {"
     ],
     "packages/web/src/features/room/components/RoomDialog.css": [
       "ui/value-allowlist\t\t.room-dialog\tmax-height: 85vh;",
       "ui/value-allowlist\t\t.room-dialog[data-state='open']\tanimation: center-dialog-pop 150ms ease-out;",
       "ui/value-allowlist\t\t.room-dialog[data-state='open']\tanimation: center-dialog-pop 150ms ease-out;"
+    ],
+    "packages/web/src/features/room/components/RoomDialog.tsx": [
+      "ui/inline-style-keys\tuntracked\tRoomDialog > <Dialog.Root> > <Portal> > <Dialog.Positioner.room-dialog-positioner> > <Dialog.Content.room-dialog>\t<Dialog.Content className=\"room-dialog\" style={{ width }} data-testid={testId}>\tpackages/web/src/features/room/components/roomDialogSize.ts: return Math.min(viewportWidth * ROOM_DIALOG_WIDTH_FRACTION, ROOM_DIALOG_MAX_WIDTH);"
     ],
     "packages/web/src/features/room/components/RoomGameSummary.css": [
       "ui/value-allowlist\t\t.room-game-summary-toggle\tbackground-color 100ms ease-out,",
@@ -1186,8 +1506,21 @@
       "ui/value-allowlist\t\t.room-stage-timer-bar-fill\ttransition: width 250ms linear;",
       "ui/value-allowlist\t\t@media (prefers-reduced-motion: no-preference) > .room-stage-roster-chip[data-urgent] .room-stage-roster-alert\tanimation: room-stage-alert-pulse 600ms ease-in-out infinite alternate;"
     ],
+    "packages/web/src/features/room/components/RoomStageHud.tsx": [
+      "ui/inline-style-keys\tuntracked\tTimerBar > <div.room-stage-timer-bar> > <span.room-stage-timer-bar-fill> > width\tstyle={{ width: `${remainingRatio * 100}%` }}"
+    ],
+    "packages/web/src/features/room/components/RoomTaskFrame.tsx": [
+      "ui/inline-style-keys\tuntracked\tRoomTaskFrame > <div.room-task-viewport> > <div.room-task-viewport-inner> > <div>\tstyle={{ maxWidth }}",
+      "ui/inline-style-keys\tuntracked\tRoomTaskFrame > <div.room-task-viewport> > <div.room-task-viewport-inner> > paddingBottom\t<div className=\"room-task-viewport-inner\" style={{ paddingBottom: keyboardInset }}>\tpackages/web/src/features/room/components/RoomTaskFrame.tsx: setKeyboardInset(Math.max(0, top + height - viewport.height - viewport.offsetTop));"
+    ],
     "packages/web/src/features/room/config/GameConfigPage.css": [
       "ui/value-allowlist\t\t.game-config-page\theight: 100vh;"
+    ],
+    "packages/web/src/features/room/review/components/ReviewImageBlock.tsx": [
+      "ui/inline-style-keys\tuntracked\tReviewImageBlock > frameStyle > aspectRatio\tconst frameStyle = { aspectRatio: String(block.aspectRatio) };"
+    ],
+    "packages/web/src/features/room/review/components/RoomReviewExportStage.tsx": [
+      "ui/inline-style-keys\tuntracked\tRoomReviewExportStage > <div.review-export-stage> > <ReviewExportGateContext> > <div>\tstyle={{ width }}"
     ],
     "packages/web/src/features/room/review/components/review.css": [
       "ui/value-allowlist\t\t.review-export-stage\tleft: -10000px;",
@@ -1262,15 +1595,28 @@
       "ui/value-allowlist\t\t.secrethitler-result-banner-image, .secrethitler-policy-result-image\tmax-height: calc(var(--size-button-lg) * 5);"
     ],
     "packages/web/src/games/spotmatch/room/SpotmatchPlayBoard.tsx": [
+      "ui/inline-style-keys\tuntracked\tSymbolCard > <div.spotmatch-card> > art > <img> > transform\tstyle={{ width: `${layout.scale}%`, transform: `rotate(${layout.rotation}deg)` }}",
+      "ui/inline-style-keys\tuntracked\tSymbolCard > <div.spotmatch-card> > art > <img> > width\tstyle={{ width: `${layout.scale}%`, transform: `rotate(${layout.rotation}deg)` }}",
+      "ui/inline-style-keys\tuntracked\tSymbolCard > <div.spotmatch-card> > style > left\tleft: `${layout.x}%`,",
+      "ui/inline-style-keys\tuntracked\tSymbolCard > <div.spotmatch-card> > style > top\ttop: `${layout.y}%`,",
       "ui/inline-style-keys\tvalue\tSpotmatchPlayBoard > feedbackContent > <div.spotmatch-feedback> > <svg.spotmatch-feedback-icon>\tstrokeWidth=\"2\""
     ],
     "packages/web/src/games/spotmatch/room/SpotmatchRoomScreen.css": [
       "ui/value-allowlist\t\t.spotmatch-play-stamp\tz-index: 4;",
       "ui/value-allowlist\t\t.spotmatch-played-card\tz-index: 3;",
       "ui/value-allowlist\t\t.spotmatch-symbol\tz-index: 1;",
+      "ui/value-allowlist\t\t@container spotmatch-result (max-width: 20rem)\t@container spotmatch-result (max-width: 20rem) {",
       "ui/value-allowlist\t\t@media (prefers-reduced-motion: no-preference) > .spotmatch-stage[data-feedback='success'] .spotmatch-feedback\tanimation: spotmatch-poster-pop 280ms cubic-bezier(0.16, 1, 0.3, 1);",
       "ui/value-allowlist\t\t@media (prefers-reduced-motion: no-preference) > .spotmatch-symbol--matched\tanimation: spotmatch-match-pop 300ms cubic-bezier(0.16, 1, 0.3, 1);",
       "ui/value-allowlist\t\t@media (prefers-reduced-motion: no-preference) > .spotmatch-symbol--wrong\tanimation: spotmatch-wrong-nudge 180ms ease-out;"
+    ],
+    "packages/web/src/games/spotmatch/room/hooks/useSpotmatchCardFlight.ts": [
+      "ui/inline-style-keys\tuntracked\tuseSpotmatchCardFlight\tmoving.style.width = `${destination.width}px`;",
+      "ui/inline-style-keys\tuntracked\tuseSpotmatchCardFlight > animation > transform\ttransform: `translate(${endX}px, ${endY}px) rotate(-4deg) scale(.97)`,",
+      "ui/inline-style-keys\tuntracked\tuseSpotmatchCardFlight > animation > transform\ttransform: `translate(${endX}px, ${endY}px) rotate(0deg) scale(1)`,",
+      "ui/inline-style-keys\tuntracked\tuseSpotmatchCardFlight > animation > transform\ttransform: `translate(${endX}px, ${endY}px) rotate(0deg) scale(1)`,",
+      "ui/inline-style-keys\tuntracked\tuseSpotmatchCardFlight > animation > transform\ttransform: `translate(${startX}px, ${startY}px) rotate(7deg) scale(1)`,",
+      "ui/inline-style-keys\tuntracked\tuseSpotmatchCardFlight > animation > transform\t{ transform: `translate(${startX}px, ${startY}px) rotate(7deg) scale(1)`, opacity: 0 },"
     ],
     "packages/web/src/games/storyrelay/room/components/StoryRelayStage.css": [
       "ui/value-allowlist\t\t.storyrelay-content\tmax-width: 800px;",
@@ -1359,6 +1705,11 @@
       "ui/value-allowlist\t\t@keyframes ai-chat-pulse > from\topacity: 0.8;",
       "ui/value-allowlist\t\t@keyframes ai-chat-typing > 0%, 100%\topacity: 0.4;"
     ],
+    "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.tsx": [
+      "ui/inline-style-keys\tuntracked\tAIChatBubble > <Dialog.Root> > <Portal> > <Dialog.Positioner.ai-chat-positioner> > paddingBottom\tstyle={{ paddingBottom: `calc(${chat.keyboardHeight}px + var(--space-small))` }}",
+      "ui/inline-style-keys\tuntracked\tAIChatBubble > <div.ai-chat-bubble-anchor> > left\tstyle={{ left: chat.bubble.position.x, top: chat.bubble.position.y }}",
+      "ui/inline-style-keys\tuntracked\tAIChatBubble > <div.ai-chat-bubble-anchor> > top\tstyle={{ left: chat.bubble.position.x, top: chat.bubble.position.y }}"
+    ],
     "packages/web/src/games/werewolf/components/BoardStrategy/BoardStrategy.css": [
       "ui/value-allowlist\t\t.board-strategy-accordion-header\tbox-shadow 100ms ease-out;",
       "ui/value-allowlist\t\t.board-strategy-accordion-header\ttransform 100ms ease-out,"
@@ -1368,6 +1719,9 @@
       "ui/value-allowlist\t\t.camp-distribution-percent\twidth: 36px;",
       "ui/value-allowlist\t\t.camp-distribution-track\theight: 6px;",
       "ui/value-allowlist\t\t.camp-distribution[data-compact='true'] .camp-distribution-label\twidth: 56px;"
+    ],
+    "packages/web/src/games/werewolf/components/CampDistributionBar.tsx": [
+      "ui/inline-style-keys\tuntracked\tCampDistributionBar > <div.camp-distribution> > <div.camp-distribution-row> > <span.camp-distribution-track> > <span.camp-distribution-fill> > width\t<span className=\"camp-distribution-fill\" style={{ width: `${percent}%` }} />"
     ],
     "packages/web/src/games/werewolf/components/NotepadPanel.css": [
       "ui/value-allowlist\t\t.notepad-role-badge\tpadding: 1px var(--space-micro);",
@@ -1516,14 +1870,19 @@
       "ui/value-allowlist\t\t.admin-word-library-page .admin-bulk-bar\tborder: 1px solid var(--admin-border);",
       "ui/value-allowlist\t\t.admin-workspace-header\tborder-bottom: 1px solid var(--admin-border);",
       "ui/value-allowlist\t\t.admin-workspace-header\tz-index: 5;",
+      "ui/value-allowlist\t\t@media (max-width: 1023px)\t@media (max-width: 1023px) {",
       "ui/value-allowlist\t\t@media (max-width: 1023px) > .admin-drawer\tanimation: admin-slide-up 200ms ease-out;",
       "ui/value-allowlist\t\t@media (max-width: 1023px) > .admin-quota-ring\theight: 112px;",
       "ui/value-allowlist\t\t@media (max-width: 1023px) > .admin-quota-ring\twidth: 112px;",
+      "ui/value-allowlist\t\t@media (max-width: 1023px) > @media (max-width: 640px)\t@media (max-width: 640px) {",
       "ui/value-allowlist\t\t@media (max-width: 1023px) > @media (max-width: 640px) > .admin-library-stats-row > * + *\tborder-top: 1px solid var(--admin-border);",
       "ui/value-allowlist\t\t@media (max-width: 1023px) > @media (max-width: 640px) > .admin-stat + .admin-stat\tborder-top: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t\t@media (max-width: 640px)\t@media (max-width: 640px) {",
+      "ui/value-allowlist\t\t@media (max-width: 760px)\t@media (max-width: 760px) {",
       "ui/value-allowlist\t\t@media (max-width: 760px) > .admin-drawer.admin-overlay-sheet\tanimation: admin-slide-up 200ms ease-out;"
     ],
     "packages/web/src/routes/admin/components/Charts.tsx": [
+      "ui/inline-style-keys\tuntracked\tAreaChart > <div.admin-area-chart> > <svg> > <path>\t<path d={`${path} L ${last.x} 160 L ${first.x} 160 Z`} fill={`url(#${id})`} />",
       "ui/inline-style-keys\tvalue\tAreaChart > <div.admin-area-chart> > <svg> > <defs> > <linearGradient> > <stop>\t<stop offset=\"0%\" stopColor=\"var(--admin-accent)\" stopOpacity=\"0.22\" />",
       "ui/inline-style-keys\tvalue\tAreaChart > <div.admin-area-chart> > <svg> > <defs> > <linearGradient> > <stop>\t<stop offset=\"100%\" stopColor=\"var(--admin-accent)\" stopOpacity=\"0.01\" />",
       "ui/inline-style-keys\tvalue\tAreaChart > <div.admin-area-chart> > <svg> > <path>\t<path d={path} fill=\"none\" stroke=\"var(--admin-accent)\" strokeWidth=\"2\" />"
@@ -1536,17 +1895,33 @@
       "ui/value-allowlist\t\t.admin-submission-check input[type='checkbox']\tborder-radius: calc(var(--radius-small) / 2);",
       "ui/value-allowlist\t\t.admin-submission-check input[type='checkbox']::after\ttransition: transform 120ms ease-out;",
       "ui/value-allowlist\t\t.admin-submission-detail\tborder-top: 1px solid var(--admin-border);",
-      "ui/value-allowlist\t\t.admin-submission-form > ul li\tborder-bottom: 1px solid var(--admin-border);"
+      "ui/value-allowlist\t\t.admin-submission-form > ul li\tborder-bottom: 1px solid var(--admin-border);",
+      "ui/value-allowlist\t\t@media (max-width: 640px)\t@media (max-width: 640px) {"
+    ],
+    "packages/web/src/routes/appearance/AppearanceHero.tsx": [
+      "ui/inline-style-keys\tuntracked\tEffectHeroPreview > <section.appearance-hero> > <div.appearance-hero-avatar> > <span.appearance-hero-effect-icon> > color\t<span className=\"appearance-hero-effect-icon\" style={{ color: rarityColor }}>\tpackages/web/src/routes/appearance/AppearanceHero.tsx: const rarityColor = heroEffectRarity === null ? undefined : RARITY_VISUAL[heroEffectRarity].color;",
+      "ui/inline-style-keys\tuntracked\tEffectHeroPreview > <section.appearance-hero> > <div.appearance-hero-text> > <p.appearance-hero-heading> > <span.appearance-hero-rarity> > color\t<span className=\"appearance-hero-rarity\" style={{ color: rarityColor }}>\tpackages/web/src/routes/appearance/AppearanceHero.tsx: const rarityColor = heroEffectRarity === null ? undefined : RARITY_VISUAL[heroEffectRarity].color;"
     ],
     "packages/web/src/routes/appearance/AppearancePage.css": [
       "ui/value-allowlist\t\t.appearance-cell\tbox-shadow 120ms ease-out;",
       "ui/value-allowlist\t\t.appearance-cell\ttransform 120ms ease-out,",
       "ui/value-allowlist\t\t.appearance-cell-lock, .appearance-cell-check\tz-index: 2;",
-      "ui/value-allowlist\t\t.appearance-page\theight: 100vh;"
+      "ui/value-allowlist\t\t.appearance-page\theight: 100vh;",
+      "ui/value-allowlist\t\t@media (max-height: 640px)\t@media (max-height: 640px) {"
     ],
     "packages/web/src/routes/appearance/AppearancePickers.tsx": [
       "ui/inline-style-keys\tvalue\tAvatarCells > <PickerCell> > <span> > opacity\t<span style={unlocked ? undefined : { opacity: LOCKED_OPACITY }}>\tpackages/web/src/routes/appearance/AppearancePickers.tsx: const LOCKED_OPACITY = 0.4;",
       "ui/inline-style-keys\tvalue\tNameStyleGrid > <PickerCell> > <span.appearance-cell-name-style> > opacity\tstyle={item.unlocked ? undefined : { opacity: LOCKED_OPACITY }}\tpackages/web/src/routes/appearance/AppearancePickers.tsx: const LOCKED_OPACITY = 0.4;"
+    ],
+    "packages/web/src/routes/bench/SceneBench.css": [
+      "ui/value-allowlist\t\t.bench-grid\tgap: 12px;",
+      "ui/value-allowlist\t\t.bench-name\tfont-size: 12px;",
+      "ui/value-allowlist\t\t.bench-page\tpadding: 16px;",
+      "ui/value-allowlist\t\t.bench-seat\tgap: 4px;",
+      "ui/value-allowlist\t\t.bench-tile\tbackground: #2a2a3a;",
+      "ui/value-allowlist\t\t.bench-tile\tborder-radius: 50%;",
+      "ui/value-allowlist\t\t.bench-tile\tcolor: #fff;",
+      "ui/value-allowlist\t\t.bench-tile\tfont-size: 20px;"
     ],
     "packages/web/src/routes/gacha/GachaPage.css": [
       "ui/value-allowlist\t\t.gacha-count-value\tfont-size: calc(var(--font-display) * 1.3);",
@@ -1577,12 +1952,21 @@
       "ui/value-allowlist\t\t.pity-bar-tip\twidth: 8px;",
       "ui/value-allowlist\t\t@keyframes pity-bar-pulse > to\topacity: 0.7;"
     ],
+    "packages/web/src/routes/gacha/components/PityProgressBar.tsx": [
+      "ui/inline-style-keys\tuntracked\tPityProgressBar > <div.pity-bar> > <div.pity-bar-track> > <span.pity-bar-fill> > width\tstyle={{ width: `${fillPercent}%` }}"
+    ],
     "packages/web/src/routes/gacha/components/RateDisclosureModal.css": [
       "ui/value-allowlist\t\t.rate-row-icon\tvertical-align: -0.125em;"
+    ],
+    "packages/web/src/routes/gacha/components/RateDisclosureModal.tsx": [
+      "ui/inline-style-keys\tuntracked\tRarityHeaderRow > <tr> > <th> > color\t<th key={rarity} scope=\"col\" style={{ color: RARITY_VISUAL[rarity].color }}>"
     ],
     "packages/web/src/routes/gacha/components/RewardPreview.css": [
       "ui/value-allowlist\t\t.reward-preview-icon\tfont-size: calc(var(--reward-preview-size) / 2);",
       "ui/value-allowlist\t\t.reward-preview-icon\tline-height: 1;"
+    ],
+    "packages/web/src/routes/gacha/components/RewardPreview.tsx": [
+      "ui/inline-style-keys\tuntracked\tRewardPreview > <span.reward-preview> > opacity\topacity: residents === null ? opacity : undefined,"
     ],
     "packages/web/src/routes/gacha/components/SingleResultReveal.css": [
       "ui/value-allowlist\t\t.single-reveal-card\tmin-width: 220px;",
@@ -1602,6 +1986,7 @@
       "ui/value-allowlist\t\t[data-rarity='rare'] .single-reveal-card\tanimation: single-reveal-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;"
     ],
     "packages/web/src/routes/gacha/components/SingleResultReveal.tsx": [
+      "ui/inline-style-keys\tuntracked\tSingleResultReveal > <Dialog.Root> > <Portal> > <Dialog.Positioner.gacha-result-positioner> > <Dialog.Content.single-reveal-card> > boxShadow\tglow === null ? undefined : `var(--shadow-lg), 0 0 ${glow.blur}px ${withAlpha(visual.color, glow.alpha)}`,",
       "ui/inline-style-keys\tvalue\tSingleResultReveal > <Dialog.Root> > <Portal> > <Dialog.Positioner.gacha-result-positioner> > <Dialog.Content.single-reveal-card> > borderWidth\tborderWidth: BORDER_WIDTHS[rarity],\tpackages/web/src/routes/gacha/components/SingleResultReveal.tsx: common: 1,",
       "ui/inline-style-keys\tvalue\tSingleResultReveal > <Dialog.Root> > <Portal> > <Dialog.Positioner.gacha-result-positioner> > <Dialog.Content.single-reveal-card> > borderWidth\tborderWidth: BORDER_WIDTHS[rarity],\tpackages/web/src/routes/gacha/components/SingleResultReveal.tsx: epic: 2,",
       "ui/inline-style-keys\tvalue\tSingleResultReveal > <Dialog.Root> > <Portal> > <Dialog.Positioner.gacha-result-positioner> > <Dialog.Content.single-reveal-card> > borderWidth\tborderWidth: BORDER_WIDTHS[rarity],\tpackages/web/src/routes/gacha/components/SingleResultReveal.tsx: legendary: 3,",
@@ -1627,6 +2012,12 @@
       "ui/value-allowlist\t\t.ten-result-rarity\topacity: 0.7;"
     ],
     "packages/web/src/routes/gacha/components/TenResultOverlay.tsx": [
+      "ui/inline-style-keys\tuntracked\tResultCell > <li.ten-result-cell> > <span.ten-result-pity> > color\t<span className=\"ten-result-pity\" style={{ color: visual.color }}>",
+      "ui/inline-style-keys\tuntracked\tResultCell > <li.ten-result-cell> > <span.ten-result-rarity> > color\t<span className=\"ten-result-rarity\" style={{ color: visual.color }}>",
+      "ui/inline-style-keys\tuntracked\tTenResultOverlay > <Dialog.Root> > <Portal> > <Dialog.Positioner.gacha-result-positioner> > <Dialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span.ten-result-group-count> > backgroundColor\tbackgroundColor: withAlpha(visual.color, 0.15),\tpackages/web/src/theme/colorUtils.ts: return `rgb(${r} ${g} ${b} / ${Math.round(alpha * 100)}%)`;",
+      "ui/inline-style-keys\tuntracked\tTenResultOverlay > <Dialog.Root> > <Portal> > <Dialog.Positioner.gacha-result-positioner> > <Dialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span.ten-result-group-count> > color\tcolor: visual.color,",
+      "ui/inline-style-keys\tuntracked\tTenResultOverlay > <Dialog.Root> > <Portal> > <Dialog.Positioner.gacha-result-positioner> > <Dialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span.ten-result-group-dot> > backgroundColor\tstyle={{ backgroundColor: visual.color }}",
+      "ui/inline-style-keys\tuntracked\tTenResultOverlay > <Dialog.Root> > <Portal> > <Dialog.Positioner.gacha-result-positioner> > <Dialog.Content.ten-result-card> > <div.ten-result-scroll> > <section.ten-result-group> > <div.ten-result-group-header> > <span> > color\t<span style={{ color: visual.color }}>{visual.label}</span>",
       "ui/inline-style-keys\tvalue\tResultCell > style > '--cell-delay'\t'--cell-delay': `${isHigh ? HIGH_REVEAL_DELAY_MS : LOW_STAGGER_BASE_MS + index * LOW_STAGGER_STEP_MS}ms`,\tpackages/web/src/routes/gacha/components/TenResultOverlay.tsx: const HIGH_REVEAL_DELAY_MS = 700;"
     ],
     "packages/web/src/routes/gacha/components/TicketTabBar.css": [
@@ -1654,13 +2045,18 @@
       "ui/value-allowlist\t\t.picker-option\ttransform 100ms ease-out;",
       "ui/value-allowlist\t\t.picker-option-art\twidth: calc(var(--size-avatar-lg) * 1.5);"
     ],
+    "packages/web/src/routes/games/GamePickerPage.tsx": [
+      "ui/inline-style-keys\tuntracked\tGameOptionRow > <button.picker-option> > <span.picker-option-art> > <span.picker-option-icon> > backgroundColor\t<span className=\"picker-option-icon\" style={{ backgroundColor: option.gradient[1] }}>",
+      "ui/inline-style-keys\tuntracked\tGameOptionRow > <button.picker-option> > <span.picker-option-art> > background\tbackground: `linear-gradient(135deg, ${option.gradient[0]}, ${option.gradient[1]})`,"
+    ],
     "packages/web/src/routes/home/HomePage.css": [
       "ui/value-allowlist\t\t.home-action\ttransition: transform 100ms ease-out;",
       "ui/value-allowlist\t\t.home-body\tmax-width: 960px;",
       "ui/value-allowlist\t\t.home-card\ttransition: transform 100ms ease-out;",
       "ui/value-allowlist\t\t.home-hero\tbox-shadow 100ms ease-out;",
       "ui/value-allowlist\t\t.home-hero\ttransform 100ms ease-out,",
-      "ui/value-allowlist\t\t.home-hero-subtitle\topacity: 0.85;"
+      "ui/value-allowlist\t\t.home-hero-subtitle\topacity: 0.85;",
+      "ui/value-allowlist\t\t@media (min-width: 720px)\t@media (min-width: 720px) {"
     ],
     "packages/web/src/routes/home/InstallMenuItem.css": [
       "ui/value-allowlist\t\t.install-menu-item\tbox-shadow 100ms ease-out;",
@@ -1693,18 +2089,46 @@
     "packages/web/src/routes/shardExchange/ShardExchangePage.css": [
       "ui/value-allowlist\t\t.shard-cell-dot\theight: 6px;",
       "ui/value-allowlist\t\t.shard-cell-dot\twidth: 6px;",
-      "ui/value-allowlist\t\t.shard-exchange-page\theight: 100vh;"
+      "ui/value-allowlist\t\t.shard-exchange-page\theight: 100vh;",
+      "ui/value-allowlist\t\t@media (width >= 600px)\t@media (width >= 600px) {",
+      "ui/value-allowlist\t\t@media (width >= 768px)\t@media (width >= 768px) {"
+    ],
+    "packages/web/src/routes/shardExchange/ShardExchangePage.tsx": [
+      "ui/inline-style-keys\tuntracked\tExchangeCell > <li.shard-cell> > <span.shard-cell-dot> > backgroundColor\tstyle={{ backgroundColor: visual.color }}"
     ],
     "packages/web/src/routes/unlocks/UnlocksPage.css": [
       "ui/value-allowlist\t\t.unlocks-cell-badge\tz-index: 2;",
-      "ui/value-allowlist\t\t.unlocks-page\theight: 100vh;"
+      "ui/value-allowlist\t\t.unlocks-page\theight: 100vh;",
+      "ui/value-allowlist\t\t@media (min-width: 600px)\t@media (min-width: 600px) {",
+      "ui/value-allowlist\t\t@media (min-width: 768px)\t@media (min-width: 768px) {"
     ],
     "packages/web/src/routes/unlocks/UnlocksPage.tsx": [
+      "ui/inline-style-keys\tuntracked\tSummaryCard > <section.unlocks-summary> > <div.unlocks-summary-body> > <div.unlocks-summary-bar> > <span.unlocks-summary-fill> > width\t<span className=\"unlocks-summary-fill\" style={{ width: `${percent}%` }} />",
       "ui/inline-style-keys\tvalue\tUnlockThumb > <span.unlocks-thumb unlocks-thumb-text> > opacity\t<span className=\"unlocks-thumb unlocks-thumb-text\" style={{ opacity: thumbOpacity }}>\tpackages/web/src/routes/unlocks/UnlocksPage.tsx: const LOCKED_THUMB_OPACITY = 0.2;",
       "ui/inline-style-keys\tvalue\tUnlockThumb > <span.unlocks-thumb> > opacity\t<span className=\"unlocks-thumb\" style={{ opacity: thumbOpacity }}>\tpackages/web/src/routes/unlocks/UnlocksPage.tsx: const LOCKED_THUMB_OPACITY = 0.2;"
     ],
+    "packages/web/src/scene/SeatEntrance.tsx": [
+      "ui/inline-style-keys\tuntracked\tapplyPose\telement.style.opacity = String(Math.min(1, Math.max(0, pose.opacity)));",
+      "ui/inline-style-keys\tuntracked\tapplyPose\telement.style.transform = cssTransform(pose);\tpackages/web/src/scene/SeatEntrance.tsx: return `translate(${pose.translateX}px, ${pose.translateY}px) rotate(${pose.rotateDeg}deg) scale(${pose.scale})${turn}`;",
+      "ui/inline-style-keys\tuntracked\tapplyPose\tpose.clipTop === 0 && pose.clipRight === 0 ? '' : `inset(${pose.clipTop * 100}% ${pose.clipRight * 100}% 0 0)`;"
+    ],
     "packages/web/src/theme/nightArt.css": [
-      "ui/sheet-scope\t\t.night-art-title h1\t.night-art-title h1 { margin: 0; font-size: var(--font-display); font-weight: 900; letter-spacing: 10px; text-shadow: 0 4px 12px rgb(0 0 0 / 80%); }"
+      "ui/sheet-scope\t\t.night-art-title h1\t.night-art-title h1 { margin: 0; font-size: var(--font-display); font-weight: 900; letter-spacing: 10px; text-shadow: 0 4px 12px rgb(0 0 0 / 80%); }",
+      "ui/value-allowlist\t\t.night-art\tbackground: #0a0a12;",
+      "ui/value-allowlist\t\t.night-art\tcolor: #ffffff;",
+      "ui/value-allowlist\t\t.night-art-divider\tbackground: rgb(255 255 255 / 30%);",
+      "ui/value-allowlist\t\t.night-art-divider\theight: 1px;",
+      "ui/value-allowlist\t\t.night-art-divider\tmargin: 10px 0;",
+      "ui/value-allowlist\t\t.night-art-divider\twidth: 120px;",
+      "ui/value-allowlist\t\t.night-art-shade\tbackground: linear-gradient(to bottom, transparent, rgb(8 8 16 / 85%) 70%, rgb(8 8 16 / 95%));",
+      "ui/value-allowlist\t\t.night-art-shade\tbackground: linear-gradient(to bottom, transparent, rgb(8 8 16 / 85%) 70%, rgb(8 8 16 / 95%));",
+      "ui/value-allowlist\t\t.night-art-subtitle\tletter-spacing: 6px;",
+      "ui/value-allowlist\t\t.night-art-subtitle\topacity: 0.6;",
+      "ui/value-allowlist\t\t.night-art-title h1\tfont-weight: 900;",
+      "ui/value-allowlist\t\t.night-art-title h1\tletter-spacing: 10px;",
+      "ui/value-allowlist\t\t.night-art-title h1\ttext-shadow: 0 4px 12px rgb(0 0 0 / 80%);",
+      "ui/value-allowlist\t\t.night-art-title h1\ttext-shadow: 0 4px 12px rgb(0 0 0 / 80%);",
+      "ui/value-allowlist\t\t.night-art-title h1\ttext-shadow: 0 4px 12px rgb(0 0 0 / 80%);"
     ]
   }
 }

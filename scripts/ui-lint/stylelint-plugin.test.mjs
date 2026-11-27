@@ -47,9 +47,23 @@ const GREEN = [
   'a { color: var(--a, var(--b)); }',
   // Container query units (Modern Web Guidance `css`).
   'a { width: 50cqi; height: 100cqb; }',
+  // Conditions test registered features with keyword values (P1 QA12 nit 8).
+  '@media (hover: hover) and (pointer: fine) { a { opacity: 1; } }',
+  '@media (prefers-reduced-motion: reduce) { a { opacity: 1; } }',
+  '@supports (appearance: base-select) { a { opacity: 1; } }',
+  '@supports selector(:has(a)) { a { opacity: 1; } }',
 ];
 
 const RED = [
+  // `@layer` and `@scope` are not registered at-rules (D14, user's whitelist rule 14:43).
+  '@layer base { a { opacity: 1; } }',
+  '@scope (.card) { a { opacity: 1; } }',
+  // A length in a condition is a breakpoint; none is registered before P3 (P1 QA12 nit 8).
+  '@media (max-width: 391px) { a { opacity: 1; } }',
+  '@media (width >= 768px) { a { opacity: 1; } }',
+  '@container card (min-width: 20rem) { a { opacity: 1; } }',
+  '@media (orientation: landscape) { a { opacity: 1; } }',
+  '@supports (padding: 13px) { a { opacity: 1; } }',
   // `vh`/`vw` break when mobile browser UI shows or hides: `dvh`/`dvw` (Modern Web Guidance
   // `responsive-design`).
   'a { min-height: 100vh; }',
@@ -172,13 +186,22 @@ describe('ui/sheet-scope', () => {
   ])('rejects %s in the token sheet', async (code) => {
     expect((await warnings(code, TOKEN_SHEET.file)).length).toBeGreaterThan(0);
   });
-  it('lets an art sheet write values on its own classes', async () => {
+  it('lets an art sheet style its own classes with allowed values', async () => {
     expect(
       await warnings(
-        '.night-art .night-art-title { font-size: 31px; color: #fff; }\n.night-art:hover > .night-art__x::before { opacity: 0.4; }\n.night-art-y { &:hover { opacity: 0.5; } }\n@keyframes night-art-x { from { opacity: 0; } }\n.night-art-z { animation: night-art-x 1s; }',
+        '.night-art .night-art-title { font-size: var(--font-size-title); color: var(--color-text); }\n.night-art:hover > .night-art__x::before { opacity: 0; }\n.night-art-y { &:hover { opacity: 1; } }\n@keyframes night-art-x { from { opacity: 0; } }\n.night-art-z { animation: night-art-x var(--duration-slow); }',
         ART,
       ),
     ).toEqual([]);
+  });
+  // No sheet's values go unchecked (D7): an art sheet's written values are reported.
+  it.each([
+    '.night-art-title { font-size: 31px; }',
+    '.night-art-title { color: #fff; }',
+    '.night-art-x::before { opacity: 0.4; }',
+    '@media (max-width: 391px) { .night-art { opacity: 1; } }',
+  ])('reports the written value %s in an art sheet', async (code) => {
+    expect((await warnings(code, ART)).map((w) => w.rule)).toContain('ui/value-allowlist');
   });
   it.each([
     '.avatar { border-radius: 13px; }',

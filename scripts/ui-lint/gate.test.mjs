@@ -17,6 +17,7 @@ import {
   baselineAt,
   comparisonBase,
   differences,
+  findingsAt,
   growth,
   newRules,
   renamesSince,
@@ -169,5 +170,70 @@ describe('comparison base (P1 QA5 K10)', () => {
 
   it('follows renames since the base', () => {
     expect(renamesSince(root, first)).toEqual(new Map([['a.css', 'b.css']]));
+  });
+});
+
+describe('base worktree (P1 QA12 nit 6)', () => {
+  // The repository sits in its own directory: the base tree is made beside it.
+  const parent = fs.mkdtempSync(path.join(tmpdir(), 'ui-gate-tree-'));
+  const root = path.join(parent, 'repo');
+  afterAll(() => fs.rmSync(parent, { recursive: true, force: true }));
+  const git = (...args) =>
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  fs.mkdirSync(path.join(root, 'packages/web/node_modules'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.gitignore'), 'node_modules\n');
+  fs.writeFileSync(path.join(root, 'a.css'), 'a {}\n');
+  fs.writeFileSync(path.join(root, 'packages/web/package.json'), '{}');
+  git('init', '-q');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'first');
+  const commit = git('rev-parse', 'HEAD');
+  const residue = () => ({
+    trees: fs.readdirSync(parent).filter((name) => name.startsWith('.ui-gate-base-')),
+    registered: git('worktree', 'list', '--porcelain')
+      .split('\n')
+      .filter((line) => line.startsWith('worktree ')).length,
+  });
+
+  it('measures the base commit with the dependencies linked, then removes the tree', async () => {
+    const files = await findingsAt(root, commit, new Set(['r']), (tree) => {
+      expect(fs.readFileSync(path.join(tree, 'a.css'), 'utf8')).toBe('a {}\n');
+      expect(fs.lstatSync(path.join(tree, 'packages/web/node_modules')).isSymbolicLink()).toBe(
+        true,
+      );
+      return { problems: [], files: { 'a.css': ['r\tm\ta\tx', 'other\tm\ta\ty'] } };
+    });
+    expect(files).toEqual({ 'a.css': ['r\tm\ta\tx'] });
+    expect(residue()).toEqual({ trees: [], registered: 1 });
+  });
+
+  it('removes the tree when the measurement fails', async () => {
+    await expect(
+      findingsAt(root, commit, new Set(['r']), () => ({ problems: ['broken'], files: {} })),
+    ).rejects.toThrow('broken');
+    expect(residue()).toEqual({ trees: [], registered: 1 });
+  });
+
+  it('removes the tree when an interrupt ends the run, then ends with that signal', () => {
+    const gate = pathToFileURL(path.join(import.meta.dirname, 'gate.mjs')).href;
+    const script = `import { findingsAt } from ${JSON.stringify(gate)};
+await findingsAt(${JSON.stringify(root)}, ${JSON.stringify(commit)}, new Set(), () => {
+  process.kill(process.pid, 'SIGTERM');
+  // The gate is busy while it measures: a pending timer keeps the process up, as its work does.
+  return new Promise(() => setInterval(() => {}, 1000));
+});`;
+    let ended;
+    try {
+      execFileSync(process.execPath, ['--input-type=module', '-e', script], { stdio: 'pipe' });
+    } catch (error) {
+      ended = error;
+    }
+    expect(ended?.signal).toBe('SIGTERM');
+    expect(String(ended?.stderr)).toContain('SIGTERM while measuring the base');
+    expect(residue()).toEqual({ trees: [], registered: 1 });
   });
 });

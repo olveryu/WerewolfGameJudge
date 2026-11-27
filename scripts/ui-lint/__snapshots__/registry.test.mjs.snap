@@ -70,6 +70,8 @@ exports[`UI gate registry > pins AT_RULES exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins BREAKPOINTS exactly 1`] = `[]`;
+
 exports[`UI gate registry > pins BUILD_ENTRIES exactly 1`] = `
 [
   "packages/web/src/boot/bootSplash.ts",
@@ -80,6 +82,30 @@ exports[`UI gate registry > pins COLOR_KEYWORDS exactly 1`] = `
 [
   "currentcolor",
   "transparent",
+]
+`;
+
+exports[`UI gate registry > pins CONDITION_FEATURES exactly 1`] = `
+[
+  "forced-colors",
+  "height",
+  "hover",
+  "max-height",
+  "max-width",
+  "min-height",
+  "min-width",
+  "pointer",
+  "prefers-reduced-motion",
+  "width",
+]
+`;
+
+exports[`UI gate registry > pins CONDITION_WORDS exactly 1`] = `
+[
+  "and",
+  "not",
+  "only",
+  "or",
 ]
 `;
 
@@ -967,6 +993,29 @@ exports[`UI gate registry > pins PAGE_LINK_RELS exactly 1`] = `
   "stylesheet",
 ]
 `;
+
+exports[`UI gate registry > pins PAGE_META_NAMES exactly 1`] = `
+{
+  "description": null,
+  "format-detection": null,
+  "theme-color": "surface",
+  "viewport": null,
+}
+`;
+
+exports[`UI gate registry > pins PAGE_META_PROPERTIES exactly 1`] = `
+[
+  "og:description",
+  "og:image",
+  "og:locale",
+  "og:site_name",
+  "og:title",
+  "og:type",
+  "og:url",
+]
+`;
+
+exports[`UI gate registry > pins PALETTE exactly 1`] = `"packages/web/src/theme/colors.ts"`;
 
 exports[`UI gate registry > pins PROPERTIES exactly 1`] = `
 {

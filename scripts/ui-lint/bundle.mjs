@@ -31,6 +31,9 @@ import {
   PAGE_ATTRIBUTES,
   PAGE_ELEMENTS,
   PAGE_HTTP_EQUIV,
+  PAGE_META_NAMES,
+  PAGE_META_PROPERTIES,
+  PALETTE,
   PAGE_LINK_RELS,
   SCRIPT_FILE,
   VIRTUAL_MODULE_PREFIXES,
@@ -40,8 +43,9 @@ import {
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
 
-function rel(file) {
-  return path.relative(REPO_ROOT, file).split(path.sep).join('/');
+/** A path relative to the root the graph is read from (a base worktree reports its own paths). */
+function relativeTo(root, file) {
+  return path.relative(root, file).split(path.sep).join('/');
 }
 
 function trackedFiles(root, pattern) {
@@ -107,12 +111,12 @@ function aliasedPath(specifier, from, options) {
 }
 
 /** Runtime module references of one script: `{ specifier, glob?, node }`, plus problems. */
-function scriptReferences(file, text) {
+function scriptReferences(root, file, text) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const references = [];
   const problems = [];
   const at = (node) =>
-    `${rel(file)}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}`;
+    `${relativeTo(root, file)}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}`;
   const literal = (node) =>
     node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
       ? node.text
@@ -255,7 +259,8 @@ function expandGlob(pattern, from, root, options) {
   const directory = path.dirname(absolute);
   if (absolute.includes('**') || /[*?[\]]/.test(directory))
     return { problem: 'the pattern must match files of one directory' };
-  if (!fs.existsSync(directory)) return { problem: `${rel(directory)} does not exist` };
+  if (!fs.existsSync(directory))
+    return { problem: `${relativeTo(root, directory)} does not exist` };
   const name = new RegExp(
     `^${path
       .basename(absolute)
@@ -270,6 +275,37 @@ function expandGlob(pattern, from, root, options) {
   };
 }
 
+/**
+ * The value of `colors.<key>` in the palette module, read from its source: a string literal of
+ * the exported `colors` object (`as const` included). Anything else is a broken registration and throws.
+ */
+function paletteColor(root, key) {
+  const file = path.join(root, PALETTE);
+  const source = ts.createSourceFile(
+    file,
+    fs.readFileSync(file, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (declaration.name.getText() !== 'colors') continue;
+      // `{ … } as const`: the object is the asserted expression.
+      const written = declaration.initializer;
+      const object = written && ts.isAsExpression(written) ? written.expression : written;
+      const entry =
+        object && ts.isObjectLiteralExpression(object)
+          ? object.properties.find(
+              (property) => ts.isPropertyAssignment(property) && property.name.getText() === key,
+            )
+          : undefined;
+      if (entry && ts.isStringLiteral(entry.initializer)) return entry.initializer.text;
+    }
+  }
+  throw new Error(`UI gate: ${PALETTE} has no string literal colors.${key} (PAGE_META_NAMES)`);
+}
+
 function pageEntries(root, file, problems) {
   const entries = [];
   const visit = (node) => {
@@ -281,15 +317,19 @@ function pageEntries(root, file, problems) {
       ) {
         // text and comments render nothing executable
       } else if (node.nodeName !== '#documentType')
-        problems.push(`${rel(file)}: unexpected ${node.nodeName}`);
+        problems.push(`${relativeTo(root, file)}: unexpected ${node.nodeName}`);
     } else {
       // parse5: only element nodes carry `attrs`/`childNodes`; text and comments have neither.
       const attributes = new Map((node.attrs ?? []).map((attr) => [attr.name, attr.value]));
       if (!PAGE_ELEMENTS.has(node.nodeName))
-        problems.push(`${rel(file)}: <${node.nodeName}> is not a registered page element`);
+        problems.push(
+          `${relativeTo(root, file)}: <${node.nodeName}> is not a registered page element`,
+        );
       for (const name of attributes.keys()) {
         if (!PAGE_ATTRIBUTES.has(name))
-          problems.push(`${rel(file)}: attribute \`${name}\` is not registered for pages`);
+          problems.push(
+            `${relativeTo(root, file)}: attribute \`${name}\` is not registered for pages`,
+          );
       }
       const resolve = (href) =>
         path.resolve(
@@ -304,24 +344,43 @@ function pageEntries(root, file, problems) {
           /^[a-z]+:/i.test(src) ||
           !SCRIPT_FILE.test(src)
         ) {
-          problems.push(`${rel(file)}: a page script is a module entry with a local .ts/.tsx src`);
+          problems.push(
+            `${relativeTo(root, file)}: a page script is a module entry with a local .ts/.tsx src`,
+          );
         } else entries.push(resolve(src));
-        if ((node.childNodes ?? []).length > 0) problems.push(`${rel(file)}: inline script`);
+        if ((node.childNodes ?? []).length > 0)
+          problems.push(`${relativeTo(root, file)}: inline script`);
       }
       if (node.nodeName === 'link') {
         const linkRel = (attributes.get('rel') ?? '').toLowerCase();
         const href = attributes.get('href') ?? '';
         if (!PAGE_LINK_RELS.has(linkRel))
-          problems.push(`${rel(file)}: <link rel="${linkRel}"> is not registered`);
+          problems.push(`${relativeTo(root, file)}: <link rel="${linkRel}"> is not registered`);
         else if (linkRel === 'stylesheet') {
           if (/^[a-z]+:/i.test(href) || !href.endsWith('.css'))
-            problems.push(`${rel(file)}: stylesheet link must be a local .css file`);
+            problems.push(`${relativeTo(root, file)}: stylesheet link must be a local .css file`);
           else entries.push(resolve(href));
         }
       }
       if (node.nodeName === 'meta' && attributes.has('http-equiv')) {
         if (!PAGE_HTTP_EQUIV.has(attributes.get('http-equiv').toLowerCase()))
-          problems.push(`${rel(file)}: <meta http-equiv> not registered`);
+          problems.push(`${relativeTo(root, file)}: <meta http-equiv> not registered`);
+      }
+      if (node.nodeName === 'meta' && attributes.has('property')) {
+        if (!PAGE_META_PROPERTIES.has(attributes.get('property')))
+          problems.push(`${relativeTo(root, file)}: <meta property> not registered`);
+      }
+      if (node.nodeName === 'meta' && attributes.has('name')) {
+        const name = attributes.get('name');
+        if (!Object.hasOwn(PAGE_META_NAMES, name))
+          problems.push(`${relativeTo(root, file)}: <meta name="${name}"> not registered`);
+        else if (PAGE_META_NAMES[name] !== null) {
+          const color = paletteColor(root, PAGE_META_NAMES[name]);
+          if (attributes.get('content') !== color)
+            problems.push(
+              `${relativeTo(root, file)}: <meta name="${name}"> is \`${attributes.get('content')}\`; it must be colors.${PAGE_META_NAMES[name]} (${color}) in ${PALETTE}`,
+            );
+        }
       }
     }
     for (const child of node.childNodes ?? []) visit(child);
@@ -339,7 +398,7 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
   const options = compilerOptions(root);
   const problems = [];
   const dependencies = webPackages(root, packages, problems);
-  const relative = (file) => path.relative(root, file).split(path.sep).join('/');
+  const relative = (file) => relativeTo(root, file);
 
   const pages = trackedFiles(path.join(root, WEB_ROOT), '*.html').map((page) =>
     path.join(root, WEB_ROOT, page),
@@ -374,7 +433,11 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
   };
 
   const followScript = (file) => {
-    const { references, problems: own } = scriptReferences(file, fs.readFileSync(file, 'utf8'));
+    const { references, problems: own } = scriptReferences(
+      root,
+      file,
+      fs.readFileSync(file, 'utf8'),
+    );
     problems.push(...own);
     for (const { specifier, glob, url, at } of references) {
       if (specifier === undefined) {

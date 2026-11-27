@@ -128,16 +128,11 @@ function makeRealRepoCopy() {
     });
   }
   // Assets are files the web bundle graph reaches, and the UI gate rejects a graph file reached
-  // through a symbolic link: hard-link them (copy them where hard links are not allowed).
-  const assets = path.join(REPO_ROOT, 'assets');
-  if (fs.existsSync(assets)) {
-    try {
-      execFileSync('cp', ['-al', assets, path.join(root, 'assets')], { stdio: 'pipe' });
-    } catch {
-      fs.rmSync(path.join(root, 'assets'), { recursive: true, force: true });
-      fs.cpSync(assets, path.join(root, 'assets'), { recursive: true });
-    }
-  }
+  // through a symbolic link: hard-link them (515 MB; the copy root sits beside the repository,
+  // on its file system, so a failed link is a broken setup and fails the run, QA12 nit 9).
+  execFileSync('cp', ['-al', path.join(REPO_ROOT, 'assets'), path.join(root, 'assets')], {
+    stdio: 'pipe',
+  });
   for (const linked of [
     'node_modules',
     'packages/game-engine/node_modules',

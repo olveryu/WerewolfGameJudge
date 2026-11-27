@@ -77,6 +77,29 @@ export const PAGE_LINK_RELS = Object.freeze(
   new Set(['icon', 'apple-touch-icon', 'manifest', 'stylesheet']),
 );
 export const PAGE_HTTP_EQUIV = Object.freeze(new Set(['content-security-policy']));
+/**
+ * `<meta name>` and `<meta property>` a page may hold (P1 QA12 nit 7). Their content is text the
+ * browser or a link preview shows, except `theme-color`, a color: it must be the value of the
+ * named entry of `colors` in `PALETTE`, since a meta element cannot read `var()`.
+ */
+export const PALETTE = 'packages/web/src/theme/colors.ts';
+export const PAGE_META_NAMES = Object.freeze({
+  viewport: null,
+  description: null,
+  'format-detection': null,
+  'theme-color': 'surface',
+});
+export const PAGE_META_PROPERTIES = Object.freeze(
+  new Set([
+    'og:type',
+    'og:title',
+    'og:description',
+    'og:image',
+    'og:url',
+    'og:locale',
+    'og:site_name',
+  ]),
+);
 
 /** File types a module may import as an asset (only the `?url` query is allowed). */
 export const ASSET_EXTENSIONS = Object.freeze(
@@ -136,8 +159,9 @@ export const STYLE_DECLARATIONS = Object.freeze(
 );
 
 /**
- * Art stylesheets (plan D7): their values are the artwork, so the value rules are off, and every
- * class in every selector carries the sheet's prefix (`prefix`, `prefix-*` or `prefix__*`).
+ * Art stylesheets (plan D7): every class in every selector carries the sheet's prefix (`prefix`,
+ * `prefix-*` or `prefix__*`). Their values take the value rules like any sheet's: a written
+ * value is debt the baseline holds, and a new one is reported (user's whitelist rule, 14:43).
  */
 export const ART_SHEETS = Object.freeze({
   'packages/web/src/boot/bootSplash.css': 'boot',
@@ -376,6 +400,29 @@ export const SYSTEM_COLORS = Object.freeze(
   ]),
 );
 export const FORCED_COLORS_MEDIA = '(forced-colors:active)';
+
+/**
+ * `@media` and `@container` conditions (P1 QA12 nit 8): the features they may test (a keyword
+ * value, or a length that is a registered breakpoint) and the words between them. A breakpoint
+ * cannot be a `var()`, so the breakpoint scale is a registered list; P3 sets it with the other
+ * semantic tokens, and until then every length in a condition is debt the baseline holds.
+ */
+export const CONDITION_FEATURES = Object.freeze(
+  new Set([
+    'hover',
+    'pointer',
+    'prefers-reduced-motion',
+    'forced-colors',
+    'width',
+    'height',
+    'min-width',
+    'max-width',
+    'min-height',
+    'max-height',
+  ]),
+);
+export const CONDITION_WORDS = Object.freeze(new Set(['and', 'not', 'only', 'or']));
+export const BREAKPOINTS = Object.freeze(new Set());
 
 const domainOf = (domain, names) => names.map((name) => [name, domain]);
 const sides = (prefix, suffix = '') =>

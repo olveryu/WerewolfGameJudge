@@ -18,9 +18,9 @@
  *   element by spread or `createElement` are not opaque and carry no `style`; React's raw HTML
  *   names (`dangerouslySetInnerHTML`, `__html`) appear nowhere.
  * - `ui/inline-style-keys` (E4): a value reaching a native `style` or typed `CSSProperties` has
- *   enumerable keys, and every literal value (and every SVG presentation attribute) passes the
- *   same value checker as stylesheets (`values.mjs`). Values only known at runtime are left to
- *   the screenshot layer.
+ *   enumerable keys, and every value (and every SVG presentation attribute) passes the same value
+ *   checker as stylesheets (`values.mjs`). A value only known at runtime passes only where its
+ *   kind fits whatever it holds; otherwise it is reported as `untracked` (plan D15 ②).
  */
 import path from 'node:path';
 
@@ -53,7 +53,7 @@ import {
   TAG_MAPS,
   UNMANAGED,
 } from './registry.mjs';
-import { domainOf, valueMessages, valueProblems, withOrigins } from './values.mjs';
+import { domainOf, runtimeFits, valueMessages, valueProblems, withOrigins } from './values.mjs';
 
 function typedServices(context) {
   const services = context.sourceCode.parserServices;
@@ -609,19 +609,47 @@ function cssName(key) {
 }
 
 /**
- * The literal values a type stands for, as CSS text, or null when it is not all literals. Used
- * only where no written expression can be found (a declared type such as `{ borderRadius: 7 }`).
+ * The readings a type stands for, used only where no written expression can be found (a declared
+ * type such as `{ borderRadius: 7 }`, a parameter, a library call). Each literal part is a
+ * literal reading with `origins`; a part without a literal (`number`, `string`, `any`) is one
+ * runtime reading at `at`, the expression that holds it (plan v3.9 D15 ②: a value the gate cannot
+ * show to be a token is reported, never left out). `null`, `undefined` and booleans write no
+ * declaration (React drops them; the CSSOM clears the property) and stand for nothing.
  */
-function typeLiteralValues(type, unit) {
-  const parts = type.isUnion() ? type.types : [type];
-  if (!parts.every((part) => part.isStringLiteral() || part.isNumberLiteral())) return null;
-  return parts.map((part) => ({
-    text: part.isStringLiteral() ? part.value : unit(part.value),
-    origins: [],
-  }));
+function typeReadings(type, unit, origins, at) {
+  const readings = [];
+  let runtime;
+  for (const part of type.isUnion() ? type.types : [type]) {
+    if (part.flags & (ts.TypeFlags.Nullable | ts.TypeFlags.Void | ts.TypeFlags.BooleanLike))
+      continue;
+    if (part.isStringLiteral() || part.isNumberLiteral()) {
+      readings.push({
+        text: part.isStringLiteral() ? part.value : unit(part.value),
+        origins,
+        untraced: origins.length === 0,
+      });
+      continue;
+    }
+    // A number is unitless or px exactly as a written number would be; anything else is text.
+    const kind = part.flags & ts.TypeFlags.NumberLike ? 'number' : 'string';
+    runtime = runtime === 'string' ? 'string' : kind;
+  }
+  if (runtime !== undefined)
+    readings.push({
+      runtime,
+      text: runtime === 'number' ? unit(1) : undefined,
+      origins: [at],
+    });
+  return readings;
 }
 
-/** `a` and `b` together; null only when neither has a literal reading. */
+/** The texts of readings that are all literal, else null (a key or name read for lookup). */
+const literalTexts = (readings) =>
+  readings.every((reading) => reading.runtime === undefined)
+    ? readings.map((reading) => reading.text)
+    : null;
+
+/** Lists together; null only when none of them is a list (no container, no returned value). */
 const either = (...lists) => {
   const known = lists.filter((list) => list !== null);
   return known.length === 0 ? null : known.flat();
@@ -745,22 +773,26 @@ function returnedExpressions(fn) {
 }
 
 /**
- * The one reading of written style values (UI gate E4; plan v3 §2 E4): every literal a style
- * expression can take, in this file or another, as `{ text, origins }` (`text` is CSS, `unit`
- * turns a number into it; `origins` are the literal nodes it was written in), or null when no
- * written literal can be found: a value computed at runtime, judged by the screenshots.
+ * The one reading of written style values (UI gate E4; plan v3 §2 E4, D15 ②): every value a
+ * style expression can take, in this file or another, as `{ text, origins }` (`text` is CSS,
+ * `unit` turns a number into it; `origins` are the nodes it was written in). Never empty for an
+ * expression that writes a declaration: what cannot be read as a literal is a runtime reading
+ * `{ runtime: 'number' | 'string', origins: [expression] }`, which the rule reports unless the
+ * value checker shows it fits (`runtimeFits`), so no value is left out.
  *
  * A name is followed to everything that gives it a value, because TypeScript widens a written
  * literal to `number`/`string` wherever it is not `const` (P1 QA7 F4): initializers (a `const`,
  * a `let`, a default parameter or destructuring default, an object property), later assignments,
- * a state hook's initial value and setter calls (QA8 should-fix 3). A member or element access is
- * read from the object or array literal behind its receiver, annotated (`Record<…>`) or not;
- * an element key that is not literal reads every entry (QA8 FIX-FIRST-3). Only when nothing
- * written is found does a literal type count, and then without an origin.
+ * a state hook's initial value and setter calls (QA8 should-fix 3). A parameter also takes what
+ * its callers pass, so its type is read beside its default. A member or element access is read
+ * from the object or array literal behind its receiver, annotated (`Record<…>`) or not; an
+ * element key that is not literal reads every entry (QA8 FIX-FIRST-3). Where nothing written is
+ * found, the type is read (`typeReadings`).
  */
 function literalValues(node, checker, unit, visiting = new Set()) {
-  // An expression whose value refers back to itself has no further literal reading.
-  if (visiting.has(node)) return null;
+  // An expression whose value refers back to itself is computed: its type is what it holds.
+  if (visiting.has(node))
+    return typeReadings(checker.getTypeAtLocation(node), unit, [], strip(node));
   visiting.add(node);
   try {
     return readLiteralValues(node, checker, unit, visiting);
@@ -782,34 +814,37 @@ function readLiteralValues(node, checker, unit, visiting) {
   )
     return [{ text: unit(-Number(node.operand.text)), origins: [node] }];
   if (ts.isTemplateExpression(node)) {
-    // Every substitution with literal values: the template is the product of its parts.
+    // The template is the product of its parts: each combination of literal parts is a literal
+    // text; a combination with a runtime part is runtime text, written at the template (one
+    // reading however many combinations), so a literal branch beside a runtime one is still read.
     let values = [{ text: node.head.text, origins: [] }];
+    let runtime = false;
     for (const span of node.templateSpans) {
       const parts = recurse(span.expression, String);
-      if (parts === null) return null;
+      const literal = parts.filter((part) => part.runtime === undefined);
+      if (literal.length < parts.length) runtime = true;
       values = values.flatMap((head) =>
-        parts.map((part) => ({
+        literal.map((part) => ({
           text: `${head.text}${part.text}${span.literal.text}`,
           origins: [...head.origins, ...part.origins],
           untraced: Boolean(head.untraced || part.untraced),
         })),
       );
     }
-    return values;
+    return runtime ? [...values, { runtime: 'string', origins: [node] }] : values;
   }
   if (ts.isConditionalExpression(node))
-    return either(recurse(node.whenTrue), recurse(node.whenFalse));
+    return [...recurse(node.whenTrue), ...recurse(node.whenFalse)];
   if (ts.isBinaryExpression(node)) {
     const operator = node.operatorToken.kind;
     // `a && b` is `b` whenever it is a style value: a falsy `a` writes no declaration.
     if (operator === ts.SyntaxKind.AmpersandAmpersandToken) return recurse(node.right);
     if (operator === ts.SyntaxKind.BarBarToken || operator === ts.SyntaxKind.QuestionQuestionToken)
-      return either(recurse(node.left), recurse(node.right));
+      return [...recurse(node.left), ...recurse(node.right)];
   }
   if (ts.isCallExpression(node)) {
     const returned = calledFunctions(node, checker).flatMap((fn) => returnedExpressions(fn) ?? []);
-    const written = either(...returned.map((expression) => recurse(expression)));
-    if (written !== null) return written;
+    if (returned.length > 0) return returned.flatMap((expression) => recurse(expression));
   }
   if (
     ts.isIdentifier(node) ||
@@ -817,13 +852,34 @@ function readLiteralValues(node, checker, unit, visiting) {
     ts.isElementAccessExpression(node)
   ) {
     const sources = valueSources(node, checker, visiting);
-    const written = sources === null ? null : either(...sources.map((source) => recurse(source)));
-    if (written !== null) return written;
+    if (sources !== null) {
+      const written = sources.flatMap((source) => recurse(source));
+      return takesArguments(node, checker)
+        ? [
+            ...written,
+            ...typeReadings(
+              checker.getTypeAtLocation(node),
+              unit,
+              typeOrigins(node, checker),
+              node,
+            ),
+          ]
+        : written;
+    }
   }
-  const typed = typeLiteralValues(checker.getTypeAtLocation(node), unit);
-  if (typed === null) return null;
-  const origins = typeOrigins(node, checker);
-  return typed.map((value) => ({ ...value, origins, untraced: origins.length === 0 }));
+  return typeReadings(checker.getTypeAtLocation(node), unit, typeOrigins(node, checker), node);
+}
+
+/**
+ * Whether a name is a parameter (or a binding inside one): its callers write its value, so a
+ * default is only one of the values it holds.
+ */
+function takesArguments(node, checker) {
+  if (!ts.isIdentifier(node)) return false;
+  let declaration = targetSymbol(node, checker)?.valueDeclaration;
+  while (declaration !== undefined && ts.isBindingElement(declaration))
+    declaration = declaration.parent.parent;
+  return declaration !== undefined && ts.isParameter(declaration);
 }
 
 /**
@@ -873,8 +929,7 @@ function valueSources(node, checker, visiting) {
   if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
     const keys = ts.isPropertyAccessExpression(node)
       ? [node.name.text]
-      : (literalValues(node.argumentExpression, checker, String, visiting)?.map((v) => v.text) ??
-        null);
+      : literalTexts(literalValues(node.argumentExpression, checker, String, visiting));
     const containers = containersOf(node.expression, checker, visiting);
     if (containers !== null) return entriesOf(containers, keys, checker, visiting);
     if (ts.isPropertyAccessExpression(node)) {
@@ -1064,6 +1119,7 @@ const inlineStyleKeys = {
       value: '{{message}}',
       untraced:
         '{{message}} Its literal type is not traced to a declaration, so changing it elsewhere is not seen (UI gate E4).',
+      untracked: '{{message}}',
       keyframes:
         'Keyframes passed to `animate` are checked where they are written: pass an array or object literal (UI gate E4).',
       name: 'This DOM style write names a property the checker cannot enumerate (UI gate E4).',
@@ -1072,10 +1128,10 @@ const inlineStyleKeys = {
   create(context) {
     const { services, checker } = typedServices(context);
     const checked = new Set();
-    // `values` null: a runtime value, left to the screenshot layer. Every report names where its
-    // literal (or, for a property name, its key) is written, and the gate puts those source lines
-    // in the fingerprint: changing a value written on another line or in another file is new
-    // debt, not an equal swap (P1 QA7 S1, QA8 FIX-FIRST-2).
+    // Every report names where its value (or, for a property name, its key) is written, and the
+    // gate puts those source lines in the fingerprint: changing a value written on another line or
+    // in another file is new debt, not an equal swap (P1 QA7 S1, QA8 FIX-FIRST-2). A runtime
+    // value is written at the expression that computes it.
     const where = (nodes) =>
       nodes.map((origin) => {
         const sourceFile = origin.getSourceFile();
@@ -1093,12 +1149,31 @@ const inlineStyleKeys = {
             message: withOrigins(valueMessages.property(prop), where(keyOrigin ? [keyOrigin] : [])),
           },
         });
-      if (values === null) return;
       // The same text from the same lines is one value (a list whose entries share a constant).
       const unique = new Map(
-        values.map((value) => [`${value.text}\u0000${where(value.origins).join(',')}`, value]),
+        values.map((value) => [
+          `${value.runtime ?? ''}\u0000${value.text}\u0000${where(value.origins).join(',')}`,
+          value,
+        ]),
       );
-      for (const value of unique.values())
+      for (const value of unique.values()) {
+        if (value.runtime !== undefined) {
+          // D15 ②: a value the gate cannot read is reported unless its kind fits the domain
+          // whatever it holds (a runtime number where counts are free, any value of a custom
+          // property, which is how a runtime value reaches a stylesheet's `var()`).
+          if (!runtimeFits(value, prop, domain))
+            context.report({
+              node,
+              messageId: 'untracked',
+              data: {
+                message: withOrigins(
+                  valueMessages.runtime(prop, value.runtime),
+                  where(value.origins),
+                ),
+              },
+            });
+          continue;
+        }
         for (const { message } of valueProblems(value.text, prop, domain))
           context.report({
             node,
@@ -1107,6 +1182,7 @@ const inlineStyleKeys = {
             messageId: value.untraced ? 'untraced' : 'value',
             data: { message: withOrigins(message, where(value.origins)) },
           });
+      }
     };
     const unitFor = (key) => (number) =>
       number === 0 || key.startsWith('--') || REACT_UNITLESS.has(key)
@@ -1146,22 +1222,19 @@ const inlineStyleKeys = {
             const entries =
               containers === null ? null : entriesOf(containers, [key], checker, new Set());
             const written =
-              entries === null
+              entries === null || entries.length === 0
                 ? null
-                : either(...entries.map((entry) => literalValues(entry, checker, unitFor(key))));
+                : entries.flatMap((entry) => literalValues(entry, checker, unitFor(key)));
             judge(
               use,
               cssName(key),
               written ??
-                typeLiteralValues(
+                typeReadings(
                   checker.getTypeOfSymbolAtLocation(symbol, tsUse),
                   unitFor(key),
-                )?.map((value) => ({
-                  ...value,
-                  origins: declarations.map((d) => d.type ?? d),
-                  untraced: declarations.length === 0,
-                })) ??
-                null,
+                  declarations.map((d) => d.type ?? d),
+                  tsUse,
+                ),
               declarations[0],
             );
             continue;
@@ -1268,7 +1341,7 @@ const inlineStyleKeys = {
           // Property-indexed keyframes give a list of values per property.
           const values =
             property.value.type === 'ArrayExpression'
-              ? either(...property.value.elements.map((element) => literal(element)))
+              ? property.value.elements.flatMap((element) => literal(element))
               : literal(property.value);
           judge(property.value, cssName(key), values);
         }

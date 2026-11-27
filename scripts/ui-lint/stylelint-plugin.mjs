@@ -12,8 +12,14 @@
  */
 import stylelint from 'stylelint';
 import selectorParser from 'postcss-selector-parser';
+import valueParser from 'postcss-value-parser';
 
-import { FORCED_COLORS_MEDIA } from './registry.mjs';
+import {
+  BREAKPOINTS,
+  CONDITION_FEATURES,
+  CONDITION_WORDS,
+  FORCED_COLORS_MEDIA,
+} from './registry.mjs';
 import { domainOf, valueMessages, valueProblems } from './values.mjs';
 
 const {
@@ -22,7 +28,6 @@ const {
 } = stylelint;
 
 const isString = (value) => typeof value === 'string';
-const isBoolean = (value) => typeof value === 'boolean';
 const isKind = (value) => value === 'tokens' || value === 'art';
 
 const VALUE = 'ui/value-allowlist';
@@ -38,16 +43,91 @@ function inForcedColors(node) {
 }
 
 /**
- * Options: `{ tokens, families, values }`, the custom properties tokens.css defines, the prefixes
- * of the token families published at runtime, and `values: false` for an art sheet (D7), whose
- * values are free but which may not redefine a token either.
+ * Problems of an at-rule's condition, as `{ index, endIndex, message }` offsets into its params
+ * (P1 QA12 nit 8). `@media`/`@container`: every feature is registered, every length a registered
+ * breakpoint (a container's leading name is free). `@supports`: each `(property: value)` test
+ * takes the declaration check; `selector()` tests a selector and holds no value.
+ */
+function conditionProblems(rule) {
+  const name = rule.name.toLowerCase();
+  const problems = [];
+  const flag = (node, message) =>
+    problems.push({ index: node.sourceIndex, endIndex: node.sourceEndIndex, message });
+  const nodes = valueParser(rule.params).nodes;
+  if (name === 'supports') {
+    const test = (group) => {
+      for (const node of group) {
+        if (node.type === 'word' && !CONDITION_WORDS.has(node.value.toLowerCase()))
+          flag(node, valueMessages.feature(node.value, name));
+        if (node.type !== 'function') continue;
+        if (node.value.toLowerCase() === 'selector') continue;
+        if (node.value !== '') {
+          flag(node, valueMessages.func(node.value));
+          continue;
+        }
+        const colon = node.nodes.findIndex((child) => child.type === 'div' && child.value === ':');
+        if (colon === -1) {
+          test(node.nodes);
+          continue;
+        }
+        const prop = valueParser.stringify(node.nodes.slice(0, colon)).trim();
+        const value = valueParser.stringify(node.nodes.slice(colon + 1)).trim();
+        const domain = domainOf(prop);
+        if (domain === undefined) {
+          flag(node, valueMessages.property(prop));
+          continue;
+        }
+        const start = node.nodes[colon + 1]?.sourceIndex ?? node.sourceIndex;
+        const offset = start + valueParser.stringify(node.nodes.slice(colon + 1)).search(/\S/);
+        for (const problem of valueProblems(value, prop.toLowerCase(), domain))
+          problems.push({
+            index: offset + problem.index,
+            endIndex: offset + problem.endIndex,
+            message: problem.message,
+          });
+      }
+    };
+    test(nodes);
+    return problems;
+  }
+  // A word is a feature, a joining word, a range operator or a length; inside
+  // `(feature: value)` the value is a keyword of its feature (`hover`, `reduce`) or a length.
+  const word = (node, featureValue) => {
+    const text = node.value.toLowerCase();
+    const number = valueParser.unit(text);
+    if (number) {
+      if (Number(number.number) !== 0 && number.unit !== '' && !BREAKPOINTS.has(text))
+        flag(node, valueMessages.breakpoint(node.value, name));
+      return;
+    }
+    if (featureValue || /^[<>=]+$/.test(text) || CONDITION_WORDS.has(text)) return;
+    if (!CONDITION_FEATURES.has(text)) flag(node, valueMessages.feature(node.value, name));
+  };
+  const condition = (group) => {
+    const colon = group.findIndex((child) => child.type === 'div' && child.value === ':');
+    group.forEach((node, index) => {
+      if (node.type === 'function') {
+        if (node.value !== '') flag(node, valueMessages.func(node.value));
+        else condition(node.nodes);
+      } else if (node.type === 'word') word(node, colon !== -1 && index > colon);
+    });
+  };
+  const leading = name === 'container' && nodes[0]?.type === 'word' ? 1 : 0;
+  condition(nodes.slice(leading));
+  return problems;
+}
+
+/**
+ * Options: `{ tokens, families }`, the custom properties tokens.css defines and the prefixes of
+ * the token families published at runtime. Every sheet the rule runs on takes the whole allow
+ * list, art sheets included: no sheet's values go unchecked (D7, user's whitelist rule 14:43).
  */
 const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
   // A rule enabled without its lists would allow nothing it should know about: the options are
   // required, and an invalid one is an invalid-option warning the gate fails on.
   const valid = validateOptions(result, VALUE, {
     actual: options,
-    possible: { tokens: [isString], families: [isString], values: [isBoolean] },
+    possible: { tokens: [isString], families: [isString] },
   });
   if (!valid || !Array.isArray(options.tokens) || !Array.isArray(options.families))
     throw new Error(`${VALUE} needs { tokens: string[], families: string[] } options.`);
@@ -55,12 +135,19 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
   const { families } = options;
   const keyframes = new Set();
   root.walkAtRules(/keyframes$/i, (rule) => keyframes.add(rule.params.trim()));
+  root.walkAtRules(/^(?:media|container|supports)$/i, (rule) => {
+    const start = `@${rule.name}${rule.raws.afterName ?? ''}`.length;
+    for (const problem of conditionProblems(rule))
+      report({
+        result,
+        ruleName: VALUE,
+        node: rule,
+        message: problem.message,
+        index: start + problem.index,
+        endIndex: start + problem.endIndex,
+      });
+  });
   root.walkDecls((decl) => {
-    if (options.values === false) {
-      if (tokens.has(decl.prop) || families.some((family) => decl.prop.startsWith(family)))
-        report({ result, ruleName: VALUE, node: decl, message: messages.token(decl.prop) });
-      return;
-    }
     const raw = decl.prop;
     const domain = domainOf(raw);
     if (domain === undefined) {

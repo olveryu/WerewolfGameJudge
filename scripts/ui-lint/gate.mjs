@@ -275,25 +275,38 @@ export function differences(left, right) {
   return out;
 }
 
+/** Signals that end a gate run before its `finally` runs; SIGKILL cannot be caught. */
+const INTERRUPTS = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+
 /**
  * The current gate's findings on the tree of `commit`, for the rules the base baseline does not
  * list yet: what debt a new rule may record is measured by running it on the base, never by
  * matching text (P1 QA11 F1). The tree is a detached worktree beside the repository with the
- * dependency directories linked in; it is removed afterwards.
+ * dependency directories linked in; it is removed afterwards, and when an interrupt ends the run
+ * it is removed before the process ends with that signal (P1 QA12 nit 6). `measure` is the gate
+ * run on the tree; tests replace it.
  */
-export async function findingsAt(root, commit, rules) {
+export async function findingsAt(root, commit, rules, measure = (tree) => runGate({ root: tree })) {
   const dependencyDirs = [
     'node_modules',
     ...fs.readdirSync(path.join(root, 'packages')).map((name) => `packages/${name}/node_modules`),
   ];
   const tree = fs.mkdtempSync(path.join(path.dirname(root), '.ui-gate-base-'));
   fs.rmdirSync(tree);
+  const remove = () => git(root, ['worktree', 'remove', '--force', tree]);
+  const interrupted = (signal) => {
+    process.stderr.write(`UI gate: ${signal} while measuring the base; removing ${tree}\n`);
+    for (const name of INTERRUPTS) process.off(name, interrupted);
+    remove();
+    process.kill(process.pid, signal);
+  };
   git(root, ['worktree', 'add', '--detach', '--quiet', tree, commit]);
+  for (const name of INTERRUPTS) process.on(name, interrupted);
   try {
     for (const linked of dependencyDirs)
       if (fs.existsSync(path.join(root, linked)))
         fs.symlinkSync(path.join(root, linked), path.join(tree, linked), 'dir');
-    const found = await runGate({ root: tree });
+    const found = await measure(tree);
     if (found.problems.length > 0)
       throw new Error(
         `UI gate: the bundle graph at ${commit.slice(0, 12)} has problems, so the debt a new rule records cannot be measured:\n${found.problems.map((p) => `  ${p}`).join('\n')}`,
@@ -305,7 +318,8 @@ export async function findingsAt(root, commit, rules) {
     }
     return files;
   } finally {
-    git(root, ['worktree', 'remove', '--force', tree]);
+    for (const name of INTERRUPTS) process.off(name, interrupted);
+    remove();
   }
 }
 

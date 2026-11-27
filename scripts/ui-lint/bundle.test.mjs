@@ -187,6 +187,47 @@ describe('bundle graph allow list', () => {
     expect(problems.some((line) => line.includes(problem))).toBe(true);
   });
 
+  it('accepts registered meta elements and pins theme-color to the palette (QA12 nit 7)', () => {
+    const palette = {
+      'packages/web/src/theme/colors.ts': "export const colors = { surface: '#FFFFFF' } as const;",
+    };
+    const meta = (tags) => ({
+      ...palette,
+      'packages/web/index.html': PAGE.replace('</head>', `${tags}</head>`),
+    });
+    expect(
+      graph(
+        meta(
+          '<meta name="theme-color" content="#FFFFFF"><meta name="viewport" content="width=device-width"><meta property="og:title" content="x">',
+        ),
+      ).problems,
+    ).toEqual([]);
+    for (const [tags, problem] of [
+      [
+        '<meta name="theme-color" content="#FAFAFA">',
+        '<meta name="theme-color"> is `#FAFAFA`; it must be colors.surface (#FFFFFF)',
+      ],
+      ['<meta name="color-scheme" content="dark">', '<meta name="color-scheme"> not registered'],
+      ['<meta property="twitter:card" content="x">', '<meta property> not registered'],
+    ]) {
+      const { problems } = graph(meta(tags));
+      // Paths are relative to the root the graph is read from (QA12 nit 5).
+      expect(problems).toContainEqual(
+        expect.stringContaining(`packages/web/index.html: ${problem}`),
+      );
+    }
+    // A palette without the registered entry is a broken registration, not a page problem.
+    expect(() =>
+      graph({
+        'packages/web/src/theme/colors.ts': 'export const colors = {};',
+        'packages/web/index.html': PAGE.replace(
+          '</head>',
+          '<meta name="theme-color" content="#FFFFFF"></head>',
+        ),
+      }),
+    ).toThrow('has no string literal colors.surface');
+  });
+
   it('rejects a page under public/ and stylesheet imports that are not relative paths', () => {
     expect(
       graph({ 'packages/web/public/x.html': PAGE }).problems.some((line) =>

@@ -35,13 +35,11 @@ export default {
         'ui/sheet-scope': { kind: 'tokens', selectors: [...TOKEN_SHEET.selectors] },
       },
     },
-    // An art sheet's values are free (D7); it still may not redefine a token (S4).
+    // An art sheet's selectors carry its prefix (D7); its values take the allow list like any
+    // sheet's (user's whitelist rule, 2026-11-26 14:43).
     ...Object.entries(ART_SHEETS).map(([file, prefix]) => ({
       files: [file],
-      rules: {
-        'ui/value-allowlist': { ...tokenOptions, values: false },
-        'ui/sheet-scope': { kind: 'art', prefix },
-      },
+      rules: { 'ui/sheet-scope': { kind: 'art', prefix } },
     })),
   ],
 };

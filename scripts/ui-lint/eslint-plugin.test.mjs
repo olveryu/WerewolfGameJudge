@@ -283,7 +283,6 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
 tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
   valid: green([
     "declare const el: HTMLElement; el.style.width = 'var(--size-card)'; el.style.opacity = '1';",
-    'declare const el: HTMLElement; declare const w: number; el.style.width = `${w}px`;',
     "declare const el: HTMLElement; el.style.setProperty('--seat-progress', '0');",
     "declare const el: HTMLElement; el.animate([{ opacity: 0, offset: 0, easing: 'ease-out' }, { opacity: 1 }], 200);",
     "declare const el: SVGElement; el.setAttribute('cx', '13'); el.setAttribute('fill', 'var(--a)');",
@@ -291,7 +290,6 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "declare const progress: number; export const a = <div style={{ ['--seat-progress']: progress }} />;",
     `${REACT}declare const k: 'opacity' | 'color'; const s: CSSProperties = { [k]: 'var(--a)' }; void s;`,
     "export const a = <div style={{ borderRadius: 'var(--radius-card)', padding: 0, width: '100%' }} />;",
-    'declare const w: number; export const a = <div style={{ width: w }} />;',
     'export const a = <svg><rect rx={0} fill="currentColor" stroke="url(#g)" opacity={1} /></svg>;',
     `${REACT}declare const vars: { [key: \`--\${string}\`]: string }; export const a = <div style={vars} />;`,
     'const Box = (_: { style: Record<string, string> }) => null; declare const r: Record<string, string>; export const a = <Box style={r} />;',
@@ -305,15 +303,9 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     'const card = { padding: 12 }; const Box = (_: { style: object }) => null; export const a = <Box style={card} />;',
     `${REACT}declare const fromProps: CSSProperties; export const a = <div style={fromProps} />;`,
     'declare const on: boolean; const card = { opacity: 1 }; export const a = <div style={on ? card : { opacity: 0 }} />;',
-    'declare const s: { opacity: number }; export const a = <div style={s} />;',
-    // A name without a written literal is a runtime value (QA7 F4 negative cases).
-    'export const A = ({ size }: { size: number }) => <div style={{ width: size }} />;',
-    "import { useState } from 'react'; export function A() { const [w] = useState(() => window.innerWidth); return <div style={{ width: w }} />; }",
     "const sizes = { card: 'var(--space-3)' }; export const a = <div style={{ padding: sizes.card }} />;",
     // A typed style literal in another file is judged where it is written, not again here (N3).
     "import { typedCard } from './styles'; export const a = <div style={typedCard} />;",
-    // A function of its arguments is computed at runtime (QA10 S1 control).
-    'function pad(n: number) { return n; } export const a = (n: number) => <div style={{ opacity: pad(n) }} />;',
     // Every element of a list of tokens, through a callback (QA9 FIX-FIRST-1 control).
     "const C = [{ c: 'var(--a)' }, { c: 'var(--b)' }]; export const a = C.map((x) => <div style={{ color: x.c }} />);",
     'const [o] = [1]; export const a = <div style={{ opacity: o }} />;',
@@ -321,7 +313,12 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "const n = 3; export const a = <div style={{ padding: n && 'var(--space-2)' }} />;",
     // Tables of tokens, and a table whose key is runtime but whose entries are all tokens.
     "const C = { a: 'var(--a)', b: 'var(--b)' }; declare const k: string; export const a = <div style={{ color: (C as Record<string, string>)[k] }} />;",
-    "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW((v) => v + 1); return <div style={{ opacity: w ? 1 : 0 }} />; }",
+    "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW((v) => v + 1); return <div style={{ opacity: w ? 1 : 0 }} />; }", // D15 ②: a runtime value fits only a custom property (read by a checked stylesheet's
+    // `var()`) or a property whose unitless numbers are free.
+    'declare const w: number; export const a = <div style={{ ["--seat-width"]: `${w}px` }} />;',
+    "declare const el: HTMLElement; declare const w: number; el.style.setProperty('--seat-width', `${w}px`);",
+    'declare const n: number; export const a = <div style={{ gridRow: n, flexGrow: n }} />;',
+    'declare const n: number | undefined; declare const on: boolean; export const a = <div style={{ flexGrow: on && n }} />;',
   ]),
   // DOM style writes (QA11 F2): what the registered entry points write takes the same check.
   // (The values below are probes, not registrations: which writes a file may make is E5's.)
@@ -390,16 +387,12 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "declare const s: Record<'mysteryProperty', string>; export const a = <div style={s} />;",
         'declare const s: { borderRadius: 7 }; export const a = <div style={s} />;',
         // Written literals TypeScript widens are read from their initializers (QA7 F4).
-        'export const A = ({ size = 8 }: { size?: number }) => <div style={{ width: size }} />;',
-        'export function A(size = 8) { return <div style={{ width: size }} />; }',
         'let gap = 12; gap += 0; export const a = <div style={{ gap }} />;',
         'const sizes = { card: 12 }; export const a = <div style={{ padding: sizes.card }} />;',
         "import { widened } from './styles'; export const a = <div style={{ width: widened.size }} />;",
         "import { useState } from 'react'; export function A() { const [w] = useState(16); return <div style={{ width: w }} />; }",
         // One literal reading in this file and in another (QA7 F5).
         "import { templateCard } from './styles'; export const a = <div style={templateCard} />;",
-        "import { fallbackCard } from './styles'; export const a = <div style={fallbackCard} />;",
-        'declare const open: number | undefined; export const a = <div style={{ width: open || 12 }} />;',
         // Tables read by member or element, annotated or not (QA8 FIX-FIRST-3).
         "const C: Record<'a' | 'b', string> = { a: '#f00', b: 'var(--a)' }; declare const k: 'a' | 'b'; export const a = <div style={{ color: C[k] }} />;",
         "const C: Record<'a', string> = { a: '#f00' }; export const a = <div style={{ color: C.a }} />;",
@@ -427,8 +420,50 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         'let gap = 0; gap = 12; export const a = <div style={{ gap }} />;',
         "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW(16); return <div style={{ width: w }} />; }",
         "import { useState } from 'react'; export function A() { const [w] = useState(() => 16); return <div style={{ width: w }} />; }",
+        // A literal branch of a template beside a runtime one is still read (a runtime custom
+        // property value fits, its literal branch does not).
+        'const HIGH = 300; export const A = (on: boolean, i: number) => <div style={{ ["--d"]: `${on ? HIGH : i * 2}ms` }} />;',
       ],
       'value',
     ),
+    // D15 ②: a value the gate cannot read is reported unless its kind fits (no runtime value is
+    // left to the screenshots): a parameter, a computed number, runtime text, a library call.
+    ...red(
+      [
+        'declare const el: HTMLElement; declare const w: number; el.style.width = `${w}px`;',
+        'declare const w: number; export const a = <div style={{ width: w }} />;',
+        'declare const s: { opacity: number }; export const a = <div style={s} />;',
+        'export const A = ({ size }: { size: number }) => <div style={{ width: size }} />;',
+        "import { useState } from 'react'; export function A() { const [w] = useState(() => window.innerWidth); return <div style={{ width: w }} />; }",
+        'function pad(n: number) { return n; } export const a = (n: number) => <div style={{ opacity: pad(n) }} />;',
+        'const SPACE = 4; export const a = <div style={{ padding: SPACE * 2 }} />;',
+        'const GAP = 4; export const a = <div style={{ gap: Math.max(GAP, 0) }} />;',
+        'declare const c: string; export const a = <div style={{ color: c }} />;',
+        'declare const c: string; export const a = <svg><rect fill={c} /></svg>;',
+        'declare const x: number; export const a = <div style={{ transform: `translateX(${x}px)` }} />;',
+        "declare const el: HTMLElement; declare const c: string; el.style.setProperty('color', c);",
+        'declare const el: HTMLElement; declare const o: number; el.animate([{ opacity: o }], 200);',
+        'declare const open: number | undefined; export const a = <div style={{ width: open ?? 0 }} />;',
+      ],
+      'untracked',
+    ),
+    // A literal beside a runtime value: both are reported, neither hides the other.
+    ...[
+      'export const A = ({ size = 8 }: { size?: number }) => <div style={{ width: size }} />;',
+      'export function A(size = 8) { return <div style={{ width: size }} />; }',
+    ].map((code) => ({
+      filename,
+      code,
+      errors: [{ messageId: 'value' }, { messageId: 'untracked' }],
+    })),
+    // Reports come in source order: the runtime operand is written first.
+    ...[
+      "import { fallbackCard } from './styles'; export const a = <div style={fallbackCard} />;",
+      'declare const open: number | undefined; export const a = <div style={{ width: open || 12 }} />;',
+    ].map((code) => ({
+      filename,
+      code,
+      errors: [{ messageId: 'untracked' }, { messageId: 'value' }],
+    })),
   ],
 });
