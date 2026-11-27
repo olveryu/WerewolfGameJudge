@@ -1024,12 +1024,21 @@ function concatenationOperands(node: ts.Expression): ts.Expression[] {
 function sqlSourceText(node: ts.Expression): string {
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
   if (ts.isTemplateExpression(node)) {
+    const substitution = isSqlTaggedTemplate(node) ? '?' : RUNTIME_VALUE;
     return (
       node.head.text +
-      node.templateSpans.map((span) => ` ${RUNTIME_VALUE} ${span.literal.text}`).join('')
+      node.templateSpans.map((span) => ` ${substitution} ${span.literal.text}`).join('')
     );
   }
   return ` ${RUNTIME_VALUE} `;
+}
+
+/** Drizzle's `sql` tag (`sql` or `x.sql`): it binds each `${…}` as a `?` parameter. */
+function isSqlTaggedTemplate(node: ts.TemplateExpression): boolean {
+  const { parent } = node;
+  if (!ts.isTaggedTemplateExpression(parent)) return false;
+  const tag = ts.isPropertyAccessExpression(parent.tag) ? parent.tag.name : parent.tag;
+  return ts.isIdentifier(tag) && tag.text === 'sql';
 }
 
 function isSqlLiteral(
@@ -1077,8 +1086,9 @@ function drizzlePatternOperatorProblems(
  * parameter, string, `(` or call) is judged by the migration rules' lexer and pattern rule: the
  * pattern must be one string literal within 50 bytes. Every literal is read wherever it sits, so a
  * cast, a ternary branch or a `const` handed to `.prepare` later is read the same way.
- * Drizzle's pattern operators, imported or re-exported, and `* as` forms of drizzle-orm that
- * would hide them, are rejected outright. Substring search over user input goes through `containsIgnoringAsciiCase`
+ * Drizzle's pattern operators — imported, re-exported or destructured from a relational-query
+ * callback — and `* as` forms of drizzle-orm that would hide them are rejected outright.
+ * Substring search over user input goes through `containsIgnoringAsciiCase`
  * (`src/platform/storage/substringSearch.ts`).
  */
 function runtimeSqlPatternProblems(fileName: string, sourceText: string): string[] {
@@ -1095,6 +1105,13 @@ function runtimeSqlPatternProblems(fileName: string, sourceText: string): string
       node.moduleSpecifier.text.startsWith('drizzle-orm')
     ) {
       problems.push(...drizzlePatternOperatorProblems(node, node.moduleSpecifier.text));
+    }
+    // Drizzle hands its operators to relational-query callbacks: `where: (t, { like }) => …`.
+    if (ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)) {
+      const key = node.propertyName ?? node.name;
+      if (ts.isIdentifier(key) && DRIZZLE_PATTERN_OPERATORS.has(key.text)) {
+        problems.push(`destructured ${key.text} binds its pattern at run time`);
+      }
     }
     // A `+` chain is judged once, as a whole, from its outermost `+`.
     if (isConcatenation(node) && !isConcatenation(node.parent)) {
@@ -1139,9 +1156,12 @@ describe('Worker runtime SQL: LIKE/GLOB patterns are literals within D1 limits',
     expect(probe('where += ` AND item.title LIKE ${pattern}`;')).toEqual([
       `LIKE ${RUNTIME_VALUE} is not a literal pattern`,
     ]);
-    expect(probe('sql`name GLOB ${glob}`;')).toEqual([
-      `GLOB ${RUNTIME_VALUE} is not a literal pattern`,
+    expect(probe('sql`name GLOB ${glob}`;')).toEqual(['GLOB ? is not a literal pattern']);
+    // In a `sql` tag a substitution is a bind parameter, whatever the keyword case.
+    expect(probe('sql`select 1 from t where n like ${term}`;')).toEqual([
+      'like ? is not a literal pattern',
     ]);
+    expect(probe('orm.sql`where n like ${term}`;')).toEqual(['like ? is not a literal pattern']);
     // A run-time value inside the quotes, by substitution or by `+`, is still not a literal.
     expect(probe("db.prepare(`SELECT 1 FROM t WHERE n LIKE '%${term}%'`);")).toEqual([
       `LIKE '% ${RUNTIME_VALUE} %' is not a literal pattern`,
@@ -1178,6 +1198,12 @@ describe('Worker runtime SQL: LIKE/GLOB patterns are literals within D1 limits',
     expect(probe("export { like as matches } from 'drizzle-orm';")).toEqual([
       'like from drizzle-orm binds its pattern at run time',
     ]);
+    expect(
+      probe('db.query.words.findMany({ where: (t, { like: matches }) => matches(t.title, p) });'),
+    ).toEqual(['destructured like binds its pattern at run time']);
+    expect(probe('const { ilike } = operators;')).toEqual([
+      'destructured ilike binds its pattern at run time',
+    ]);
     expect(probe("export * from 'drizzle-orm';")).toEqual([
       'export * from drizzle-orm passes its pattern operators on; export by name',
     ]);
@@ -1189,10 +1215,10 @@ describe('Worker runtime SQL: LIKE/GLOB patterns are literals within D1 limits',
       'like ? is not a literal pattern',
     ]);
     expect(probe("db.prepare(('select 1 from t where n like ?1' as string));")).toEqual([
-      'like ? is not a literal pattern',
+      'like ?1 is not a literal pattern',
     ]);
-    expect(probe("const q = c ? 'select 1 from t where n Like :t' : 'select 1';")).toEqual([
-      'Like : is not a literal pattern',
+    expect(probe("const q = c ? 'select 1 from t where n Like ?' : 'select 1';")).toEqual([
+      'Like ? is not a literal pattern',
     ]);
     expect(probe("const q = 'select 1 from t where n glob lower(?)'; db['prepare'](q);")).toEqual([
       'glob lower is not a literal pattern',
@@ -1216,6 +1242,8 @@ describe('Worker runtime SQL: LIKE/GLOB patterns are literals within D1 limits',
           "const note = 'looks like ' + name;",
           "logger.info('looks like ' + name);",
           'throw new Error(`${name} looks like a bot`);',
+          "const hint = 'like: a, b, or like @bob, or like $5';",
+          'const note = `looks like ${name}`;',
           "db.prepare('select id from t where n like \\'a%\\'');",
           "const sql = 'SELECT 1 FROM t WHERE c LIKE \\'abc%\\' AND id = ' + id;",
           '// n LIKE ? in a comment is not code',
