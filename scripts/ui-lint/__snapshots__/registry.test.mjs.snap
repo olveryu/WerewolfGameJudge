@@ -1075,12 +1075,6 @@ exports[`UI gate registry > pins HTML_KEYS exactly 1`] = `
 
 exports[`UI gate registry > pins ICON_COLLECTION_PACKAGE exactly 1`] = `"/^@iconify-json\\/|^@iconify\\/json$/"`;
 
-exports[`UI gate registry > pins IDENTITY_CALLS exactly 1`] = `
-[
-  "Object.freeze",
-]
-`;
-
 exports[`UI gate registry > pins KEYFRAME_META exactly 1`] = `
 {
   "composite": "motion",
@@ -1095,12 +1089,6 @@ exports[`UI gate registry > pins MATH exactly 1`] = `
   "clamp",
   "max",
   "min",
-]
-`;
-
-exports[`UI gate registry > pins MEMO_HOOKS exactly 1`] = `
-[
-  "useMemo",
 ]
 `;
 
@@ -1120,14 +1108,6 @@ exports[`UI gate registry > pins OPEN_ATTRIBUTES exactly 1`] = `
   "/^aria-/",
   "/^data-/",
   "/^on[A-Z]/",
-]
-`;
-
-exports[`UI gate registry > pins OPEN_KEY_HEADS exactly 1`] = `
-[
-  "--",
-  "aria-",
-  "data-",
 ]
 `;
 
@@ -1658,6 +1638,8 @@ exports[`UI gate registry > pins ROOT_INTERFACES exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins RUNTIME_SOURCES exactly 1`] = `[]`;
+
 exports[`UI gate registry > pins RUNTIME_TOKEN_FAMILIES exactly 1`] = `
 [
   "--color-",
@@ -1689,12 +1671,6 @@ exports[`UI gate registry > pins SIZED_ELEMENTS exactly 1`] = `
   "iframe",
   "img",
   "svg",
-]
-`;
-
-exports[`UI gate registry > pins STATE_HOOKS exactly 1`] = `
-[
-  "useState",
 ]
 `;
 
@@ -1830,6 +1806,8 @@ exports[`UI gate registry > pins TAG_MAPS exactly 1`] = `
   "MathMLElementTagNameMap",
 ]
 `;
+
+exports[`UI gate registry > pins TOKEN_CONSTANTS exactly 1`] = `{}`;
 
 exports[`UI gate registry > pins TOKEN_PUBLISHER exactly 1`] = `"packages/web/src/theme/colors.ts"`;
 

@@ -16,38 +16,15 @@ import {
   OPERATORS,
   PROPERTIES,
   REFERENCES,
+  RUNTIME_SOURCES,
   RUNTIME_TOKEN_FAMILIES,
   SYSTEM_COLORS,
+  TOKEN_CONSTANTS,
   TOKEN_PUBLISHER,
 } from './registry.mjs';
 
 const VENDOR_PREFIX = /^-(?:webkit|moz|ms|o)-/;
 const IDENT = /^-?[a-z_][\w-]*$/i;
-
-/**
- * Where a reported value is written, appended to its message as `Written at file:line[, …].`
- * (`withOrigins`) and read back by the gate (`originsOf`) to put those source lines in the
- * fingerprint. One format, defined here only.
- */
-const ORIGINS = / Written at ([^ ,]+:\d+(?:-\d+)?(?:, [^ ,]+:\d+(?:-\d+)?)*)\.$/;
-export function withOrigins(message, origins) {
-  const unique = [...new Set(origins)];
-  return unique.length === 0 ? message : `${message} Written at ${unique.join(', ')}.`;
-}
-export function originsOf(message) {
-  const match = ORIGINS.exec(message);
-  return match === null
-    ? []
-    : match[1].split(', ').map((origin) => {
-        // `file:line` or `file:line-endLine` (a value written over several lines).
-        const at = origin.lastIndexOf(':');
-        const [line, endLine = line] = origin
-          .slice(at + 1)
-          .split('-')
-          .map(Number);
-        return { file: origin.slice(0, at), line, endLine };
-      });
-}
 
 export const valueMessages = {
   measure: (word, prop) =>
@@ -63,11 +40,13 @@ export const valueMessages = {
   breakpoint: (word, rule) =>
     `\`${word}\` in an \`@${rule}\` condition is not a registered breakpoint (UI gate S1).`,
   runtime: (prop, kind) =>
-    `This \`${prop}\` value is a runtime ${kind}: the gate cannot show it is a token, so pass it through a custom property (\`--x\`, read by a stylesheet's \`var()\`) or write a token (UI gate E4, D15).`,
-  unread: (prop) =>
-    `No value of this \`${prop}\` could be read: the gate cannot show it is a token, so write a token or pass the value through a custom property (UI gate E4, D15).`,
+    `This \`${prop}\` value is ${kind === 'expression' ? 'an expression (a binding, member, call, operator, branch or template with substitutions)' : `a runtime ${kind}`}: only its write site is read, and an expression there is not shown to be a token. Write a token here (\`var(--token)\`, a registered token constant), or write the computed value into a custom property through a registered runtime source (\`style={{ '--x': runtimeStyle(v) }}\`) and read it in a stylesheet with \`var(--x)\` (UI gate E4, D15 ②).`,
+  token: (prop, name) =>
+    `\`${name}\` is not a member of a token constant registered for the domain of \`${prop}\` (scripts/ui-lint/registry.mjs TOKEN_CONSTANTS): write \`var(--token)\` here or register the constant (UI gate E4, D15 ②).`,
+  wrapped: (prop, name) =>
+    `\`${name}\` is not a registered runtime source for \`${prop}\`: a runtime value is written only into a custom property, only through a source registered in scripts/ui-lint/registry.mjs RUNTIME_SOURCES (\`style={{ '--x': runtimeStyle(v) }}\`, read by \`var(--x)\` in a stylesheet) (UI gate E4, D15 ②).`,
   styleObject: () =>
-    `This style object comes from where the gate cannot follow (a parameter, a library type, a call it cannot read): none of its values can be shown to be tokens, so write the object where it is used (UI gate E4, D15).`,
+    `This style object is not an object literal where it is written: none of its values can be shown to be tokens, so write the object literal here (UI gate E4, D15).`,
   keyframes: (name) =>
     `\`${name}\` is not a keyframes rule of this stylesheet; an animation runs only keyframes its own sheet defines (UI gate S1).`,
 };
@@ -213,38 +192,22 @@ function valueProblems(value, prop, domainName, { forced = false, keyframes = ne
 }
 
 /**
- * Whether a runtime value (`{ runtime, text }`, the reading of an expression the gate cannot read
- * as a literal) fits `prop` whatever it holds (plan v3.9 D15 ②). Only two kinds do: any value of
- * a custom property, the one channel by which a computed value reaches CSS (the stylesheet that
- * reads it through `var()` is checked as any other), and a number where unitless numbers are
- * free (a count, a grid line, a unitless flex or transform factor). A number written as px, a
- * runtime string, a number in a token domain, never do. `text` is the number as it is written
- * (`1px` or `1`), so the unit decision is the writer's, as for a literal.
- */
-function runtimeFits({ runtime, text }, prop, domainName) {
-  if (domainName === 'custom') return true;
-  if (runtime !== 'number') return false;
-  const unitless = valueParser.unit(text)?.unit === '';
-  if (domainName === 'free' || DOMAINS[domainName].shape) return unitless;
-  return unitless && Boolean(DOMAINS[domainName].unitless);
-}
-
-/**
  * The one verdict on a style value (plan v3.9 §2 E4, P1 QA13): every entry point that writes a
  * value — a stylesheet declaration or `@supports` test, a JSX `style` or SVG presentation
  * attribute, a `CSSProperties` object, `el.style.x =`, `setProperty`, `setAttribute`, `animate`
  * keyframes and options — hands what it read here, and nothing else decides that a value passes.
  * A value passes only when it is shown to be tokens: every reading is a literal that the domain
- * of `prop` allows, a runtime value whose kind fits that domain whatever it holds (any value of
- * a custom property, a unitless number where counts are free), a registered source, or a type
- * part that writes no declaration (`null`, `undefined`, a boolean). Everything else is reported:
- * an unregistered property, a runtime string or object, and no reading at all (an entry point
- * that could not read its value rejects, it never skips).
+ * of `prop` allows, a runtime value written into a custom property (the one channel by which a
+ * computed value reaches CSS: the stylesheet that reads it through `var()` is checked as any
+ * other), or the registered source. Everything else is reported: an unregistered property, a
+ * runtime value anywhere else, a whole style object that is not written out, and an entry point
+ * that hands no reading at all is a defect of the gate, thrown.
  *
- * `readings`: `{ text, origins, untraced? }` (a literal), `{ runtime: 'number' | 'string' |
- * 'object', text?, origins }`, `{ none: true }`, or `{ registered: file, origins }` (a write by `file`, which passes only
- * when it is the registered token publisher writing one of its families). Returns
- * `[{ messageId: 'value' | 'untraced' | 'untracked', message, origins, index?, endIndex? }]`
+ * `readings`: what `written.mjs` reads at a TSX write site — `{ text }` (a literal as written),
+ * `{ token, path }`, `{ wrapped }`, `{ runtime: 'expression' | 'object' }` — or `{ registered:
+ * file }` (a write by `file`, which passes only when it is the registered token publisher
+ * writing one of its families). Returns `[{ messageId: 'value' | 'untracked', message, index?,
+ * endIndex? }]`
  * (`index` into a literal's text). `options.domain` names the domain when `prop` is a label
  * (a custom property in a sheet, a keyframe offset); `forced` and `keyframes` are the
  * stylesheet context `valueProblems` takes.
@@ -252,7 +215,13 @@ function runtimeFits({ runtime, text }, prop, domainName) {
 export function verdict(
   readings,
   prop,
-  { domain = prop === null ? undefined : domainOf(prop), forced, keyframes } = {},
+  {
+    domain = prop === null ? undefined : domainOf(prop),
+    forced,
+    keyframes,
+    tokens = TOKEN_CONSTANTS,
+    runtimeSources = RUNTIME_SOURCES,
+  } = {},
 ) {
   if (prop === null) {
     // A whole style object (`prop` null) is only ever a runtime object reading: rejected.
@@ -261,16 +230,13 @@ export function verdict(
     return readings.map((reading) => ({
       messageId: 'untracked',
       message: valueMessages.styleObject(),
-      origins: reading.origins,
     }));
   }
-  if (domain === undefined)
-    return [{ messageId: 'value', message: valueMessages.property(prop), origins: [] }];
+  if (domain === undefined) return [{ messageId: 'value', message: valueMessages.property(prop) }];
   if (readings.length === 0)
-    return [{ messageId: 'untracked', message: valueMessages.unread(prop), origins: [] }];
+    throw new Error(`UI gate E4: no reading of \`${prop}\` was handed to the verdict`);
   const rejected = [];
   for (const reading of readings) {
-    if (reading.none === true) continue;
     if (reading.registered !== undefined) {
       // The one registered runtime source: `colors.ts` publishing its token families.
       if (
@@ -281,17 +247,33 @@ export function verdict(
       rejected.push({
         messageId: 'untracked',
         message: valueMessages.runtime(prop, 'value'),
-        origins: reading.origins ?? [],
+      });
+      continue;
+    }
+    if (reading.token !== undefined) {
+      const tokenDomain = tokens.get(reading.token);
+      if (tokenDomain !== undefined && (domain === 'custom' || domain === tokenDomain)) continue;
+      rejected.push({
+        messageId: 'untracked',
+        message: valueMessages.token(prop, `${reading.token}.${reading.path.join('.')}`),
+      });
+      continue;
+    }
+    if (reading.wrapped !== undefined) {
+      if (runtimeSources.has(reading.wrapped) && domain === 'custom') continue;
+      rejected.push({
+        messageId: 'untracked',
+        message: valueMessages.wrapped(prop, reading.wrapped),
       });
       continue;
     }
     if (reading.runtime !== undefined) {
-      if (!runtimeFits(reading, prop, domain))
-        rejected.push({
-          messageId: 'untracked',
-          message: valueMessages.runtime(prop, reading.runtime),
-          origins: reading.origins,
-        });
+      if (reading.runtime !== 'expression')
+        throw new Error(`UI gate E4: a \`${prop}\` reading is a runtime ${reading.runtime}`);
+      rejected.push({
+        messageId: 'untracked',
+        message: valueMessages.runtime(prop, reading.runtime),
+      });
       continue;
     }
     if (typeof reading.text !== 'string')
@@ -300,9 +282,8 @@ export function verdict(
       );
     for (const problem of valueProblems(reading.text, prop, domain, { forced, keyframes }))
       rejected.push({
-        messageId: reading.untraced ? 'untraced' : 'value',
+        messageId: 'value',
         message: problem.message,
-        origins: reading.origins ?? [],
         index: problem.index,
         endIndex: problem.endIndex,
       });

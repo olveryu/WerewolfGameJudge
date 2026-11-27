@@ -190,6 +190,23 @@ export const RUNTIME_TOKEN_FAMILIES = Object.freeze(['--color-', '--report-']);
 
 /** The module that publishes `RUNTIME_TOKEN_FAMILIES`: its `setProperty` writes are the tokens. */
 export const TOKEN_PUBLISHER = 'packages/web/src/theme/colors.ts';
+/**
+ * Token constants a TSX write site may name directly (E4, D15 ②, plan v3.12): `module#export`
+ * (module as a repo path without extension) → the value domain every member of the export
+ * belongs to. A static member path below the import passes where that domain, or a custom
+ * property, is written. Empty: the app has no token constant module yet; one is registered
+ * here with the sheet that defines its values.
+ */
+export const TOKEN_CONSTANTS = Object.freeze(new Map());
+
+/**
+ * Runtime sources (E4, D15 ②, plan v3.12): `module#export` of the wrapper a computed value is
+ * written through (`style={{ '--x': runtimeStyle(v) }}`, read by a stylesheet's `var(--x)`).
+ * The one channel for a runtime value is a custom property, so a wrapped value passes only
+ * there. Empty: no wrapper exists yet, so every runtime value is reported and the existing ones
+ * are in the baseline.
+ */
+export const RUNTIME_SOURCES = Object.freeze(new Set());
 
 /** Keyframe members that are not CSS properties (`Element.animate`, Web Animations). */
 export const KEYFRAME_META = Object.freeze(
@@ -1303,8 +1320,6 @@ export const REFLECTION = Object.freeze({
   Reflect: new Set(['set', 'defineProperty', 'apply', 'construct', 'setPrototypeOf']),
 });
 
-/** Template index keys a props or style type may carry: custom properties, data and ARIA. */
-export const OPEN_KEY_HEADS = Object.freeze(new Set(['--', 'data-', 'aria-']));
 /** React's two names for raw HTML: the prop and the key of its value. */
 /** Props that hand React raw HTML: `srcDoc` is a whole document (P1 QA11 F5). */
 export const HTML_KEYS = Object.freeze(new Set(['dangerouslySetInnerHTML', '__html', 'srcDoc']));
@@ -1354,11 +1369,3 @@ export const WORKER_CONSTRUCTORS = Object.freeze(new Set(['Worker', 'SharedWorke
 export const REACT_DOM_CLIENT_IMPORTS = Object.freeze(['createRoot']);
 /** Attributes that size the box of a `SIZED_ELEMENTS` element (E4). */
 export const SIZE_ATTRIBUTES = Object.freeze(new Set(['width', 'height']));
-/** React hooks whose first destructured element is their first argument at first render (E4). */
-export const STATE_HOOKS = Object.freeze(new Set(['useState']));
-
-/** Calls that return their only argument, read through by E4 (`Object.freeze({ … })`). */
-export const IDENTITY_CALLS = Object.freeze(new Set(['Object.freeze']));
-
-/** Hooks whose value is what their first argument returns, read through by E4 (`useMemo`). */
-export const MEMO_HOOKS = Object.freeze(new Set(['useMemo']));

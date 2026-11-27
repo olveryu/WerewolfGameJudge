@@ -81,11 +81,7 @@ export const reactionArtColors = {
   yolkParticle: '#F5B52F',
 } as const;
 
-/** A token's custom property name; the type names its family for the UI gate's writer registry. */
-function toCustomPropertyName<Family extends 'color' | 'report'>(
-  prefix: Family,
-  token: string,
-): `--${Family}-${string}` {
+function toCustomPropertyName(prefix: string, token: string): string {
   return `--${prefix}-${token.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
 }
 
@@ -169,7 +165,7 @@ export function applyColorTokens(root: HTMLElement): void {
   }
   for (const [token, percent] of ALPHA_VARIANTS) {
     root.style.setProperty(
-      toCustomPropertyName('color', `${token}-a${percent}`),
+      `${toCustomPropertyName('color', token)}-a${percent}`,
       withAlpha(colors[token], percent / 100),
     );
   }

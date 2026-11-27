@@ -291,13 +291,14 @@ over every avatar site its census finds; the frame geometry tests
 - Keyboard focus is visible through the global focus treatment; input focus retains its
   component-specific treatment.
 - Component styles live in bundled CSS. In TSX the UI gate allows only registered native elements
-  (`ui/element-allowlist`; no `<style>`, `<link>` or `<script>`, and no spread or props object
-  that can carry `style` or `dangerouslySetInnerHTML`), inline `style` keys the checker can
-  enumerate whose literal values pass the same value domains as CSS (`ui/inline-style-keys`; a
-  style held in a variable, a member, a memo or a branch is traced to where its properties are
-  written, template literals of literal parts are expanded, and the `width`/`height` of `svg`,
-  `img`, `canvas` and `iframe` are sizes; only values computed at runtime are left to the
-  screenshot check), and DOM members that write markup, styles, attributes or
+  (`ui/element-allowlist`; no `<style>`, `<link>` or `<script>`, no spread into a native
+  element, and `createElement` props only as an object literal of registered attributes),
+  inline style values judged by their write site's syntax alone (`ui/inline-style-keys`: a key
+  must be written out, and a value passes only as a literal within the CSS value domains, a
+  member of a token constant registered in `TOKEN_CONSTANTS`, or a call to a runtime source
+  registered in `RUNTIME_SOURCES` written into a custom property; any other expression, a style
+  object passed by name and a spread are `untracked`, since the gate traces no data flow; the
+  `width`/`height` of `svg`, `img`, `canvas` and `iframe` are sizes), and DOM members that write markup, styles, attributes or
   nodes only where `DOM_WRITERS` in `scripts/ui-lint/registry.mjs` registers them for that file
   (`ui/dom-allowlist`). What the gate covers is the web build's bundle graph
   (`scripts/ui-lint/bundle.mjs`): a package import passes only if `PACKAGES` in the registry

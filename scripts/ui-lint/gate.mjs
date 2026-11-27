@@ -8,10 +8,10 @@
  * 3. Turn every violation into a fingerprint and compare. A fingerprint is the violation's
  *    identity in code: rule ID, message ID (ESLint; Stylelint has none), where in the file it
  *    sits (enclosing selectors and at-rules, or elements, functions and keys; `context.mjs`) and
- *    the source lines it spans, each trimmed, plus the source lines a report says its value is written on (`Written at …`, from
- *    `values.mjs`) when they are elsewhere. The message text is not part of it, so rewording a
- *    message records no new debt (P1 QA7 F2), and changing a value written elsewhere is new
- *    debt (QA8 FIX-FIRST-2); renaming a message ID is renaming part of a rule's identity.
+ *    the source lines it spans, each trimmed. A TSX value is read only where it is written
+ *    (plan v3.12 D15), so those lines are the value. The message text is not part of it, so
+ *    rewording a message records no new debt (P1 QA7 F2); renaming a message ID is renaming part
+ *    of a rule's identity.
  *    - exactly equal to `ui-gate-baseline.json` (a fixed violation must shrink the baseline);
  *    - no fingerprint beyond the baseline at the comparison base (renames followed); a rule the
  *      base baseline does not list yet records exactly what it finds on the base tree.
@@ -28,7 +28,6 @@ import stylelint from 'stylelint';
 
 import { bundleGraph, REPO_ROOT } from './bundle.mjs';
 import { scriptContext, styleContext } from './context.mjs';
-import { originsOf } from './values.mjs';
 import { gateConfig } from './eslint.gate.mjs';
 import stylelintConfig from './stylelint.gate.mjs';
 
@@ -78,38 +77,21 @@ function remember(reports, file, key, line, message) {
   reports.set(`${file}\t${key}`, list);
 }
 
-/**
- * The fingerprint of one ESLint report: rule ID, message ID, the lines it spans, then
- * `file: text` for the lines elsewhere its message says the value is written on (P1 QA8/QA9
- * FIX-FIRST-2).
- */
+/** The fingerprint of one ESLint report: rule ID, message ID, where it sits, the lines it spans. */
 export function scriptKey(root, file, lines, message) {
   // Every rule of the gate configuration reports through `messages` (message IDs).
   if (message.messageId === undefined)
     throw new Error(`UI gate: ${message.ruleId} reported without a message ID in ${file}`);
   const endLine = message.endLine ?? message.line;
-  const written = originsOf(message.message)
-    .filter(
-      (origin) => origin.file !== file || origin.line < message.line || origin.endLine > endLine,
-    )
-    .map((origin) => sourceLine(root, origin, message.ruleId));
   const where = contextOf(root, file, 'script')(message.line, message.column);
-  return [
-    fingerprint(
-      message.ruleId,
-      message.messageId,
-      lines,
-      { line: message.line, endLine },
-      file,
-      where,
-    ),
-    ...written,
-  ].join('\t');
-}
-
-/** `file: text` for the lines a report says a value is written on; out of range throws. */
-function sourceLine(root, { file, line, endLine }, rule) {
-  return `${file}: ${span(rule, readLines(root, file), line, endLine, file)}`;
+  return fingerprint(
+    message.ruleId,
+    message.messageId,
+    lines,
+    { line: message.line, endLine },
+    file,
+    where,
+  );
 }
 
 function readLines(root, file) {

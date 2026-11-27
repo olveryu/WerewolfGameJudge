@@ -74,7 +74,7 @@ function conditionProblems(rule) {
         const value = valueParser.stringify(node.nodes.slice(colon + 1)).trim();
         const start = node.nodes[colon + 1]?.sourceIndex ?? node.sourceIndex;
         const offset = start + valueParser.stringify(node.nodes.slice(colon + 1)).search(/\S/);
-        for (const problem of verdict([{ text: value, origins: [] }], prop.toLowerCase()))
+        for (const problem of verdict([{ text: value }], prop.toLowerCase()))
           if (problem.index === undefined) flag(node, problem.message);
           else
             problems.push({
@@ -164,7 +164,7 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
     // declaration is reported as a whole (its whole span is the fingerprint, P1 QA10).
     const exact = decl.raws.value === undefined;
     const valueStart = exact ? decl.toString().indexOf(decl.value, decl.prop.length) : 0;
-    for (const problem of verdict([{ text: decl.value, origins: [] }], prop, {
+    for (const problem of verdict([{ text: decl.value }], prop, {
       domain,
       forced: inForcedColors(decl),
       keyframes,
