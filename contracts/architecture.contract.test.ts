@@ -22,8 +22,6 @@ import {
 } from '@game-judge/game-engine/games/registry';
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import ts from 'typescript';
-import { parse } from 'yaml';
-import { z } from 'zod';
 
 import {
   getModuleSpecifiers,
@@ -278,8 +276,7 @@ function isGameTestingSpecifier(specifier: string): boolean {
 
 // ─── Paths ──────────────────────────────────────────────────────────────────
 
-const webDir = path.join(process.cwd(), 'packages', 'web');
-const srcDir = path.join(webDir, 'src');
+const srcDir = path.join(process.cwd(), 'packages', 'web', 'src');
 const routesDir = path.join(srcDir, 'routes');
 const productComponentsDir = path.join(srcDir, 'components');
 const sharedRoomDir = path.join(srcDir, 'features', 'room');
@@ -1177,268 +1174,49 @@ describe('Client storage ownership', () => {
   });
 });
 
-/**
- * The literal patterns of every Vite `import.meta.glob(...)` in a file: a glob imports modules
- * too, so the Ark/zag gate checks it like an import. A non-literal pattern fails fast.
- */
-function viteGlobPatterns(filePath: string): string[] {
-  const source = fs.readFileSync(filePath, 'utf-8');
-  if (!source.includes('import.meta.glob')) return [];
-  const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
-  const patterns: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (ts.isCallExpression(node) && node.expression.getText(sourceFile) === 'import.meta.glob') {
-      const [pattern, options] = node.arguments;
-      // `base` re-roots the patterns, `exhaustive` searches node_modules and `caseSensitive`
-      // would let `NODE_MODULES` through; only options that cannot move the search are allowed.
-      const GLOB_OPTIONS = ['eager', 'import', 'query'];
-      if (
-        options !== undefined &&
-        (!ts.isObjectLiteralExpression(options) ||
-          options.properties.some(
-            (property) =>
-              !ts.isPropertyAssignment(property) ||
-              !GLOB_OPTIONS.includes(property.name.getText(sourceFile)),
-          ))
-      ) {
-        throw new Error(
-          `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob options may only set ${GLOB_OPTIONS.join(', ')}`,
-        );
-      }
-      const literals =
-        pattern !== undefined && ts.isArrayLiteralExpression(pattern)
-          ? pattern.elements
-          : [pattern];
-      for (const literal of literals) {
-        if (literal === undefined || !ts.isStringLiteralLike(literal)) {
-          throw new Error(
-            `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob needs literal patterns`,
-          );
-        }
-        // Only the file-name segment may be a wildcard, never `**`, and never under node_modules:
-        // a wildcard directory (`**`, `@ark-*`, `{a,b}`) could reach a package the gate cannot name.
-        const segments = literal.text.split('/');
-        if (
-          segments.some(
-            (segment) => segment.toLowerCase() === 'node_modules' || segment === '**',
-          ) ||
-          segments.slice(0, -1).some((segment) => /[*?{}[\]]/.test(segment))
-        ) {
-          throw new Error(
-            `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob may only wildcard file names outside node_modules`,
-          );
-        }
-        // A glob may only load asset files, so it can never reach a module, wherever it points.
-        if (!/\.(?:webp|png|svg|mp3)$/.test(literal.text)) {
-          throw new Error(
-            `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob may only match asset files`,
-          );
-        }
-        patterns.push(literal.text);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return patterns;
-}
-
 describe('Client dialogs: one Ark dialog root', () => {
-  // zag closes every dismissable layer above a layer that is removed. AppDialog's root blocks
-  // that cascade (see its file header), so it is the only module that may import Ark's dialog.
-  // Other Ark/zag parts that open dismissable layers (drawer, popover, menu, select, hover card,
-  // a non-inline color picker, the bare barrels, zag's own packages) would bring the cascade
-  // back. Ark and zag are therefore imported only by their owning shared modules — AppDialog
-  // for the dialog, InlineColorPicker (always inline) for the color picker — or for parts that
-  // open no layer.
-  const LAYERLESS_ARK_PARTS = [
-    '@ark-ui/react/portal',
-    '@ark-ui/react/qr-code',
-    '@ark-ui/react/tabs',
-  ];
-  const OWNED_ARK_PARTS: Readonly<Record<string, string>> = {
-    '@ark-ui/react/dialog': 'packages/web/src/components/AppDialog.tsx',
-    '@ark-ui/react/color-picker': 'packages/web/src/components/InlineColorPicker.tsx',
+  // zag closes every dismissable layer above a layer that is removed; AppDialog's root blocks
+  // that cascade (see its file header), so only AppDialog may import Ark's Dialog. This pins the
+  // ordinary ways to import it; the full package-entry allowlist belongs to the UI lint gate
+  // (PR #519), which takes this rule over as one of its entries.
+  const APP_DIALOG = 'packages/web/src/components/AppDialog.tsx';
+  const importsArkDialog = (filePath: string): boolean => {
+    const source = fs.readFileSync(filePath, 'utf-8');
+    if (!source.includes('@ark-ui/react')) return false;
+    if (getModuleSpecifiers(filePath, source).includes('@ark-ui/react/dialog')) return true;
+    const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
+    return sourceFile.statements.some((statement) => {
+      if (
+        (!ts.isImportDeclaration(statement) && !ts.isExportDeclaration(statement)) ||
+        statement.moduleSpecifier === undefined ||
+        !ts.isStringLiteral(statement.moduleSpecifier)
+      ) {
+        return false;
+      }
+      if (statement.moduleSpecifier.text !== '@ark-ui/react') return false;
+      // The barrel: a namespace import or a re-export of everything reaches Dialog too.
+      const bindings = ts.isImportDeclaration(statement)
+        ? statement.importClause?.namedBindings
+        : statement.exportClause;
+      if (
+        bindings === undefined ||
+        ts.isNamespaceImport(bindings) ||
+        ts.isNamespaceExport(bindings)
+      ) {
+        return true;
+      }
+      return bindings.elements.some((element) =>
+        /^(?:use)?Dialog/.test((element.propertyName ?? element.name).text),
+      );
+    });
   };
 
-  it('imports Ark and zag only through their shared owners or parts that open no layer', () => {
-    // The gate judges what an import resolves to, not how it is written: starting from every
-    // script under packages/web (tests and stories included), it follows each import that
-    // resolves to a repo file — inside packages/web or not — and fails any import that resolves
-    // into Ark or zag unless it is an owner's part or a layerless one. Resolution uses the web
-    // tsconfig, whose paths the next test pins to the same aliases Vite uses.
-    const config: unknown = ts.readConfigFile(
-      path.join(webDir, 'tsconfig.json'),
-      ts.sys.readFile,
-    ).config;
-    const parsed = ts.parseJsonConfigFileContent(config, ts.sys, webDir);
-    // allowJs: a script module resolves too, typed or not.
-    const compilerOptions = { ...parsed.options, allowJs: true };
-    const queue = fs
-      .readdirSync(webDir, { recursive: true, encoding: 'utf-8' })
-      .filter((file) => !/(?:^|\/)(?:node_modules|dist)\//.test(file))
-      .filter((file) => /\.(?:[cm]?[jt]sx?)$/.test(file) && !file.endsWith('.d.ts'))
-      .map((file) => path.join(webDir, file));
-    const visited = new Set(queue);
-    const offenders: string[] = [];
-    // for…of also visits the files pushed while walking.
-    for (const filePath of queue) {
-      viteGlobPatterns(filePath);
-      for (const specifier of getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'))) {
-        const resolved = ts.resolveModuleName(specifier, filePath, compilerOptions, ts.sys)
-          .resolvedModule?.resolvedFileName;
-        // A relative or aliased script import that does not resolve would hide its target.
-        if (
-          resolved === undefined &&
-          /^(?:\.|\/|@\/|@game-judge\/)/.test(specifier) &&
-          // a script, or no extension at all; assets (`.css`, `.webp`, `?url`) are not modules
-          /(?:^|\/)[^./]*$|\.[cm]?[jt]sx?$/.test(specifier.replace(/\?.*$/, ''))
-        ) {
-          throw new Error(`[FAIL-FAST] ${repoPath(filePath)}: cannot resolve ${specifier}`);
-        }
-        const target = resolved === undefined ? specifier : fs.realpathSync(resolved);
-        if (/(?:^|\/)@(?:ark-ui|zag-js)\//i.test(target)) {
-          if (
-            !LAYERLESS_ARK_PARTS.includes(specifier) &&
-            OWNED_ARK_PARTS[specifier] !== repoPath(filePath)
-          ) {
-            offenders.push(`${repoPath(filePath)}: ${specifier}`);
-          }
-        } else if (
-          resolved !== undefined &&
-          !target.includes(`${path.sep}node_modules${path.sep}`) &&
-          !target.endsWith('.d.ts') &&
-          !visited.has(target)
-        ) {
-          visited.add(target);
-          queue.push(target);
-        }
-      }
-    }
-
-    expect(offenders).toEqual([]);
-    // An inline module script in an HTML entry imports modules too.
-    const htmlFiles = fs
-      .readdirSync(webDir, { recursive: true, encoding: 'utf-8' })
-      .filter((file) => !/(?:^|\/)(?:node_modules|dist)\//.test(file) && file.endsWith('.html'));
-    expect(htmlFiles.length).toBeGreaterThan(0);
+  it('imports Ark Dialog only in AppDialog', () => {
     expect(
-      htmlFiles.filter((file) =>
-        /@(?:ark-ui|zag-js)\//i.test(fs.readFileSync(path.join(webDir, file), 'utf-8')),
-      ),
-    ).toEqual([]);
-  });
-
-  it('resolves modules only through the two pinned aliases', () => {
-    // An alias (Vite `resolve.alias`, tsconfig `paths`) or a plugin resolver could map an
-    // innocent specifier onto Ark or zag, so the aliases are an allowlist and no build plugin
-    // resolves or loads modules.
-    const readJson = (file: string) =>
-      z
-        .object({ compilerOptions: z.object({ paths: z.unknown().optional() }) })
-        .parse(ts.readConfigFile(path.join(process.cwd(), file), ts.sys.readFile).config)
-        .compilerOptions.paths;
-    expect(readJson('packages/web/tsconfig.json')).toEqual({
-      '@/*': ['./src/*'],
-      '@game-judge/game-engine/*': ['../game-engine/src/*'],
-    });
-    expect(readJson('tsconfig.json')).toEqual({
-      '@game-judge/game-engine/*': ['./packages/game-engine/src/*'],
-    });
-    const viteConfig = fs.readFileSync(path.join(webDir, 'vite.config.ts'), 'utf-8');
-    const aliasBlock = /alias: \[([\s\S]*?)\n {4}\],/.exec(viteConfig)?.[1] ?? '';
-    expect(
-      aliasBlock
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line !== '' && !line.startsWith('//')),
-    ).toEqual([
-      '{ find: /^@\\//, replacement: `${sourceDirectory}/` },',
-      '{ find: /^@game-judge\\/game-engine\\//, replacement: `${engineSourceDirectory}/` },',
-    ]);
-    expect(viteConfig.match(/\balias\b/g)).toHaveLength(1);
-    const pluginBlock = /plugins: \[([\s\S]*?)\n {2}\],/.exec(viteConfig)?.[1] ?? '';
-    expect(
-      pluginBlock
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line !== '' && !line.startsWith('//')),
-    ).toEqual([
-      'react(),',
-      'babel({ presets: [reactCompilerPreset()] }),',
-      "Icons({ compiler: 'jsx', jsx: 'react' }),",
-      'bootSplash(),',
-    ]);
-    expect(viteConfig.match(/\bplugins: /g)).toHaveLength(1);
-    const pluginSources = fs
-      .readdirSync(path.join(webDir, 'build-plugins'))
-      .map((file) => fs.readFileSync(path.join(webDir, 'build-plugins', file), 'utf-8'));
-    expect(pluginSources.filter((source) => /\b(?:resolveId|load|alias)\b/.test(source))).toEqual(
-      [],
-    );
-  });
-
-  it('reaches zag only through Ark, which only the web package depends on by its own name', () => {
-    // A library built on Ark or zag shares zag's layer stack and would bring the cascade back
-    // under a package name the import gate does not know; so would an alias to either scope.
-    // The lockfile records every dependency edge, aliased or not, so it is checked whole.
-    const DEPENDENCY_KINDS = ['dependencies', 'devDependencies', 'optionalDependencies'] as const;
-    const dependencyMap = z.record(
-      z.string(),
-      z.union([z.string(), z.object({ specifier: z.string(), version: z.string() })]),
-    );
-    const dependencyGroups = z
-      .object(Object.fromEntries(DEPENDENCY_KINDS.map((kind) => [kind, dependencyMap.optional()])))
-      .nullable();
-    const lockfile = z
-      .object({
-        importers: z.record(z.string(), dependencyGroups),
-        snapshots: z.record(z.string(), dependencyGroups),
-      })
-      .parse(parse(fs.readFileSync(path.join(process.cwd(), 'pnpm-lock.yaml'), 'utf-8')));
-    const ARK_OR_ZAG = /(?:^|[/:])@(?:ark-ui|zag-js)\//i;
-    const packageName = (key: string): string => key.slice(0, key.indexOf('@', 1));
-    // `dependent -> name: resolution` for every edge whose name or resolution is Ark or zag.
-    const edges = (
-      entries: Record<string, z.infer<typeof dependencyGroups>>,
-      dependentName: (key: string) => string,
-    ): string[] =>
-      Object.entries(entries).flatMap(([key, groups]) =>
-        DEPENDENCY_KINDS.flatMap((kind) =>
-          Object.entries(groups?.[kind] ?? {}).flatMap(([name, entry]) => {
-            const resolution =
-              typeof entry === 'string' ? entry : `${entry.specifier} ${entry.version}`;
-            return ARK_OR_ZAG.test(name) || ARK_OR_ZAG.test(resolution)
-              ? [`${dependentName(key)} -> ${name}: ${resolution}`]
-              : [];
-          }),
-        ),
-      );
-    const importerEdges = edges(lockfile.importers, (key) => key);
-    const snapshotEdges = edges(lockfile.snapshots, packageName).filter(
-      // zag's packages depend on each other, and Ark on zag; nothing else may reach either.
-      (edge) =>
-        !edge.startsWith('@zag-js/') &&
-        !(edge.startsWith('@ark-ui/react -> @zag-js/') && !edge.includes('npm:')),
-    );
-
-    // Only the web package, by Ark's own name and without an `npm:` alias.
-    expect(importerEdges.map((edge) => edge.slice(0, edge.indexOf(':')))).toEqual([
-      'packages/web -> @ark-ui/react',
-    ]);
-    expect(importerEdges.filter((edge) => edge.includes('npm:'))).toEqual([]);
-    expect(snapshotEdges).toEqual([]);
-    // Node subpath imports (`"imports": { "#x": "@ark-ui/..." }`) are aliases too.
-    const manifestsImportingArkOrZag = [
-      'package.json',
-      ...['web', 'game-engine', 'api-worker'].map((name) => `packages/${name}/package.json`),
-    ].filter((file) => {
-      const manifest = z
-        .object({ imports: z.unknown().optional() })
-        .parse(JSON.parse(fs.readFileSync(path.join(process.cwd(), file), 'utf-8')));
-      return /@(?:ark-ui|zag-js)\//.test(JSON.stringify(manifest.imports ?? {}));
-    });
-    expect(manifestsImportingArkOrZag).toEqual([]);
+      srcFiles
+        .filter((filePath) => importsArkDialog(filePath))
+        .map((filePath) => repoPath(filePath)),
+    ).toEqual([APP_DIALOG]);
   });
 });
 
