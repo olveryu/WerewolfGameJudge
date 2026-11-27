@@ -148,6 +148,8 @@ const RED = [
   'a { filter: brightness(92%); }',
   'a { filter: saturate(150%) contrast(37%) grayscale(37%); }',
   'a { backdrop-filter: brightness(50%); }',
+  // A `var()` fallback is the function's argument when unset (P1 QA22 F1).
+  'a { filter: brightness(var(--qa-none, 92%)); }',
   'a { border-r\\61 dius: 50%; }',
   'a { mystery-property: 1; }',
   '@property --x { syntax: "<length>"; inherits: false; initial-value: 13px; }',

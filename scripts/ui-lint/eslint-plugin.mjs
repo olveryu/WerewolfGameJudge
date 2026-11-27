@@ -504,8 +504,28 @@ const attributeName = (name) =>
  * Whether `<tag>` may carry `name` as a registered attribute whose value is not a style value
  * (`tag` `*`: an element not known, which takes only the global ones).
  */
+/** Whether `name` is an open attribute (`aria-*`, `data-*`, a handler): the one definition. */
+const isOpenAttribute = (name) => OPEN_ATTRIBUTES.some((pattern) => pattern.test(name));
+
+/**
+ * The expression a value is written as at a package boundary: only `as const` and `!` are
+ * looked through. Any other assertion or `satisfies` gives a literal a type other than the one
+ * receiving it, so its keys are not judged by the receiving type (P1 QA22 F4).
+ */
+function writtenForm(node) {
+  let inner = node;
+  while (
+    inner.type === 'TSNonNullExpression' ||
+    (inner.type === 'TSAsExpression' &&
+      inner.typeAnnotation.type === 'TSTypeReference' &&
+      inner.typeAnnotation.typeName.name === 'const')
+  )
+    inner = inner.expression;
+  return inner;
+}
+
 function isPlainAttribute(name, tag) {
-  if (OPEN_ATTRIBUTES.some((pattern) => pattern.test(name))) return true;
+  if (isOpenAttribute(name)) return true;
   const elements = ATTRIBUTES.get(name);
   return elements !== undefined && (elements.has('*') || elements.has(tag));
 }
@@ -821,8 +841,10 @@ const inlineStyleKeys = {
       indirect:
         'This DOM method writes a style value; call it directly so its value is checked (UI gate E4).',
       prop: '`{{name}}` is declared by `{{pkg}}` and not registered in `PACKAGE_PROPS`: a value handed to a third-party API can reach the page as a style the gate does not see. Register it as `plain` (behaviour or content), `options` (an object whose keys are registered in turn) or with the CSS property its value is (UI gate E4, scripts/ui-lint/registry.mjs).',
+      undeclared:
+        '`{{name}}` has no declaration in the type that receives it, so what reads it (and whether it reaches the page as a style) is not shown: declare it in our props type, or, for a package, register its declaration in `PACKAGE_PROPS` (UI gate E4, scripts/ui-lint/registry.mjs).',
       handover:
-        'This value is handed to a type with keys a package reads (`{{key}}`), but its keys are not written out here (a spread, a binding, a call or a computed key), so none of them can be judged: write each key as a literal property or attribute here, each judged by its PACKAGE_PROPS registration in scripts/ui-lint/registry.mjs (UI gate E4).',
+        'This value is handed to a type with keys a package reads (for example `{{key}}`), but its keys are not written out here (a spread, a binding, a call or a computed key), so none of them can be judged: write each key as a literal property or attribute here, each judged by its PACKAGE_PROPS registration in scripts/ui-lint/registry.mjs (UI gate E4).',
       options:
         '`{{name}}` of `{{pkg}}` takes an object some of whose keys reach the page as styles (`PACKAGE_PROPS`), and it is not an object literal here, so its keys are not shown: write the object literal at this call (UI gate E4).',
       alias:
@@ -1040,7 +1062,7 @@ const inlineStyleKeys = {
      * primitive. Any other value hides its keys and is reported, whatever it came from.
      */
     const handOver = (expression) => {
-      const value = strip(expression);
+      const value = writtenForm(expression);
       if (
         [
           'ObjectExpression',
@@ -1067,8 +1089,7 @@ const inlineStyleKeys = {
      */
     const checkKey = (node, name, source, expression) => {
       if (source?.own) return;
-      if (source === null)
-        return context.report({ node, messageId: 'prop', data: { name, pkg: 'no declaration' } });
+      if (source === null) return context.report({ node, messageId: 'undeclared', data: { name } });
       if (source.react !== undefined) {
         if (expression === null || name === 'style') return;
         const prop = attributeProp(name, [sizeMeaning.ofReact(source.react)]);
@@ -1089,7 +1110,7 @@ const inlineStyleKeys = {
         return;
       }
       if (source.meaning === 'options') {
-        if (strip(expression).type !== 'ObjectExpression')
+        if (writtenForm(expression).type !== 'ObjectExpression')
           context.report({
             node: expression,
             messageId: 'options',
@@ -1122,9 +1143,9 @@ const inlineStyleKeys = {
       )
         outer = outer.parent;
       const call = outer.parent;
-      // A hyphenated key spread into JSX (`data-*`, `aria-*`) needs no declaration, as written
-      // as an attribute.
-      if (call.type === 'JSXSpreadAttribute' && name.includes('-')) return { own: true };
+      // An open attribute spread into JSX (`data-*`, `aria-*`, `OPEN_ATTRIBUTES`) needs no
+      // declaration, as written as an attribute (P1 QA22 F3).
+      if (call.type === 'JSXSpreadAttribute' && isOpenAttribute(name)) return { own: true };
       if (
         !['CallExpression', 'NewExpression'].includes(call.type) ||
         !call.arguments.includes(outer)
@@ -1411,8 +1432,9 @@ const inlineStyleKeys = {
         if (target.type !== 'MemberExpression') return;
         const name = target.computed ? writtenKey(target.property, true) : target.property.name;
         const owner = services.getTypeAtLocation(target.object);
-        // A style object's member is judged where the object is written (`style={…}`).
-        if (isCssProperties(owner)) return;
+        // A style object's member is judged where the object is written (`style={…}`), a style
+        // declaration's as a style write (`writeOf`).
+        if (isCssProperties(owner) || isStyleDeclaration(target.object)) return;
         if (name === null) {
           if (hasForeignKeys(owner))
             context.report({ node: target, messageId: 'handover', data: { key: 'a package' } });
@@ -1537,12 +1559,13 @@ const inlineStyleKeys = {
         if (tags === undefined) {
           // A component's prop: judged by where it is declared (`checkKey`).
           const props = checker.getContextualType(toTs(node).parent);
-          // A hyphenated attribute (`data-*`, `aria-*`) needs no declaration in JSX: it is content
-          // handed on to the element, never a style value.
+          // An open attribute (`data-*`, `aria-*`, `OPEN_ATTRIBUTES`) needs no declaration in JSX:
+          // it is content handed on to the element, never a style value. Any other undeclared
+          // name (`stroke-width`) is reported (P1 QA22 F3).
           const source =
             props === undefined
               ? null
-              : name.includes('-') && checker.getPropertyOfType(props, name) === undefined
+              : isOpenAttribute(name) && checker.getPropertyOfType(props, name) === undefined
                 ? { own: true }
                 : propSource(props, name, checker, services.program);
           return checkKey(node, name, source, expression);

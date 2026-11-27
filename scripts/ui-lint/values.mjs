@@ -195,7 +195,8 @@ function valueProblems(
         if (first?.type !== 'word' || first.value.startsWith('--') !== (lower === 'var')) {
           problem(node, valueMessages.atom(`${lower}()`, prop, name));
         }
-        walk(fallback.flat(), domain, name, inMath);
+        // The fallback is the function's argument when the variable is unset (P1 QA22 F1).
+        walk(fallback.flat(), domain, name, inMath, fn);
         continue;
       }
       if (REFERENCES.has(lower)) {

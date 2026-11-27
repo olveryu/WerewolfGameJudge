@@ -240,9 +240,12 @@ export const STYLE_TYPE_WRAPPERS = Object.freeze(
   new Set(['Partial', 'Required', 'Readonly', 'Pick', 'Omit']),
 );
 
-/** Style declaration interfaces whose members and `setProperty` write CSS properties. */
+/**
+ * Style declaration interfaces whose members and `setProperty` write CSS properties: the DOM's,
+ * and Pixi's `ICanvasStyle`, its type for a canvas element's live `style` (P1 QA22 F2).
+ */
 export const STYLE_DECLARATIONS = Object.freeze(
-  new Set(['CSSStyleDeclaration', 'CSSStyleProperties']),
+  new Set(['CSSStyleDeclaration', 'CSSStyleProperties', 'ICanvasStyle']),
 );
 
 /**

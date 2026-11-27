@@ -429,6 +429,11 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         // A filter coefficient is a written number, as an opacity is (P1 QA18 should-fix 1).
         "export const a = <div style={{ filter: 'brightness(0.5)' }} />;",
         "export const a = <div style={{ filter: 'brightness(92%)' }} />;",
+        // A `var()` fallback is the function's argument when the variable is unset (P1 QA22 F1).
+        "export const a = <div style={{ filter: 'brightness(var(--qa-none, 92%))' }} />;",
+        // Pixi's canvas `style` is the element's live style declaration (P1 QA22 F2).
+        "import type { ICanvas } from 'pixi.js'; declare const c: ICanvas; Object.assign(c.style ?? {}, { width: '37px' });",
+        "import type { ICanvas } from 'pixi.js'; declare const c: ICanvas; c.style!.width = '37px';",
         // A package's key registered as a CSS property is judged as that property (P1 QA18 F1).
         "import { parseColor } from '@ark-ui/react/color-picker'; export const c = parseColor('#f00');",
       ],
@@ -470,10 +475,23 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; declare const t: [Partial<AutoDetectOptions>]; void r.init(...t);",
         "import { init } from '@sentry/react'; const integ = { name: 'q', setupOnce() {} }; init({ dsn: '', integrations: [integ] });",
         "import { init } from '@sentry/react'; const integ = { name: 'q', setupOnce() {} }; init({ dsn: '', integrations: () => [integ] });",
+        // An assertion or `satisfies` gives a literal a type other than the receiving one, so
+        // its keys are not judged where written (P1 QA22 F4).
+        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; void r.init({ autoDensity: true } satisfies object);",
+        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; void r.init({ autoDensity: true } as Record<string, boolean>);",
         "import { FillGradient } from 'pixi.js'; const stops = [{ offset: 0, color: 'red' }]; export const g = new FillGradient({ colorStops: stops });",
         "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; declare const raw: unknown; export const a = <Toaster position={(raw as ComponentProps<typeof Toaster>).position} />;",
       ],
       'handover',
+    ),
+    // A name with no declaration in the receiving type is reported; only the open families
+    // (`aria-*`, `data-*`, handlers) are attributes handed on (P1 QA22 F3).
+    ...red(
+      [
+        'function I(p: { title?: string }) { return <svg {...p} />; } export const a = <I stroke-width="37" />;',
+        'function I(p: { title?: string }) { return <svg {...p} />; } export const a = <I fill-opacity="0.3" />;',
+      ],
+      'undeclared',
     ),
     // A package's key not registered, whatever it is called elsewhere in the package: keys are
     // registered per declaration (Pixi's renderer `autoDensity` and `resize`, `DOMContainer`,
@@ -497,6 +515,8 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     // `createElement`'s props are an options object: not a literal, its keys are hidden.
     ...red(
       [
+        // A literal asserted to another type is not the object written for the option.
+        "import { toast } from 'sonner'; toast('x', { style: { width: 37, background: '#f00' } } as object);",
         "import { createElement } from 'react'; import { Toaster } from 'sonner'; const cfg = { offset: 37 }; export const a = createElement(Toaster, cfg);",
       ],
       'options',
