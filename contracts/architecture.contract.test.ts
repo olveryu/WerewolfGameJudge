@@ -27,7 +27,7 @@ import {
   getModuleSpecifiers,
   getRuntimeModuleSpecifiers,
 } from '../packages/game-engine/src/platform/__tests__/moduleSpecifiers';
-import { patternProblems, sqlTokens } from './support/d1Sql';
+import { patternProblems, RUNTIME_VALUE, sqlTokens } from './support/d1Sql';
 
 const GAME_ENGINE_PACKAGE = '@game-judge/game-engine';
 
@@ -1002,19 +1002,57 @@ describe('Worker ownership: source tree is exact', () => {
 
 // ─── Worker runtime SQL: LIKE/GLOB patterns ──────────────────────────────────
 
-/** Stands in for a `${…}` substitution: one word, so a pattern built from it is never a literal. */
-const TEMPLATE_SUBSTITUTION = '__runtime_value__';
 /** Drizzle operators that always bind their pattern as a parameter. */
 const DRIZZLE_PATTERN_OPERATORS = new Set(['like', 'ilike', 'notLike', 'notIlike']);
+
+/** Whether `node` is a `+` expression, the operator that concatenates SQL fragments in source. */
+function isConcatenation(node: ts.Node): node is ts.BinaryExpression {
+  return ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken;
+}
+
+/** The operands of a `+` chain, left to right. */
+function concatenationOperands(node: ts.Expression): ts.Expression[] {
+  return isConcatenation(node)
+    ? [...concatenationOperands(node.left), ...concatenationOperands(node.right)]
+    : [node];
+}
+
+/**
+ * The SQL text `node` contributes: a literal's own text, with `RUNTIME_VALUE` for each `${…}`
+ * substitution and for any operand that is not a literal. Padding keeps the stand-in one word.
+ */
+function sqlSourceText(node: ts.Expression): string {
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  if (ts.isTemplateExpression(node)) {
+    return (
+      node.head.text +
+      node.templateSpans.map((span) => ` ${RUNTIME_VALUE} ${span.literal.text}`).join('')
+    );
+  }
+  return ` ${RUNTIME_VALUE} `;
+}
+
+function isSqlLiteral(
+  node: ts.Node,
+): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral | ts.TemplateExpression {
+  return (
+    ts.isStringLiteral(node) ||
+    ts.isNoSubstitutionTemplateLiteral(node) ||
+    ts.isTemplateExpression(node)
+  );
+}
 
 /**
  * D1 caps a LIKE or GLOB pattern at 50 bytes, so a pattern bound or built at run time fails with
  * "pattern too complex" once user input is long enough (about 16 CJK characters inside `%…%`).
- * Every string and template literal in `sourceText` that holds an upper-case LIKE or GLOB keyword
- * — the keyword case all worker SQL is written in, which keeps English prose such as "looks like"
- * out — is judged by the same lexer and pattern rule as the migrations: the pattern must be one
- * string literal within 50 bytes. Drizzle's pattern operators are rejected outright. Substring
- * search over user input goes through `containsIgnoringAsciiCase` (`src/platform/storage/substringSearch.ts`).
+ * Each piece of SQL in `sourceText` — a string or template literal, or a whole `+` chain holding
+ * one — is read as the run-time SQL it builds, with `RUNTIME_VALUE` for every value only known at
+ * run time, inside or outside a quoted string. A piece holding an upper-case LIKE or GLOB keyword
+ * (worker SQL keywords are upper case, which keeps prose such as "looks like" out) is judged by the
+ * migration rules' lexer and pattern rule: the pattern must be one string literal within 50 bytes.
+ * Drizzle's pattern operators, and namespace imports of drizzle-orm that would hide them, are
+ * rejected outright. Substring search over user input goes through `containsIgnoringAsciiCase`
+ * (`src/platform/storage/substringSearch.ts`).
  */
 function runtimeSqlPatternProblems(fileName: string, sourceText: string): string[] {
   const source = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.Latest, true);
@@ -1030,25 +1068,38 @@ function runtimeSqlPatternProblems(fileName: string, sourceText: string): string
       ts.isImportDeclaration(node) &&
       ts.isStringLiteral(node.moduleSpecifier) &&
       node.moduleSpecifier.text.startsWith('drizzle-orm') &&
-      node.importClause?.namedBindings !== undefined &&
-      ts.isNamedImports(node.importClause.namedBindings)
+      node.importClause?.namedBindings !== undefined
     ) {
-      for (const element of node.importClause.namedBindings.elements) {
-        const imported = (element.propertyName ?? element.name).text;
-        if (DRIZZLE_PATTERN_OPERATORS.has(imported)) {
-          problems.push(`${imported} from drizzle-orm binds its pattern at run time`);
+      const bindings = node.importClause.namedBindings;
+      if (ts.isNamespaceImport(bindings)) {
+        problems.push(
+          `import * as ${bindings.name.text} from ${node.moduleSpecifier.text} hides its pattern operators; import by name`,
+        );
+      } else {
+        for (const element of bindings.elements) {
+          const imported = (element.propertyName ?? element.name).text;
+          if (DRIZZLE_PATTERN_OPERATORS.has(imported)) {
+            problems.push(`${imported} from drizzle-orm binds its pattern at run time`);
+          }
         }
       }
     }
-    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) judge(node.text);
-    if (ts.isTemplateExpression(node)) {
-      judge(
-        node.head.text +
-          node.templateSpans
-            .map((span) => ` ${TEMPLATE_SUBSTITUTION} ${span.literal.text}`)
-            .join(''),
-      );
+    // A `+` chain is judged once, as a whole, from its outermost `+`.
+    if (isConcatenation(node) && !isConcatenation(node.parent)) {
+      const operands = concatenationOperands(node);
+      if (operands.some(isSqlLiteral)) {
+        judge(operands.map(sqlSourceText).join(''));
+        for (const operand of operands) {
+          if (ts.isTemplateExpression(operand)) {
+            operand.templateSpans.forEach((span) => visit(span.expression));
+          } else if (!isSqlLiteral(operand)) {
+            visit(operand);
+          }
+        }
+        return;
+      }
     }
+    if (isSqlLiteral(node)) judge(sqlSourceText(node));
     ts.forEachChild(node, visit);
   };
   visit(source);
@@ -1074,13 +1125,30 @@ describe('Worker runtime SQL: LIKE/GLOB patterns are literals within D1 limits',
       'LIKE ? is not a literal pattern',
     ]);
     expect(probe('where += ` AND item.title LIKE ${pattern}`;')).toEqual([
-      `LIKE ${TEMPLATE_SUBSTITUTION} is not a literal pattern`,
+      `LIKE ${RUNTIME_VALUE} is not a literal pattern`,
     ]);
     expect(probe('sql`name GLOB ${glob}`;')).toEqual([
-      `GLOB ${TEMPLATE_SUBSTITUTION} is not a literal pattern`,
+      `GLOB ${RUNTIME_VALUE} is not a literal pattern`,
+    ]);
+    // A run-time value inside the quotes, by substitution or by `+`, is still not a literal.
+    expect(probe("db.prepare(`SELECT 1 FROM t WHERE n LIKE '%${term}%'`);")).toEqual([
+      `LIKE '% ${RUNTIME_VALUE} %' is not a literal pattern`,
+    ]);
+    expect(probe(`db.prepare("SELECT 1 FROM t WHERE n LIKE '%" + term + "%'");`)).toEqual([
+      `LIKE '% ${RUNTIME_VALUE} %' is not a literal pattern`,
     ]);
     expect(probe("const q = 'SELECT 1 FROM t WHERE n LIKE ' + term;")).toEqual([
-      'LIKE has no pattern',
+      `LIKE ${RUNTIME_VALUE} is not a literal pattern`,
+    ]);
+    expect(probe("const q = 'SELECT 1 FROM t WHERE n LIKE ' + `'${term}'` + ' AND 1';")).toEqual([
+      `LIKE ' ${RUNTIME_VALUE} ' is not a literal pattern`,
+    ]);
+    // A quote the SQL never closes is not a literal either.
+    expect(probe('db.prepare("SELECT 1 FROM t WHERE n LIKE \'abc");')).toEqual([
+      "LIKE 'abc is not a literal pattern",
+    ]);
+    expect(probe('db.prepare("SELECT 1 FROM t WHERE n LIKE \'" + term);')).toEqual([
+      `LIKE ' ${RUNTIME_VALUE}  is not a literal pattern`,
     ]);
     expect(probe("db.prepare(\"SELECT 1 FROM t WHERE n LIKE '%' || ? || '%'\");")).toEqual([
       "LIKE '%' || … is not a literal pattern",
@@ -1092,6 +1160,9 @@ describe('Worker runtime SQL: LIKE/GLOB patterns are literals within D1 limits',
       'like from drizzle-orm binds its pattern at run time',
       'ilike from drizzle-orm binds its pattern at run time',
     ]);
+    expect(probe("import * as orm from 'drizzle-orm';")).toEqual([
+      'import * as orm from drizzle-orm hides its pattern operators; import by name',
+    ]);
     // Literal patterns, a pattern-free substring search, prose and comments pass.
     expect(
       probe(
@@ -1100,6 +1171,7 @@ describe('Worker runtime SQL: LIKE/GLOB patterns are literals within D1 limits',
           "db.prepare(`SELECT 1 FROM t WHERE c GLOB '[A-Z][A-Z]' AND ${column} > ?`);",
           'db.prepare(`SELECT 1 FROM t WHERE instr(lower(${column}), lower(?)) > 0`);',
           "const note = 'looks like ' + name;",
+          "const sql = 'SELECT 1 FROM t WHERE c LIKE \\'abc%\\' AND id = ' + id;",
           '// n LIKE ? in a comment is not code',
         ].join('\n'),
       ),

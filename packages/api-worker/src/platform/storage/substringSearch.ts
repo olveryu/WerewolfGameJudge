@@ -7,11 +7,7 @@
  * sides keeps LIKE's case rule, which folds ASCII letters only (SQLite without ICU, as in D1).
  */
 
-/** A WHERE condition and the values its `?` placeholders bind, in order. */
-export interface SqlCondition {
-  readonly sql: string;
-  readonly bindings: readonly string[];
-}
+import type { SqlCondition } from './sqlCondition';
 
 /**
  * Rows whose `column` contains `term`, ASCII case-insensitively and with every character literal.
@@ -20,5 +16,5 @@ export interface SqlCondition {
  */
 export function containsIgnoringAsciiCase(column: string, term: string): SqlCondition {
   if (term === '') throw new Error(`Substring search on ${column} needs a non-empty term`);
-  return { sql: `instr(lower(${column}), lower(?)) > 0`, bindings: [term] };
+  return { sql: `instr(lower(${column}), lower(?)) > 0`, params: [term] };
 }

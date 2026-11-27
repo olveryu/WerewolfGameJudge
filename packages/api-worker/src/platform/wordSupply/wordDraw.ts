@@ -11,6 +11,7 @@
 import { type Rng, secureRng } from '@game-judge/game-engine/platform/random';
 import { z } from 'zod';
 
+import type { SqlCondition } from '../storage/sqlCondition';
 import {
   decodeDrawMembers,
   decodeSeenOrdinals,
@@ -24,12 +25,6 @@ type WordDrawPool = 'fibking' | 'undercover' | 'drawguess';
 
 /** The partition holding every drawable word of a pool. */
 export const WORD_DRAW_ALL_PARTITION = 'all';
-
-/** A SQL predicate with its bound values, composed into a caller's statement. */
-export interface SqlCondition {
-  readonly sql: string;
-  readonly params: readonly (string | number)[];
-}
 
 /** One drawn word: its stable ordinal and the game-owned content loaded for it. */
 export interface WordDrawPick<TItem> {

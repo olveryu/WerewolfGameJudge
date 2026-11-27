@@ -9,9 +9,9 @@ import { z } from 'zod';
 
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
 import type { WorkerEffectRoomIdentity } from '../../platform/gameModules/runtimeGameModule';
+import type { SqlCondition } from '../../platform/storage/sqlCondition';
 import {
   drawAndCommitWords,
-  type SqlCondition,
   WORD_DRAW_ALL_PARTITION,
   type WordDrawPick,
 } from '../../platform/wordSupply/wordDraw';
