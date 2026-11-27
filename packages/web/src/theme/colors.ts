@@ -160,6 +160,7 @@ const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
 
 /** Publishes the palettes as `--color-*` and `--report-*` custom properties on the document root. */
 export function applyColorTokens(root: HTMLElement): void {
+  /* eslint-disable no-restricted-syntax -- the palette's one publisher; every name is a custom property. */
   for (const [token, value] of Object.entries(colors)) {
     root.style.setProperty(toCustomPropertyName('color', token), value);
   }
@@ -172,4 +173,5 @@ export function applyColorTokens(root: HTMLElement): void {
   for (const [token, value] of Object.entries(reportColors)) {
     root.style.setProperty(toCustomPropertyName('report', token), value);
   }
+  /* eslint-enable no-restricted-syntax */
 }

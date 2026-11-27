@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router';
 
 import { gameGuidePath } from '@/features/navigation/model/gamePaths';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
+import { TESTIDS } from '@/testids';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconHelpCircleOutline from '~icons/ion/help-circle-outline';
 import IconRefresh from '~icons/ion/refresh';
@@ -99,10 +100,11 @@ export function WerewolfHomeSpotlight() {
 
         <div
           className="werewolf-spotlight-face werewolf-spotlight-front"
+          data-testid={TESTIDS.homeSpotlightFront}
           aria-hidden={!showsFront}
           inert={!showsFront}
         >
-          <div className="werewolf-spotlight-row">
+          <div className="werewolf-spotlight-row" data-testid={TESTIDS.homeSpotlightRole}>
             <img className="werewolf-spotlight-avatar" src={getRoleAvatar(roleId)} alt="" />
             <div className="werewolf-spotlight-info">
               <div className="werewolf-spotlight-name-row">

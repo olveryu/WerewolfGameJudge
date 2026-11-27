@@ -51,8 +51,20 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # ESLint applies eslint-suppressions.json itself and fails on entries no longer needed.
       - name: Lint
         run: pnpm run lint
+
+      # Stylelint applies stylelint-suppressions.json itself.
+      - name: Stylelint
+        run: pnpm run lint:css
+
+      # Stylelint does not fail on suppressions a fix left unused (ESLint does): rewriting the
+      # file must change nothing, so a fixed entry is removed in the same pull request.
+      - name: Stylelint suppressions are current
+        run: |
+          pnpm run lint:css:suppress
+          git diff --exit-code -- stylelint-suppressions.json
 
       - name: Format check
         run: pnpm run format
@@ -646,6 +658,24 @@ jobs:
           path: packages/web/dist/
           retention-days: 1
 
+  # Screenshot gate (UI drift lock P2): e2e/visual compared pixel for pixel
+  # with the committed baselines, inside the pinned Playwright image. Same
+  # reusable workflow and the same web-dist as the e2e shards; on failure the
+  # run carries a visual-diff-visual artifact with expected/actual/diff PNGs.
+  e2e-visual:
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.build-web.result == 'success'
+    needs: [quality, lint, build-web]
+    uses: ./.github/workflows/e2e-run.yml
+    with:
+      specs: 'visual.spec.ts'
+      shard: 'visual'
+      build-web: false
+      suite: visual
+
   # The job body lives in e2e-run.yml (reusable workflow) — the same single
   # implementation e2e-single-spec.yml calls. This job contributes only the
   # gate, the shard matrix, and its parameters.
@@ -852,7 +882,7 @@ jobs:
     name: ci-gate
     runs-on: ubuntu-latest
     if: always()
-    needs: [quality, lint, test-root, test-api-worker, catalogues, e2e]
+    needs: [quality, lint, test-root, test-api-worker, catalogues, e2e, e2e-visual]
     steps:
       - name: Assert every required job succeeded
         env:
@@ -862,6 +892,7 @@ jobs:
           TEST_API_WORKER_RESULT: ${{ needs.test-api-worker.result }}
           CATALOGUES_RESULT: ${{ needs.catalogues.result }}
           E2E_RESULT: ${{ needs.e2e.result }}
+          E2E_VISUAL_RESULT: ${{ needs.e2e-visual.result }}
         run: |
           failed=0
           for pair in \
@@ -870,7 +901,8 @@ jobs:
             "test-root=$TEST_ROOT_RESULT" \
             "test-api-worker=$TEST_API_WORKER_RESULT" \
             "catalogues=$CATALOGUES_RESULT" \
-            "e2e=$E2E_RESULT"; do
+            "e2e=$E2E_RESULT" \
+            "e2e-visual=$E2E_VISUAL_RESULT"; do
             echo "$pair"
             if [ "${pair#*=}" != "success" ]; then
               failed=1

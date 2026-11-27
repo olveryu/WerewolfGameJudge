@@ -64,6 +64,7 @@
 
 .werewolf-spotlight-row {
   display: flex;
+  flex: 1;
   gap: var(--space-small);
   min-height: 0;
 }
@@ -72,6 +73,7 @@
   flex-shrink: 0;
   width: var(--size-avatar-lg);
   height: var(--size-avatar-lg);
+  /* stylelint-disable-next-line rule-selector-property-disallowed-list -- a role portrait, not a user Avatar */
   border-radius: var(--radius-medium);
   object-fit: cover;
 }

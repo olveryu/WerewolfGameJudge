@@ -399,8 +399,10 @@ async function reviewAndRestart(
     const panel = await rooms[0]!.openHostManagement();
     await expect(panel.getByTestId(TESTIDS.roomReviewHostAction)).toBeVisible();
     await panel.getByTestId(TESTIDS.roomReviewHostAction).click();
-    await expect(hostPage.getByTestId(TESTIDS.roomReviewDialog)).toBeVisible();
-    await expect(hostPage.getByTestId(TESTIDS.roomReviewRosterRow(hitlerSeat))).toBeVisible();
+    const hostReview = hostPage.getByTestId(TESTIDS.roomReviewDialog);
+    await expect(hostReview).toBeVisible();
+    // Scoped to the dialog: the review's offscreen export stage renders the same pages.
+    await expect(hostReview.getByTestId(TESTIDS.roomReviewRosterRow(hitlerSeat))).toBeVisible();
     await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
 
     await rooms[0]!.clickHostManagementAction(TESTIDS.restartButton);

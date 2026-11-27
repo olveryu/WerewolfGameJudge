@@ -17,6 +17,7 @@
   background: transparent;
 }
 
+/* stylelint-disable rule-selector-property-disallowed-list -- the fallback glyph is drawn through a mask; it does not shape the avatar */
 .avatar-fallback-mark {
   width: 70%;
   height: 70%;
@@ -27,3 +28,4 @@
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
 }
+/* stylelint-enable rule-selector-property-disallowed-list */

@@ -13,7 +13,9 @@ import { UsersPage } from '@/routes/admin/pages/UsersPage';
 import { WordsPage } from '@/routes/admin/pages/WordsPage';
 import { SubmissionAgentsPage } from '@/routes/admin/words/SubmissionAgents';
 import { AppearancePage } from '@/routes/appearance/AppearancePage';
+import { GachaResultBench } from '@/routes/bench/GachaResultBench';
 import { SceneBenchPage } from '@/routes/bench/SceneBenchPage';
+import { UiGallery } from '@/routes/bench/UiGallery';
 import { GachaPage } from '@/routes/gacha/GachaPage';
 import {
   GameConfigRoutePage,
@@ -110,6 +112,14 @@ export const routes: RouteObject[] = [
       {
         path: '__bench/scene',
         Component: SceneBenchPage,
+      },
+      {
+        path: '__bench/ui',
+        Component: UiGallery,
+      },
+      {
+        path: '__bench/gacha-result',
+        Component: GachaResultBench,
       },
     ],
   },

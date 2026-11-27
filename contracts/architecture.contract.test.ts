@@ -1428,52 +1428,6 @@ describe('Client storage ownership', () => {
   });
 });
 
-describe('Client dialogs: one Ark dialog root', () => {
-  // zag closes every dismissable layer above a layer that is removed; AppDialog's root blocks
-  // that cascade (see its file header), so only AppDialog may import Ark's Dialog. This pins the
-  // ordinary ways to import it; the full package-entry allowlist belongs to the UI lint gate
-  // (PR #519), which takes this rule over as one of its entries.
-  const APP_DIALOG = 'packages/web/src/components/AppDialog.tsx';
-  const importsArkDialog = (filePath: string): boolean => {
-    const source = fs.readFileSync(filePath, 'utf-8');
-    if (!source.includes('@ark-ui/react')) return false;
-    if (getModuleSpecifiers(filePath, source).includes('@ark-ui/react/dialog')) return true;
-    const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
-    return sourceFile.statements.some((statement) => {
-      if (
-        (!ts.isImportDeclaration(statement) && !ts.isExportDeclaration(statement)) ||
-        statement.moduleSpecifier === undefined ||
-        !ts.isStringLiteral(statement.moduleSpecifier)
-      ) {
-        return false;
-      }
-      if (statement.moduleSpecifier.text !== '@ark-ui/react') return false;
-      // The barrel: a namespace import or a re-export of everything reaches Dialog too.
-      const bindings = ts.isImportDeclaration(statement)
-        ? statement.importClause?.namedBindings
-        : statement.exportClause;
-      if (
-        bindings === undefined ||
-        ts.isNamespaceImport(bindings) ||
-        ts.isNamespaceExport(bindings)
-      ) {
-        return true;
-      }
-      return bindings.elements.some((element) =>
-        /^(?:use)?Dialog/.test((element.propertyName ?? element.name).text),
-      );
-    });
-  };
-
-  it('imports Ark Dialog only in AppDialog', () => {
-    expect(
-      srcFiles
-        .filter((filePath) => importsArkDialog(filePath))
-        .map((filePath) => repoPath(filePath)),
-    ).toEqual([APP_DIALOG]);
-  });
-});
-
 describe('Client room creation ownership', () => {
   const concreteGameFiles = GAME_TYPES.flatMap((gameType) =>
     getAllProductionFiles(path.join(gamesDir, gameType)),

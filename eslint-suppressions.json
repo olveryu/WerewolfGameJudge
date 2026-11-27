@@ -1,0 +1,755 @@
+{
+  "packages/web/preview/main.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/app/AdminRoot.tsx": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "packages/web/src/app/AppRoot.tsx": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "packages/web/src/app/RouteErrorPage.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/app/queryClient.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/app/router.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/boot/bootSplash.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/AlertHost.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/BottomSheet.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/Button.tsx": {
+    "react/jsx-props-no-spreading": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/CenterDialog.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/FactionChip.tsx": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/components/GameStatsPanel.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/IconButton.tsx": {
+    "react/jsx-props-no-spreading": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/Switch.tsx": {
+    "react/jsx-props-no-spreading": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/avatar/Avatar.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 6
+    }
+  },
+  "packages/web/src/components/nameStyles/NameStyleText.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 4
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/config/rarityVisual.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/account/AccountInboxHost.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/admin/queries/useAdminRewardGrant.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/auth/LoginDialog.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/drawing/components/DrawingToolbar.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 8
+    }
+  },
+  "packages/web/src/features/encyclopedia/EncyclopediaShell.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/feedback/components/FeedbackTab.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/gacha/machine/CapsuleMachine.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "packages/web/src/features/gacha/machine/capsuleMachineRenderer.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/gacha/queries/useAutoClaimDailyReward.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/maintenance/MaintenanceGate.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/product/components/RarityCellBg.tsx": {
+    "no-restricted-syntax": {
+      "count": 5
+    }
+  },
+  "packages/web/src/features/product/components/ResidentPreview.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/GalleryAlbumStage.tsx": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/ProfileEquipmentShowcase.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleCard.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/RevealEffectStage.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/RoleRevealAnimator.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 13
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/common/AtmosphericBackground.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 20
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/common/HintWithWarning.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 4
+    },
+    "no-restricted-syntax": {
+      "count": 6
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/common/MythicRevealLayout.tsx": {
+    "no-restricted-syntax": {
+      "count": 18
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/common/RevealCardFace.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 44
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/common/RevealedCard.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/common/shell.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/common/svg.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/CardPick.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 97
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/ChainShatter.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 74
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/EnhancedRoulette.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 210
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/FateDecree.tsx": {
+    "no-restricted-syntax": {
+      "count": 28
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/FilmRewind.tsx": {
+    "no-restricted-syntax": {
+      "count": 51
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/FortuneWheel.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 87
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/GachaMachine.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 256
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/MeteorStrike.tsx": {
+    "no-restricted-syntax": {
+      "count": 13
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/MythicCollectionReveal.tsx": {
+    "no-restricted-syntax": {
+      "count": 12
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx": {
+    "no-restricted-syntax": {
+      "count": 49
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/ScratchReveal.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 105
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/SealBreak.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 72
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 83
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/effects/VortexCollapse.tsx": {
+    "no-restricted-syntax": {
+      "count": 13
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/pixi/kit.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/pixi/sparkle.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/pixiLayer.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleRevealEffects/runtime.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/RoomActionHand.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/RoomActionStatus.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomAudioResumeDialog.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomDialog.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomShell.tsx": {
+    "react/jsx-props-no-spreading": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomStageHud.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomStagePanel.tsx": {
+    "react/jsx-props-no-spreading": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomTaskFrame.tsx": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/controllers/useLastActionToast.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/controllers/useRoleViewing.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/controllers/useRoomCommandSubmission.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/controllers/useRoomShareController.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/review/components/ReviewImageBlock.tsx": {
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "packages/web/src/features/room/review/components/RoomReviewExportStage.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/review/components/RoomReviewProgressModal.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/review/useRoomReviewExport.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/steps/useStepInteraction.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/avalon/room/components/AvalonAlertDialog.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/avalon/room/components/AvalonRecordProposal.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/avalon/room/components/AvalonResultDialog.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/decrypto/room/DecryptoHistory.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/decrypto/room/DecryptoStage.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/pictionary/room/components/PictionaryDrawingImage.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/pictionary/room/components/PictionaryTaskStage.tsx": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/spotmatch/room/SpotmatchPlayBoard.tsx": {
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "packages/web/src/games/spotmatch/room/hooks/useSpotmatchCardFlight.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/toolbox/config/ToolboxIdentityEditor.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/undercover/room/hooks/useUndercoverRoundControls.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "packages/web/src/games/werewolf/components/CampDistributionBar.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/room/WerewolfRoomScreen.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/BoardNominationList.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/MvpSelectionModal.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/ShareReviewModal.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/SheriffElectionReadOnly.tsx": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/werewolf/room/components/WerewolfRoleCardModal.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/screens/ConfigScreen/ConfigScreen.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/screens/ConfigScreen/components/FactionTabs.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/screens/ConfigScreen/useConfigScreenState.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/instrument.ts": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "packages/web/src/main.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/platform/realtime/RoomLinkFactory.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/admin/pages/D1UsagePage.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/appearance/AppearanceHero.tsx": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/appearance/AppearancePickers.tsx": {
+    "no-restricted-syntax": {
+      "count": 3
+    },
+    "react/jsx-props-no-spreading": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/appearance/useAppearanceSave.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/bench/SceneBench.tsx": {
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/gacha/GachaPage.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/gacha/components/PityProgressBar.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/gacha/components/RateDisclosureModal.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/gacha/components/RewardPreview.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/gacha/components/SingleResultReveal.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/gacha/components/TenResultOverlay.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 8
+    }
+  },
+  "packages/web/src/routes/gacha/gachaPalette.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/games/GamePickerPage.tsx": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/home/AnnouncementModal.tsx": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/settings/SettingsPage.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/shardExchange/ShardExchangePage.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/unlocks/UnlocksPage.tsx": {
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "packages/web/src/scene/SeatEntrance.tsx": {
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "packages/web/src/scene/art.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/scene/decoration.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/scene/entrance.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/scene/entrances/draw.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/scene/entrances/mythic.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/scene/frames/frameBox.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/scene/stage.ts": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "packages/web/src/scene/stageEntrance.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/scene/svgTexture.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/services/cloudflare/CFAuthService.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/utils/errorPipeline.ts": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "packages/web/src/utils/logger.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  }
+}

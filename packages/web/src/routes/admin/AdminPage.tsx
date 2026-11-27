@@ -12,6 +12,7 @@ import {
   readAdminCredential,
   writeAdminCredential,
 } from '@/features/admin/services/adminCredentialStore';
+import { TESTIDS } from '@/testids';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 import IconLockClosedOutline from '~icons/ion/lock-closed-outline';
@@ -98,7 +99,7 @@ export function AdminPage() {
       ) : (
         <>
           <ScreenHeader title="管理后台" onBack={goBack} />
-          <main className="admin-login">
+          <main className="admin-login" data-testid={TESTIDS.adminLoginScreen}>
             <form className="admin-login-panel" onSubmit={(event) => void submit(event)}>
               <div className="admin-brand-mark">
                 <IconLockClosedOutline aria-hidden />

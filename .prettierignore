@@ -12,3 +12,7 @@ tsconfig.json
 *.log
 .agents/skills/modern-web-guidance/**
 scripts/word-review-eval/data
+
+# Written by the linters (bulk suppressions).
+eslint-suppressions.json
+stylelint-suppressions.json

@@ -524,6 +524,10 @@ export const TESTIDS = {
 
   // EncyclopediaScreen
   homeGuideButton: 'home-guide-button',
+  /** Home werewolf spotlight: the randomly picked role (avatar, name, summary). */
+  homeSpotlightRole: 'home-spotlight-role',
+  /** Home werewolf spotlight: the card's front face (aria-hidden until it has flipped in). */
+  homeSpotlightFront: 'home-spotlight-front',
 
   // Feedback (AnnouncementModal)
   feedbackInput: 'feedback-input',
@@ -545,4 +549,16 @@ export const TESTIDS = {
   encyclopediaRoleItem: (id: string) => `encyclopedia-role-${id}`,
   encyclopediaFactionTab: (key: string) => `encyclopedia-faction-tab-${key}`,
   encyclopediaTagFilter: (tag: string) => `encyclopedia-tag-${tag}`,
+
+  // UI gallery (/__bench/ui): the visual gate screenshots one block per shared component.
+  uiGalleryRoot: 'ui-gallery-root',
+  /** The room title (房间 + code): masked by the visual gate, the code is random. */
+  roomHeaderTitle: 'room-header-title',
+  adminLoginScreen: 'admin-login-screen',
+  uiGalleryBlock: (block: string) => `ui-gallery-block-${block}`,
+  uiGalleryChoice: (state: string) => `ui-gallery-choice-${state}`,
+  /** A gallery control the visual gate hovers or focuses before its state screenshot. */
+  uiGalleryTarget: (name: string) => `ui-gallery-target-${name}`,
+  /** The fixed-data gacha result bench (/__bench/gacha-result), drawn under the result dialog. */
+  gachaResultBenchRoot: 'gacha-result-bench-root',
 } as const;

@@ -1,0 +1,48 @@
+.ui-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-large);
+  padding: var(--space-medium) var(--space-screen-h);
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
+.ui-gallery-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.ui-gallery-row,
+/* The avatar block's row is the avatars' host (avatar rules in stylelint.config.mjs): it lays them out and
+   sets no corners. */
+.ui-gallery-avatars {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.ui-gallery-avatar-host {
+  display: block;
+  inline-size: var(--size-avatar-lg);
+  block-size: var(--size-avatar-lg);
+}
+
+.ui-gallery-avatar-box {
+  --avatar-inset: calc(var(--border-width) + var(--space-tight));
+  display: block;
+  box-sizing: border-box;
+  inline-size: var(--size-avatar-xl);
+  block-size: var(--size-avatar-xl);
+  padding: var(--space-tight);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.ui-gallery-progress {
+  inline-size: 100%;
+}

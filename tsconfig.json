@@ -17,5 +17,5 @@
       "@game-judge/game-engine/*": ["./packages/game-engine/src/*"]
     }
   },
-  "include": ["contracts", "vitest.config.ts", "playwright.config.ts"]
+  "include": ["contracts", "vitest.config.ts", "playwright.config.ts", "playwright.visual.config.ts"]
 }

@@ -1,6 +1,5 @@
 /** Test-only formal-command driver for the explicit scaffold, not an approved gameplay scenario. */
 
-import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import type { PlayedNight, PlayedStepSighting } from '../../../platform/steps/__tests__/catalogueKit';
 //#cap botsAndTakeover
 import { isBotSeat } from '../../../platform/room/seating';
@@ -10,31 +9,10 @@ import { getHumanSeatMap } from '../../../platform/room/seating';
 //#end
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { create__GAME_PASCAL__NightRuntime, present__GAME_PASCAL__Night } from '../domain/nightSteps';
-import { __GAME_CAMEL__Engine } from '../engine';
-import { parse__GAME_PASCAL__State } from '../state/parseState';
-import { DEFAULT___GAME_UPPER___CONFIG } from '../state/types';
-
-export function createScaffoldNight(numberOfPlayers = 4) {
-  const session = createEngineSession(__GAME_CAMEL__Engine, {
-    config: { ...DEFAULT___GAME_UPPER___CONFIG, numberOfPlayers },
-    parse: parse__GAME_PASCAL__State,
-    randomSeed: '__GAME_ID__-night-scaffold',
-  });
-  for (let seat = 0; seat < numberOfPlayers; seat += 1) {
-    session.send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seat === 0 ? 'host' : `u${seat}`);
-  }
-//#cap identityViewing
-  session.send({ type: '__GAME_ID__.roles.assign' });
-  for (let seat = 0; seat < numberOfPlayers; seat += 1) session.send({ type: '__GAME_ID__.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
-//#end
-  session.send({ type: '__GAME_ID__.game.begin' });
-  return session;
-}
-
-type NightSession = ReturnType<typeof createScaffoldNight>;
+import type { ScaffoldNightSession } from './scaffoldNightSession';
 
 /** Advance only by authorised submissions and audio acknowledgements; detect stalled scripts. */
-export function finishScaffoldNight(session: Pick<NightSession, 'state' | 'send'>): PlayedNight {
+export function finishScaffoldNight(session: Pick<ScaffoldNightSession, 'state' | 'send'>): PlayedNight {
   const sightings: PlayedStepSighting[] = [];
   const visited = new Set<string>();
   const runtime = create__GAME_PASCAL__NightRuntime();

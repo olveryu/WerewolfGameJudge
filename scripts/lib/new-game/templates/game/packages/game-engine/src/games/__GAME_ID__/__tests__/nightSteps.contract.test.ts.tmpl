@@ -2,7 +2,8 @@ import { REASON_STEP_STALE } from '../../../platform/steps';
 import { present__GAME_PASCAL__Night } from '../domain/nightSteps';
 import { __GAME_CAMEL__Engine } from '../engine';
 import { parse__GAME_PASCAL__State } from '../state/parseState';
-import { createScaffoldNight, finishScaffoldNight } from './nightDriver';
+import { finishScaffoldNight } from './nightDriver';
+import { createScaffoldNight } from './scaffoldNightSession';
 
 describe('__GAME_PASCAL__ shared night-step scaffold (not gameplay acceptance)', () => {
   it('records a view once, hides private actions from spectators and waits for narration', () => {

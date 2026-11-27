@@ -11,5 +11,6 @@ export const AVATAR_CORNER_RATIO_PROPERTY = '--avatar-corner-ratio';
 
 /** Publishes {@link AVATAR_CORNER_RATIO} as {@link AVATAR_CORNER_RATIO_PROPERTY} on the root. */
 export function applyAvatarShapeTokens(root: HTMLElement): void {
+  // eslint-disable-next-line no-restricted-syntax -- the ratio's one publisher; the name is a custom property.
   root.style.setProperty(AVATAR_CORNER_RATIO_PROPERTY, String(AVATAR_CORNER_RATIO));
 }

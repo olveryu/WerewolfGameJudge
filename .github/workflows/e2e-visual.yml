@@ -1,0 +1,33 @@
+name: E2E Visual
+
+# Manual runs of the screenshot gate (e2e/visual) on the dispatch ref, through
+# the same reusable workflow ci.yml's e2e-visual job calls.
+# - update: false compares with the committed baselines (repeat it on one
+#   commit to prove the gate is deterministic).
+# - update: true rewrites the baselines inside the pinned Playwright image and
+#   uploads them as the visual-baselines artifact, to commit into
+#   e2e/visual/__screenshots__/ in the same pull request as the visible change.
+# Usage:
+#   gh workflow run e2e-visual.yml --ref <branch> --field update=true
+
+on:
+  workflow_dispatch:
+    inputs:
+      update:
+        description: 'Rewrite the baselines and upload them as an artifact'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    uses: ./.github/workflows/e2e-run.yml
+    with:
+      specs: 'visual.spec.ts'
+      shard: 'visual'
+      build-web: true
+      suite: visual
+      update-snapshots: ${{ inputs.update }}

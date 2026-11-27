@@ -68,6 +68,7 @@ export const FILE_CAPABILITY_GATES = {
   'packages/game-engine/src/games/__GAME_ID__/domain/nightSteps.ts': 'sharedSteps',
   'packages/game-engine/src/games/__GAME_ID__/state/nightCodec.ts': 'sharedSteps',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/nightDriver.ts': 'sharedSteps',
+  'packages/game-engine/src/games/__GAME_ID__/__tests__/scaffoldNightSession.ts': 'sharedSteps',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/nightSteps.contract.test.ts': 'sharedSteps',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/nightScenarios.ts': 'sharedSteps',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/nightCatalogue.integration.test.ts':

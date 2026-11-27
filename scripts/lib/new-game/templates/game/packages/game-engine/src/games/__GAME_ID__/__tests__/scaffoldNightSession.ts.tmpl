@@ -1,0 +1,29 @@
+/**
+ * Test-only scaffold night session (vitest-backed engine session). The night driver that plays
+ * it lives in `nightDriver.ts`, which client test utilities and the preview also import, so it
+ * must not pull this file (and vitest) into the web bundle.
+ */
+
+import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import { __GAME_CAMEL__Engine } from '../engine';
+import { parse__GAME_PASCAL__State } from '../state/parseState';
+import { DEFAULT___GAME_UPPER___CONFIG } from '../state/types';
+
+export function createScaffoldNight(numberOfPlayers = 4) {
+  const session = createEngineSession(__GAME_CAMEL__Engine, {
+    config: { ...DEFAULT___GAME_UPPER___CONFIG, numberOfPlayers },
+    parse: parse__GAME_PASCAL__State,
+    randomSeed: '__GAME_ID__-night-scaffold',
+  });
+  for (let seat = 0; seat < numberOfPlayers; seat += 1) {
+    session.send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seat === 0 ? 'host' : `u${seat}`);
+  }
+//#cap identityViewing
+  session.send({ type: '__GAME_ID__.roles.assign' });
+  for (let seat = 0; seat < numberOfPlayers; seat += 1) session.send({ type: '__GAME_ID__.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
+//#end
+  session.send({ type: '__GAME_ID__.game.begin' });
+  return session;
+}
+
+export type ScaffoldNightSession = ReturnType<typeof createScaffoldNight>;

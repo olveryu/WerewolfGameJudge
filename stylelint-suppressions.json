@@ -1,0 +1,234 @@
+{
+  "packages/web/src/global.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/boot/bootSplash.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 3
+    },
+    "color-no-hex": {
+      "count": 2
+    },
+    "function-disallowed-list": {
+      "count": 1
+    }
+  },
+  "packages/web/src/components/FactionChip.css": {
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 2
+    }
+  },
+  "packages/web/src/components/GameGuide.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 4
+    }
+  },
+  "packages/web/src/components/ScreenHeader.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/theme/nightArt.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 5
+    },
+    "color-no-hex": {
+      "count": 2
+    },
+    "function-disallowed-list": {
+      "count": 4
+    }
+  },
+  "packages/web/src/components/nameStyles/nameStyles.css": {
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 12
+    }
+  },
+  "packages/web/preview/preview.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/admin/admin.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 8
+    },
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/appearance/AppearancePage.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/bench/SceneBench.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 9
+    },
+    "color-no-hex": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/gacha/GachaPage.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    },
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/settings/SettingsPage.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/unlocks/UnlocksPage.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/gacha/machine/CapsuleMachine.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 2
+    },
+    "selector-class-pattern": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/PlayerProfileCard.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/features/room/components/ProfileEquipmentShowcase.css": {
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 3
+    }
+  },
+  "packages/web/src/features/room/components/RoomActionHand.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    },
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 6
+    }
+  },
+  "packages/web/src/features/room/components/RoomSeatBoard.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 10
+    },
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomShell.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/decrypto/room/DecryptoRoomScreen.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/spotmatch/room/SpotmatchRoomScreen.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 3
+    }
+  },
+  "packages/web/src/games/toolbox/room/ToolboxDiceCup.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 9
+    }
+  },
+  "packages/web/src/games/toolbox/room/ToolboxIdentityPanel.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/components/NotepadPanel.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/routes/gacha/components/DrawButton.css": {
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 7
+    }
+  },
+  "packages/web/src/routes/gacha/components/PityProgressBar.css": {
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 4
+    }
+  },
+  "packages/web/src/routes/gacha/components/RewardPreview.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    },
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/gacha/components/SingleResultReveal.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    },
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 5
+    }
+  },
+  "packages/web/src/routes/gacha/components/TenResultOverlay.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    },
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 2
+    }
+  },
+  "packages/web/src/routes/gacha/components/TicketTabBar.css": {
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 8
+    }
+  },
+  "packages/web/src/features/room/review/components/review.css": {
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/drawguess/room/components/DrawGuessStage.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/pictionary/room/components/PictionaryStage.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 2
+    }
+  },
+  "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/screens/ConfigScreen/ConfigScreen.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 3
+    },
+    "csstools/value-no-unknown-custom-properties": {
+      "count": 1
+    }
+  },
+  "packages/web/src/boot/WechatBrowserGuide.css": {
+    "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoleCard.css": {
+    "color-named": {
+      "count": 1
+    }
+  }
+}

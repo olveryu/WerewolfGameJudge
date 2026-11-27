@@ -263,16 +263,20 @@ framing, and the blue-grey background stays clean and nearly untextured.
 ## Shapes
 
 Controls and surfaces use the shared radius scale. Full-radius shapes remain appropriate for small
-badges and progress tracks.
+badges and progress tracks. Stylelint (`scale-unlimited/declaration-strict-value`) accepts a radius
+only as a token (`var(--radius-*)`) or a keyword; tokens are defined in
+`packages/web/src/theme/tokens.css`.
 
 Avatars are rounded squares at every size: `Avatar` alone sets their corners from
 `AVATAR_CORNER_RATIO` in `packages/web/src/config/avatarShape.ts`, the scene draws avatar frames
 along the same corner, and `applyAvatarShapeTokens` publishes the ratio as `--avatar-corner-ratio`.
 A square box hugging an avatar (a tile, a seat, a mat, a placeholder standing where an avatar
 would) is concentric with it through the shared `avatar-concentric` rule and its `--avatar-inset`;
-no stylesheet repeats the ratio or gives such a box a fixed radius. The web avatar shape contract
-test (`packages/web/src/__tests__/avatarShape.contract.test.ts`) pins the avatar and box rules
-over every avatar site its census finds; the frame geometry tests
+no stylesheet repeats the ratio or gives such a box a fixed radius. Stylelint keeps corners and cuts off
+the avatar, its hosts and stages, and the boxes (`rule-selector-property-disallowed-list` in
+`stylelint.config.mjs`), and keeps the ratio's name to its publisher and the concentric rule;
+ESLint keeps avatar URLs and art inside `components/avatar`. The screenshot gate (`e2e/visual`)
+pins the rendered shape, `avatarShape.contract.test.ts` the values; the frame geometry tests
 (`packages/web/src/scene/frames/__tests__/frameBox.test.ts`) pin the frames to the same corner.
 
 ## Components
@@ -288,10 +292,20 @@ over every avatar site its census finds; the frame geometry tests
   empty, disabled, selected and submitting states.
 - Keyboard focus is visible through the global focus treatment; input focus retains its
   component-specific treatment.
+- Component styles live in bundled CSS. In TSX (ESLint, UI drift lock section of
+  `eslint.config.mjs`) an inline `style` is an object literal of `--custom` properties only,
+  script sets only custom properties, `CSSProperties` objects and prop spreading onto DOM elements
+  are rejected, and a page-writing package (Ark, Sentry, snapdom, Pixi, sonner) is imported only
+  in its adapter file (`no-restricted-imports`).
 
 ## Do's and Don'ts
 
 - Use the semantic color and size tokens instead of copying values into component styles.
+  Stylelint (`pnpm run lint:css`) rejects raw colors, corners, z-index, spacing, type and shadows
+  outside `tokens.css` and any custom property no stylesheet declares and the theme does not
+  publish; `tokens.css` holds only `:root`/`.admin-console` definitions and an art stylesheet's
+  selectors keep its prefix. Existing exceptions are recorded in `stylelint-suppressions.json`
+  and `eslint-suppressions.json` and may only shrink.
 - Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
 - Do not replace meaningful game art or faction semantics with decorative styling.
 - Do not reintroduce gradients or colored side stripes merely as decoration.

@@ -12,13 +12,17 @@
     "typecheck": "pnpm run types:pages:check && tsc --noEmit && tsc -p functions/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:css": "stylelint \"packages/web/**/*.css\"",
+    "lint:css:suppress": "stylelint \"packages/web/**/*.css\" --suppress",
     "format": "prettier . --check",
     "format:write": "prettier . --write",
     "knip": "knip",
     "fix": "pnpm run lint:fix && pnpm run format:write",
-    "quality": "turbo run build typecheck lint knip format test && pnpm run validate:agents",
+    "quality": "turbo run build typecheck lint knip format test && pnpm run validate:agents && pnpm run lint:css",
     "e2e:night": "playwright test --reporter=list werewolf-night-flow restart",
     "e2e:ui": "playwright test --ui",
+    "e2e:visual": "node scripts/e2e-visual.mjs",
+    "e2e:visual:update": "node scripts/e2e-visual.mjs --update",
     "dev": "node scripts/setup-local-dev.mjs && node scripts/dev.mjs",
     "release": "bash scripts/release.sh",
     "new-game": "node scripts/new-game.mjs",
@@ -53,6 +57,10 @@
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
+    ],
+    "packages/web/**/*.css": [
+      "stylelint --fix",
+      "prettier --write"
     ]
   },
   "devDependencies": {
@@ -72,11 +80,15 @@
     "glob": "^13.0.6",
     "globals": "^17.14.0",
     "husky": "^9.1.7",
+    "jiti": "^2.7.0",
     "knip": "^6.45.1",
     "lint-staged": "^16.4.0",
     "miniprogram-ci": "^2.1.31",
     "prettier": "^3.10.0",
     "serve": "^14.2.7",
+    "stylelint": "^17.16.0",
+    "stylelint-declaration-strict-value": "^1.13.0",
+    "stylelint-value-no-unknown-custom-properties": "^6.1.1",
     "turbo": "^2.11.11",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.2",

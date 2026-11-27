@@ -2,7 +2,7 @@
  * Generator tests: run the real generator against a fixture repository
  * assembled from the real shared files it edits, across representative feature
  * profiles. A real-tree copy validates representative selections with the
- * generated output's formatting, lint, types and package tests. Run with
+ * generated output's formatting, lint (ESLint and Stylelint), types and package tests. Run with
  * `corepack pnpm run test scripts/new-game.test.mjs`.
  */
 
@@ -192,6 +192,7 @@ const CAPABILITY_FILE_ADDITIONS = [
       `${engine}/domain/nightSteps.ts`,
       `${engine}/state/nightCodec.ts`,
       `${engine}/__tests__/nightDriver.ts`,
+      `${engine}/__tests__/scaffoldNightSession.ts`,
       `${engine}/__tests__/nightScenarios.ts`,
       `${engine}/__tests__/nightSteps.contract.test.ts`,
       `${engine}/__tests__/nightCatalogue.integration.test.ts`,
@@ -1757,6 +1758,20 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
             .filter(Boolean)
             .join(' '),
         },
+      });
+
+      // Generated stylesheets meet the Stylelint rules with no recorded debt: the copy's
+      // stylelint-suppressions.json has no entry for a file that did not exist.
+      const stylelintBin = path.join(
+        path.dirname(require.resolve('stylelint/package.json')),
+        'bin',
+        'stylelint.mjs',
+      );
+      const styleTargets = createdFiles.filter((file) => file.endsWith('.css'));
+      assert.ok(styleTargets.length > 0, 'the generator emits stylesheets');
+      execFileSync(process.execPath, [stylelintBin, '--max-warnings', '0', ...styleTargets], {
+        cwd: root,
+        stdio: 'pipe',
       });
 
       const webTestPaths = [

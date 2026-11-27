@@ -91,6 +91,7 @@ describe('CI production deployment gates', () => {
       'test-api-worker',
       'catalogues',
       'e2e',
+      'e2e-visual',
     ]);
   });
 

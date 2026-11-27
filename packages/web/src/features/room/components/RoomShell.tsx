@@ -131,6 +131,7 @@ function RoomTitle({ model }: { readonly model: RoomShellModel }) {
         <button
           type="button"
           className="room-header-title-button"
+          data-testid={TESTIDS.roomHeaderTitle}
           aria-describedby="room-title-hint"
           onPointerDown={longPress.onPointerDown}
           onPointerUp={longPress.onPointerUp}
