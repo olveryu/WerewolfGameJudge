@@ -16,6 +16,7 @@ import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { confirmView } from '@/features/room/confirm';
 import { TESTIDS } from '@/testids';
 import { alertStore } from '@/utils/alert';
+import { debugLogStore } from '@/utils/debugLogStore';
 
 vi.mock('@/features/room/components/RoleRevealEffects/RevealEffectStage', () => ({
   default: ({ effectProps }: { effectProps: { onComplete: () => void } }) => (
@@ -131,10 +132,20 @@ describe('AppDialog.Root', () => {
   it.each(CASES)(
     'keeps $name open after the confirmation that opened it closes',
     async (dialog) => {
+      const addLog = vi.spyOn(debugLogStore, 'addLog');
       const { onClose } = await openFromConfirmation(dialog);
 
       expect(onClose).not.toHaveBeenCalled();
       expect(screen.getByTestId(CONTENT_ID)).toBeInTheDocument();
+      // The blocked cascade is logged with the dialog kept and the layer whose removal caused it.
+      const kept = JSON.stringify({ dialog: CONTENT_ID, removedLayer: TESTIDS.alertModal });
+      expect(
+        addLog.mock.calls.filter(
+          ([line]) =>
+            line.includes('[Dialog]') && line.includes('Kept a dialog open') && line.includes(kept),
+        ),
+      ).toHaveLength(1);
+      addLog.mockRestore();
     },
   );
 

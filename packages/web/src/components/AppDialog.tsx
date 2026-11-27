@@ -20,9 +20,15 @@ type LayerDismissEvent = Parameters<NonNullable<DialogRootProps['onRequestDismis
 
 type AppDialogRootProps = Omit<DialogRootProps, 'onRequestDismiss'>;
 
-/** Names a layer node for the log: its test id, else its Ark id. */
+/**
+ * Names a layer (a dialog's content node) for the log: its test id, else its accessible name
+ * (`aria-label`, else the text of the title it is labelled by), else its generated Ark id.
+ */
 function layerName(node: HTMLElement | undefined): string | null {
-  return node === undefined ? null : (node.dataset.testid ?? node.id);
+  if (node === undefined) return null;
+  const labelledBy = node.getAttribute('aria-labelledby');
+  const title = labelledBy === null ? null : node.ownerDocument.getElementById(labelledBy);
+  return node.dataset.testid ?? node.getAttribute('aria-label') ?? title?.textContent ?? node.id;
 }
 
 function preventCascadeDismiss(event: LayerDismissEvent) {

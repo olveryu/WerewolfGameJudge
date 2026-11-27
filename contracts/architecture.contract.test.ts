@@ -1175,23 +1175,36 @@ describe('Client storage ownership', () => {
 });
 
 describe('Client dialogs: one Ark dialog root', () => {
-  // Ark's own Dialog.Root lets zag close a dialog when the dialog below it is removed; every
-  // dialog goes through AppDialog, which blocks that cascade (see its file header). The bare
-  // `@ark-ui/react` barrel re-exports Dialog, so it is closed as well.
-  const ARK_DIALOG_SPECIFIER =
-    /^(?:@ark-ui\/react(?:\/dialog|\/dist\/.*dialog.*)?|@zag-js\/dialog)$/;
+  // zag closes every dismissable layer above a layer that is removed. AppDialog's root blocks
+  // that cascade (see its file header), so it is the only module that may import Ark's dialog.
+  // Other Ark/zag parts that open dismissable layers (drawer, popover, menu, select, hover card,
+  // the bare barrels, zag's own packages) would bring the cascade back, so Ark and zag are
+  // allowed only through this list of parts that open no layer. The color picker is used
+  // `inline` (DrawingToolbar), which renders no popover layer.
+  const LAYERLESS_ARK_PARTS = [
+    '@ark-ui/react/color-picker',
+    '@ark-ui/react/portal',
+    '@ark-ui/react/qr-code',
+    '@ark-ui/react/tabs',
+  ];
+  const APP_DIALOG_FILE = 'packages/web/src/components/AppDialog.tsx';
 
-  it('imports the Ark dialog only in the shared AppDialog module', () => {
-    const consumers = srcFiles.filter((filePath) => {
+  it('imports Ark and zag only through AppDialog or parts that open no layer', () => {
+    const offenders = srcFiles.flatMap((filePath) => {
       const source = fs.readFileSync(filePath, 'utf-8');
-      // Every matching specifier contains one of these strings; skip parsing the rest.
-      if (!source.includes('@ark-ui/react') && !source.includes('@zag-js/dialog')) return false;
-      return getModuleSpecifiers(filePath, source).some((specifier) =>
-        ARK_DIALOG_SPECIFIER.test(specifier),
-      );
+      // Every Ark or zag specifier contains one of these strings; skip parsing the rest.
+      if (!source.includes('@ark-ui/') && !source.includes('@zag-js/')) return [];
+      return getModuleSpecifiers(filePath, source)
+        .filter((specifier) => /^@(?:ark-ui|zag-js)\//.test(specifier))
+        .filter(
+          (specifier) =>
+            !LAYERLESS_ARK_PARTS.includes(specifier) &&
+            !(specifier === '@ark-ui/react/dialog' && repoPath(filePath) === APP_DIALOG_FILE),
+        )
+        .map((specifier) => `${repoPath(filePath)}: ${specifier}`);
     });
 
-    expect(consumers.map(repoPath)).toEqual(['packages/web/src/components/AppDialog.tsx']);
+    expect(offenders).toEqual([]);
   });
 });
 
