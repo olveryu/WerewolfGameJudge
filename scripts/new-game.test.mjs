@@ -2066,7 +2066,7 @@ it('a migration that fails to replay is reported with its file and the original 
   );
 });
 
-it('a malformed category list is reported as an input error, not a hand-written migration', () => {
+it('a malformed category list is reported as an input error with its own remedy', () => {
   const migrationsDir = path.join(REPO_ROOT, 'packages/api-worker/migrations');
   const database = replayMigrations(migrationsDir);
   const codeGameTypes = readGameTypeRows(database);
@@ -2082,9 +2082,28 @@ it('a malformed category list is reported as an input error, not a hand-written 
         wordCategories: [{ id: 'Bad', name: '动物' }],
       }),
     (error) => {
+      assert.match(error.message, /^The --word-category list for 'newprobe' is invalid:/);
       assert.match(error.message, /has a malformed id "Bad"/);
       assert.match(error.message, /Fix the --word-category list/);
-      assert.doesNotMatch(error.message, /Write this migration by hand/);
+      assert.doesNotMatch(error.message, /current schema|Write this migration by hand/);
+      return true;
+    },
+  );
+  // Both kinds at once: each problem keeps its own remedy.
+  assert.throws(
+    () =>
+      planRegistrationMigration({
+        migrationsDir,
+        gameId: 'fibking',
+        displayName: 'Probe',
+        codeGameTypes: codeGameTypes.filter((id) => id !== 'fibking'),
+        includeStatsTable: false,
+        wordCategories: [{ id: 'Bad', name: '动物' }],
+      }),
+    (error) => {
+      assert.match(error.message, /Fix the --word-category list/);
+      assert.match(error.message, /'fibking' is already registered in game_types/);
+      assert.match(error.message, /Write this migration by hand/);
       return true;
     },
   );
@@ -2105,20 +2124,24 @@ it('preflight reports an existing id, a stale stats table, drift and an inconsis
         { id: 'blank', name: ' ' },
       ],
     });
-    assert.deepEqual(problems, [
-      "'fibking' is already registered in game_types",
-      `word category list of 'fibking' repeats id "animals"`,
-      `word category list of 'fibking' repeats name "动物"`,
-      `word category list of 'fibking' has a malformed name " " for id "blank" (non-empty, no leading or trailing whitespace, no NUL, no lone surrogate)`,
-      'table fibking_user_stats already exists',
-    ]);
+    assert.deepEqual(problems, {
+      input: [
+        `word category list of 'fibking' repeats id "animals"`,
+        `word category list of 'fibking' repeats name "动物"`,
+        `word category list of 'fibking' has a malformed name " " for id "blank" (non-empty, no leading or trailing whitespace, no NUL, no lone surrogate)`,
+      ],
+      schema: [
+        "'fibking' is already registered in game_types",
+        'table fibking_user_stats already exists',
+      ],
+    });
     assert.match(
       registrationPreflightProblems(database, {
         gameId: 'newprobe',
         codeGameTypes: [...codeGameTypes].reverse(),
         includeStatsTable: false,
         wordCategories: null,
-      }).join('\n'),
+      }).schema.join('\n'),
       /differ from GAME_TYPES/,
     );
     assert.deepEqual(
