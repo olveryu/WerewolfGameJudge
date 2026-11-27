@@ -118,8 +118,7 @@ disposition in the PR description.
    are not semantic coverage.
 5. Review the migration: the generator planned it from the replayed
    current schema (`references/generator.md`); it inserts one `game_types`
-   row (plus `word_games`/`word_categories` rows for a word library) and
-   rebuilds no table. It is a starting point, not a template: check it
+   row, no word-library rows, and rebuilds no table. It is a starting point, not a template: check it
    against the current schema and this game's requirements, review the
    cumulative completed-games table it creates, and update its
    `contracts/d1MigrationManifest.json` sha256 if you edit it. No extra
@@ -134,9 +133,12 @@ disposition in the PR description.
    `worker-configuration.d.ts`. The skeleton carries no workflow body.
    The word-library catalog (same entries as `--word-category`) is
    generated from that list by the generator; the registration migration
-   already seeds `word_games` / `word_categories`
+   seeds no `word_games` / `word_categories` rows
    (`references/registration-checklist.md` item 7). Joining the shared
-   supply contract stays manual and lands with its adapters: the
+   supply contract stays manual and lands with its adapters, code and D1
+   projection in one change: the supply migration's `word_games` /
+   `word_categories` inserts (the report renders them from the same
+   list), the
    `GAME_WORD_GAMES` entry, the `WORD_CATEGORY_CATALOGS` entry
    (`packages/game-engine/src/games/wordCategoryCatalogs.ts`), and every
    map keyed by `GameWordGame` that typecheck then names; draw rows (`word_draw_index` / `word_draw_ordinals`) are

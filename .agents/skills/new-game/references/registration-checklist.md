@@ -41,9 +41,11 @@ dependency: `SHARED_EDITS` performs none.
    If the game has a word library (`wordSupply` other than `none`),
    the generator writes, from the one `--word-category` list, the engine
    `wordCategories.ts` (`defineWordCategoryCatalog`), its `public.ts`
-   export, and the registration migration's `word_games` row plus one
-   `word_categories` row per category (item 11). Joining the shared supply
-   contract is manual and lands with its adapters in one change: the id in
+   export; the registration migration (item 11) seeds no word rows. Joining
+   the shared supply contract is manual and lands with its adapters in one
+   change, code and D1 projection together: the supply migration's
+   `word_games` row plus one `word_categories` row per category (the report
+   renders them from the same list), the id in
    `GAME_WORD_GAMES` (`packages/game-engine/src/product/wordSupply/games.ts`),
    the catalog in `WORD_CATEGORY_CATALOGS` of
    `packages/game-engine/src/games/wordCategoryCatalogs.ts` (read by the
@@ -51,8 +53,8 @@ dependency: `SHARED_EDITS` performs none.
    every map keyed by `GameWordGame` that typecheck names (Env supply flag,
    submission adapter, publication/editorial/provider, word deal, admin
    dashboard tables). The generator leaves those two lists untouched so
-   its output typechecks without the adapters; the D1 catalog contract
-   names the game until they land. The generator writes no `word_draw_index` /
+   its output typechecks without the adapters, and seeds no word rows so
+   the D1 catalog contract stays green until code and rows land together. The generator writes no `word_draw_index` /
    `word_draw_ordinals` rows: they belong only to pools on the shared
    draw path and ship with the word-table migration that adds the
    `draw_ordinal` column and its triggers. Pinned by
@@ -90,8 +92,8 @@ game list that would need a rebuild` and `refuses when a lookup table
 is missing from the replayed schema` in `scripts/new-game.test.mjs`)
     when an inserts-only registration would be wrong, and the migration is
     then hand-written. Otherwise it is
-    one `INSERT INTO game_types` row appended in `sort_order` (plus
-    `word_games`/`word_categories` rows for a word library), so
+    one `INSERT INTO game_types` row appended in `sort_order` (word-library
+    rows come with the supply migration, item 7), so
     `game_types` stays equal to `GAME_TYPES` row by row (pinned by
     `game_types rows equal GAME_TYPES in order` in
     `contracts/d1Catalog.contract.test.ts`). No table is rebuilt. The

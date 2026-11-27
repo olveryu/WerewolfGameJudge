@@ -242,8 +242,8 @@ in-game preparation protocol
 supply runtime (`packages/api-worker/src/platform/wordSupply/`) are
 the existing mechanisms; read them before wiring either. The word-library
 catalog is item 7 of `references/registration-checklist.md`; its
-`word_games` / `word_categories` rows come from the registration migration
-(item 11).
+`word_games` / `word_categories` rows come with the supply migration in the
+same change, not from the registration migration (item 11).
 
 ## Relay games
 

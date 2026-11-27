@@ -27,9 +27,12 @@ import type { MaintenanceConfig } from '@/features/maintenance/maintenance';
 
 const SYSTEM_AGENT_ID = '00000000-0000-4000-8000-000000000001';
 const COMMUNITY_AGENT_ID = '00000000-0000-4000-8000-000000000002';
-/** Sample inventory for the games the mock seeds; any other word game shows an empty library. */
+/**
+ * Sample inventory per word game, exhaustive so a new word game is named here by typecheck;
+ * each game lists only the categories it seeds, and every other category shows as empty.
+ */
 const MOCK_ACTIVE_COUNTS: Readonly<
-  Partial<Record<GameWordGame, Readonly<Record<string, number>>>>
+  Record<GameWordGame, Readonly<Partial<Record<string, number>>>>
 > = {
   fibking: { literature: 42, food: 28, animals: 19 },
   undercover: { food: 42, animals: 28, dailyLife: 19 },
@@ -445,7 +448,7 @@ function makeWordStats(game: GameWordGame): GameWordsStats {
   return {
     game,
     categories: WORD_CATEGORY_CATALOGS[game].entries.map((category, index) => {
-      const active = MOCK_ACTIVE_COUNTS[game]?.[category.id] ?? 0;
+      const active = MOCK_ACTIVE_COUNTS[game][category.id] ?? 0;
       const hasInventory = active > 0;
       return {
         ...category,

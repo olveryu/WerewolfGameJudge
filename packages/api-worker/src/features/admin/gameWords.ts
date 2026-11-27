@@ -6,16 +6,11 @@
  * reaches SQL or env bindings directly.
  */
 
-import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
-import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
 import {
   FIB_WORD_CATEGORY_IDS,
   FIBKING_WORD_CATEGORY_CATALOG,
 } from '@game-judge/game-engine/games/fibking/public';
-import {
-  UNDERCOVER_CATEGORY_MIN_ACTIVE_PAIRS,
-  UNDERCOVER_WORD_CATEGORY_CATALOG,
-} from '@game-judge/game-engine/games/undercover/public';
+import { UNDERCOVER_CATEGORY_MIN_ACTIVE_PAIRS } from '@game-judge/game-engine/games/undercover/public';
 import { WORD_CATEGORY_CATALOGS } from '@game-judge/game-engine/games/wordCategoryCatalogs';
 import {
   GAME_WORD_GAMES,
@@ -39,20 +34,26 @@ import type { WordSupplyParams } from '../../platform/wordSupply/wordSupplyWorkf
 
 export const gameWordGameSchema = z.enum(GAME_WORD_GAMES);
 
+/**
+ * Categories an admin may start a supply run for, one entry per word game (typecheck names a new
+ * one here). The catalog's ids, except fibking, whose workflow never generates `other`.
+ */
+const TRIGGER_SUPPLY_CATEGORIES = {
+  fibking: z.enum(FIB_WORD_CATEGORY_IDS),
+  undercover: z.enum(WORD_CATEGORY_CATALOGS.undercover.ids),
+  drawguess: z.enum(WORD_CATEGORY_CATALOGS.drawguess.ids),
+  decrypto: z.enum(WORD_CATEGORY_CATALOGS.decrypto.ids),
+} satisfies Record<GameWordGame, z.ZodEnum>;
+
+function triggerSupplyOption(game: GameWordGame) {
+  return z.strictObject({ game: z.literal(game), category: TRIGGER_SUPPLY_CATEGORIES[game] });
+}
+
+const [FIRST_WORD_GAME, ...OTHER_WORD_GAMES] = GAME_WORD_GAMES;
+
 export const triggerSupplySchema = z.discriminatedUnion('game', [
-  z.strictObject({ game: z.literal('fibking'), category: z.enum(FIB_WORD_CATEGORY_IDS) }),
-  z.strictObject({
-    game: z.literal('undercover'),
-    category: z.enum(UNDERCOVER_WORD_CATEGORY_CATALOG.ids),
-  }),
-  z.strictObject({
-    game: z.literal('drawguess'),
-    category: z.enum(DRAWGUESS_WORD_CATEGORY_CATALOG.ids),
-  }),
-  z.strictObject({
-    game: z.literal('decrypto'),
-    category: z.enum(DECRYPTO_WORD_CATEGORY_CATALOG.ids),
-  }),
+  triggerSupplyOption(FIRST_WORD_GAME),
+  ...OTHER_WORD_GAMES.map(triggerSupplyOption),
 ]);
 export type TriggerSupplyInput = z.output<typeof triggerSupplySchema>;
 

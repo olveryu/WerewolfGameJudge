@@ -1666,7 +1666,7 @@ games/<game>/
 
 新增游戏需要：
 
-1. 把 ID 加入 `GAME_TYPES`，并用一条插 `game_types` 查表的 D1 迁移注册（`pnpm new-game` 先按现有迁移重放出的实际 schema 检查再生成，不重建任何表，产物须对照当前 schema 审过再提交）；有词库的游戏由同一份迁移插 `word_games`/`word_categories`（分类由 `--word-category` 传入），另需同内容的分类目录与 `GAME_WORD_GAMES` 条目。迁移规则见 `packages/api-worker/AGENTS.md`。
+1. 把 ID 加入 `GAME_TYPES`，并用一条插 `game_types` 查表的 D1 迁移注册（`pnpm new-game` 先按现有迁移重放出的实际 schema 检查再生成，不重建任何表，产物须对照当前 schema 审过再提交）；有词库的游戏由生成器按 `--word-category` 生成分类目录文件，`word_games`/`word_categories` 行不在注册迁移里，而是接入供词时与 `GAME_WORD_GAMES`、`WORD_CATEGORY_CATALOGS` 条目同一次改动、随供词迁移落地。迁移规则见 `packages/api-worker/AGENTS.md`。
 2. 实现纯 game-engine module。
 3. 为 state、command、event、normalize、lifecycle 添加 engine test。
 4. 实现一个 Worker module，包含 create/command schema 和 effect。
