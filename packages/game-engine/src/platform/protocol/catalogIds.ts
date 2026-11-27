@@ -22,8 +22,11 @@ export const WORD_CATEGORY_ID_RULE =
 
 // NUL truncates SQLite text (length(), GLOB and trim stop at it), so no key or name carries it.
 const NUL = '\u0000';
+// A lone surrogate is not text: D1 stores it as U+FFFD, so the name would silently change.
+const LONE_SURROGATE = /\p{Cs}/u;
 
-export const CATALOG_NAME_RULE = 'non-empty, no leading or trailing whitespace, no NUL';
+export const CATALOG_NAME_RULE =
+  'non-empty, no leading or trailing whitespace, no NUL, no lone surrogate';
 
 export function isWellFormedGameId(value: string): boolean {
   return GAME_ID_PATTERN.test(value);
@@ -35,7 +38,9 @@ export function isWellFormedWordCategoryId(value: string): boolean {
 
 /** A display name stored in `word_categories.name`; whitespace is what `String#trim` strips. */
 export function isWellFormedCatalogName(value: string): boolean {
-  return value !== '' && value === value.trim() && !value.includes(NUL);
+  return (
+    value !== '' && value === value.trim() && !value.includes(NUL) && !LONE_SURROGATE.test(value)
+  );
 }
 
 export interface WordCategoryInput {

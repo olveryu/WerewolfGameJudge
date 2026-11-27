@@ -234,13 +234,27 @@ describe('D1 catalog projection', () => {
       );
     }
 
-    // Every BMP code point except lone surrogates, which are not valid text.
+    // Every BMP code point except lone surrogates: they never reach a CHECK, because the driver
+    // stores U+FFFD in their place; the code rule rejects them instead (pinned below).
     const BMP = Array.from({ length: 0x10000 }, (_, codePoint) => codePoint)
       .filter((codePoint) => codePoint < 0xd800 || codePoint > 0xdfff)
       .map((codePoint) => String.fromCharCode(codePoint));
     const ASTRAL = ['\u{1F600}', '\u{20000}'];
     // ~130k-260k real inserts per sweep: seconds, not the default 5 s budget on a loaded runner.
     const SWEEP_TIMEOUT_MS = 60_000;
+
+    it('a lone surrogate is rejected by the code rule, since D1 would store U+FFFD instead', () => {
+      const readName = database.prepare(
+        "SELECT name FROM word_categories WHERE game = 'zzprobe' AND id = 'probe'",
+      );
+      for (const name of ['\ud800', '名\udfff', '\udc00名']) {
+        expect(isWellFormedCatalogName(name)).toBe(false);
+        insertCategory.run('probe', name);
+        expect(readName.get()).toEqual({ name: name.replace(/\p{Cs}/u, '\ufffd') });
+        deleteCategories.run();
+      }
+      expect(isWellFormedCatalogName('\u{1F600}名')).toBe(true);
+    });
 
     it('every shipped id and name satisfies the code rule', () => {
       expect(GAME_TYPES.filter((id) => !isWellFormedGameId(id))).toEqual([]);
