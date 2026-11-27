@@ -70,6 +70,11 @@ jobs:
           UI_GATE_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
         run: pnpm run lint:ui
 
+      # Beside the gate, not in a test-root shard: the suite builds the web bundle and spawns
+      # linters, and starved time-limited contract tests there.
+      - name: UI gate tests
+        run: pnpm run test:ui-lint
+
   # Root contracts + game-engine and web Vitest suites, sharded across 2
   # runners (mirrors the test-api-worker sharding below). As its own job it
   # runs in parallel with quality and lint.

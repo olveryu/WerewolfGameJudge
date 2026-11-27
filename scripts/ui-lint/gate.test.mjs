@@ -18,13 +18,13 @@ import {
   comparisonBase,
   differences,
   growth,
-  presentAt,
+  newRules,
   renamesSince,
 } from './gate.mjs';
 
-const A = 'ui/value-allowlist\tm\tborder-radius: 13px;';
-const B = 'ui/value-allowlist\tm\tpadding: 4px;';
-const NEW = 'ui/new-rule\tm\tx';
+const A = 'ui/value-allowlist\tm\t.a\tborder-radius: 13px;';
+const B = 'ui/value-allowlist\tm\t.a\tpadding: 4px;';
+const NEW = 'ui/new-rule\tm\t.a\tx';
 
 describe('baseline comparison', () => {
   it('is exact: a fixed violation still in the baseline differs', () => {
@@ -33,42 +33,34 @@ describe('baseline comparison', () => {
     expect(differences({ 'a.css': [A] }, { 'a.css': [A] })).toEqual([]);
   });
 
-  const always = () => true;
   it('only shrinks against the base, following renames', () => {
     const base = { rules: ['ui/value-allowlist'], files: { 'old.css': [A] } };
-    expect(growth({ 'new.css': [A] }, base, new Map([['old.css', 'new.css']]), always)).toEqual([]);
-    expect(growth({ 'new.css': [A] }, base, new Map(), always)).toEqual([['new.css', A, 1]]);
-    expect(growth({ 'old.css': [A, A] }, base, new Map(), always)).toEqual([['old.css', A, 1]]);
-    expect(growth({}, base, new Map(), always)).toEqual([]);
+    expect(growth({ 'new.css': [A] }, base, new Map([['old.css', 'new.css']]), {})).toEqual([]);
+    expect(growth({ 'new.css': [A] }, base, new Map(), {})).toEqual([['new.css', A, 1]]);
+    expect(growth({ 'old.css': [A, A] }, base, new Map(), {})).toEqual([['old.css', A, 1]]);
+    expect(growth({}, base, new Map(), {})).toEqual([]);
   });
 
-  // A rule new to the base records existing debt only: every source text of the fingerprint was
-  // already at the base (P1 QA10 FIX-FIRST-2).
-  it('lets a new rule record only debt that was already there', () => {
+  // A rule new to the base records exactly what it finds on the base tree, counted (P1 QA10
+  // FIX-FIRST-2, QA11 F1): four copies of a line found once at the base are three new debts.
+  it('lets a new rule record only the debt it finds at the base', () => {
     const base = { rules: ['ui/value-allowlist'], files: {} };
-    const sourced = `${NEW}\tt.ts: c: '#f00',`;
-    const without = (file, text) => (seen) => (f, t) => !(f === file && t === text) && seen;
-    expect(growth({ 'old.css': [NEW] }, base, new Map(), always)).toEqual([]);
-    expect(growth({ 'old.css': [NEW] }, base, new Map(), without('old.css', 'x')(true))).toEqual([
-      ['old.css', NEW, 1],
+    const atBase = { 'old.css': [NEW] };
+    expect(growth({ 'old.css': [NEW] }, base, new Map(), atBase)).toEqual([]);
+    expect(growth({ 'old.css': [NEW, NEW, NEW, NEW] }, base, new Map(), atBase)).toEqual([
+      ['old.css', NEW, 3],
     ]);
-    expect(growth({ 'a.tsx': [sourced] }, base, new Map(), always)).toEqual([]);
-    expect(
-      growth({ 'a.tsx': [sourced] }, base, new Map(), without('t.ts', "c: '#f00',")(true)),
-    ).toEqual([['a.tsx', sourced, 1]]);
-    // A renamed file is looked up under its name at the base.
-    const asked = [];
-    growth({ 'b.css': [NEW] }, base, new Map([['a.css', 'b.css']]), (f) => asked.push(f) > 0);
-    expect(asked).toEqual(['a.css']);
+    expect(growth({ 'old.css': [NEW] }, base, new Map(), {})).toEqual([['old.css', NEW, 1]]);
+    expect(growth({ 'b.css': [NEW] }, base, new Map([['old.css', 'b.css']]), atBase)).toEqual([]);
+    // Findings at the base of a rule the base baseline lists allow nothing beyond that baseline.
+    expect(growth({ 'old.css': [A] }, base, new Map(), { 'old.css': [A] })).toEqual([
+      ['old.css', A, 1],
+    ]);
     // The first baseline: no rules at the base at all.
-    expect(
-      growth(
-        { 'a.css': [A] },
-        { rules: [], files: {} },
-        new Map(),
-        without('a.css', 'border-radius: 13px;')(true),
-      ),
-    ).toEqual([['a.css', A, 1]]);
+    expect(growth({ 'a.css': [A] }, { rules: [], files: {} }, new Map(), { 'a.css': [A] })).toEqual(
+      [],
+    );
+    expect(newRules(['ui/value-allowlist', 'ui/new-rule'], base)).toEqual(new Set(['ui/new-rule']));
   });
 });
 
@@ -81,8 +73,10 @@ describe('baseline format (P1 QA7 F2)', () => {
     );
     for (const list of Object.values(saved.files))
       for (const key of list) {
-        // rule, message ID, source line, then the lines the value is written on elsewhere
-        const [rule, messageId, ...sources] = key.split('\t');
+        // rule, message ID, where in the file, source lines, then the lines the value is
+        // written on elsewhere
+        const [rule, messageId, where, ...sources] = key.split('\t');
+        expect(where).not.toMatch(/\t|\n/);
         expect(saved.rules).toContain(rule);
         expect(messageId).toMatch(/^(?:[a-zA-Z]+)?$/);
         expect(sources.length).toBeGreaterThan(0);
@@ -91,7 +85,7 @@ describe('baseline format (P1 QA7 F2)', () => {
   });
 });
 
-// One graph for both describes below (it takes about a minute on a shared runner).
+// One graph for both describes below (a few seconds; the Vite build is the slow part).
 let graphOnce;
 const graph = () => (graphOnce ??= bundleGraph());
 
@@ -165,15 +159,6 @@ describe('comparison base (P1 QA5 K10)', () => {
     expect(() => comparisonBase(root, { GITHUB_ACTIONS: 'true' })).toThrow(/UI_GATE_BASE/);
     expect(() => comparisonBase(root, { UI_GATE_BASE: '0'.repeat(40) })).toThrow(/zero SHA/);
     expect(() => comparisonBase(root, { UI_GATE_BASE: 'f'.repeat(40) })).toThrow();
-  });
-
-  it('knows which source text was already at the base', () => {
-    fs.writeFileSync(path.join(root, 'c.css'), 'a {\n  padding: 1px;\n}\n');
-    const present = presentAt(root, second);
-    expect(present('b.css', 'a {} a {}')).toBe(true);
-    expect(present('c.css', 'padding: 1px;')).toBe(false);
-    fs.rmSync(path.join(root, 'c.css'));
-    expect(presentAt(root, first)('a.css', 'a {}')).toBe(true);
   });
 
   it('reads the base baseline, empty only when the commit has none', () => {

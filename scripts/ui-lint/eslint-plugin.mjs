@@ -31,6 +31,7 @@ import {
   DOM_WRITERS,
   ELEMENTS,
   FACTORIES,
+  FILE_ELEMENTS,
   HTML_KEYS,
   NAMED_WRITERS,
   OPEN_KEY_HEADS,
@@ -42,15 +43,17 @@ import {
   SIZED_ELEMENTS,
   STATE_HOOKS,
   IDENTITY_CALLS,
+  KEYFRAME_META,
   MEMO_HOOKS,
+  RUNTIME_TOKEN_FAMILIES,
+  STYLE_DECLARATIONS,
+  TOKEN_PUBLISHER,
   STYLE_INTERFACES,
   SVG_ATTRIBUTES,
   TAG_MAPS,
   UNMANAGED,
 } from './registry.mjs';
 import { domainOf, valueMessages, valueProblems, withOrigins } from './values.mjs';
-
-const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
 
 function typedServices(context) {
   const services = context.sourceCode.parserServices;
@@ -196,8 +199,9 @@ function calleeDeclaration(node, services, checker) {
   return node.callee.type === 'Super' ? null : undefined;
 }
 
-function fileKey(filename) {
-  return path.relative(REPO_ROOT, filename).split(path.sep).join('/');
+/** A path relative to the linted repository (ESLint's `cwd`: the gate runs it at the root). */
+function fileKey(context, filename) {
+  return path.relative(context.cwd, filename).split(path.sep).join('/');
 }
 
 /** The string values `node` can take, or null when the checker cannot enumerate them. */
@@ -271,7 +275,7 @@ const domAllowlist = {
     const { services, program, checker } = typedServices(context);
     const managed = managedInterfaces(program, checker);
     const writers = context.options[0]?.writers ?? DOM_WRITERS;
-    const own = new Set(writers[fileKey(context.filename)] ?? []);
+    const own = new Set(writers[fileKey(context, context.filename)] ?? []);
     const allowed = (owner, member) =>
       DOM_ALLOW.has(member) ||
       DOM_ALLOW.has(`${owner}.${member}`) ||
@@ -512,11 +516,13 @@ const elementAllowlist = {
   },
   create(context) {
     const { services, checker } = typedServices(context);
+    const own = new Set(FILE_ELEMENTS[fileKey(context, context.filename)] ?? []);
     const check = (node, tags) => {
       if (tags === undefined) return;
       if (tags === null) return context.report({ node, messageId: 'dynamic' });
       for (const tag of tags)
-        if (!ELEMENTS.has(tag)) context.report({ node, messageId: 'element', data: { tag } });
+        if (!ELEMENTS.has(tag) && !own.has(tag))
+          context.report({ node, messageId: 'element', data: { tag } });
     };
     /** Props reaching a native element without being written as attributes. */
     const checkProps = (node) => {
@@ -1058,6 +1064,9 @@ const inlineStyleKeys = {
       value: '{{message}}',
       untraced:
         '{{message}} Its literal type is not traced to a declaration, so changing it elsewhere is not seen (UI gate E4).',
+      keyframes:
+        'Keyframes passed to `animate` are checked where they are written: pass an array or object literal (UI gate E4).',
+      name: 'This DOM style write names a property the checker cannot enumerate (UI gate E4).',
     },
   },
   create(context) {
@@ -1072,7 +1081,7 @@ const inlineStyleKeys = {
         const sourceFile = origin.getSourceFile();
         const start = sourceFile.getLineAndCharacterOfPosition(origin.getStart()).line + 1;
         const end = sourceFile.getLineAndCharacterOfPosition(origin.getEnd()).line + 1;
-        return `${fileKey(sourceFile.fileName)}:${start}${end === start ? '' : `-${end}`}`;
+        return `${fileKey(context, sourceFile.fileName)}:${start}${end === start ? '' : `-${end}`}`;
       });
     const judge = (node, prop, values, keyOrigin) => {
       const domain = domainOf(prop);
@@ -1227,7 +1236,88 @@ const inlineStyleKeys = {
         }
       }
     };
+    // DOM style writes take the same value check as `style` (P1 QA11 F2): which writes a file
+    // may make at all is `ui/dom-allowlist`'s; what they write is judged here.
+    const isStyleDeclaration = (node) =>
+      STYLE_DECLARATIONS.has(checker.typeToString(services.getTypeAtLocation(node)));
+    const literal = (node) =>
+      literalValues(services.esTreeNodeToTSNodeMap.get(node), checker, String);
+    const memberName = (member) =>
+      member.computed ? possibleStrings(member.property, services) : [member.property.name];
+    const declaringInterface = (callee) => {
+      const symbol = checker.getSymbolAtLocation(services.esTreeNodeToTSNodeMap.get(callee).name);
+      const parent = symbol?.declarations?.[0]?.parent;
+      return parent !== undefined && ts.isInterfaceDeclaration(parent) ? parent.name.text : null;
+    };
+    const publishes = (names) =>
+      fileKey(context, context.filename) === TOKEN_PUBLISHER &&
+      names.every((name) => RUNTIME_TOKEN_FAMILIES.some((family) => name.startsWith(family)));
+    const checkKeyframe = (object) => {
+      for (const property of object.properties) {
+        if (property.type === 'SpreadElement') {
+          context.report({ node: property, messageId: 'keyframes' });
+          continue;
+        }
+        const names = keyNames(property, services);
+        if (names === null) {
+          context.report({ node: property.key, messageId: 'computed' });
+          continue;
+        }
+        for (const key of names) {
+          if (KEYFRAME_META.has(key)) continue;
+          // Property-indexed keyframes give a list of values per property.
+          const values =
+            property.value.type === 'ArrayExpression'
+              ? either(...property.value.elements.map((element) => literal(element)))
+              : literal(property.value);
+          judge(property.value, cssName(key), values);
+        }
+      }
+    };
     return {
+      AssignmentExpression(node) {
+        if (node.left.type !== 'MemberExpression' || !isStyleDeclaration(node.left.object)) return;
+        const names = memberName(node.left);
+        if (names === null) return context.report({ node: node.left, messageId: 'name' });
+        for (const name of names) judge(node.right, cssName(name), literal(node.right));
+      },
+      CallExpression(node) {
+        const callee = node.callee;
+        if (callee.type !== 'MemberExpression' || callee.computed) return;
+        const method = callee.property.name;
+        if (method === 'setProperty' && isStyleDeclaration(callee.object)) {
+          const [name, value] = node.arguments;
+          const names = possibleStrings(name, services);
+          const prefixes = names ?? possiblePrefixes(name, services);
+          if (prefixes === null) return context.report({ node, messageId: 'name' });
+          if (publishes(prefixes)) return;
+          for (const prop of prefixes) judge(value, prop, literal(value));
+          return;
+        }
+        if (method === 'setAttribute' && declaringInterface(callee) === 'Element') {
+          const [name, value] = node.arguments;
+          const names = possibleStrings(name, services);
+          if (names === null) return;
+          // Presentation attributes take the inline check, as their JSX form does.
+          for (const attribute of names) {
+            const prop = SVG_ATTRIBUTES.get(
+              attribute.replace(/-([a-z])/g, (_, c) => c.toUpperCase()),
+            );
+            if (prop !== undefined) judge(value, prop, literal(value));
+          }
+          return;
+        }
+        if (method === 'animate' && declaringInterface(callee) === 'Animatable') {
+          const [keyframes] = node.arguments;
+          if (keyframes.type === 'ArrayExpression') {
+            for (const element of keyframes.elements) {
+              if (element?.type === 'ObjectExpression') checkKeyframe(element);
+              else context.report({ node: element ?? keyframes, messageId: 'keyframes' });
+            }
+          } else if (keyframes.type === 'ObjectExpression') checkKeyframe(keyframes);
+          else context.report({ node: keyframes, messageId: 'keyframes' });
+        }
+      },
       ObjectExpression(node) {
         if (isCssPropertiesLiteral(services.esTreeNodeToTSNodeMap.get(node))) checkObject(node);
       },

@@ -124,6 +124,17 @@ export const TOKEN_SHEET = Object.freeze({
 /** Token families `colors.ts` publishes at runtime; no stylesheet defines a name in them. */
 export const RUNTIME_TOKEN_FAMILIES = Object.freeze(['--color-', '--report-']);
 
+/** The module that publishes `RUNTIME_TOKEN_FAMILIES`: its `setProperty` writes are the tokens. */
+export const TOKEN_PUBLISHER = 'packages/web/src/theme/colors.ts';
+
+/** Keyframe members that are not CSS properties (`Element.animate`, Web Animations). */
+export const KEYFRAME_META = Object.freeze(new Set(['offset', 'easing', 'composite']));
+
+/** Style declaration interfaces whose members and `setProperty` write CSS properties. */
+export const STYLE_DECLARATIONS = Object.freeze(
+  new Set(['CSSStyleDeclaration', 'CSSStyleProperties']),
+);
+
 /**
  * Art stylesheets (plan D7): their values are the artwork, so the value rules are off, and every
  * class in every selector carries the sheet's prefix (`prefix`, `prefix-*` or `prefix__*`).
@@ -618,6 +629,14 @@ export const PROPERTIES = Object.freeze(
 // TSX elements (§2 E11)
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * Native elements one file may create besides `ELEMENTS`: an `iframe` hosts another document, so
+ * only the dev preview shell, which frames the app at device widths, creates one (P1 QA11 F5).
+ */
+export const FILE_ELEMENTS = Object.freeze({
+  'packages/web/preview/PreviewApp.tsx': Object.freeze(['iframe']),
+});
+
 /** Native elements JSX and React `createElement` may create; `style`, `link`, `script` are not. */
 export const ELEMENTS = Object.freeze(
   new Set([
@@ -652,7 +671,6 @@ export const ELEMENTS = Object.freeze(
     'h4',
     'header',
     'hr',
-    'iframe',
     'img',
     'input',
     'label',
@@ -1029,7 +1047,8 @@ export const REFLECTION = Object.freeze({
 /** Template index keys a props or style type may carry: custom properties, data and ARIA. */
 export const OPEN_KEY_HEADS = Object.freeze(new Set(['--', 'data-', 'aria-']));
 /** React's two names for raw HTML: the prop and the key of its value. */
-export const HTML_KEYS = Object.freeze(new Set(['dangerouslySetInnerHTML', '__html']));
+/** Props that hand React raw HTML: `srcDoc` is a whole document (P1 QA11 F5). */
+export const HTML_KEYS = Object.freeze(new Set(['dangerouslySetInnerHTML', '__html', 'srcDoc']));
 export const MATH = Object.freeze(new Set(['calc', 'min', 'max', 'clamp']));
 export const OPERATORS = Object.freeze(new Set(['+', '-', '*', '/']));
 /** Color atoms besides `var()`: every domain that holds a color accepts them. */

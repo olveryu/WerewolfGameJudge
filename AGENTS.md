@@ -48,6 +48,7 @@ The application release version is authoritative in the root `package.json`; `pa
 | ----------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | Root tests        | `pnpm run test` (Vitest contracts and generator tests)                   | Local, scoped by path filter                                                       |
 | Web tests         | `pnpm --filter @game-judge/web run test`                                 | Local, scoped by path filter                                                       |
+| UI gate tests     | `pnpm run test:ui-lint`                                                  | Local, scoped by path filter; CI lint job                                          |
 | All tests         | `pnpm run test:all`                                                      | Full run; CI only                                                                  |
 | Engine build      | `pnpm --filter @game-judge/game-engine run build`                        | As needed; CI builds it first                                                      |
 | Web build         | `pnpm --filter @game-judge/web run build`                                | Vite build plus per-route gzip budgets                                             |

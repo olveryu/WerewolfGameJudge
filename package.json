@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "vitest run",
-    "test:all": "pnpm -r --include-workspace-root run test",
+    "test:all": "pnpm -r --include-workspace-root run test && pnpm run test:ui-lint",
     "e2e": "playwright test --reporter=list",
     "e2e:core": "pnpm exec playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
     "types:pages": "wrangler types functions/types.d.ts --config wrangler.jsonc --env-file env/pages-types.env --env-interface PagesBindings --strict-vars=false",
@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:ui": "node scripts/ui-lint/gate.mjs",
+    "test:ui-lint": "vitest run --config scripts/ui-lint/vitest.config.mjs",
     "lint:ui:baseline": "node scripts/ui-lint/gate.mjs --write && prettier --write ui-gate-baseline.json",
     "format": "prettier . --check",
     "format:write": "prettier . --write",

@@ -28,7 +28,7 @@ import { ESLint } from 'eslint';
 import tseslint from 'typescript-eslint';
 import uiLint from ${JSON.stringify(path.join(import.meta.dirname, 'eslint-plugin.mjs'))};
 const eslint = new ESLint({
-  cwd: ${JSON.stringify(FIXTURES)},
+  cwd: ${JSON.stringify(REPO_ROOT)},
   overrideConfigFile: true,
   overrideConfig: [{
     files: ['**/*.tsx'],

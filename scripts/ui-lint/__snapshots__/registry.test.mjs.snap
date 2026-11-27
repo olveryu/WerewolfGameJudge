@@ -670,7 +670,6 @@ exports[`UI gate registry > pins ELEMENTS exactly 1`] = `
   "h4",
   "header",
   "hr",
-  "iframe",
   "img",
   "input",
   "label",
@@ -713,6 +712,14 @@ exports[`UI gate registry > pins FACTORIES exactly 1`] = `
   "createElement",
   "createElementNS",
 ]
+`;
+
+exports[`UI gate registry > pins FILE_ELEMENTS exactly 1`] = `
+{
+  "packages/web/preview/PreviewApp.tsx": [
+    "iframe",
+  ],
+}
 `;
 
 exports[`UI gate registry > pins FORCED_COLORS_MEDIA exactly 1`] = `"(forced-colors:active)"`;
@@ -782,12 +789,21 @@ exports[`UI gate registry > pins HTML_KEYS exactly 1`] = `
 [
   "__html",
   "dangerouslySetInnerHTML",
+  "srcDoc",
 ]
 `;
 
 exports[`UI gate registry > pins IDENTITY_CALLS exactly 1`] = `
 [
   "Object.freeze",
+]
+`;
+
+exports[`UI gate registry > pins KEYFRAME_META exactly 1`] = `
+[
+  "composite",
+  "easing",
+  "offset",
 ]
 `;
 
@@ -1354,6 +1370,13 @@ exports[`UI gate registry > pins STATE_HOOKS exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins STYLE_DECLARATIONS exactly 1`] = `
+[
+  "CSSStyleDeclaration",
+  "CSSStyleProperties",
+]
+`;
+
 exports[`UI gate registry > pins STYLE_INTERFACES exactly 1`] = `
 [
   "CSSStyleDeclaration",
@@ -1437,6 +1460,8 @@ exports[`UI gate registry > pins TAG_MAPS exactly 1`] = `
   "MathMLElementTagNameMap",
 ]
 `;
+
+exports[`UI gate registry > pins TOKEN_PUBLISHER exactly 1`] = `"packages/web/src/theme/colors.ts"`;
 
 exports[`UI gate registry > pins TOKEN_SHEET exactly 1`] = `
 {

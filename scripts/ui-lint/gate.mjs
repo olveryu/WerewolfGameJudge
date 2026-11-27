@@ -6,14 +6,15 @@
  * 2. Lint the graph's stylesheets with `stylelint.gate.mjs` and its scripts with `eslint.gate.mjs`
  *    (own configurations only, inline disables ignored).
  * 3. Turn every violation into a fingerprint and compare. A fingerprint is the violation's
- *    identity in code: rule ID, message ID (ESLint; Stylelint has none) and the trimmed source
- *    line, plus the source lines a report says its value is written on (`Written at …`, from
+ *    identity in code: rule ID, message ID (ESLint; Stylelint has none), where in the file it
+ *    sits (enclosing selectors and at-rules, or elements, functions and keys; `context.mjs`) and
+ *    the source lines it spans, each trimmed, plus the source lines a report says its value is written on (`Written at …`, from
  *    `values.mjs`) when they are elsewhere. The message text is not part of it, so rewording a
  *    message records no new debt (P1 QA7 F2), and changing a value written elsewhere is new
  *    debt (QA8 FIX-FIRST-2); renaming a message ID is renaming part of a rule's identity.
  *    - exactly equal to `ui-gate-baseline.json` (a fixed violation must shrink the baseline);
- *    - no fingerprint beyond the baseline at the comparison base (renames followed), except
- *      for rule IDs the base baseline does not list yet (a new rule records its existing debt).
+ *    - no fingerprint beyond the baseline at the comparison base (renames followed); a rule the
+ *      base baseline does not list yet records exactly what it finds on the base tree.
  *
  * `--write` rewrites the baseline from the current result. `--styles` checks only the graph and
  * the stylesheets (lint-staged); file arguments after it are ignored, the whole graph is checked.
@@ -26,6 +27,7 @@ import { ESLint } from 'eslint';
 import stylelint from 'stylelint';
 
 import { bundleGraph, REPO_ROOT } from './bundle.mjs';
+import { scriptContext, styleContext } from './context.mjs';
 import { originsOf } from './values.mjs';
 import { gateConfig } from './eslint.gate.mjs';
 import stylelintConfig from './stylelint.gate.mjs';
@@ -54,8 +56,19 @@ function span(rule, lines, line, endLine, file) {
     .join(' ');
 }
 
-function fingerprint(rule, messageId, lines, { line, endLine = line }, file) {
-  return `${rule}\t${messageId}\t${span(rule, lines, line, endLine, file)}`;
+/** Rule ID, message ID, where in the file (`context.mjs`), then the reported source lines. */
+function fingerprint(rule, messageId, lines, { line, endLine = line }, file, where) {
+  return `${rule}\t${messageId}\t${where}\t${span(rule, lines, line, endLine, file)}`;
+}
+
+/** The context lookup of a file's text, parsed once per text. */
+const contexts = new Map();
+function contextOf(root, file, kind) {
+  const text = fs.readFileSync(path.join(root, file), 'utf8');
+  const cacheKey = `${kind}\u0000${path.join(root, file)}\u0000${text}`;
+  if (!contexts.has(cacheKey))
+    contexts.set(cacheKey, (kind === 'style' ? styleContext : scriptContext)(text, file));
+  return contexts.get(cacheKey);
 }
 
 /** Where and why each current fingerprint was reported, for the failure output (P1 QA7 S1). */
@@ -80,8 +93,16 @@ export function scriptKey(root, file, lines, message) {
       (origin) => origin.file !== file || origin.line < message.line || origin.endLine > endLine,
     )
     .map((origin) => sourceLine(root, origin, message.ruleId));
+  const where = contextOf(root, file, 'script')(message.line, message.column);
   return [
-    fingerprint(message.ruleId, message.messageId, lines, { line: message.line, endLine }, file),
+    fingerprint(
+      message.ruleId,
+      message.messageId,
+      lines,
+      { line: message.line, endLine },
+      file,
+      where,
+    ),
     ...written,
   ].join('\t');
 }
@@ -146,9 +167,17 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
             lines,
             { line: warning.line, endLine: warning.endLine ?? warning.line },
             file,
+            contextOf(root, file, 'style')(warning.line, warning.column),
           );
           add(files, file, key);
-          remember(reports, file, key, warning.line, warning.text);
+          // Stylelint ends its text with ` (rule)`; the failure output names the rule once.
+          remember(
+            reports,
+            file,
+            key,
+            warning.line,
+            warning.text.replace(` (${warning.rule})`, ''),
+          );
         }
       }
     }
@@ -247,73 +276,71 @@ export function differences(left, right) {
 }
 
 /**
- * Whether source text was already in a file at `commit`: the working tree file is unchanged
- * since then, or the file there holds the same lines (each trimmed, joined by one space, as
- * fingerprints write them). Files are read once per commit.
+ * The current gate's findings on the tree of `commit`, for the rules the base baseline does not
+ * list yet: what debt a new rule may record is measured by running it on the base, never by
+ * matching text (P1 QA11 F1). The tree is a detached worktree beside the repository with the
+ * dependency directories linked in; it is removed afterwards.
  */
-export function presentAt(root, commit) {
-  const changed = new Set(
-    git(root, ['diff', '--no-renames', '--name-only', commit, '--'])
-      .split('\n')
-      .concat(git(root, ['ls-files', '--others', '--exclude-standard']).split('\n'))
-      .filter((line) => line !== ''),
-  );
-  const texts = new Map();
-  const textAt = (file) => {
-    if (!texts.has(file)) {
-      const listed = git(root, ['ls-tree', '--name-only', commit, '--', file]).trim() !== '';
-      texts.set(
-        file,
-        listed
-          ? git(root, ['show', `${commit}:${file}`])
-              .split('\n')
-              .map((line) => line.trim())
-              .join(' ')
-          : null,
+export async function findingsAt(root, commit, rules) {
+  const dependencyDirs = [
+    'node_modules',
+    ...fs.readdirSync(path.join(root, 'packages')).map((name) => `packages/${name}/node_modules`),
+  ];
+  const tree = fs.mkdtempSync(path.join(path.dirname(root), '.ui-gate-base-'));
+  fs.rmdirSync(tree);
+  git(root, ['worktree', 'add', '--detach', '--quiet', tree, commit]);
+  try {
+    for (const linked of dependencyDirs)
+      if (fs.existsSync(path.join(root, linked)))
+        fs.symlinkSync(path.join(root, linked), path.join(tree, linked), 'dir');
+    const found = await runGate({ root: tree });
+    if (found.problems.length > 0)
+      throw new Error(
+        `UI gate: the bundle graph at ${commit.slice(0, 12)} has problems, so the debt a new rule records cannot be measured:\n${found.problems.map((p) => `  ${p}`).join('\n')}`,
       );
+    const files = {};
+    for (const [file, list] of Object.entries(found.files)) {
+      const kept = list.filter((key) => rules.has(key.split('\t')[0]));
+      if (kept.length > 0) files[file] = kept;
     }
-    return texts.get(file);
-  };
-  return (file, text) => !changed.has(file) || (textAt(file)?.includes(text) ?? false);
+    return files;
+  } finally {
+    git(root, ['worktree', 'remove', '--force', tree]);
+  }
 }
 
-/** The `[file, text]` sources a fingerprint depends on: the reported span and each origin. */
-function sourcesOf(file, key) {
-  const [, , text, ...origins] = key.split('\t');
-  return [
-    [file, text],
-    ...origins.map((origin) => {
-      const at = origin.indexOf(': ');
-      return [origin.slice(0, at), origin.slice(at + 2)];
-    }),
-  ];
-}
+/** Rules the gate runs that the base baseline does not list: their debt is measured at the base. */
+export const newRules = (rules, base) =>
+  new Set(rules.filter((rule) => !base.rules.includes(rule)));
 
 /**
- * Fingerprints in `current` beyond `base` (after renames). A rule the base lists no entries for
- * records existing debt only: each of its fingerprints must have every source text (the reported
- * span and the lines its value is written on) already present at the base, so the violation was
- * there before (P1 QA10 FIX-FIRST-2). The first baseline is held to the same condition.
+ * Fingerprints in `current` beyond what the base allows (after renames): the base baseline for
+ * the rules it lists, `atBase` (the findings of the other rules on the base tree, see
+ * `findingsAt`) for the rest. Both comparisons count, so a new rule records exactly the debt
+ * that was already there (P1 QA10 FIX-FIRST-2, QA11 F1). The first baseline is held to the same.
  */
-export function growth(current, base, renames, present) {
-  const mapped = {};
-  for (const [file, list] of Object.entries(base.files))
-    mapped[renames.get(file) ?? file] = [...(mapped[renames.get(file) ?? file] ?? []), ...list];
+export function growth(current, base, renames, atBase) {
+  const allowed = {};
   const known = new Set(base.rules);
-  const formerly = new Map([...renames].map(([from, to]) => [to, from]));
-  return differences(current, mapped).filter(
-    ([file, key, delta]) =>
-      delta > 0 &&
-      (known.has(key.split('\t')[0]) ||
-        sourcesOf(file, key).some(
-          ([source, text]) => !present(formerly.get(source) ?? source, text),
-        )),
+  const merge = (files) => {
+    for (const [file, list] of Object.entries(files))
+      allowed[renames.get(file) ?? file] = [...(allowed[renames.get(file) ?? file] ?? []), ...list];
+  };
+  merge(base.files);
+  merge(
+    Object.fromEntries(
+      Object.entries(atBase).map(([file, list]) => [
+        file,
+        list.filter((key) => !known.has(key.split('\t')[0])),
+      ]),
+    ),
   );
+  return differences(current, allowed).filter(([, , delta]) => delta > 0);
 }
 
 /** One failure line per occurrence: where and what for a current violation, else its source. */
 function describe(current, file, key, delta) {
-  const [rule, messageId, source] = key.split('\t');
+  const [rule, messageId, where, source] = key.split('\t');
   const id = messageId === '' ? rule : `${rule}/${messageId}`;
   const occurrences = current.reports.get(`${file}\t${key}`);
   if (delta > 0 && occurrences !== undefined) {
@@ -323,7 +350,7 @@ function describe(current, file, key, delta) {
   }
   const label = delta > 0 ? 'new' : 'fixed, still in baseline';
   const times = Math.abs(delta) > 1 ? ` ×${Math.abs(delta)}` : '';
-  return [`  ${label} ${file} (${id})${times}: ${source}`];
+  return [`  ${label} ${file} (${id})${times}: ${where === '' ? '' : `${where}: `}${source}`];
 }
 
 const onlyStyles = (files) =>
@@ -375,11 +402,13 @@ async function main() {
   }
   if (!stylesOnly) {
     const base = comparisonBase(root);
+    const atBaseline = baselineAt(root, base);
+    const added = newRules(current.rules, atBaseline);
     const grown = growth(
       saved.files,
-      baselineAt(root, base),
+      atBaseline,
       renamesSince(root, base),
-      presentAt(root, base),
+      added.size > 0 ? await findingsAt(root, base, added) : {},
     );
     if (grown.length > 0) {
       fail([

@@ -4,7 +4,8 @@ import { defineConfig } from 'vitest/config';
 
 /**
  * Root project: cross-package contracts and the new-game generator suite.
- * Each package runs its own unit tests.
+ * Each package runs its own unit tests; the UI gate's suite runs in the lint job
+ * (`scripts/ui-lint/vitest.config.mjs`).
  */
 export default defineConfig({
   resolve: {
@@ -15,11 +16,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: [
-      'contracts/**/*.test.ts',
-      'scripts/new-game.test.mjs',
-      'scripts/dev.test.mjs',
-      'scripts/ui-lint/*.test.mjs',
-    ],
+    include: ['contracts/**/*.test.ts', 'scripts/new-game.test.mjs', 'scripts/dev.test.mjs'],
   },
 });

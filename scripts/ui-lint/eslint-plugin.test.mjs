@@ -226,9 +226,16 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
         'export const a = <script />;',
         `${REACT}createElement('style');`,
         'declare const Tag: "div" | "style"; export const a = <Tag />;',
+        // An iframe hosts another document: only the file `FILE_ELEMENTS` registers (QA11 F5).
+        'export const a = <iframe title="x" src="/x" />;',
       ],
       'element',
     ),
+    {
+      filename,
+      code: 'export const a = <iframe srcDoc="<style>a{}</style>" />;',
+      errors: [{ messageId: 'element' }, { messageId: 'html' }],
+    },
     ...red(
       [
         'declare const Tag: string; export const a = <Tag />;',
@@ -275,6 +282,11 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
 
 tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
   valid: green([
+    "declare const el: HTMLElement; el.style.width = 'var(--size-card)'; el.style.opacity = '1';",
+    'declare const el: HTMLElement; declare const w: number; el.style.width = `${w}px`;',
+    "declare const el: HTMLElement; el.style.setProperty('--seat-progress', '0');",
+    "declare const el: HTMLElement; el.animate([{ opacity: 0, offset: 0, easing: 'ease-out' }, { opacity: 1 }], 200);",
+    "declare const el: SVGElement; el.setAttribute('cx', '13'); el.setAttribute('fill', 'var(--a)');",
     'export const a = <div style={{ opacity: 1 }} />;',
     "declare const progress: number; export const a = <div style={{ ['--seat-progress']: progress }} />;",
     `${REACT}declare const k: 'opacity' | 'color'; const s: CSSProperties = { [k]: 'var(--a)' }; void s;`,
@@ -311,7 +323,30 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "const C = { a: 'var(--a)', b: 'var(--b)' }; declare const k: string; export const a = <div style={{ color: (C as Record<string, string>)[k] }} />;",
     "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW((v) => v + 1); return <div style={{ opacity: w ? 1 : 0 }} />; }",
   ]),
+  // DOM style writes (QA11 F2): what the registered entry points write takes the same check.
+  // (The values below are probes, not registrations: which writes a file may make is E5's.)
   invalid: [
+    ...red(
+      [
+        "declare const el: HTMLElement; el.style.width = '137px';",
+        "declare const el: HTMLElement; el.style.setProperty('padding', '13px');",
+        "declare const el: SVGElement; el.setAttribute('fill', '#f00');",
+        "declare const el: HTMLElement; el.animate([{ color: '#f00' }, { opacity: 1 }], 200);",
+        "declare const el: HTMLElement; el.animate({ color: ['#f00', 'var(--a)'] }, 200);",
+      ],
+      'value',
+    ),
+    ...red(
+      [
+        'declare const el: HTMLElement; declare const k: Keyframe[]; el.animate(k, 200);',
+        'declare const el: HTMLElement; declare const k: Keyframe; el.animate([k], 200);',
+      ],
+      'keyframes',
+    ),
+    ...red(
+      ["declare const el: HTMLElement; declare const n: string; el.style.setProperty(n, 'x');"],
+      'name',
+    ),
     ...red(
       [
         "export const a = <div style={{ ['--avatar-corner-' + 'ratio']: 1 }} />;",
