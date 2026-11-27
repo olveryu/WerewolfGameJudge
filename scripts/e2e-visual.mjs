@@ -25,6 +25,10 @@ import path from 'node:path';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const require = createRequire(import.meta.url);
 const { version } = require('@playwright/test/package.json');
+const { packageManager } = require('../package.json');
+if (!/^pnpm@\d+\.\d+\.\d+$/.test(packageManager)) {
+  throw new Error(`[e2e-visual] packageManager must pin pnpm@x.y.z, got ${packageManager}`);
+}
 const IMAGE = `mcr.microsoft.com/playwright:v${version}-noble`;
 
 /** Writable home inside the container (the image's home belongs to its own user). */
@@ -80,9 +84,10 @@ const run = spawnSync(
     IMAGE,
     'bash',
     '-c',
-    // corepack puts the pnpm pinned by `packageManager` on PATH: the Playwright
-    // config's servers call `pnpm` themselves.
-    `mkdir -p ${BIN} && corepack enable --install-directory ${BIN} && PATH=${BIN}:$PATH pnpm "$@"`,
+    // The image has no corepack (CI run 46059503167: `corepack: command not found`), so
+    // npm installs the pnpm pinned by `packageManager` into the container's home and puts
+    // it on PATH: the Playwright config's servers call `pnpm` themselves.
+    `npm install --global --silent --prefix ${HOME} ${packageManager} && PATH=${BIN}:$PATH pnpm "$@"`,
     'e2e-visual',
     ...playwrightArgs,
   ],

@@ -1,0 +1,12 @@
+/*
+ * Screenshot stylesheet for app pages (toHaveScreenshot stylePath).
+ * - Avatars are drawn from the random user id of the run, so every variant (photo, generated,
+ *   fallback) is hidden by the avatar's own class. The gallery draws avatars from fixed ids and
+ *   does not use this file.
+ * - Toasts (sonner's toaster) are transient notices timed against the run, such as the
+ *   anonymous sign-in's 登录成功; whether one is still on screen at the capture is timing.
+ */
+.avatar,
+[data-sonner-toaster] {
+  visibility: hidden !important;
+}

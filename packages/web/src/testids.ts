@@ -555,4 +555,6 @@ export const TESTIDS = {
   uiGalleryChoice: (state: string) => `ui-gallery-choice-${state}`,
   /** A gallery control the visual gate hovers or focuses before its state screenshot. */
   uiGalleryTarget: (name: string) => `ui-gallery-target-${name}`,
+  /** The fixed-data gacha result bench (/__bench/gacha-result), drawn under the result dialog. */
+  gachaResultBenchRoot: 'gacha-result-bench-root',
 } as const;

@@ -1,8 +1,0 @@
-/*
- * Screenshot stylesheet for app pages (toHaveScreenshot stylePath): avatars are drawn from the
- * random user id of the run, so every variant (photo, generated, fallback) is hidden by the
- * avatar's own class. The gallery block draws avatars from fixed ids and does not use this file.
- */
-.avatar {
-  visibility: hidden !important;
-}
