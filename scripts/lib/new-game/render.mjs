@@ -19,10 +19,8 @@ import {
 
 /** Validate a game id against the engine's game id rule (the game_types.id CHECK projects it). */
 export function assertValidGameId(gameId) {
-  if (typeof gameId !== 'string' || !isWellFormedGameId(gameId)) {
-    throw new Error(
-      `Invalid game id "${String(gameId)}": expected ${GAME_ID_RULE} (e.g. "demoproto").`,
-    );
+  if (!isWellFormedGameId(gameId)) {
+    throw new Error(`Invalid game id "${gameId}": expected ${GAME_ID_RULE} (e.g. "demoproto").`);
   }
 }
 

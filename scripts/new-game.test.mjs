@@ -2126,9 +2126,9 @@ it('preflight reports an existing id, a stale stats table, drift and an inconsis
     });
     assert.deepEqual(problems, {
       input: [
-        `word category list of 'fibking' repeats id "animals"`,
-        `word category list of 'fibking' repeats name "动物"`,
-        `word category list of 'fibking' has a malformed name " " for id "blank" (non-empty, no leading or trailing whitespace, no NUL, no lone surrogate)`,
+        'repeats id "animals"',
+        'repeats name "动物"',
+        'has a malformed name " " for id "blank" (non-empty, no leading or trailing whitespace, no NUL, no lone surrogate)',
       ],
       schema: [
         "'fibking' is already registered in game_types",
