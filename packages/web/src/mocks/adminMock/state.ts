@@ -1,4 +1,4 @@
-import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
+import { WORD_CATEGORY_CATALOGS } from '@game-judge/game-engine/games/wordCategoryCatalogs';
 import type {
   WordSubmissionAgent,
   wordSubmissionAuditSchema,
@@ -25,26 +25,16 @@ import type {
 import { type AdminRewardGrant, adminUserRewardsSchema } from '@/features/admin/model/adminRewards';
 import type { MaintenanceConfig } from '@/features/maintenance/maintenance';
 
-import { ADMIN_MOCK_DRAWGUESS_CATEGORIES } from './drawGuessCategories';
-import { ADMIN_MOCK_FIBKING_CATEGORIES } from './fibkingCategories';
-import { ADMIN_MOCK_UNDERCOVER_CATEGORIES } from './undercoverCategories';
-
 const SYSTEM_AGENT_ID = '00000000-0000-4000-8000-000000000001';
 const COMMUNITY_AGENT_ID = '00000000-0000-4000-8000-000000000002';
-const MOCK_ACTIVE_COUNTS: Readonly<Record<GameWordGame, Readonly<Record<string, number>>>> = {
+/** Sample inventory for the games the mock seeds; any other word game shows an empty library. */
+const MOCK_ACTIVE_COUNTS: Readonly<
+  Partial<Record<GameWordGame, Readonly<Record<string, number>>>>
+> = {
   fibking: { literature: 42, food: 28, animals: 19 },
   undercover: { food: 42, animals: 28, dailyLife: 19 },
   drawguess: { animals: 42, food: 28, dailyObjects: 19 },
   decrypto: { animals: 12, food: 12, dailyObjects: 8 },
-};
-
-const GAME_CATEGORIES: Readonly<
-  Record<GameWordGame, readonly { readonly id: string; readonly name: string }[]>
-> = {
-  fibking: ADMIN_MOCK_FIBKING_CATEGORIES,
-  undercover: ADMIN_MOCK_UNDERCOVER_CATEGORIES,
-  drawguess: ADMIN_MOCK_DRAWGUESS_CATEGORIES,
-  decrypto: DECRYPTO_WORD_CATEGORY_CATALOG.entries,
 };
 
 type SubmissionSeed = {
@@ -454,8 +444,8 @@ function makeRoomPlayers(): Record<string, AdminRoomPlayer[]> {
 function makeWordStats(game: GameWordGame): GameWordsStats {
   return {
     game,
-    categories: GAME_CATEGORIES[game].map((category, index) => {
-      const active = MOCK_ACTIVE_COUNTS[game][category.id] ?? 0;
+    categories: WORD_CATEGORY_CATALOGS[game].entries.map((category, index) => {
+      const active = MOCK_ACTIVE_COUNTS[game]?.[category.id] ?? 0;
       const hasInventory = active > 0;
       return {
         ...category,

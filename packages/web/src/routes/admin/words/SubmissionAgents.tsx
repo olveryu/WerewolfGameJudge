@@ -19,6 +19,7 @@ import type { z } from 'zod';
 import { API_BASE_URL } from '@/config/api';
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
+import { gameDisplayName } from '@/games/catalog';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
@@ -33,7 +34,6 @@ import {
   StatusBadge,
 } from '../components/Primitives';
 import { useSubmissionCommand } from './useSubmissionCommand';
-import { WORD_GAME_LABELS } from './wordLabels';
 
 type IssuedCredential = z.output<typeof wordSubmissionIssuedCredentialSchema>;
 type AgentDialog =
@@ -118,7 +118,7 @@ export function SubmissionAgentsPage() {
                       label: '允许游戏',
                       secondary: true,
                       render: (agent) =>
-                        agent.games.map((item) => WORD_GAME_LABELS[item]).join('、'),
+                        agent.games.map((item) => gameDisplayName(item)).join('、'),
                     },
                     {
                       key: 'quota',
@@ -402,7 +402,7 @@ function AuthorizationFields({
                 )
               }
             />
-            {WORD_GAME_LABELS[item]}
+            {gameDisplayName(item)}
           </label>
         ))}
       </fieldset>
@@ -505,7 +505,7 @@ function AgentDetails({
         <dt>用途</dt>
         <dd>{agent.description || '未填写'}</dd>
         <dt>允许游戏</dt>
-        <dd>{agent.games.map((item) => WORD_GAME_LABELS[item]).join('、')}</dd>
+        <dd>{agent.games.map((item) => gameDisplayName(item)).join('、')}</dd>
         <dt>今日投稿</dt>
         <dd>
           {agent.submittedToday} / {agent.dailyQuota}

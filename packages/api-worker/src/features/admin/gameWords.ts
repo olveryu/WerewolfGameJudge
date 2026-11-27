@@ -16,12 +16,12 @@ import {
   UNDERCOVER_CATEGORY_MIN_ACTIVE_PAIRS,
   UNDERCOVER_WORD_CATEGORY_CATALOG,
 } from '@game-judge/game-engine/games/undercover/public';
+import { WORD_CATEGORY_CATALOGS } from '@game-judge/game-engine/games/wordCategoryCatalogs';
 import {
   GAME_WORD_GAMES,
   type GameWordGame,
   type GameWordsStats,
   type TriggerSupplyResult,
-  type WordCategoryEntry,
   type WordLibraryItems,
   type WordSubmissionStatus,
   wordSubmissionStatusSchema,
@@ -58,18 +58,6 @@ export type TriggerSupplyInput = z.output<typeof triggerSupplySchema>;
 
 type DashboardDetails = Pick<GameWordsStats, 'categories' | 'modelBudget'>;
 
-interface CategoryCatalogView {
-  readonly entries: readonly WordCategoryEntry<string>[];
-  readonly ids: readonly [string, ...string[]];
-}
-
-const WORD_CATEGORY_CATALOGS: Readonly<Record<GameWordGame, CategoryCatalogView>> = {
-  fibking: FIBKING_WORD_CATEGORY_CATALOG,
-  undercover: UNDERCOVER_WORD_CATEGORY_CATALOG,
-  drawguess: DRAWGUESS_WORD_CATEGORY_CATALOG,
-  decrypto: DECRYPTO_WORD_CATEGORY_CATALOG,
-};
-
 /**
  * Category columns are NOT NULL with a foreign key into `word_categories`, so a stored value
  * outside the code catalog means the catalog and D1 have drifted: fail with the game and value.
@@ -99,22 +87,19 @@ function parseCategoryRows<T>(
 }
 type DashboardBase = Omit<GameWordsStats, keyof DashboardDetails>;
 
+/** Exhaustive over `GameWordGame`: a new word game fails typecheck here instead of reading another game's tables. */
+const WORD_LIBRARY_TABLES: {
+  readonly [TGame in GameWordGame]: { readonly wordsTable: string; readonly packsTable: string };
+} = {
+  fibking: { wordsTable: 'fib_words', packsTable: 'fib_word_packs' },
+  undercover: { wordsTable: 'undercover_word_pairs', packsTable: 'undercover_word_packs' },
+  drawguess: { wordsTable: 'drawguess_words', packsTable: 'drawguess_word_packs' },
+  decrypto: { wordsTable: 'decrypto_words', packsTable: 'decrypto_word_packs' },
+};
+
 async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<DashboardDetails> {
   const isFib = game === 'fibking';
-  const wordsTable = isFib
-    ? 'fib_words'
-    : game === 'undercover'
-      ? 'undercover_word_pairs'
-      : game === 'drawguess'
-        ? 'drawguess_words'
-        : 'decrypto_words';
-  const packsTable = isFib
-    ? 'fib_word_packs'
-    : game === 'undercover'
-      ? 'undercover_word_packs'
-      : game === 'drawguess'
-        ? 'drawguess_word_packs'
-        : 'decrypto_word_packs';
+  const { wordsTable, packsTable } = WORD_LIBRARY_TABLES[game];
   const catalog = WORD_CATEGORY_CATALOGS[game];
   const category = catalogCategorySchema(game, catalog.ids);
   // Pending counts read the submission queue (the candidate tables were dropped in 0085).

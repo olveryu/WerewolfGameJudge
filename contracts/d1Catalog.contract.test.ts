@@ -2,9 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 
 import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
-import { DRAWGUESS_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/drawguess/public';
-import { FIBKING_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/fibking/public';
 import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/undercover/public';
+import { WORD_CATEGORY_CATALOGS } from '@game-judge/game-engine/games/wordCategoryCatalogs';
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { GAME_WORD_GAMES } from '@game-judge/game-engine/product/wordSupply';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -16,12 +15,7 @@ import { applyMigrationsThrough, latestMigrationName } from './support/d1Migrati
  * game_types / word_games / word_categories are its projection. A constant added in code without
  * the matching INSERT migration (or the reverse) fails here.
  */
-const CATEGORY_CATALOGS = [
-  FIBKING_WORD_CATEGORY_CATALOG,
-  UNDERCOVER_WORD_CATEGORY_CATALOG,
-  DRAWGUESS_WORD_CATEGORY_CATALOG,
-  DECRYPTO_WORD_CATEGORY_CATALOG,
-];
+const CATEGORY_CATALOGS = Object.values(WORD_CATEGORY_CATALOGS);
 
 let database: DatabaseSync;
 

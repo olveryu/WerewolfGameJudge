@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { WordLibraryItem } from '@/features/admin/model/adminContracts';
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
+import { gameDisplayName } from '@/games/catalog';
 
 import { DetailDrawer } from '../components/Overlays';
 import { AsyncBoundary, StatusBadge } from '../components/Primitives';
@@ -17,7 +18,6 @@ import {
   isUnendorsableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
-  WORD_GAME_LABELS,
 } from './wordLabels';
 
 const ACTION_LABELS: Readonly<Record<string, string>> = {
@@ -223,7 +223,7 @@ export function SubmissionItemDrawer({
           return (
             <>
               <p className="admin-muted">
-                {WORD_GAME_LABELS[loadedBatch.game]} / {resolved.category}
+                {gameDisplayName(loadedBatch.game)} / {resolved.category}
               </p>
               <h3 className="admin-submission-word">{resolved.title}</h3>
               <SubmissionStatus status={resolved.status} />

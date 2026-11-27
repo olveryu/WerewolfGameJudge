@@ -29,6 +29,7 @@ import {
   fetchTavilyUsage,
   triggerGameWordSupply,
 } from '@/features/admin/services/adminApi';
+import { gameDisplayName } from '@/games/catalog';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
@@ -36,7 +37,7 @@ import { log } from '@/utils/logger';
 import { AsyncBoundary, PageHeading, Panel, StatTile } from '../components/Primitives';
 import { type SupplyAction, SupplyControls } from '../components/SupplyControls';
 import { LibraryCards } from './LibraryCards';
-import { SUBMISSION_STATUS_LABELS, WORD_GAME_LABELS, WordChoiceFilter } from './wordLabels';
+import { SUBMISSION_STATUS_LABELS, WordChoiceFilter } from './wordLabels';
 
 const wordLog = log.extend('AdminWords');
 
@@ -197,7 +198,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   function confirm(action: SupplyAction) {
     void showAlert(
       '确认补词',
-      `将为「${WORD_GAME_LABELS[game]}」的「${stats.data?.categories.find((item) => item.id === action.category)?.name ?? action.category}」类别触发 ${action.count} 次补词，确定吗？`,
+      `将为「${gameDisplayName(game)}」的「${stats.data?.categories.find((item) => item.id === action.category)?.name ?? action.category}」类别触发 ${action.count} 次补词，确定吗？`,
       [
         CANCEL_BUTTON,
         {
@@ -267,7 +268,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
               categories={supplyCategories}
               disabled={triggering || !stats.data?.supplyEnabled || supplyCategories.length === 0}
               triggering={triggering}
-              gameLabel={WORD_GAME_LABELS[game]}
+              gameLabel={gameDisplayName(game)}
               onSelect={confirm}
             />
           </span>
@@ -293,7 +294,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                 replace
                 aria-current={item === game ? 'page' : undefined}
               >
-                {WORD_GAME_LABELS[item]}
+                {gameDisplayName(item)}
               </Link>
             ))}
           </nav>

@@ -293,10 +293,10 @@ function readFixture(root, file) {
 
 /** A registration migration appends the game_types row and creates only game-owned tables. */
 function assertRegistrationOnlyInsertsRows(migration, gameId) {
-  assert.ok(
-    migration.includes(
-      `INSERT INTO game_types (id, sort_order) VALUES ('${gameId}', (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM game_types));`,
-    ),
+  // The row's sort_order is the literal next index: preflight proved game_types equals GAME_TYPES.
+  assert.match(
+    migration,
+    new RegExp(String.raw`INSERT INTO game_types \(id, sort_order\) VALUES \('${gameId}', \d+\);`),
   );
   for (const forbidden of [
     'rooms_next',
@@ -921,8 +921,7 @@ for (const scenario of FEATURE_SCENARIOS) {
       wordLibrary,
     );
     // The category catalog is generated from the same --word-category list as the migration
-    // rows, not hand-written afterwards: wordCategories.ts, its public.ts export,
-    // the GAME_WORD_GAMES entry and the CATEGORY_CATALOGS contract row.
+    // rows, not hand-written afterwards: wordCategories.ts and its public.ts export.
     const catalogFile = summary.createdFiles.includes(
       'packages/game-engine/src/games/demoproto/wordCategories.ts',
     )
@@ -945,20 +944,15 @@ for (const scenario of FEATURE_SCENARIOS) {
       ),
       wordLibrary,
     );
-    assert.equal(
-      readFixture(root, 'packages/game-engine/src/product/wordSupply/games.ts').includes(
-        "  'demoproto',",
-      ),
-      wordLibrary,
-    );
-    const d1Catalog = readFixture(root, 'contracts/d1Catalog.contract.test.ts');
-    assert.equal(
-      d1Catalog.includes(
-        "import { DEMOPROTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/demoproto/public';",
-      ),
-      wordLibrary,
-    );
-    assert.equal(d1Catalog.includes('  DEMOPROTO_WORD_CATEGORY_CATALOG,'), wordLibrary);
+    // Joining the shared supply contract (GAME_WORD_GAMES, WORD_CATEGORY_CATALOGS) is report
+    // step 7: every map keyed by GameWordGame, including the Env supply flag, must land with it,
+    // so the generator leaves both untouched and its output stays typecheck-clean.
+    for (const supplyContractFile of [
+      'packages/game-engine/src/product/wordSupply/games.ts',
+      'packages/game-engine/src/games/wordCategoryCatalogs.ts',
+    ]) {
+      assert.ok(!summary.editedFiles.includes(supplyContractFile), supplyContractFile);
+    }
     assert.equal(migration.includes("('demoproto', 'animals', '动物', 0)"), wordLibrary);
     const statsEnabled = scenario.features.stats === 'enabled';
     assert.equal(migration.includes('TODO(gameplay)'), statsEnabled);
@@ -1875,7 +1869,7 @@ it('generates an inserts-only registration with a word library and records it in
     );
     assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
     // The code catalog comes from the same --word-category list as the migration rows:
-    // generated wordCategories.ts, public.ts export, GAME_WORD_GAMES and CATEGORY_CATALOGS.
+    // generated wordCategories.ts and its public.ts export.
     const catalogFile = readFixture(
       root,
       'packages/game-engine/src/games/wordprobe/wordCategories.ts',
@@ -1898,18 +1892,12 @@ it('generates an inserts-only registration with a word library and records it in
         "export { WORDPROBE_WORD_CATEGORY_CATALOG, type WordprobeWordCategory } from './wordCategories';",
       ),
     );
-    assert.ok(
-      readFixture(root, 'packages/game-engine/src/product/wordSupply/games.ts').includes(
-        "  'wordprobe',",
-      ),
-    );
-    const d1Catalog = readFixture(root, 'contracts/d1Catalog.contract.test.ts');
-    assert.ok(
-      d1Catalog.includes(
-        "import { WORDPROBE_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/wordprobe/public';",
-      ),
-    );
-    assert.ok(d1Catalog.includes('  WORDPROBE_WORD_CATEGORY_CATALOG,'));
+    for (const supplyContractFile of [
+      'packages/game-engine/src/product/wordSupply/games.ts',
+      'packages/game-engine/src/games/wordCategoryCatalogs.ts',
+    ]) {
+      assert.ok(!summary.editedFiles.includes(supplyContractFile), supplyContractFile);
+    }
     // The generated catalog and the migration rows agree entry for entry.
     const catalogEntries = [...catalogFile.matchAll(/\{ id: "([^"]+)", name: "([^"]+)" \}/g)].map(
       ([, id, name]) => ({ id, name }),
@@ -1939,16 +1927,7 @@ it('a game without a word library generates no category catalog or word-game reg
       'WORD_CATEGORY_CATALOG',
     ),
   );
-  assert.ok(
-    !readFixture(root, 'packages/game-engine/src/product/wordSupply/games.ts').includes(
-      "'wordless'",
-    ),
-  );
-  assert.ok(
-    !readFixture(root, 'contracts/d1Catalog.contract.test.ts').includes(
-      'WORDLESS_WORD_CATEGORY_CATALOG',
-    ),
-  );
+  assert.ok(!summary.editedFiles.includes('packages/game-engine/src/product/wordSupply/games.ts'));
   assert.ok(
     !readFixture(root, `packages/api-worker/migrations/${summary.migrationName}`).includes(
       'INSERT INTO word_games',

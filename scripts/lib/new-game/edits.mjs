@@ -99,45 +99,6 @@ export function editNightCatalogueIndex(content, { gameId, capabilities }) {
   );
 }
 
-/** Append the game id to the word-library games (code authority; word_games projects it). */
-export function editGameWordGames(content, { gameId, capabilities }) {
-  if (!capabilities.wordLibrary) return content;
-  const file = 'product/wordSupply/games.ts';
-  if (content.includes(`'${gameId}'`)) fail(file, `'${gameId}' is already a word game.`);
-  return replaceOnce(
-    file,
-    content,
-    /(export const GAME_WORD_GAMES = \[[\s\S]*?)(\] as const satisfies readonly GameType\[\];)/,
-    (_match, head, tail) => `${head}  '${gameId}',\n${tail}`,
-  );
-}
-
-/**
- * Register the generated category catalog in the D1 projection contract, so the contract pins
- * the code catalog against the word_categories rows the registration migration inserts.
- * The import joins the @game-judge/game-engine/games public group in specifier order and the
- * catalog is appended to CATEGORY_CATALOGS (the contract sorts before comparing, so order is
- * not load-bearing).
- */
-export function editD1Catalog(content, { gameId, capabilities }) {
-  if (!capabilities.wordLibrary) return content;
-  const file = 'contracts/d1Catalog.contract.test.ts';
-  const catalog = `${gameId.toUpperCase()}_WORD_CATEGORY_CATALOG`;
-  if (content.includes(catalog)) fail(file, `'${gameId}' is already registered.`);
-  const withImport = insertImportsSorted(
-    file,
-    content,
-    [`import { ${catalog} } from '@game-judge/game-engine/games/${gameId}/public';`],
-    /^@game-judge\/game-engine\/games\/[a-z0-9]+\/public$/,
-  );
-  return replaceOnce(
-    file,
-    withImport,
-    /(const CATEGORY_CATALOGS = \[[\s\S]*?)(\];)/,
-    (_match, head, tail) => `${head}  ${catalog},\n${tail}`,
-  );
-}
-
 /** Append the game id to the canonical GAME_TYPES list (order is welded to the registry). */
 export function editGameTypes(content, { gameId }) {
   const file = 'gameTypes.ts';

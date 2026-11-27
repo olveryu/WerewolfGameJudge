@@ -9,6 +9,7 @@ import type {
   WordLibraryItem,
   WordLibraryItems,
 } from '@/features/admin/model/adminContracts';
+import { gameDisplayName } from '@/games/catalog';
 import { log } from '@/utils/logger';
 
 import { CursorPager, DateLabel, StatusBadge } from '../components/Primitives';
@@ -21,7 +22,6 @@ import {
   isUnendorsableSubmission,
   SubmissionStatus,
   SUPPLY_AGENT_NAME,
-  WORD_GAME_LABELS,
 } from './wordLabels';
 
 const libraryLog = log.extend('AdminWordLibrary');
@@ -382,7 +382,7 @@ function LibraryCard({
           <SubmissionStatus status={item.status} />
         </div>
         <p className="admin-library-meta">
-          {WORD_GAME_LABELS[game]} · {item.category} · 来源 {item.agentName} ·{' '}
+          {gameDisplayName(game)} · {item.category} · 来源 {item.agentName} ·{' '}
           <DateLabel value={item.createdAt} />
         </p>
         {item.definition !== null && <p className="admin-library-definition">{item.definition}</p>}

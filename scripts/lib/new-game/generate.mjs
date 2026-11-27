@@ -18,7 +18,6 @@ import {
   editClientModuleLoaders,
   editCompletionRewards,
   editDesignDocIndex,
-  editD1Catalog,
   editDispatchDiscipline,
   editEngineCatalog,
   editEngineContractsTest,
@@ -28,7 +27,6 @@ import {
   editExpectedPackageExports,
   editExpectedPhaseDeadlineVariants,
   editGameTypes,
-  editGameWordGames,
   editGuidanceMatrixRegistry,
   editMigrationManifest,
   editNightCatalogueRegistry,
@@ -118,14 +116,6 @@ export const SHARED_EDITS = [
   {
     file: 'docs/README.md',
     apply: (content, ctx) => editDesignDocIndex(content, ctx),
-  },
-  {
-    file: 'packages/game-engine/src/product/wordSupply/games.ts',
-    apply: (content, ctx) => editGameWordGames(content, ctx),
-  },
-  {
-    file: 'contracts/d1Catalog.contract.test.ts',
-    apply: (content, ctx) => editD1Catalog(content, ctx),
   },
   {
     file: 'packages/game-engine/src/product/rewards/earnings.ts',
