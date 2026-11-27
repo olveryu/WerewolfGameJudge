@@ -597,3 +597,46 @@ it('migration files match the recorded sha256 manifest', () => {
   );
   expect(actual).toEqual(manifest);
 });
+
+/**
+ * D1 caps a LIKE or GLOB pattern at 50 bytes (Cloudflare D1 limits page); node:sqlite's default is
+ * 50,000, so neither the contracts nor the generator's trial run can see it at run time. A pattern
+ * built at run time cannot be measured here, so every pattern must be a literal.
+ */
+const D1_PATTERN_MAX_BYTES = 50;
+const PATTERN_OPERAND = /\b(GLOB|LIKE)\s+('(?:[^']|'')*'|\S+)/gi;
+
+function patternProblems(sql: string): string[] {
+  const problems: string[] = [];
+  for (const match of stripComments(sql).matchAll(PATTERN_OPERAND)) {
+    const operand = captured(match, 2);
+    if (!operand.startsWith("'")) {
+      problems.push(`${captured(match, 1)} ${operand} is not a literal pattern`);
+      continue;
+    }
+    const bytes = Buffer.byteLength(operand.slice(1, -1).replaceAll("''", "'"), 'utf8');
+    if (bytes > D1_PATTERN_MAX_BYTES) {
+      problems.push(
+        `${captured(match, 1)} pattern of ${bytes} bytes exceeds D1's ${D1_PATTERN_MAX_BYTES}`,
+      );
+    }
+  }
+  return problems;
+}
+
+it("every LIKE and GLOB pattern is a literal within D1's 50-byte limit", () => {
+  const problems = listMigrationNames().flatMap((name) =>
+    patternProblems(readMigration(name)).map((problem) => `${name}: ${problem}`),
+  );
+  expect(problems).toEqual([]);
+});
+
+it('flags a computed pattern and a literal over 50 bytes', () => {
+  expect(patternProblems("CHECK (name NOT GLOB ('[' || char(9, 32) || ']*'))")).toEqual([
+    "GLOB ('[' is not a literal pattern",
+  ]);
+  expect(patternProblems(`CHECK (code GLOB '${'[0-9]'.repeat(11)}')`)).toEqual([
+    "GLOB pattern of 55 bytes exceeds D1's 50",
+  ]);
+  expect(patternProblems("CHECK (id NOT GLOB '*[^a-z0-9]*' AND n LIKE 'it''s%')")).toEqual([]);
+});

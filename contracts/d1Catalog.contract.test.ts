@@ -256,16 +256,25 @@ describe('D1 catalog projection', () => {
     });
 
     it(
-      'game ids: one character at the head or inside, and the length bounds',
+      'game ids: one character at the head, inside or at the end, and the length bounds',
       () => {
         database.exec('BEGIN');
         const disagreements: string[] = [];
         for (const character of [...BMP, ...ASTRAL]) {
-          for (const id of [`${character}ab`, `a${character}b`]) {
+          for (const id of [`${character}ab`, `a${character}b`, `ab${character}`]) {
             if (gameIdStored(id) !== isWellFormedGameId(id)) disagreements.push(JSON.stringify(id));
           }
         }
-        for (const id of ['', 'a', 'ab', `a${'b'.repeat(31)}`, `a${'b'.repeat(32)}`, 'a\u0000b']) {
+        for (const id of [
+          '',
+          'a',
+          'ab',
+          `a${'b'.repeat(31)}`,
+          `a${'b'.repeat(32)}`,
+          'a\u0000b',
+          'ab\u0000cd',
+          'ab\u0000!!',
+        ]) {
           if (gameIdStored(id) !== isWellFormedGameId(id)) disagreements.push(JSON.stringify(id));
         }
         database.exec('ROLLBACK');
@@ -275,18 +284,27 @@ describe('D1 catalog projection', () => {
     );
 
     it(
-      'category ids: one character at the head or inside, and the length bounds',
+      'category ids: one character at the head, inside or at the end, and the length bounds',
       () => {
         database.exec('BEGIN');
         const disagreements: string[] = [];
         for (const character of [...BMP, ...ASTRAL]) {
-          for (const id of [`${character}ab`, `a${character}b`]) {
+          for (const id of [`${character}ab`, `a${character}b`, `ab${character}`]) {
             if (categoryStored(id, '探针') !== isWellFormedWordCategoryId(id)) {
               disagreements.push(JSON.stringify(id));
             }
           }
         }
-        for (const id of ['', 'a', 'aB', `a${'b'.repeat(39)}`, `a${'b'.repeat(40)}`, 'a\u0000b']) {
+        for (const id of [
+          '',
+          'a',
+          'aB',
+          `a${'b'.repeat(39)}`,
+          `a${'b'.repeat(40)}`,
+          'a\u0000b',
+          'ab\u0000cd',
+          'ab\u0000!!',
+        ]) {
           if (categoryStored(id, '探针') !== isWellFormedWordCategoryId(id)) {
             disagreements.push(JSON.stringify(id));
           }
