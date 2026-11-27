@@ -28,7 +28,7 @@ function layerName(node: HTMLElement | undefined): string | null {
   if (node === undefined) return null;
   const labelledBy = node.getAttribute('aria-labelledby');
   const title = labelledBy === null ? null : node.ownerDocument.getElementById(labelledBy);
-  return node.dataset.testid ?? node.getAttribute('aria-label') ?? title?.textContent ?? node.id;
+  return node.dataset.testid || node.getAttribute('aria-label') || title?.textContent || node.id;
 }
 
 function preventCascadeDismiss(event: LayerDismissEvent) {

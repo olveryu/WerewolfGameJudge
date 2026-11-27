@@ -1206,6 +1206,62 @@ describe('Client dialogs: one Ark dialog root', () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it('opens no color-picker popover: every ColorPicker.Root is inline', () => {
+    const files = srcFiles.filter((filePath) =>
+      getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes(
+        '@ark-ui/react/color-picker',
+      ),
+    );
+    // Every root of the part, under any local name, must carry `inline`.
+    const offenders = files.flatMap((filePath) => {
+      const sourceFile = ts.createSourceFile(
+        filePath,
+        fs.readFileSync(filePath, 'utf-8'),
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX,
+      );
+      const localNames = sourceFile.statements.flatMap((statement) => {
+        if (
+          !ts.isImportDeclaration(statement) ||
+          !ts.isStringLiteral(statement.moduleSpecifier) ||
+          statement.moduleSpecifier.text !== '@ark-ui/react/color-picker'
+        ) {
+          return [];
+        }
+        const bindings = statement.importClause?.namedBindings;
+        if (bindings === undefined) return [];
+        if (ts.isNamespaceImport(bindings)) return [`${bindings.name.text}.ColorPicker`];
+        return bindings.elements
+          .filter((element) => (element.propertyName ?? element.name).text === 'ColorPicker')
+          .map((element) => element.name.text);
+      });
+      const rootTags = new Set(localNames.map((name) => `${name}.Root`));
+      const roots: ts.JsxAttributes[] = [];
+      const visit = (node: ts.Node): void => {
+        if (
+          (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+          rootTags.has(node.tagName.getText(sourceFile))
+        ) {
+          roots.push(node.attributes);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(sourceFile);
+      return roots
+        .filter(
+          (attributes) =>
+            !attributes.properties.some(
+              (property) =>
+                ts.isJsxAttribute(property) && property.name.getText(sourceFile) === 'inline',
+            ),
+        )
+        .map(() => repoPath(filePath));
+    });
+
+    expect(offenders).toEqual([]);
+  });
 });
 
 describe('Client room creation ownership', () => {
