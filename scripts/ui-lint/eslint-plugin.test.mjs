@@ -428,6 +428,7 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "export const a = <div style={{ clipPath: 'inset(0 round 8px)' }} />;",
         // A filter coefficient is a written number, as an opacity is (P1 QA18 should-fix 1).
         "export const a = <div style={{ filter: 'brightness(0.5)' }} />;",
+        "export const a = <div style={{ filter: 'brightness(92%)' }} />;",
         // A package's key registered as a CSS property is judged as that property (P1 QA18 F1).
         "import { parseColor } from '@ark-ui/react/color-picker'; export const c = parseColor('#f00');",
       ],
@@ -463,6 +464,13 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; const o: Partial<AutoDetectOptions> = {}; Object.assign(o, { autoDensity: true }); void r.init(o);",
         "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; const base = { autoDensity: true }; const o: Partial<AutoDetectOptions> = base; void r.init(o);",
         "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; function go(o: Partial<AutoDetectOptions>) { void r.init(o); } go({});",
+        // A container is looked through to what it hands on: a spread array or tuple, an array
+        // element, a callback's returned value (P1 QA21 F1).
+        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; const base = { autoDensity: true }; void r.init(...[base]);",
+        "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; declare const t: [Partial<AutoDetectOptions>]; void r.init(...t);",
+        "import { init } from '@sentry/react'; const integ = { name: 'q', setupOnce() {} }; init({ dsn: '', integrations: [integ] });",
+        "import { init } from '@sentry/react'; const integ = { name: 'q', setupOnce() {} }; init({ dsn: '', integrations: () => [integ] });",
+        "import { FillGradient } from 'pixi.js'; const stops = [{ offset: 0, color: 'red' }]; export const g = new FillGradient({ colorStops: stops });",
         "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; declare const raw: unknown; export const a = <Toaster position={(raw as ComponentProps<typeof Toaster>).position} />;",
       ],
       'handover',

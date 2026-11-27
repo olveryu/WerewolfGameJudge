@@ -439,6 +439,18 @@ export const DOMAINS = Object.freeze({
     ],
     colors: true,
     units: ['%', 'deg', 'turn'],
+    /**
+     * A filter's arguments are tokens or zero (v3.14 S2): its coefficient hard-coded is a design
+     * value, written `0.92` or `92%` alike (P1 QA21 F2), and its lengths are tokens.
+     */
+    functionUnits: {
+      blur: [],
+      brightness: [],
+      contrast: [],
+      'drop-shadow': [],
+      grayscale: [],
+      saturate: [],
+    },
     functions: [
       'url',
       'image-set',
@@ -1111,6 +1123,10 @@ export const PACKAGE_PROPS = Object.freeze({
   zod: { all: 'plain', why: 'validation; renders nothing' },
   'pinyin-pro': { all: 'plain', why: 'text conversion; renders nothing' },
   msw: { all: 'plain', why: 'admin mock worker; renders nothing' },
+  '@mswjs/interceptors': {
+    all: 'plain',
+    why: 'the responses the msw admin mock worker answers with; renders nothing',
+  },
   vite: { all: 'plain', why: '`import.meta.glob` options, read at build time' },
   '@types/node': { all: 'plain', why: 'timers; render nothing' },
   '@types/react-dom': { all: 'plain', why: '`createRoot`; renders what we render' },
@@ -1125,6 +1141,8 @@ export const PACKAGE_PROPS = Object.freeze({
   '@types/react': {
     keys: {
       ...plain([
+        // The module record `lazy` loads: a component, judged where it renders.
+        'default',
         'ActionDispatch(args)',
         'Dispatch(value)',
         'ProviderProps.value',
@@ -1498,6 +1516,9 @@ export const PACKAGE_PROPS = Object.freeze({
       'NavigateOptions.state',
       'NavigateProps.replace',
       'NavigateProps.to',
+      // A route literal's discriminant: TypeScript may resolve its keys to either member.
+      'IndexRouteObject.children',
+      'IndexRouteObject.index',
       'NonIndexRouteObject.children',
       'NonIndexRouteObject.index',
       'PathRouteProps.element',

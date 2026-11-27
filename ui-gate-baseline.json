@@ -20,6 +20,9 @@
       "ui/value-allowlist\t\t.preview-controls\tz-index: 1;",
       "ui/value-allowlist\t\t.preview-controls input\twidth: 5rem;"
     ],
+    "packages/web/src/app/router.ts": [
+      "ui/inline-style-keys\thandover\trouter\texport const router = createSentryBrowserRouter(routes);"
+    ],
     "packages/web/src/boot/WechatBrowserGuide.css": [
       "ui/value-allowlist\t\t.wechat-guide-arrow\tanimation: wechat-guide-bounce 1.5s ease-in-out infinite;",
       "ui/value-allowlist\t\t.wechat-guide-desc\topacity: 0.7;",
@@ -1522,6 +1525,11 @@
       "ui/inline-style-keys\tuntracked\tVortexCollapse > <div> > <div> > transform\ttransform: `scale(${reducedMotion ? 1 : 0})`,",
       "ui/inline-style-keys\tuntracked\tVortexCollapse > <div> > background\tstyle={{ position: 'absolute', inset: 0, background: BG_GRADIENT }}"
     ],
+    "packages/web/src/features/room/components/RoleRevealEffects/pixi/kit.ts": [
+      "ui/inline-style-keys\thandover\tlinearGradient > colorStops\tcolorStops: colorStops(colors, offsets),",
+      "ui/inline-style-keys\thandover\tradialGradient > colorStops\tcolorStops: colorStops(colors, offsets),",
+      "ui/inline-style-keys\thandover\tshapeRadialGradient > colorStops\tcolorStops: colorStops(colors, offsets),"
+    ],
     "packages/web/src/features/room/components/RoleRevealEffects/runtime.ts": [
       "ui/inline-style-keys\tuntracked\tuseFrameStyle\tif (style.opacity !== undefined) element.style.opacity = String(style.opacity);",
       "ui/inline-style-keys\tuntracked\tuseFrameStyle\tif (style.transform !== undefined) element.style.transform = style.transform;"
@@ -1918,6 +1926,9 @@
       "ui/value-allowlist\t\tbody\t-webkit-text-size-adjust: 100%;",
       "ui/value-allowlist\t\tbody\tsans-serif;",
       "ui/value-allowlist\t\tbody\tsystem-ui,"
+    ],
+    "packages/web/src/instrument.ts": [
+      "ui/inline-style-keys\thandover\tintegrations\tintegrations: [reactRouterBrowserTracingIntegration()],"
     ],
     "packages/web/src/routes/admin/AdminShell.tsx": [
       "ui/inline-style-keys\tuntracked\tAdminShell > measure\t`${element.getBoundingClientRect().height}px`,"

@@ -114,7 +114,10 @@ function valueProblems(
     const number = valueParser.unit(text);
     if (number) {
       if (number.unit === '') return !inMath && unitless(domain, fn);
-      return Boolean(domain.units?.includes(number.unit.toLowerCase()));
+      // A function may take fewer units than its domain (P1 QA21 F2): a filter's coefficient
+      // or length is a token, never `92%`, though a gradient stop may be a percentage.
+      const units = domain.functionUnits?.[fn?.toLowerCase()] ?? domain.units;
+      return Boolean(units?.includes(number.unit.toLowerCase()));
     }
     if (!domain.idents || text.startsWith('#') || !IDENT.test(text)) return false;
     if (animation && !ANIMATION_KEYWORDS.has(lower) && !keyframes.has(text)) {

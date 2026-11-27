@@ -728,6 +728,14 @@ exports[`UI gate registry > pins DOMAINS exactly 1`] = `
   },
   "paint": {
     "colors": true,
+    "functionUnits": {
+      "blur": [],
+      "brightness": [],
+      "contrast": [],
+      "drop-shadow": [],
+      "grayscale": [],
+      "saturate": [],
+    },
     "functions": [
       "url",
       "image-set",
@@ -1171,6 +1179,10 @@ exports[`UI gate registry > pins PACKAGE_PROPS exactly 1`] = `
       "RenderStrategyProps.unmountOnExit": "plain",
     },
   },
+  "@mswjs/interceptors": {
+    "all": "plain",
+    "why": "the responses the msw admin mock worker answers with; renders nothing",
+  },
   "@sentry/core": {
     "keys": {
       "ClientOptions.denyUrls": "plain",
@@ -1237,6 +1249,7 @@ exports[`UI gate registry > pins PACKAGE_PROPS exactly 1`] = `
       "createContext(defaultValue)": "plain",
       "createElement(props)": "options",
       "createElement(type)": "plain",
+      "default": "plain",
       "lazy(load)": "plain",
       "memo(Component)": "plain",
       "use(usable)": "plain",
@@ -1538,6 +1551,8 @@ exports[`UI gate registry > pins PACKAGE_PROPS exactly 1`] = `
       "BaseRouteObject.element": "plain",
       "BaseRouteObject.errorElement": "plain",
       "BaseRouteObject.path": "plain",
+      "IndexRouteObject.children": "plain",
+      "IndexRouteObject.index": "plain",
       "LinkProps.replace": "plain",
       "LinkProps.to": "plain",
       "MemoryRouterProps.initialEntries": "plain",

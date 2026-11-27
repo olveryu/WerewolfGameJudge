@@ -971,20 +971,42 @@ const inlineStyleKeys = {
     /**
      * The first key a package reads as other than `plain` among the bags of options `into`
      * accepts, or undefined. A bag is a member that is not a primitive, a function, a nominal
-     * class instance or an ES/DOM library type: an object a value could fill structurally.
+     * class instance or an ES/DOM library type: an object a value could fill structurally. A
+     * container is looked through to what it hands on (P1 QA21 F1): an array or tuple to its
+     * elements, a promise to what it settles to, a function to what it returns.
      */
-    const bagKey = (into) => {
+    const bagKey = (into, seen = new Set()) => {
       for (const member of members(checker.getApparentType(into))) {
-        if (
-          member.flags & ts.TypeFlags.Primitive ||
-          member.getCallSignatures().length > 0 ||
+        // A style object is judged at every place it lands (`intoStyle`), not as a bag of options.
+        if (seen.has(member) || member.flags & ts.TypeFlags.Primitive || isCssProperties(member))
+          continue;
+        seen.add(member);
+        const held = [];
+        if (checker.isArrayType(member) || checker.isTupleType(member))
+          held.push(...checker.getTypeArguments(member));
+        else if (checker.getAwaitedType(member) !== member)
+          held.push(checker.getAwaitedType(member));
+        else if (member.getCallSignatures().length > 0)
+          held.push(
+            ...member
+              .getCallSignatures()
+              .map((signature) => checker.getReturnTypeOfSignature(signature)),
+          );
+        else if (
           member.getConstructSignatures().length > 0 ||
           isNominalClass(member) ||
           isLibraryInterface(member)
         )
           continue;
-        const key = foreignKey(member);
-        if (key !== undefined) return key;
+        else {
+          const key = foreignKey(member);
+          if (key !== undefined) return key;
+          continue;
+        }
+        for (const type of held) {
+          const key = type === undefined ? undefined : bagKey(type, seen);
+          if (key !== undefined) return key;
+        }
       }
       return undefined;
     };
@@ -1009,6 +1031,31 @@ const inlineStyleKeys = {
       members(services.getTypeAtLocation(expression)).every(
         (type) => (type.flags & (ts.TypeFlags.Primitive | ts.TypeFlags.Never)) !== 0,
       );
+    /**
+     * The one judgement of a value handed to a position whose type takes a bag of options a
+     * package reads keys of (`bagKey`), at every place a value lands: a plain key or argument, a
+     * spread argument, an array element, a returned value. Only what is written out here
+     * passes: an object literal (its keys judged where written, `Property`), an array literal or
+     * function (their elements and returned values judged where they land), a literal or a
+     * primitive. Any other value hides its keys and is reported, whatever it came from.
+     */
+    const handOver = (expression) => {
+      const value = strip(expression);
+      if (
+        [
+          'ObjectExpression',
+          'ArrayExpression',
+          'ArrowFunctionExpression',
+          'FunctionExpression',
+        ].includes(value.type) ||
+        isPrimitive(expression)
+      )
+        return;
+      const into = checker.getContextualType(toTs(expression));
+      const key = into === undefined ? undefined : bagKey(into);
+      if (key !== undefined)
+        context.report({ node: expression, messageId: 'handover', data: { key } });
+    };
     /**
      * A prop or option key we hand to code that is not ours to check, by where it is declared
      * (`propSource`): our own is checked where it lands; a React DOM attribute is judged as the
@@ -1037,14 +1084,8 @@ const inlineStyleKeys = {
       if (expression === null) return;
       if (source.meaning === 'plain') {
         // A plain key whose type also takes a bag of options a package reads keys of
-        // (`init(options)`, `fill(style)`): any value that is not a primitive must be an object
-        // literal written here, whose keys are judged where written. Where the value came from
-        // is never followed: a binding, a call, an instance or an assertion hides its keys.
-        if (strip(expression).type === 'ObjectExpression' || isPrimitive(expression)) return;
-        const into = checker.getContextualType(toTs(expression));
-        const key = into === undefined ? undefined : bagKey(into);
-        if (key !== undefined)
-          context.report({ node: expression, messageId: 'handover', data: { key } });
+        // (`init(options)`, `fill(style)`): judged as any handed value (`handOver`).
+        handOver(expression);
         return;
       }
       if (source.meaning === 'options') {
@@ -1275,9 +1316,12 @@ const inlineStyleKeys = {
       },
       ReturnStatement(node) {
         intoStyle(node.argument);
+        if (node.argument !== null) handOver(node.argument);
       },
       ArrowFunctionExpression(node) {
-        if (node.body.type !== 'BlockStatement') intoStyle(node.body);
+        if (node.body.type === 'BlockStatement') return;
+        intoStyle(node.body);
+        handOver(node.body);
       },
       NewExpression(node) {
         for (const argument of node.arguments) intoStyle(argument);
@@ -1339,6 +1383,16 @@ const inlineStyleKeys = {
                 messageId: 'handover',
                 data: { key: `${key} (${target.pkg})` },
               });
+            else {
+              // Its elements land on no written position, literal or not: the parameters it fills
+              // must take no bag of options a package reads (P1 QA21 F1).
+              const bag = (checker.getResolvedSignature(toTs(node))?.getParameters() ?? [])
+                .slice(index)
+                .map((parameter) => bagKey(checker.getTypeAtLocation(parameter.valueDeclaration)))
+                .find((key) => key !== undefined);
+              if (bag !== undefined)
+                context.report({ node: argument, messageId: 'handover', data: { key: bag } });
+            }
             return;
           }
           checkKey(
@@ -1392,7 +1446,11 @@ const inlineStyleKeys = {
           });
       },
       ArrayExpression(node) {
-        for (const element of node.elements) intoStyle(element);
+        for (const element of node.elements) {
+          intoStyle(element);
+          if (element !== null)
+            handOver(element.type === 'SpreadElement' ? element.argument : element);
+        }
       },
       JSXExpressionContainer(node) {
         intoStyle(node.expression);

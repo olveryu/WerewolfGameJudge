@@ -144,6 +144,10 @@ const RED = [
   'a { clip-path: inset(13px); }',
   'a { clip-path: circle(40px at 50% 50%); }',
   'a { filter: brightness(0.92); }',
+  // Written as a percentage alike (P1 QA21 F2).
+  'a { filter: brightness(92%); }',
+  'a { filter: saturate(150%) contrast(37%) grayscale(37%); }',
+  'a { backdrop-filter: brightness(50%); }',
   'a { border-r\\61 dius: 50%; }',
   'a { mystery-property: 1; }',
   '@property --x { syntax: "<length>"; inherits: false; initial-value: 13px; }',
