@@ -2066,6 +2066,30 @@ it('a migration that fails to replay is reported with its file and the original 
   );
 });
 
+it('a malformed category list is reported as an input error, not a hand-written migration', () => {
+  const migrationsDir = path.join(REPO_ROOT, 'packages/api-worker/migrations');
+  const database = replayMigrations(migrationsDir);
+  const codeGameTypes = readGameTypeRows(database);
+  database.close();
+  assert.throws(
+    () =>
+      planRegistrationMigration({
+        migrationsDir,
+        gameId: 'newprobe',
+        displayName: 'Probe',
+        codeGameTypes,
+        includeStatsTable: false,
+        wordCategories: [{ id: 'Bad', name: '动物' }],
+      }),
+    (error) => {
+      assert.match(error.message, /has a malformed id "Bad"/);
+      assert.match(error.message, /Fix the --word-category list/);
+      assert.doesNotMatch(error.message, /Write this migration by hand/);
+      return true;
+    },
+  );
+});
+
 it('preflight reports an existing id, a stale stats table, drift and an inconsistent category list', () => {
   const database = replayMigrations(path.join(REPO_ROOT, 'packages/api-worker/migrations'));
   try {
