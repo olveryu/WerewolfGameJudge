@@ -64,6 +64,10 @@
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"
     },
+    "./platform/protocol/catalogIds": {
+      "types": "./src/platform/protocol/catalogIds.ts",
+      "default": "./dist/platform/protocol/catalogIds.js"
+    },
     "./platform/protocol/commandResult": {
       "types": "./src/platform/protocol/commandResult.ts",
       "default": "./dist/platform/protocol/commandResult.js"

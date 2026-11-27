@@ -32,7 +32,7 @@ A multi-game judge app for in-person play: a React web client that runs in brows
 
 The client was rewritten per `docs/web-client-rewrite.md`; every game has a statically imported factory in `CLIENT_GAME_FACTORIES` (`packages/web/src/games/clientModules.tsx`), with sessions initialized on demand.
 
-Versions: React `^19.3.1`, Vite `^8.3.8`, React Router `^8.5.1` (web package); TypeScript `~6.0.3` (root and web package); Vitest `~4.1.10` and Zod `^4.4.3` (root and every package); ESLint `^9.39.4`, Turbo `^2.11.7` (root); Node `>=22.13.0` (`.nvmrc` pins `22.22.1`), pnpm `10.32.1`.
+Versions: React `^19.3.1`, Vite `^8.3.8`, React Router `^8.5.1` (web package); TypeScript `~6.0.3` (root and web package); Vitest `~4.1.10` and Zod `^4.4.3` (root and every package); ESLint `^9.39.4`, Turbo `^2.11.7` (root); Node `>=22.18.0` (`.nvmrc` pins `22.22.1`; 22.18 is the first with default type stripping, which `scripts/new-game` uses to import the engine's catalog id rules), pnpm `10.32.1`.
 
 TypeScript strictness is per config: the root and web configs set `strict` and `noUncheckedIndexedAccess`; the game-engine build config and the worker config set `strict` only.
 

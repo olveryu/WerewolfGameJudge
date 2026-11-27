@@ -18,7 +18,7 @@ This guide documents the official production path for the Cloudflare Worker API,
 
 ### Toolchain
 
-- Node.js `22.22.1` from `.nvmrc`; `package.json` accepts Node.js `>=22.13.0`.
+- Node.js `22.22.1` from `.nvmrc`; `package.json` accepts Node.js `>=22.18.0` (default type stripping, used by `scripts/new-game`).
 - pnpm `10.32.1` through the `packageManager` field.
 - Wrangler is a workspace dependency. Do not install a separate global copy.
 

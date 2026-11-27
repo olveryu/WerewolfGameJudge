@@ -12,13 +12,16 @@
  * pure: same input, same output, no filesystem access.
  */
 
-const GAME_ID_PATTERN = /^[a-z][a-z0-9]*$/;
+import {
+  GAME_ID_RULE,
+  isWellFormedGameId,
+} from '../../../packages/game-engine/src/platform/protocol/catalogIds.ts';
 
-/** Validate a game id against the canonical shape used by GAME_TYPES. */
+/** Validate a game id against the engine's game id rule (the game_types.id CHECK projects it). */
 export function assertValidGameId(gameId) {
-  if (typeof gameId !== 'string' || !GAME_ID_PATTERN.test(gameId)) {
+  if (typeof gameId !== 'string' || !isWellFormedGameId(gameId)) {
     throw new Error(
-      `Invalid game id "${String(gameId)}": expected lowercase letters/digits starting with a letter (e.g. "demoproto").`,
+      `Invalid game id "${String(gameId)}": expected ${GAME_ID_RULE} (e.g. "demoproto").`,
     );
   }
 }

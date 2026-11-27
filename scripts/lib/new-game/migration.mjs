@@ -25,6 +25,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
+import { wordCategoryListProblems } from '../../../packages/game-engine/src/platform/protocol/catalogIds.ts';
+
 export const MIGRATIONS_RELATIVE_DIR = 'packages/api-worker/migrations';
 
 const HAND_WRITTEN_GUIDANCE = [
@@ -136,42 +138,23 @@ export function findHardCodedGameLists(database, knownGames) {
   return findings;
 }
 
-/** Validate the approved category list the same way `defineWordCategoryCatalog` does. */
+/**
+ * Validate the approved category list with the engine's own rule (`wordCategoryListProblems`,
+ * which `defineWordCategoryCatalog` throws on), so the generator never writes a catalog that
+ * fails at module load or rows the word_categories CHECKs reject.
+ */
 function wordCategoryProblems(gameId, categories) {
-  if (!Array.isArray(categories) || categories.length === 0) {
-    return [`word library for '${gameId}' needs a non-empty approved category list`];
+  const untyped = categories.filter(
+    (entry) => typeof entry.id !== 'string' || typeof entry.name !== 'string',
+  );
+  if (untyped.length > 0) {
+    return untyped.map(
+      (entry) => `word category ${JSON.stringify(entry)} of '${gameId}' needs string id and name`,
+    );
   }
-  const problems = [];
-  const ids = new Set();
-  const names = new Set();
-  for (const entry of categories) {
-    const { id, name } = entry;
-    if (typeof id !== 'string' || typeof name !== 'string') {
-      problems.push(
-        `word category ${JSON.stringify(entry)} of '${gameId}' needs string id and name`,
-      );
-      continue;
-    }
-    if (id.trim() === '' || name.trim() === '' || id !== id.trim() || name !== name.trim()) {
-      problems.push(
-        `word category ${JSON.stringify(entry)} of '${gameId}' has a blank or padded id or name`,
-      );
-      continue;
-    }
-    // Category ids are TS identifiers in the generated wordCategories.ts and word_categories ids:
-    // lowercase first letter, letters and digits only (camelCase like sportsAndGames).
-    if (!/^[a-z][a-zA-Z0-9]*$/.test(id)) {
-      problems.push(
-        `word category id "${id}" of '${gameId}' must start lowercase and contain only letters and digits`,
-      );
-      continue;
-    }
-    if (ids.has(id)) problems.push(`word category id "${id}" of '${gameId}' is repeated`);
-    if (names.has(name)) problems.push(`word category name "${name}" of '${gameId}' is repeated`);
-    ids.add(id);
-    names.add(name);
-  }
-  return problems;
+  return wordCategoryListProblems(categories).map(
+    (problem) => `word category list of '${gameId}' ${problem}`,
+  );
 }
 
 /** Every reason the registration cannot be a plain insert against this schema. */

@@ -4,6 +4,7 @@
  * contract is a separate, exhaustive registration: GAME_WORD_GAMES plus WORD_CATEGORY_CATALOGS
  * (games/wordCategoryCatalogs.ts), keyed by GameWordGame.
  */
+import { wordCategoryListProblems } from '../../platform/protocol/catalogIds';
 import type { GameType } from '../../platform/protocol/gameTypes';
 
 export interface WordCategoryEntry<Id extends string> {
@@ -29,36 +30,22 @@ function hasEveryName<Id extends string>(
   return ids.every((id) => typeof names[id] === 'string');
 }
 
-/** Builds a catalog, failing at module load on an empty, blank, or duplicate id or name. */
+/**
+ * Builds a catalog, failing at module load when `wordCategoryListProblems` (the single id and
+ * name rule, projected into D1 by the 0095 CHECKs) finds anything.
+ */
 export function defineWordCategoryCatalog<const Game extends GameType, const Id extends string>(
   game: Game,
   entries: NonEmpty<WordCategoryEntry<Id>>,
 ): WordCategoryCatalog<Game, Id> {
+  const problems = wordCategoryListProblems(entries);
+  if (problems.length > 0) {
+    throw new Error(`${game} word category catalog ${problems.join('; ')}`);
+  }
   const [first, ...rest] = entries;
   const ids: NonEmpty<Id> = [first.id, ...rest.map((entry) => entry.id)];
-  const seenIds = new Set<string>();
-  const seenNames = new Set<string>();
   const names: Partial<Record<Id, string>> = {};
-  for (const entry of entries) {
-    if (entry.id.trim() === '' || entry.name.trim() === '') {
-      throw new Error(`${game} word category catalog has a blank id or name`);
-    }
-    // Ids are word_categories ids and TS identifiers: lowercase first letter, letters and digits only.
-    if (!/^[a-z][a-zA-Z0-9]*$/.test(entry.id)) {
-      throw new Error(
-        `${game} word category catalog has an invalid id "${entry.id}" (lowercase first letter, letters and digits only)`,
-      );
-    }
-    if (seenIds.has(entry.id)) {
-      throw new Error(`${game} word category catalog repeats id "${entry.id}"`);
-    }
-    if (seenNames.has(entry.name)) {
-      throw new Error(`${game} word category catalog repeats name "${entry.name}"`);
-    }
-    seenIds.add(entry.id);
-    seenNames.add(entry.name);
-    names[entry.id] = entry.name;
-  }
+  for (const entry of entries) names[entry.id] = entry.name;
   if (!hasEveryName(names, ids)) {
     throw new Error(`${game} word category catalog is missing a name`);
   }
