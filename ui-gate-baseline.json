@@ -2279,6 +2279,9 @@
       "ui/inline-style-keys\tprop\tSceneStage > fitCanvas\tthis.surface.renderer.resize(target.clientWidth, target.clientHeight);",
       "ui/inline-style-keys\tprop\tcreateSceneRenderer > autoDensity\tautoDensity: true,"
     ],
+    "packages/web/src/scene/stageEntrance.ts": [
+      "ui/inline-style-keys\thandover\tLayerView > view\treadonly view = new Graphics(this.context);"
+    ],
     "packages/web/src/theme/colors.ts": [
       "ui/dom-allowlist\tname\tapplyColorTokens\troot.style.setProperty(",
       "ui/dom-allowlist\tname\tapplyColorTokens\troot.style.setProperty(toCustomPropertyName('color', token), value);",

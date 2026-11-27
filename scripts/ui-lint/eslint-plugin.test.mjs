@@ -457,6 +457,12 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; declare const K: 'backgroundColor'; void snapdom.toCanvas(el, { [K]: '#f00' });",
         "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; const cfg = { autoDensity: true, width: 400 }; void r.init(cfg);",
         "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; declare const o: object; void r.init(o);",
+        // Where the object came from is never followed: an instance, an object filled by
+        // `Object.assign`, a typed binding or a forwarding function all hide its keys (P1 QA20 F1).
+        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; class Opts { autoDensity = true; } void r.init(new Opts());",
+        "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; const o: Partial<AutoDetectOptions> = {}; Object.assign(o, { autoDensity: true }); void r.init(o);",
+        "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; const base = { autoDensity: true }; const o: Partial<AutoDetectOptions> = base; void r.init(o);",
+        "import type { WebGLRenderer, AutoDetectOptions } from 'pixi.js'; declare const r: WebGLRenderer; function go(o: Partial<AutoDetectOptions>) { void r.init(o); } go({});",
         "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; declare const raw: unknown; export const a = <Toaster position={(raw as ComponentProps<typeof Toaster>).position} />;",
       ],
       'handover',

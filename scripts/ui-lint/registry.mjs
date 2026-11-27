@@ -1115,6 +1115,10 @@ export const PACKAGE_PROPS = Object.freeze({
   '@types/node': { all: 'plain', why: 'timers; render nothing' },
   '@types/react-dom': { all: 'plain', why: '`createRoot`; renders what we render' },
   '@zag-js/color-utils': { all: 'plain', why: 'colour conversion of a value judged where written' },
+  colord: {
+    all: 'plain',
+    why: 'colour objects (`HslColor`, …) Pixi accepts as fill colours: canvas content (U7)',
+  },
   uqr: { all: 'plain', why: 'QR matrix encoding; the code is drawn by Ark from our CSS' },
   // Hooks, context, refs, `memo`, `lazy`, `Suspense`. `createElement`'s props are an options
   // object: each key is judged as a prop of the component it is handed to.
@@ -1154,7 +1158,21 @@ export const PACKAGE_PROPS = Object.freeze({
       ]),
       'createElement(props)': 'options',
       // A React element handed on as content (`element={<Page />}`), judged where written.
-      ...plain(['ReactElement.key', 'ReactElement.props', 'ReactElement.type']),
+      ...plain([
+        'ReactElement.key',
+        'ReactElement.props',
+        'ReactElement.type',
+        'ReactPortal.children',
+        // A promise handed to `use`, whose settlement React reads.
+        'FulfilledReactPromise.status',
+        'FulfilledReactPromise.value',
+        'PendingReactPromise.status',
+        'RejectedReactPromise.reason',
+        'RejectedReactPromise.status',
+        'UntrackedReactPromise.reason',
+        'UntrackedReactPromise.status',
+        'UntrackedReactPromise.value',
+      ]),
     },
   },
   // Error reporting. The Feedback widget (`feedbackIntegration`), which paints our colours into
@@ -1193,10 +1211,40 @@ export const PACKAGE_PROPS = Object.freeze({
   },
   // Pixi draws into its own canvas: shape geometry, colours and filters are canvas content (U7).
   // Not registered, so reported: `ViewSystemOptions.autoDensity` and `AbstractRenderer.resize`,
-  // which with it write the canvas element's CSS box size; and `DOMContainer`, which writes our
-  // element's `transform`/`opacity`, may not be imported at all (eslint.gate.mjs).
+  // which with it write the canvas element's CSS box size; and `DOMContainer`'s options and
+  // `element`, the element of ours whose `transform`/`opacity` it writes.
   'pixi.js': {
     keys: plain([
+      // A canvas, fill style or fill pattern of ours handed to Pixi as a surface or fill: canvas
+      // content (U7). A canvas's `style` is written only with `autoDensity`, not registered.
+      'FillStyle.alpha',
+      'FillStyle.matrix',
+      'FillStyle.texture',
+      'FillStyle.textureSpace',
+      'OffscreenCanvas.getContext',
+      'StrokeAttributes.pixelLine',
+      'FillPattern._texture',
+      'FillPattern._tick',
+      'FillPattern.destroy',
+      'FillPattern.setTransform',
+      'FillPattern.styleKey',
+      'FillPattern.texture',
+      'FillPattern.textureSpace',
+      'FillPattern.transform',
+      'FillPattern.uid',
+      'HTMLCanvasElement.getContext',
+      'ICanvas.addEventListener',
+      'ICanvas.convertToBlob',
+      'ICanvas.dispatchEvent',
+      'ICanvas.getBoundingClientRect',
+      'ICanvas.getContext',
+      'ICanvas.height',
+      'ICanvas.parentNode',
+      'ICanvas.removeEventListener',
+      'ICanvas.style',
+      'ICanvas.toBlob',
+      'ICanvas.toDataURL',
+      'ICanvas.width',
       'AbstractRenderer.destroy(options)',
       'AbstractRenderer.init(options)',
       'AbstractRenderer.render(options)',
@@ -1400,6 +1448,38 @@ export const PACKAGE_PROPS = Object.freeze({
   // Routing: paths, navigation options, route elements and a NavLink's class name.
   'react-router': {
     keys: plain([
+      // Navigation options and the router object `createBrowserRouter` makes.
+      'NavigateOptions.defaultShouldRevalidate',
+      'NavigateOptions.mask',
+      'NavigateOptions.preventScrollReset',
+      'NavigateOptions.relative',
+      'NavigateOptions.viewTransition',
+      'Router._internalFetchControllers',
+      'Router._internalSetRoutes',
+      'Router._internalSetStateDoNotUseOrYouWillBreakYourApp',
+      'Router.basename',
+      'Router.createHref',
+      'Router.createURL',
+      'Router.deleteBlocker',
+      'Router.deleteFetcher',
+      'Router.dispose',
+      'Router.enableScrollRestoration',
+      'Router.encodeLocation',
+      'Router.fetch',
+      'Router.future',
+      'Router.getBlocker',
+      'Router.getFetcher',
+      'Router.initialize',
+      'Router.manifest',
+      'Router.match',
+      'Router.navigate',
+      'Router.patchRoutes',
+      'Router.resetFetcher',
+      'Router.revalidate',
+      'Router.routes',
+      'Router.state',
+      'Router.subscribe',
+      'Router.window',
       'BaseRouteObject.Component',
       'BaseRouteObject.ErrorBoundary',
       'BaseRouteObject.element',

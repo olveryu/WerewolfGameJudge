@@ -642,8 +642,6 @@ function callee(call, checker, program) {
   if (site === undefined || program.isSourceFileDefaultLibrary(site.getSourceFile())) return null;
   const pkg = packageOf(site);
   if (pkg === undefined) return null;
-  // A function or method has its own name; a signature in a type (`(message) => …`) takes the
-  // name of what declares it (a variable, property or type alias).
   // A function or method is named by its own declaration; a signature in a type
   // (`(message) => …`) by the nearest declaration with a name (a variable, property, alias).
   let owner = site;
@@ -824,7 +822,7 @@ const inlineStyleKeys = {
         'This DOM method writes a style value; call it directly so its value is checked (UI gate E4).',
       prop: '`{{name}}` is declared by `{{pkg}}` and not registered in `PACKAGE_PROPS`: a value handed to a third-party API can reach the page as a style the gate does not see. Register it as `plain` (behaviour or content), `options` (an object whose keys are registered in turn) or with the CSS property its value is (UI gate E4, scripts/ui-lint/registry.mjs).',
       handover:
-        'This value is handed to a type with keys a package reads (`{{key}}`), but its keys are not written out here (a spread, a binding, a call or a computed key), so none of them can be judged: write each key as a literal property or attribute here, each judged by its PACKAGE_PROPS registration in scripts/ui-lint/registry.mjs (UI gate E4, P1 QA19 F1).',
+        'This value is handed to a type with keys a package reads (`{{key}}`), but its keys are not written out here (a spread, a binding, a call or a computed key), so none of them can be judged: write each key as a literal property or attribute here, each judged by its PACKAGE_PROPS registration in scripts/ui-lint/registry.mjs (UI gate E4).',
       options:
         '`{{name}}` of `{{pkg}}` takes an object some of whose keys reach the page as styles (`PACKAGE_PROPS`), and it is not an object literal here, so its keys are not shown: write the object literal at this call (UI gate E4).',
       alias:
@@ -950,45 +948,67 @@ const inlineStyleKeys = {
     };
     const hasForeignKeys = (type) => foreignKey(type) !== undefined;
     /**
-     * The first key a value handed over unwritten (a binding, a call) may carry into `into` that
-     * a package reads as other than `plain`, by the keys of the value's type, or a description
-     * when its keys cannot be listed (`any`, `object`, an index signature). A value that carries
-     * no keys of its own (a literal, a primitive, a function or class, an instance of a class) or
-     * whose type a package or library declares (made by the package, or a literal typed as its
-     * type, whose keys `Property` judged where written) is not a bag we wrote; undefined when
-     * none.
+     * Whether a class type is nominal: one with a private or protected member, which TypeScript
+     * accepts only as an instance of that class (never an object we write structurally), so its
+     * keys were set through judged entry points (its constructor, member writes).
      */
-    const handedKey = (expression, into) => {
-      if (['Literal', 'TemplateLiteral'].includes(strip(expression).type)) return undefined;
-      for (const type of members(checker.getApparentType(services.getTypeAtLocation(expression)))) {
-        const symbol = type.aliasSymbol ?? type.getSymbol();
-        if (
-          type.flags & (ts.TypeFlags.Primitive | ts.TypeFlags.Never) ||
-          type.getCallSignatures().length > 0 ||
-          type.getConstructSignatures().length > 0 ||
-          (symbol !== undefined && symbol.flags & ts.SymbolFlags.Class) ||
-          // A type a package or a library declares: an object the package made, or a literal
-          // typed as the package's type, whose keys were judged where written (`Property`).
-          symbol?.declarations?.some(
-            (site) =>
-              services.program.isSourceFileDefaultLibrary(site.getSourceFile()) ||
-              packageOf(site) !== undefined,
+    const isNominalClass = (type) => {
+      const symbol = type.getSymbol();
+      return (
+        symbol !== undefined &&
+        (symbol.flags & ts.SymbolFlags.Class) !== 0 &&
+        checker
+          .getPropertiesOfType(type)
+          .some((property) =>
+            property.declarations?.some(
+              (site) =>
+                ts.getCombinedModifierFlags(site) &
+                (ts.ModifierFlags.Private | ts.ModifierFlags.Protected),
+            ),
           )
+      );
+    };
+    /**
+     * The first key a package reads as other than `plain` among the bags of options `into`
+     * accepts, or undefined. A bag is a member that is not a primitive, a function, a nominal
+     * class instance or an ES/DOM library type: an object a value could fill structurally.
+     */
+    const bagKey = (into) => {
+      for (const member of members(checker.getApparentType(into))) {
+        if (
+          member.flags & ts.TypeFlags.Primitive ||
+          member.getCallSignatures().length > 0 ||
+          member.getConstructSignatures().length > 0 ||
+          isNominalClass(member) ||
+          isLibraryInterface(member)
         )
           continue;
-        const properties = checker.getPropertiesOfType(type);
-        if (properties.length === 0 || checker.getIndexInfosOfType(type).length > 0)
-          return `${checker.typeToString(type)}: its keys cannot be listed`;
-        for (const property of properties) {
-          const source = propSource(into, property.name, checker, services.program);
-          if (source === null || source.own || source.meaning === 'plain') continue;
-          return source.react !== undefined
-            ? `${source.react}.${property.name} (@types/react)`
-            : `${source.key} (${source.pkg})`;
-        }
+        const key = foreignKey(member);
+        if (key !== undefined) return key;
       }
       return undefined;
     };
+    /**
+     * Whether a type is an ES or DOM library interface or class (`Array`, `Promise`, `Node`): its
+     * keys are the library's, never a package's options. A mapped or anonymous type the library
+     * only shapes (`Partial<…>`) is not.
+     */
+    const isLibraryInterface = (type) => {
+      const symbol = type.getSymbol();
+      return (
+        symbol !== undefined &&
+        (symbol.flags & (ts.SymbolFlags.Interface | ts.SymbolFlags.Class)) !== 0 &&
+        symbol.declarations?.every((site) =>
+          services.program.isSourceFileDefaultLibrary(site.getSourceFile()),
+        ) === true
+      );
+    };
+    /** Whether a value is a literal or its type is primitive (a string, number, null, …): no keys. */
+    const isPrimitive = (expression) =>
+      ['Literal', 'TemplateLiteral'].includes(strip(expression).type) ||
+      members(services.getTypeAtLocation(expression)).every(
+        (type) => (type.flags & (ts.TypeFlags.Primitive | ts.TypeFlags.Never)) !== 0,
+      );
     /**
      * A prop or option key we hand to code that is not ours to check, by where it is declared
      * (`propSource`): our own is checked where it lands; a React DOM attribute is judged as the
@@ -1016,14 +1036,13 @@ const inlineStyleKeys = {
         });
       if (expression === null) return;
       if (source.meaning === 'plain') {
-        // A plain key that takes a bag of options whose keys the package reads (`init(options)`,
-        // `fill(style)`), handed an object not written out here (a binding, a call): its keys
-        // cannot be judged (`handedKey`, P1 QA19 F1). An object literal's keys are judged where
-        // written.
-        if (strip(expression).type === 'ObjectExpression') return;
+        // A plain key whose type also takes a bag of options a package reads keys of
+        // (`init(options)`, `fill(style)`): any value that is not a primitive must be an object
+        // literal written here, whose keys are judged where written. Where the value came from
+        // is never followed: a binding, a call, an instance or an assertion hides its keys.
+        if (strip(expression).type === 'ObjectExpression' || isPrimitive(expression)) return;
         const into = checker.getContextualType(toTs(expression));
-        const key =
-          into === undefined || !hasForeignKeys(into) ? undefined : handedKey(expression, into);
+        const key = into === undefined ? undefined : bagKey(into);
         if (key !== undefined)
           context.report({ node: expression, messageId: 'handover', data: { key } });
         return;

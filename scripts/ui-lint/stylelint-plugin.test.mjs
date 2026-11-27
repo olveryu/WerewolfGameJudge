@@ -140,6 +140,10 @@ const RED = [
   'a { color: Canvas; }',
   'a { content: attr(data-x); border-radius: attr(data-r px); }',
   'a { clip-path: inset(0 round 13px); }',
+  // A shape's lengths and a filter's coefficients are hard-coded like any other (P1 QA18).
+  'a { clip-path: inset(13px); }',
+  'a { clip-path: circle(40px at 50% 50%); }',
+  'a { filter: brightness(0.92); }',
   'a { border-r\\61 dius: 50%; }',
   'a { mystery-property: 1; }',
   '@property --x { syntax: "<length>"; inherits: false; initial-value: 13px; }',
