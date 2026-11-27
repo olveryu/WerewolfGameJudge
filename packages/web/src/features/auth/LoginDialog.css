@@ -11,7 +11,7 @@
   align-items: center;
   gap: var(--space-small);
   padding: var(--space-medium);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-background);
 }
 
@@ -51,11 +51,11 @@
   gap: var(--space-micro);
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-primary);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
 }
 
@@ -76,7 +76,7 @@
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
 }
 
 .login-method-title {

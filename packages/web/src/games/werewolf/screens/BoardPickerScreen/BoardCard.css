@@ -2,9 +2,9 @@
   margin: 0 var(--space-screen-h) var(--space-small);
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .board-card[data-expanded='true'] {
@@ -41,7 +41,7 @@
 .board-card-players {
   margin-left: var(--space-small);
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-primary-a10);
   color: var(--color-primary);
   font-size: var(--font-caption);
@@ -65,7 +65,7 @@
 .board-card-key-role {
   padding: var(--space-micro) var(--space-small);
   border: var(--border-width) solid var(--faction-a30);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--faction-a6);
   color: var(--faction-color);
   font-size: var(--font-caption);

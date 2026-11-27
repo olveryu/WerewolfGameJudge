@@ -8,7 +8,7 @@
   gap: var(--space-tight);
   padding: var(--space-tight) var(--space-small);
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--faction-a15);
   color: var(--faction-color);
   font-size: var(--font-caption);
@@ -28,11 +28,11 @@
 .role-variant-pill {
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
@@ -44,5 +44,5 @@
   color: var(--faction-color);
   box-shadow:
     0 0 0 var(--border-width) var(--faction-color),
-    var(--shadow-tabletop-key-light);
+    var(--surface-button-shadow-light);
 }

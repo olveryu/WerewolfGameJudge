@@ -10,6 +10,11 @@
  */
 
 import { globSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/** The repository root: globs and imports resolve from here, whatever the working directory. */
+const ROOT = fileURLToPath(new URL('.', import.meta.url));
 
 import { createJiti } from 'jiti';
 
@@ -17,17 +22,25 @@ import { createJiti } from 'jiti';
 const TOKEN_SHEET = 'packages/web/src/theme/tokens.css';
 
 /**
- * Custom properties the app publishes on the document root at start-up (`--color-*`,
- * `--report-*`, `--avatar-corner-ratio`), read from the publishing functions themselves.
+ * Custom properties the app publishes from TypeScript, read from their sources: on the document
+ * root at start-up (`--color-*`, `--report-*`, `--avatar-corner-ratio`) and on the gacha pages'
+ * roots (`--gacha-*`, `GACHA_PALETTE_VARS`).
  */
 async function publishedProperties() {
-  const jiti = createJiti(import.meta.url);
+  const jiti = createJiti(import.meta.url, {
+    // The web client's `@/` import alias (packages/web/tsconfig.json `paths`).
+    alias: { '@/': join(ROOT, 'packages/web/src/') },
+  });
   const { applyColorTokens } = await jiti.import('./packages/web/src/theme/colors.ts');
   const { applyAvatarShapeTokens } = await jiti.import('./packages/web/src/config/avatarShape.ts');
   const customProperties = {};
   const root = { style: { setProperty: (name, value) => (customProperties[name] = value) } };
   applyColorTokens(root);
   applyAvatarShapeTokens(root);
+  const { GACHA_PALETTE_VARS } = await jiti.import(
+    './packages/web/src/routes/gacha/gachaPalette.ts',
+  );
+  Object.assign(customProperties, GACHA_PALETTE_VARS);
   return { customProperties };
 }
 
@@ -83,6 +96,15 @@ const AVATAR_CONCENTRIC_BOXES = [
   'unlocks-cell-frame',
 ];
 const AVATAR_CONCENTRIC_SHEET = 'packages/web/src/components/avatar/avatarConcentric.css';
+/** Only avatarConcentric.css reads the avatar corner ratio. */
+const AVATAR_RATIO_READ = '/--avatar-corner-ratio/';
+/**
+ * The raw radius scale (`--radius-8`, `--radius-12` …) is read only by tokens.css: a component
+ * names its corner by purpose (`--radius-control`, `--radius-card` …, plan §4 P3).
+ */
+const RAW_RADIUS_READ = '/--radius-\\d/';
+const VALUE_READ_MESSAGE =
+  'Only avatarConcentric.css reads --avatar-corner-ratio; only tokens.css reads the raw --radius-<n> scale (use a purpose token such as --radius-control).';
 const SHAPING = ['/radius$/', 'corner-shape', 'clip-path', '/^mask/', 'all'];
 /**
  * A class selector for any of `names`, outside `:not()`. Excepted: pseudo-elements (a lining `::before` inherits
@@ -153,7 +175,12 @@ export default {
     ],
     'csstools/value-no-unknown-custom-properties': [
       true,
-      { importFrom: [...globSync('packages/web/src/**/*.css'), await publishedProperties()] },
+      {
+        importFrom: [
+          ...globSync('packages/web/src/**/*.css', { cwd: ROOT }).map((file) => join(ROOT, file)),
+          await publishedProperties(),
+        ],
+      },
     ],
     'at-rule-allowed-list': [
       'media',
@@ -179,8 +206,8 @@ export default {
       { message: 'config/avatarShape.ts publishes the avatar corner ratio.' },
     ],
     'declaration-property-value-disallowed-list': [
-      { '/.*/': ['/--avatar-corner-ratio/'] },
-      { message: 'Only avatarConcentric.css reads the avatar corner ratio.' },
+      { '/.*/': [AVATAR_RATIO_READ, RAW_RADIUS_READ] },
+      { message: VALUE_READ_MESSAGE },
     ],
   },
   overrides: [
@@ -192,6 +219,10 @@ export default {
         'color-named': null,
         'function-disallowed-list': null,
         'selector-disallowed-list': [['/^(?!:root$|\\.admin-console$)/'], { splitList: true }],
+        'declaration-property-value-disallowed-list': [
+          { '/.*/': [AVATAR_RATIO_READ] },
+          { message: VALUE_READ_MESSAGE },
+        ],
       },
     },
     ...Object.entries(ART_SHEETS).map(([file, prefix]) => ({
@@ -202,7 +233,10 @@ export default {
       files: [AVATAR_CONCENTRIC_SHEET],
       rules: {
         'rule-selector-property-disallowed-list': null,
-        'declaration-property-value-disallowed-list': null,
+        'declaration-property-value-disallowed-list': [
+          { '/.*/': [RAW_RADIUS_READ] },
+          { message: VALUE_READ_MESSAGE },
+        ],
       },
     },
   ],

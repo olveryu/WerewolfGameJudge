@@ -3,10 +3,10 @@
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
   border-inline-start: var(--border-width-highlight) solid var(--color-primary-a25);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card);
   background-color: var(--color-background);
   background-image: var(--surface-panel-texture);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   text-align: start;
 }
 

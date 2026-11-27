@@ -73,9 +73,9 @@
   gap: var(--space-medium);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .gacha-stats-row {
@@ -139,10 +139,10 @@
   justify-content: space-between;
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--gacha-warning-a8);
   color: inherit;
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   text-decoration: none;
   transition:
     transform 100ms ease-out,

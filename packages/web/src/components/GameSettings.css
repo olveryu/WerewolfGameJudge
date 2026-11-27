@@ -30,9 +30,9 @@
   margin-left: auto;
   padding: var(--space-micro);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-background);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .game-settings-count {
@@ -40,7 +40,7 @@
   height: var(--size-button-md);
   padding: 0 var(--space-tight);
   border: none;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-primary-a8);
   color: var(--color-primary);
   font-size: var(--font-body);
@@ -90,13 +90,13 @@
   min-height: var(--size-button-md);
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-background);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   font-weight: var(--weight-semibold);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
 }
 

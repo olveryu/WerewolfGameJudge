@@ -38,7 +38,7 @@
   min-height: var(--size-button-md);
   padding: var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;

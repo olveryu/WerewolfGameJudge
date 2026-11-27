@@ -103,7 +103,7 @@ export default function FateDecree({
           width: cardWidth,
           height: cardHeight,
           overflow: 'hidden',
-          borderRadius: 'var(--radius-medium)',
+          borderRadius: 'var(--radius-card-nested)',
           border: `2px solid ${MYTHIC_COLORS.silver}`,
           boxSizing: 'border-box',
         }}

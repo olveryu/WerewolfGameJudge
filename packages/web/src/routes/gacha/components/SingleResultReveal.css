@@ -4,7 +4,7 @@
   width: 300px;
   height: 300px;
   margin: auto;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: radial-gradient(circle, var(--rarity-glow) 0%, transparent 70%);
   pointer-events: none;
 }
@@ -32,9 +32,9 @@
   padding: var(--space-xlarge) var(--space-large) var(--space-large);
   border-style: solid;
   border-color: var(--rarity-color);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   text-align: center;
 }
 
@@ -58,12 +58,12 @@
   position: absolute;
   top: 0;
   right: 0;
-  z-index: 2;
+  z-index: var(--layer-badge);
 }
 
 .single-reveal-badge {
   padding: var(--space-tight) var(--space-medium);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--rarity-color);
   color: var(--color-text-inverse);
   font-size: var(--font-caption);

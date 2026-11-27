@@ -42,7 +42,7 @@
 .board-strategy-meta-chip,
 .board-strategy-tag {
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-medium);
@@ -111,10 +111,10 @@
   width: 100%;
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--size-icon-sm);
   cursor: pointer;
   transition:
@@ -131,7 +131,7 @@
   width: var(--space-tight);
   height: var(--font-secondary);
   margin-right: var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--accent-color);
 }
 

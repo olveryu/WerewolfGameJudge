@@ -192,7 +192,7 @@ function RoomCodeButton({
     >
       <span className="admin-room-status-dot" data-status={room.status} aria-hidden="true" />
       <span>#{room.code}</span>
-      <span id={`admin-room-status-${room.id}`} className="admin-sr-only">
+      <span id={`admin-room-status-${room.id}`} className="visually-hidden">
         {STATUS[room.status]}
       </span>
     </button>

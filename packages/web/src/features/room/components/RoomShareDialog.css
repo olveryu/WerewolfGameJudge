@@ -5,17 +5,17 @@
   gap: var(--space-small);
   padding: var(--space-large) var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .room-share-qr {
   position: relative;
   padding: var(--space-small);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .room-share-qr-frame {
@@ -33,7 +33,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-tight);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-surface);
 }
 
@@ -41,7 +41,7 @@
   display: block;
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
 }
 
 .room-share-code {

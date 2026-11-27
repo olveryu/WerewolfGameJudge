@@ -13,10 +13,10 @@
   padding: 0;
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
   background: var(--color-card);
   background-image: var(--surface-card-texture);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   cursor: pointer;
   transition:
     transform 120ms ease-out,
@@ -24,7 +24,7 @@
 }
 
 .choice-card:active:not(:disabled) {
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   transform: translateY(var(--space-tight));
 }
 
@@ -35,7 +35,7 @@
 .choice-card:disabled {
   border-color: var(--color-border);
   background: var(--color-surface-hover);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   cursor: default;
 }
 
@@ -48,7 +48,7 @@
   border-color: var(--color-warning);
   box-shadow:
     0 0 0 var(--border-width) var(--color-warning),
-    var(--shadow-tabletop-card);
+    var(--surface-card-shadow);
   transform: translateY(calc(var(--space-tight) * -1));
 }
 
@@ -87,7 +87,7 @@
   place-items: center;
   width: var(--size-avatar-sm);
   height: var(--size-avatar-sm);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-warning);
   color: var(--color-text-inverse);
   font-size: var(--font-secondary);

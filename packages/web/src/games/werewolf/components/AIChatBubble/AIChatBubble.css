@@ -17,10 +17,10 @@
   height: 100%;
   padding: 0;
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: grab;
   touch-action: none;
   transition: transform 100ms ease-out;
@@ -48,7 +48,7 @@
   position: absolute;
   inset: 0;
   border: var(--border-width-thick) solid var(--color-primary);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   opacity: 0;
   pointer-events: none;
   animation: ai-chat-pulse 1s ease-out 3;
@@ -99,9 +99,9 @@
   height: clamp(320px, 55vh, 600px);
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-xlarge);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .ai-chat-window[data-state='open'] {
@@ -156,7 +156,7 @@
 .ai-chat-message {
   max-width: 85%;
   padding: var(--space-tight) var(--space-small);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   color: var(--color-text);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
@@ -165,13 +165,13 @@
 }
 
 .ai-chat-message-row[data-role='user'] .ai-chat-message {
-  border-bottom-right-radius: var(--space-tight);
+  border-bottom-right-radius: var(--radius-tight);
   background: var(--color-primary);
   color: var(--color-text-inverse);
 }
 
 .ai-chat-message-row[data-role='assistant'] .ai-chat-message {
-  border-bottom-left-radius: var(--space-tight);
+  border-bottom-left-radius: var(--radius-tight);
   background: var(--color-background);
 }
 
@@ -199,15 +199,15 @@
   align-items: center;
   gap: var(--space-tight);
   padding: var(--space-small) var(--space-medium);
-  border-radius: var(--radius-medium);
-  border-bottom-left-radius: var(--space-tight);
+  border-radius: var(--radius-card-nested);
+  border-bottom-left-radius: var(--radius-tight);
   background: var(--color-background);
 }
 
 .ai-chat-typing-dot {
   width: var(--space-small);
   height: var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-text-muted);
   animation: ai-chat-typing 800ms ease-in-out infinite;
 }
@@ -253,10 +253,10 @@
   height: var(--size-button-sm);
   padding: 0;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   color: var(--color-text);
   font-size: var(--font-subtitle);
   font-weight: var(--weight-bold);
@@ -320,14 +320,14 @@
 
 .ai-md-code {
   padding: 0 var(--space-micro);
-  border-radius: var(--space-tight);
+  border-radius: var(--radius-tight);
 }
 
 .ai-md-code-block {
   margin: var(--space-tight) 0;
   padding: var(--space-small);
   overflow-x: auto;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   line-height: var(--line-caption);
   white-space: pre-wrap;
 }
@@ -356,11 +356,11 @@
   padding: var(--space-tight) var(--space-medium);
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-control);
   background: var(--color-background);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   text-overflow: ellipsis;
@@ -392,9 +392,9 @@
   max-height: 80px;
   padding: var(--space-tight) var(--space-small);
   border: none;
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
   color: var(--color-text);
   /* ≥ 16px: iOS Safari zooms into smaller inputs. */
   font: inherit;
@@ -412,11 +412,11 @@
   height: var(--size-button-sm);
   padding: 0;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
   font-size: var(--font-subtitle);
   font-weight: var(--weight-bold);
   cursor: pointer;

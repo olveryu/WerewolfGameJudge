@@ -258,7 +258,7 @@ export function DataTable<T>({
   return (
     <div className="admin-table-scroll">
       <table className={tableClassName ? `admin-table ${tableClassName}` : 'admin-table'}>
-        <caption className="admin-sr-only">{caption}</caption>
+        <caption className="visually-hidden">{caption}</caption>
         <thead>
           <tr>
             {columns.map((column) => (

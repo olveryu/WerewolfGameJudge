@@ -20,9 +20,9 @@
   gap: var(--space-small);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .settings-card-title {
@@ -58,7 +58,7 @@
 /* Above the scene layer, so the frame never covers the badge. */
 .settings-avatar-badge {
   position: absolute;
-  z-index: 2;
+  z-index: var(--layer-badge);
   right: calc(-1 * var(--space-small));
   bottom: calc(-1 * var(--space-tight));
   display: flex;
@@ -67,7 +67,7 @@
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
   /* stylelint-disable-next-line rule-selector-property-disallowed-list -- a badge beside the avatar, not the avatar */
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
   color: var(--color-text-secondary);
@@ -83,7 +83,7 @@
 
 .settings-level {
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-primary-a10);
   color: var(--color-primary);
   font-size: var(--font-caption);
@@ -98,7 +98,7 @@
   gap: var(--space-small);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
 }
 
 .settings-teaser-strip {
@@ -172,7 +172,7 @@
   align-self: flex-start;
   gap: var(--space-tight);
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-success-a12);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
@@ -182,7 +182,7 @@
 .settings-status-dot {
   width: 8px;
   height: 8px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-success);
 }
 
@@ -227,7 +227,7 @@
 
 .settings-entry:active:not(:disabled) {
   background: var(--color-surface-hover);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
   transform: translateY(var(--space-micro));
 }
 
@@ -270,7 +270,7 @@
   min-width: var(--size-badge-sm);
   height: var(--size-badge-sm);
   padding: 0 var(--space-micro);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-error);
   color: var(--color-text-inverse);
   font-size: var(--font-caption-small);
@@ -338,7 +338,7 @@
   min-height: var(--size-min-touch-target);
   padding: 0 var(--space-small);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
@@ -424,7 +424,7 @@
   display: inline-flex;
   flex: none;
   padding: var(--space-micro);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-card-nested);
   background: var(--color-background);
 }
 
@@ -437,7 +437,7 @@
   display: inline-block;
   padding: var(--space-tight) var(--space-small);
   border: var(--border-width) solid transparent;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   cursor: pointer;

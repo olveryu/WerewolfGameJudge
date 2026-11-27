@@ -32,9 +32,9 @@
   overflow-y: auto;
   padding: var(--space-large);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel), var(--shadow-md);
+  box-shadow: var(--surface-panel-shadow), var(--shadow-md);
 }
 
 .center-dialog[data-has-close-button='true'] {

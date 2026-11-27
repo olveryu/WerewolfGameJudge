@@ -2,7 +2,7 @@
   display: block;
   height: var(--space-micro);
   overflow: hidden;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--progress-track, var(--color-border));
 }
 

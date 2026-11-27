@@ -5,10 +5,10 @@
   min-width: 0;
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
   background-image: var(--surface-panel-texture);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 .room-ranking-title {
   margin: 0;

@@ -5,9 +5,9 @@
   width: 100%;
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .avalon-board-preview-title {
@@ -29,7 +29,7 @@
 
 .avalon-board-preview-role {
   padding: var(--space-tight) var(--space-small);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-surface-hover);
   color: var(--color-text);
   font-size: var(--font-secondary);

@@ -3,7 +3,7 @@
   align-items: center;
   padding: var(--space-micro) var(--space-small);
   border: var(--border-width) solid var(--chip-color);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-surface-hover);
   color: var(--chip-color);
 }
@@ -21,7 +21,7 @@
 
 button.faction-chip {
   background-image: var(--surface-button-texture);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   cursor: pointer;
 }
 

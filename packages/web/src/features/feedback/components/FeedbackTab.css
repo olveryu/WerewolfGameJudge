@@ -54,10 +54,10 @@
   min-height: calc(var(--size-button-lg) * 2);
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
   font: inherit;
   font-size: var(--font-body);
   line-height: var(--line-body);
@@ -79,11 +79,11 @@
   gap: var(--space-tight);
   min-height: var(--size-button-md);
   border: var(--border-width) solid var(--color-primary-dark);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
   font-size: var(--font-body);
   line-height: var(--line-body);
   font-weight: var(--weight-semibold);
@@ -98,7 +98,7 @@
   background: var(--color-primary-a6);
   background-image: var(--surface-button-texture);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
 }
 
 .feedback-submit:disabled {
@@ -123,13 +123,13 @@
 .feedback-filter-pill {
   padding: var(--space-tight) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
   transition:
     background-color 100ms ease-out,
@@ -165,10 +165,10 @@
   width: 100%;
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   text-align: start;
   cursor: pointer;
   transition:
@@ -177,7 +177,7 @@
 }
 
 .feedback-history-item:active {
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   transform: translateY(var(--space-micro));
 }
 
@@ -233,7 +233,7 @@
   min-width: var(--size-badge-md);
   height: var(--size-badge-md);
   padding: 0 var(--space-tight);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-error);
   color: var(--color-text-inverse);
   font-size: var(--font-caption-small);
@@ -254,12 +254,12 @@
   gap: var(--space-tight);
   padding: var(--space-tight) var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
   transition:
     box-shadow 100ms ease-out,
@@ -312,7 +312,7 @@
 .feedback-bubble {
   margin: 0;
   padding: var(--space-small) var(--space-medium);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
   font-size: var(--font-body);
   line-height: var(--line-body);
   white-space: pre-wrap;
@@ -352,10 +352,10 @@
   gap: var(--space-small);
   padding: var(--space-small);
   border: var(--border-width) dashed var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   cursor: pointer;
@@ -389,10 +389,10 @@
   min-height: var(--size-button-md);
   padding: 0 var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
   font: inherit;
   font-size: var(--font-body);
 }
@@ -404,11 +404,11 @@
   width: var(--size-button-md);
   height: var(--size-button-md);
   border: var(--border-width) solid var(--color-primary-dark);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
   cursor: pointer;
   transition:
     transform 100ms ease-out,

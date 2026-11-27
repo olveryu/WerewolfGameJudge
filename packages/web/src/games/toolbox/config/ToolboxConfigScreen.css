@@ -11,7 +11,7 @@
   margin: 0;
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
 }
 
 .toolbox-tool-options legend {
@@ -26,7 +26,7 @@
   min-height: var(--size-button-lg);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-background);
   cursor: pointer;
 }
@@ -56,7 +56,7 @@
   min-height: var(--size-button-lg);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-background);
   color: var(--color-text);
   font: inherit;

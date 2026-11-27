@@ -10,12 +10,12 @@
   padding: var(--space-medium) var(--space-small);
   overflow: hidden;
   border: var(--border-width) solid var(--gacha-draw-normal-edge);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   --draw-edge: var(--gacha-draw-normal-edge);
   background: var(--gacha-draw-normal);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
   cursor: pointer;
 }
 

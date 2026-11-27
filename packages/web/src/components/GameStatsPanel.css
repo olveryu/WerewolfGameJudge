@@ -87,7 +87,7 @@
 .game-stats-bar-track {
   height: var(--space-tight);
   overflow: hidden;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-border-light);
 }
 
@@ -178,7 +178,7 @@
   justify-content: space-between;
   min-height: var(--size-min-touch-target);
   padding: 0 var(--space-small);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   color: var(--color-text-secondary);
   transition:
     background-color 100ms ease-out,

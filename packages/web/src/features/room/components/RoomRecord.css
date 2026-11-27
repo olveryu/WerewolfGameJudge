@@ -10,16 +10,16 @@
   gap: var(--space-tight);
   padding: var(--space-tight);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface-hover);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .room-record-tab {
   flex: 1;
   padding: var(--space-tight) var(--space-small);
   border: var(--border-width) solid transparent;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--color-text-secondary);
   font: inherit;
@@ -38,7 +38,7 @@
   background-image: var(--surface-button-texture);
   color: var(--color-text);
   font-weight: var(--weight-semibold);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
 }
 
 .room-record-tab:active {
@@ -58,7 +58,7 @@
   gap: var(--space-small);
   padding: var(--space-small);
   border: var(--border-width-thick) solid var(--color-primary);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
 }
 

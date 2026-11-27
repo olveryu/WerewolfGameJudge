@@ -42,14 +42,33 @@
   --letter-wide: 0.5px;
   --letter-hero: -1px;
 
-  /* Radii */
-  --radius-small: 8px;
-  --radius-medium: 12px;
-  --radius-large: 16px;
-  --radius-xlarge: 16px;
-  --radius-full: 9999px;
+  /* Radii. The raw scale is read only by this sheet; components name a corner by what it is
+   * for (Stylelint forbids reading the raw scale elsewhere). */
+  --radius-4: 4px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-9999: 9999px;
+  /* Buttons, inputs, selects and other controls. */
+  --radius-control: var(--radius-12);
+  /* Outer cards, dialogs and the top corners of bottom sheets. */
+  --radius-card: var(--radius-16);
+  /* A card inside a card or dialog, list groups and repeated tiles; a segmented tab track. */
+  --radius-card-nested: var(--radius-12);
+  /* Linings, small cells, square badges, tabs inside a track. */
+  --radius-inset: var(--radius-8);
+  /* Chat-bubble tails, inline code and other hairline marks. */
+  --radius-tight: var(--radius-4);
+  /* Pills, switches, count dots and progress bars. */
+  --radius-pill: var(--radius-9999);
+  /* Round buttons, dots and number discs. */
+  --radius-round: var(--radius-9999);
+  /* Illustration shapes fitted to their box (an ellipse on a non-square box). */
+  --radius-ellipse: 50%;
 
   /* Component sizes */
+  /* One device pixel line: the visually-hidden box. */
+  --size-hairline: 1px;
   --size-button-sm: 32px;
   --size-button-md: 44px;
   --size-button-lg: 56px;
@@ -107,9 +126,6 @@
   --shadow-sm: 0 1px 3px rgb(0 0 0 / 6%);
   --shadow-md: 0 2px 8px rgb(0 0 0 / 8%);
   --shadow-lg: 0 4px 16px rgb(0 0 0 / 10%);
-  --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
-  --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
-  --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
   --surface-panel-shadow:
     inset 0 1px var(--color-text-inverse-a65), 0 1px 0 var(--color-border-light),
     0 3px 8px var(--color-text-a3);
@@ -129,16 +145,36 @@
    * `box-shadow: var(--surface-button-pressed-offset) <edge colour>` (a custom property set on
    * the element cannot reach inside this :root token, so the colour stays at the use site). */
   --surface-button-pressed-offset: 0 1px 0;
+  /* Glow geometry; the glow colour stays at the use site like the pressed-key edge above. */
+  --glow-seat-ring: 0 0 8px;
+  --glow-seat-ring-framed: 0 0 10px;
+  --glow-badge: 0 0 6px;
   --surface-button-shadow-pressed: var(--surface-button-pressed-offset) var(--color-border);
   --surface-header-shadow: var(--surface-panel-shadow);
   --surface-drawing-shadow: var(--surface-panel-shadow);
-  --shadow-tabletop-panel: var(--surface-panel-shadow);
-  --shadow-tabletop-card: var(--surface-card-shadow);
-  --shadow-tabletop-key-soft: var(--surface-button-shadow-soft);
-  --shadow-tabletop-key-light: var(--surface-button-shadow-light);
-  --shadow-tabletop-sheet: 0 -2px 0 var(--color-border-light), 0 -5px 12px var(--color-text-a3);
-  --shadow-tabletop-inset: inset 0 2px 4px var(--color-text-a3);
-  /* Stacking layers: the room hand's raised card and its blocked-reason bubble, then floating
+  --surface-sheet-shadow: 0 -2px 0 var(--color-border-light), 0 -5px 12px var(--color-text-a3);
+  --surface-inset-shadow: inset 0 2px 4px var(--color-text-a3);
+  /* Stacking layers, named by what sits there. Inside one component: a part lifted over its
+   * siblings (sticky screen header, menu, mark), then a badge or check on a lifted tile. */
+  --layer-raised: 1;
+  --layer-badge: 2;
+  /* A dialog's close button above the dialog's own badges. */
+  --layer-dialog-close: 3;
+  /* Spot-match: the card just played, then its stamp, over the pile. */
+  --layer-played-card: 3;
+  --layer-play-stamp: 4;
+  /* Admin console: sticky bars under the sticky workspace header. */
+  --layer-sticky-bar: 4;
+  --layer-sticky-header: 5;
+  /* A seat's level badge over neighbouring seat tiles. */
+  --layer-seat-level: 10;
+  /* Admin drawer and its backdrop. */
+  --layer-drawer-backdrop: 50;
+  --layer-drawer: 51;
+  /* Pictionary's full-screen drawing view, over every room layer. */
+  --layer-fullscreen-backdrop: 1000;
+  --layer-fullscreen: 1000;
+  /* The room hand's raised card and its blocked-reason bubble, then floating
    * controls (the werewolf assistant bubble) that must stay above the hand when dragged over it. */
   --layer-hand-raised: 100;
   --layer-hand-reason: 101;

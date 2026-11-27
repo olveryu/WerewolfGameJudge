@@ -18,7 +18,7 @@
   place-items: center;
   position: relative;
   border: var(--border-width) solid var(--color-primary-a25);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
 }
 
 .maintenance-moon {
@@ -31,8 +31,8 @@
   place-items: center;
   background: var(--color-surface);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-card);
-  border-radius: var(--radius-xlarge);
+  box-shadow: var(--surface-card-shadow);
+  border-radius: var(--radius-card);
   transform: rotate(-12deg);
 }
 
@@ -54,7 +54,7 @@
   position: absolute;
   width: var(--size-badge-dot);
   height: var(--size-badge-dot);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-light);
 }
 
@@ -80,9 +80,9 @@
   max-width: var(--size-max-content-width);
   padding: var(--space-xlarge) var(--space-large);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-xlarge);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .maintenance-eyebrow {
@@ -115,7 +115,7 @@
   gap: var(--space-medium);
   margin: var(--space-large) 0;
   padding: var(--space-large) var(--space-medium);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-background);
   text-align: left;
 }
@@ -163,7 +163,7 @@
 .maintenance-page-preview {
   min-height: 0;
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
   padding: var(--space-large) var(--space-medium);
   gap: var(--space-large);
 }

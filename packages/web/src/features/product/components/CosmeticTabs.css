@@ -2,17 +2,17 @@
   display: flex;
   gap: var(--space-micro);
   padding: var(--space-micro);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border-light);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .cosmetic-tab {
   flex: 1;
   min-height: var(--size-button-sm);
   border: none;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
@@ -30,7 +30,7 @@
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   font-weight: var(--weight-semibold);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
 }
 
 .cosmetic-tab:focus-visible,
@@ -65,14 +65,14 @@
   flex: 1 0 auto;
   padding: var(--space-tight) var(--space-small);
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-medium);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
   transition:
     background-color 100ms ease-out,
@@ -84,7 +84,7 @@
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
 }
 
 @media (hover: hover) {

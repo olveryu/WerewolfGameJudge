@@ -21,10 +21,10 @@
   margin-inline: auto;
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .room-action-card-cell {
@@ -53,7 +53,7 @@
   min-block-size: calc(100% + var(--space-xxlarge));
   padding: var(--space-small) var(--space-tight) calc(var(--space-xxlarge) + var(--hand-card-drop));
   border: var(--border-width-thick) solid var(--hand-ink);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-card-nested);
   background: var(--hand-paper);
   background-image: var(--surface-hand-texture);
   color: var(--hand-ink);
@@ -100,7 +100,7 @@
   top: calc(-1 * var(--line-caption));
   left: 50%;
   padding: 0 var(--space-tight);
-  border-radius: var(--radius-small) var(--radius-small) 0 0;
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
   background: var(--hand-ink);
   color: var(--hand-paper);
   font-size: var(--font-caption);
@@ -117,7 +117,7 @@
   background:
     linear-gradient(var(--color-hand-disabled-veil), var(--color-hand-disabled-veil)),
     var(--surface-hand-texture), var(--hand-paper);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .room-action-card-cell .room-hand-card:focus-visible {
@@ -140,7 +140,7 @@
   translate: 0 var(--space-tight);
   box-shadow:
     inset 0 0 0 var(--border-width-highlight) var(--color-text-inverse-a65),
-    0 1px 0 var(--hand-ink);
+    var(--surface-button-pressed-offset) var(--hand-ink);
 }
 
 @media (prefers-reduced-motion: no-preference) {

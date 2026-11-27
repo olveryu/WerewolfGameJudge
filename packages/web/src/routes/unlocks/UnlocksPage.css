@@ -47,9 +47,9 @@
   gap: var(--space-medium);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .unlocks-summary-ring {
@@ -61,7 +61,7 @@
   height: var(--size-avatar-lg);
   box-sizing: content-box;
   border: var(--space-tight) solid var(--color-primary);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-a6);
 }
 
@@ -97,14 +97,14 @@
 .unlocks-summary-bar {
   height: var(--space-small);
   overflow: hidden;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-a8);
 }
 
 .unlocks-summary-fill {
   display: block;
   height: 100%;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-light);
 }
 
@@ -132,9 +132,9 @@
   min-width: 0;
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .unlocks-cell-frame {
@@ -153,7 +153,7 @@
 
 /* A text or icon preview is a card. */
 .unlocks-cell-frame:not(.avatar-concentric) {
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
 }
 
 /*
@@ -184,7 +184,7 @@
 }
 
 .unlocks-thumb-text {
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
@@ -206,13 +206,13 @@
   position: absolute;
   right: calc(-1 * var(--border-width));
   bottom: calc(-1 * var(--border-width));
-  z-index: 2;
+  z-index: var(--layer-badge);
   display: flex;
   align-items: center;
   justify-content: center;
   width: var(--size-badge-md);
   height: var(--size-badge-md);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-success);
   color: var(--color-text-inverse);
   font-size: var(--font-caption-small);

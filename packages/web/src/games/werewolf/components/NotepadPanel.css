@@ -20,10 +20,10 @@
   gap: var(--space-tight);
   padding: var(--space-tight);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   background-image: var(--surface-panel-texture);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .notepad-card[data-faction] {
@@ -66,7 +66,7 @@
   justify-content: center;
   min-width: var(--size-badge-md);
   padding: 1px var(--space-micro);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--faction-a15);
   color: var(--faction-color);
   font-size: var(--font-caption);
@@ -87,7 +87,7 @@
   min-height: var(--size-button-sm);
   padding: var(--space-tight) var(--space-small);
   border: none;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-background);
   color: var(--color-text-muted);
   font-size: var(--font-caption);
@@ -135,7 +135,7 @@ button.notepad-hand-tag:active {
   margin: 0;
   padding: 0 var(--space-small);
   border: none;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   font: inherit;
   /* 16px keeps iOS Safari from zooming into the field. */
   font-size: var(--font-body);
@@ -148,7 +148,7 @@ button.notepad-hand-tag:active {
   resize: none;
   background: var(--color-background-a85);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .notepad-note > textarea::placeholder {
@@ -167,13 +167,13 @@ button.notepad-hand-tag:active {
   min-height: var(--size-button-md);
   padding: 0 var(--space-small);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-background);
   background-image: var(--surface-button-texture);
   color: var(--faction-color);
   font-size: var(--font-body);
   line-height: var(--line-body);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
   transition:
     background-color 100ms ease-out,
@@ -200,7 +200,7 @@ button.notepad-hand-tag:active {
 }
 
 .icon-button.notepad-role-clear {
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-background);
   color: var(--color-error);
   font-size: var(--font-body);

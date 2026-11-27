@@ -7,9 +7,9 @@
   max-height: calc(var(--size-max-content-width) + var(--space-xlarge) + var(--space-small));
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .mvp-header {
@@ -90,10 +90,10 @@
   margin: var(--space-tight) 0;
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   text-align: left;
   cursor: pointer;
   transition:
@@ -104,7 +104,7 @@
 .mvp-row[aria-checked='true'] {
   border-color: var(--color-primary);
   background: var(--color-primary-a8);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   transform: translateY(calc(-1 * var(--space-micro)));
 }
 
@@ -120,7 +120,7 @@
   justify-content: center;
   width: var(--size-min-touch-target);
   height: var(--size-min-touch-target);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-background);
   color: var(--color-text-secondary);
   font-size: var(--font-subtitle);

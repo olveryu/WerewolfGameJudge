@@ -75,10 +75,10 @@
   overflow-y: auto;
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   background-image: var(--surface-panel-texture);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .storyrelay-previous-summary {
@@ -139,10 +139,10 @@
   box-sizing: border-box;
   padding: var(--space-medium) var(--space-medium) calc(var(--space-medium) + var(--line-secondary));
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
   font-family: inherit;
   font-size: var(--font-body);
   line-height: var(--line-body);

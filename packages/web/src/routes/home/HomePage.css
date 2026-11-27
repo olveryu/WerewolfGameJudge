@@ -40,10 +40,10 @@
   gap: var(--space-small);
   margin-bottom: var(--space-medium);
   padding: var(--space-small) var(--space-medium);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
   color: var(--color-error);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .home-auth-error-text {
@@ -85,11 +85,11 @@
   gap: var(--space-medium);
   padding: var(--space-large);
   border: var(--border-width) solid var(--color-primary-dark);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
   text-align: left;
   cursor: pointer;
   transition:
@@ -104,7 +104,7 @@
 
 .home-action:active:not(:disabled),
 .home-card:active {
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   transform: translateY(var(--space-micro));
 }
 
@@ -158,7 +158,7 @@
   width: var(--size-avatar-sm);
   height: var(--size-avatar-sm);
   overflow: hidden;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-text-inverse-a20);
   font-size: var(--font-caption);
   font-weight: var(--weight-semibold);
@@ -183,10 +183,10 @@
   gap: var(--space-tight);
   padding: var(--space-medium);
   border: none;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
   background-image: var(--surface-card-texture);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   text-align: left;
   cursor: pointer;
   transition: transform 100ms ease-out;
@@ -224,11 +224,11 @@
   gap: var(--space-medium);
   padding: var(--space-medium);
   border: none;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
   background-image: var(--surface-card-texture);
   color: var(--color-text-muted);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   text-decoration: none;
   transition: transform 100ms ease-out;
 }
@@ -249,7 +249,7 @@ button.home-card {
 .home-feedback-dot {
   width: var(--size-badge-dot);
   height: var(--size-badge-dot);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-error);
 }
 
@@ -294,7 +294,7 @@ button.home-card {
   width: var(--size-button-lg);
   height: var(--size-button-lg);
   border: var(--border-width-thick) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   font-size: var(--font-heading);
   font-weight: var(--weight-bold);
 }
@@ -322,9 +322,9 @@ button.home-card {
   width: 100%;
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   text-align: left;
   cursor: pointer;
 }

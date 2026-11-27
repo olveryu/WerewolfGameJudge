@@ -11,7 +11,7 @@
   align-items: center;
   gap: var(--space-micro);
   padding: var(--space-tight) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-warning-a12);
   color: var(--color-warning-text);
   font-size: var(--font-caption);
@@ -93,20 +93,20 @@
   min-width: 0;
   padding: var(--space-small) var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .shard-cell[data-owned='true'] {
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .shard-cell-dot {
   align-self: flex-start;
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
 }
 
 .shard-cell-name {

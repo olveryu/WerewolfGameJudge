@@ -57,7 +57,7 @@
   justify-content: center;
   width: var(--size-avatar-md);
   height: var(--size-avatar-md);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary-a8);
   color: var(--color-primary);
   font-size: var(--size-icon-sm);
@@ -89,7 +89,7 @@
   gap: var(--space-small);
   margin: var(--space-xlarge) 0 0;
   padding: var(--space-medium);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-info-a8);
   color: var(--color-text);
   font-size: var(--font-secondary);

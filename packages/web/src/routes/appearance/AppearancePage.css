@@ -67,9 +67,9 @@
   gap: var(--space-medium);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .appearance-hero-avatar {
@@ -200,7 +200,7 @@
   border: var(--border-width-thick) solid transparent;
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   cursor: pointer;
   user-select: none;
   -webkit-touch-callout: none;
@@ -212,7 +212,7 @@
 
 /* A captioned card: its thumbnail sits well inside the corners. */
 .appearance-cell:not(.avatar-concentric) {
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
 }
 
 /* An avatar-grid cell: a thin square around the avatar, concentric with it. */
@@ -227,12 +227,12 @@
 .appearance-cell[aria-pressed='true'] {
   z-index: var(--layer-appearance-cell-lifted);
   border-color: var(--color-warning);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   transform: translateY(calc(-1 * var(--space-tight)));
 }
 
 .appearance-cell:active {
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   transform: translateY(var(--space-tight));
 }
 
@@ -334,7 +334,7 @@
   position: absolute;
   top: var(--space-micro);
   right: var(--space-micro);
-  z-index: 2;
+  z-index: var(--layer-badge);
 }
 
 .appearance-cell-lock {
@@ -343,7 +343,7 @@
   justify-content: center;
   width: var(--size-badge-md);
   height: var(--size-badge-md);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   font-size: var(--font-caption-small);
 }
 
@@ -358,7 +358,7 @@
   gap: var(--space-micro);
   min-height: var(--size-badge-md);
   padding-inline: var(--space-tight);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   font-size: var(--font-caption-small);
 }
 

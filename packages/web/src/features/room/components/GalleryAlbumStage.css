@@ -34,5 +34,5 @@
   padding: var(--space-small) var(--space-medium);
   border-top: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-sheet);
+  box-shadow: var(--surface-sheet-shadow);
 }

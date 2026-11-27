@@ -6,7 +6,7 @@
   padding: var(--space-small);
   background: var(--color-surface);
   position: relative;
-  z-index: 1;
+  z-index: var(--layer-raised);
 }
 
 .preview-controls label {

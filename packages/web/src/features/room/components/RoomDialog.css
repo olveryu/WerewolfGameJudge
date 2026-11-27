@@ -12,9 +12,9 @@
   max-height: 85vh;
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .room-dialog[data-state='open'] {
