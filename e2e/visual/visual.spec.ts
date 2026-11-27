@@ -36,7 +36,7 @@ import {
  *
  * Anything drawn from random data is hidden: avatars (seeded by a random
  * anonymous user id) and toasts by the screenshot stylesheet, the room title
- * (random room code) by a mask. Screens whose
+ * (random room code) and the Home spotlight role (random pick) by masks. Screens whose
  * content is random in a real game (dealt roles, words, draws) are drawn from
  * fixed fixtures instead: the gacha result on its bench page, room screens from
  * engine-built states served over the room socket (`room-fixtures.ts`).
@@ -56,9 +56,12 @@ const GALLERY_BLOCKS = [
   'num-pad',
 ] as const;
 
-/** Masks for every value drawn from random data on an app page: the room title carries the code. */
+/**
+ * Masks for every value drawn from random data on an app page: the room title carries the
+ * code, the Home spotlight shows a randomly picked role.
+ */
 function randomRegions(page: Page): Locator[] {
-  return [page.getByTestId(TESTIDS.roomHeaderTitle)];
+  return [page.getByTestId(TESTIDS.roomHeaderTitle), page.getByTestId(TESTIDS.homeSpotlightRole)];
 }
 
 /** Hides what varies run to run on app pages: avatars and transient toasts (see the file). */

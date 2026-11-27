@@ -524,6 +524,8 @@ export const TESTIDS = {
 
   // EncyclopediaScreen
   homeGuideButton: 'home-guide-button',
+  /** Home werewolf spotlight: the randomly picked role (avatar, name, summary). */
+  homeSpotlightRole: 'home-spotlight-role',
 
   // Feedback (AnnouncementModal)
   feedbackInput: 'feedback-input',

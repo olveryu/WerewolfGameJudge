@@ -24,6 +24,7 @@ import {
   createRoomSnapshot,
   type RoomSnapshot,
 } from '../../packages/game-engine/src/platform/protocol/roomSnapshot';
+import { createSeededRng } from '../../packages/game-engine/src/platform/random';
 import {
   createCommandUnavailableFrame,
   createSyncFrame,
@@ -57,8 +58,39 @@ const CAPTURE_REMAINING_MS = 25_000;
 /** The room code and host user id `playAvalonTestGame` uses (see its source). */
 const AVALON_IDENTITY: FixtureIdentity = { roomCode: 'ABCD', hostUserId: 'host-1' };
 
+/**
+ * Runs `play` with `crypto.getRandomValues` answered from a seeded generator. The Avalon engine
+ * deals roles and picks the first leader from Web Crypto (`secureRng`), not from the command's
+ * `randomSeed`, so `playAvalonTestGame` alone deals a different table every run.
+ */
+function withSeededCrypto<T>(seed: string, play: () => T): T {
+  const rng = createSeededRng(seed);
+  const seeded = <A extends ArrayBufferView | null>(array: A): A => {
+    if (!(array instanceof Uint32Array)) {
+      throw new Error('[FAIL-FAST] Seeded crypto only answers Uint32Array (secureRng)');
+    }
+    for (let index = 0; index < array.length; index += 1) {
+      array[index] = Math.floor(rng() * 0x100000000);
+    }
+    return array;
+  };
+  // An own property shadows `Crypto.prototype.getRandomValues`; deleting it restores the original.
+  Object.defineProperty(globalThis.crypto, 'getRandomValues', {
+    value: seeded,
+    configurable: true,
+  });
+  try {
+    return play();
+  } finally {
+    Reflect.deleteProperty(globalThis.crypto, 'getRandomValues');
+  }
+}
+
 /** An Avalon state from `playAvalonTestGame`; the states used here have no countdown. */
-function avalonFixture(state: AvalonState): RoomFixture {
+function avalonFixture(failedQuests: 1 | 3): RoomFixture {
+  const state: AvalonState = withSeededCrypto(`visual:avalon:${failedQuests}`, () =>
+    playAvalonTestGame(failedQuests),
+  );
   if ('deadlineAt' in state.phase && state.phase.deadlineAt !== null) {
     throw new Error(`[FAIL-FAST] Avalon fixture ${state.phase.kind} has a countdown`);
   }
@@ -67,12 +99,12 @@ function avalonFixture(state: AvalonState): RoomFixture {
 
 /** Avalon, five seats, one quest failed: the next leader is nominating (the host's view). */
 export function avalonNominationFixture(): RoomFixture {
-  return avalonFixture(playAvalonTestGame(1));
+  return avalonFixture(1);
 }
 
 /** Avalon, five seats, three quests failed: the game has ended, its review is available. */
 export function avalonEndedFixture(): RoomFixture {
-  return avalonFixture(playAvalonTestGame(3));
+  return avalonFixture(3);
 }
 
 /** Werewolf 预女猎白, twelve seats, first night after the opening narration (the host's view). */
