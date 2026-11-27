@@ -675,6 +675,7 @@ jobs:
       shard: 'visual'
       build-web: false
       suite: visual
+      update-snapshots: true
 
   # The job body lives in e2e-run.yml (reusable workflow) — the same single
   # implementation e2e-single-spec.yml calls. This job contributes only the
