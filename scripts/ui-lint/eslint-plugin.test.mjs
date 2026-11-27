@@ -300,6 +300,9 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "const sizes = { card: 'var(--space-3)' }; export const a = <div style={{ padding: sizes.card }} />;",
     // A typed style literal in another file is judged where it is written, not again here (N3).
     "import { typedCard } from './styles'; export const a = <div style={typedCard} />;",
+    // Every element of a list of tokens, through a callback (QA9 FIX-FIRST-1 control).
+    "const C = [{ c: 'var(--a)' }, { c: 'var(--b)' }]; export const a = C.map((x) => <div style={{ color: x.c }} />);",
+    'const [o] = [1]; export const a = <div style={{ opacity: o }} />;',
     // `n && v` writes `v` or nothing: the left side is never a style value (QA8 should-fix 4).
     "const n = 3; export const a = <div style={{ padding: n && 'var(--space-2)' }} />;",
     // Tables of tokens, and a table whose key is runtime but whose entries are all tokens.
@@ -369,6 +372,13 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "const C: Record<'a', string> = { a: '#f00' }; export const a = <svg><rect fill={C.a} /></svg>;",
         "const RED = { primary: '#f00' }; const THEMES: Record<'x', { primary: string }> = { x: RED }; declare const k: 'x'; export const a = <div style={{ color: THEMES[k].primary }} />;",
         'const card: { padding: number } = { padding: 12 }; export const a = <div style={card} />;',
+        // Every element of a list read through a callback, a returned list, a later entry after a
+        // token, array destructuring, a namespace import, a frozen table, an enum (QA9).
+        "const C = [{ c: 'var(--a)' }, { c: '#f00' }]; export const a = C.map((x) => <div style={{ color: x.c }} />);",
+        "function list() { return [{ c: 'var(--a)' }, { c: '#f00' }]; } export const a = list().map((x) => <div style={{ color: x.c }} />);",
+        "const [, h] = ['var(--a)', 240]; export const a = <div style={{ height: h }} />;",
+        "const C = Object.freeze({ a: '#f00' }); export const a = <div style={{ color: C.a }} />;",
+        'enum Gap { Wide = 12 } export const a = <div style={{ gap: Gap.Wide }} />;',
         // Later writes and lazy initial state (QA8 should-fix 3).
         'let gap = 0; gap = 12; export const a = <div style={{ gap }} />;',
         "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW(16); return <div style={{ width: w }} />; }",

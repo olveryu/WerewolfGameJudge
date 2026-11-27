@@ -355,14 +355,16 @@ exports[`UI gate registry > pins DOMAINS exactly 1`] = `
     "unitless": true,
     "units": [
       "%",
-      "vw",
-      "vh",
       "dvw",
       "dvh",
       "svw",
       "svh",
       "lvw",
       "lvh",
+      "cqw",
+      "cqh",
+      "cqi",
+      "cqb",
     ],
   },
   "font": {
@@ -396,14 +398,16 @@ exports[`UI gate registry > pins DOMAINS exactly 1`] = `
     ],
     "units": [
       "%",
-      "vw",
-      "vh",
       "dvw",
       "dvh",
       "svw",
       "svh",
       "lvw",
       "lvh",
+      "cqw",
+      "cqh",
+      "cqi",
+      "cqb",
     ],
   },
   "opacity": {
@@ -508,14 +512,16 @@ exports[`UI gate registry > pins DOMAINS exactly 1`] = `
     ],
     "units": [
       "%",
-      "vw",
-      "vh",
       "dvw",
       "dvh",
       "svw",
       "svh",
       "lvw",
       "lvh",
+      "cqw",
+      "cqh",
+      "cqi",
+      "cqb",
     ],
   },
   "spacing": {
@@ -558,14 +564,16 @@ exports[`UI gate registry > pins DOMAINS exactly 1`] = `
     "unitless": true,
     "units": [
       "%",
-      "vw",
-      "vh",
       "dvw",
       "dvh",
       "svw",
       "svh",
       "lvw",
       "lvh",
+      "cqw",
+      "cqh",
+      "cqi",
+      "cqb",
       "fr",
     ],
   },
@@ -742,6 +750,12 @@ exports[`UI gate registry > pins HTML_KEYS exactly 1`] = `
 [
   "__html",
   "dangerouslySetInnerHTML",
+]
+`;
+
+exports[`UI gate registry > pins IDENTITY_CALLS exactly 1`] = `
+[
+  "Object.freeze",
 ]
 `;
 

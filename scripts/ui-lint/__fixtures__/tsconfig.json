@@ -19,6 +19,7 @@
     "probe.tsx",
     "styles.ts",
     "origins-probe.tsx",
+    "origins-table.ts",
     "__tests__/probe.tsx"
   ]
 }

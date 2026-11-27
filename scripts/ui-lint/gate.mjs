@@ -46,9 +46,27 @@ function remember(reports, file, key, line, message) {
   reports.set(`${file}\t${key}`, list);
 }
 
-/** The trimmed source line a report says a value is written on; outside the file is a bug. */
+/**
+ * The fingerprint of one ESLint report: rule ID, message ID, the trimmed line it is on, then
+ * `file: line` for each line elsewhere its message says the value is written on (P1 QA8/QA9
+ * FIX-FIRST-2).
+ */
+export function scriptKey(root, file, lines, message) {
+  // Every rule of the gate configuration reports through `messages` (message IDs).
+  if (message.messageId === undefined)
+    throw new Error(`UI gate: ${message.ruleId} reported without a message ID in ${file}`);
+  const written = originsOf(message.message)
+    .filter((origin) => origin.file !== file || origin.line !== message.line)
+    .map((origin) => sourceLine(root, origin, message.ruleId));
+  return [
+    fingerprint(message.ruleId, message.messageId, lines, message.line, file),
+    ...written,
+  ].join('\t');
+}
+
+/** `file: trimmed line` for a line a report says a value is written on; out of range throws. */
 function sourceLine(root, { file, line }, rule) {
-  return fingerprint(rule, '', readLines(root, file), line, file).split('\t')[2];
+  return `${file}: ${fingerprint(rule, '', readLines(root, file), line, file).split('\t')[2]}`;
 }
 
 function readLines(root, file) {
@@ -126,18 +144,7 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
         if (message.ruleId === null)
           graph.problems.push(`${file}:${message.line}: ${message.message}`);
         else {
-          // Every rule of the gate configuration reports through `messages` (message IDs).
-          if (message.messageId === undefined)
-            throw new Error(`UI gate: ${message.ruleId} reported without a message ID in ${file}`);
-          // A value written on another line or in another file: its source lines join the
-          // fingerprint (P1 QA8 FIX-FIRST-2).
-          const written = originsOf(message.message)
-            .filter((origin) => origin.file !== file || origin.line !== message.line)
-            .map((origin) => sourceLine(root, origin, message.ruleId));
-          const key = [
-            fingerprint(message.ruleId, message.messageId, lines, message.line, file),
-            ...written,
-          ].join('\t');
+          const key = scriptKey(root, file, lines, message);
           add(files, file, key);
           remember(reports, file, key, message.line, message.message);
         }

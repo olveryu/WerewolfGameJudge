@@ -45,9 +45,15 @@ const GREEN = [
   'a { clip-path: inset(0 0 50% 0 round var(--radius-card)); }',
   '@media (forced-colors: active) { a { color: ButtonText; --hand-border: ButtonBorder; } }',
   'a { color: var(--a, var(--b)); }',
+  // Container query units (Modern Web Guidance `css`).
+  'a { width: 50cqi; height: 100cqb; }',
 ];
 
 const RED = [
+  // `vh`/`vw` break when mobile browser UI shows or hides: `dvh`/`dvw` (Modern Web Guidance
+  // `responsive-design`).
+  'a { min-height: 100vh; }',
+  'a { width: calc(100vw - var(--space-small)); }',
   // Ordinary drift (S1/S2).
   'a { border-radius: 13px; }',
   'a { padding: 4px 8px; }',

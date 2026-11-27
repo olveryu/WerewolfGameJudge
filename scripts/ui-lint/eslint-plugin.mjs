@@ -41,6 +41,7 @@ import {
   SIZE_ATTRIBUTES,
   SIZED_ELEMENTS,
   STATE_HOOKS,
+  IDENTITY_CALLS,
   STYLE_INTERFACES,
   SVG_ATTRIBUTES,
   TAG_MAPS,
@@ -713,6 +714,7 @@ function readLiteralValues(node, checker, unit, visiting) {
         parts.map((part) => ({
           text: `${head.text}${part.text}${span.literal.text}`,
           origins: [...head.origins, ...part.origins],
+          untraced: Boolean(head.untraced || part.untraced),
         })),
       );
     }
@@ -736,7 +738,44 @@ function readLiteralValues(node, checker, unit, visiting) {
     const written = sources === null ? null : either(...sources.map((source) => recurse(source)));
     if (written !== null) return written;
   }
-  return typeLiteralValues(checker.getTypeAtLocation(node), unit);
+  const typed = typeLiteralValues(checker.getTypeAtLocation(node), unit);
+  if (typed === null) return null;
+  const origins = typeOrigins(node, checker);
+  return typed.map((value) => ({ ...value, origins, untraced: origins.length === 0 }));
+}
+
+/**
+ * Where a literal type read from a name is written: the type annotation of each declaration of
+ * the symbol it refers to (`p: 4 | 8`, a destructured prop's member in its props type), else
+ * the declaration itself (an enum member, a `const` whose initializer is a call). Empty when the
+ * name has no declaration in the program; the rule then reports `untraced` (P1 QA9 FIX-FIRST-2).
+ */
+function typeOrigins(node, checker) {
+  const name = ts.isPropertyAccessExpression(node)
+    ? node.name
+    : ts.isIdentifier(node)
+      ? node
+      : ts.isElementAccessExpression(node)
+        ? node.expression
+        : undefined;
+  if (name === undefined) return [];
+  const origins = [];
+  for (const declaration of targetSymbol(name, checker)?.declarations ?? []) {
+    if (declaration.getSourceFile().isDeclarationFile) continue;
+    if (ts.isBindingElement(declaration) && ts.isObjectBindingPattern(declaration.parent)) {
+      const key = (declaration.propertyName ?? declaration.name).getText();
+      const member = checker.getTypeAtLocation(declaration.parent).getProperty(key);
+      const typed = (member?.declarations ?? []).filter(
+        (d) => !d.getSourceFile().isDeclarationFile,
+      );
+      if (typed.length > 0) {
+        origins.push(...typed.map((d) => d.type ?? d));
+        continue;
+      }
+    }
+    origins.push(declaration.type ?? declaration);
+  }
+  return origins;
 }
 
 /** The symbol a name refers to, through imports. */
@@ -757,8 +796,13 @@ function valueSources(node, checker, visiting) {
     const containers = containersOf(node.expression, checker, visiting);
     if (containers !== null) return entriesOf(containers, keys, checker, visiting);
     if (ts.isPropertyAccessExpression(node)) {
-      const declaration = targetSymbol(node.name, checker)?.valueDeclaration;
-      if (declaration && ts.isPropertyAssignment(declaration)) return [declaration.initializer];
+      // No literal behind the receiver (a callback parameter, a namespace import): every
+      // declaration of the member is read (P1 QA9 FIX-FIRST-1, should-fix 1).
+      const declarations = targetSymbol(node.name, checker)?.declarations ?? [];
+      const sources = declarations.flatMap(
+        (declaration) => memberSources(declaration, checker, visiting) ?? [],
+      );
+      return sources.length === 0 ? null : sources;
     }
     return null;
   }
@@ -772,6 +816,24 @@ function valueSources(node, checker, visiting) {
   return sourcesOfDeclaration(declaration, checker, visiting);
 }
 
+/**
+ * The values of one member declaration. An object literal that is an element of an array literal
+ * stands for every element: TypeScript reduces the elements' identical object types to the first
+ * one, so the same key of every sibling is read too (`CHIPS.map((chip) => chip.color)`).
+ */
+function memberSources(declaration, checker, visiting) {
+  if (ts.isPropertyAssignment(declaration) || ts.isShorthandPropertyAssignment(declaration)) {
+    const object = declaration.parent;
+    const array = strip(object).parent;
+    const siblings =
+      array && ts.isArrayLiteralExpression(array)
+        ? array.elements.filter((element) => ts.isObjectLiteralExpression(strip(element)))
+        : [object];
+    return entriesOf(siblings.map(strip), [declaration.name.getText()], checker, visiting);
+  }
+  return sourcesOfDeclaration(declaration, checker, visiting);
+}
+
 function sourcesOfDeclaration(declaration, checker, visiting) {
   const sources = [];
   const writes = writesIn(declaration.getSourceFile(), checker);
@@ -780,7 +842,8 @@ function sourcesOfDeclaration(declaration, checker, visiting) {
     (ts.isVariableDeclaration(declaration) ||
       ts.isParameter(declaration) ||
       ts.isPropertyAssignment(declaration) ||
-      ts.isBindingElement(declaration)) &&
+      ts.isBindingElement(declaration) ||
+      ts.isEnumMember(declaration)) &&
     declaration.initializer
   )
     sources.push(declaration.initializer);
@@ -790,17 +853,19 @@ function sourcesOfDeclaration(declaration, checker, visiting) {
     const pattern = declaration.parent;
     const holder = pattern.parent;
     const init = ts.isVariableDeclaration(holder) ? holder.initializer : undefined;
-    if (init && ts.isArrayBindingPattern(pattern) && ts.isCallExpression(init)) {
+    const index = pattern.elements.indexOf(declaration);
+    const tuple =
+      init && ts.isArrayBindingPattern(pattern) ? containersOf(init, checker, visiting) : null;
+    if (tuple !== null && !declaration.dotDotDotToken) {
+      // `const [w, h] = [320, 240]`: the element at the same index (QA9 should-fix 1).
+      sources.push(...(entriesOf(tuple, [String(index)], checker, visiting) ?? []));
+    } else if (init && ts.isArrayBindingPattern(pattern) && ts.isCallExpression(init)) {
       // `const [size, setSize] = useState(16)`: the initial value (or what a lazy initializer
       // returns) and every value passed to the setter.
       const callee = ts.isPropertyAccessExpression(init.expression)
         ? init.expression.name
         : init.expression;
-      if (
-        ts.isIdentifier(callee) &&
-        STATE_HOOKS.has(callee.text) &&
-        pattern.elements.indexOf(declaration) === 0
-      ) {
+      if (ts.isIdentifier(callee) && STATE_HOOKS.has(callee.text) && index === 0) {
         const [initial] = init.arguments;
         if (initial) sources.push(...(returnedExpressions(strip(initial)) ?? [initial]));
         const setter = pattern.elements[1];
@@ -832,6 +897,13 @@ function containersOf(expression, checker, visiting) {
         containersOf(node.whenTrue, checker, visiting),
         containersOf(node.whenFalse, checker, visiting),
       );
+    // `Object.freeze({ … })` returns its argument.
+    if (
+      ts.isCallExpression(node) &&
+      IDENTITY_CALLS.has(node.expression.getText()) &&
+      node.arguments.length === 1
+    )
+      return containersOf(node.arguments[0], checker, visiting);
     if (
       !ts.isIdentifier(node) &&
       !ts.isPropertyAccessExpression(node) &&
@@ -901,6 +973,8 @@ const inlineStyleKeys = {
       indexed:
         'This style value has an index signature, so the properties it writes are not enumerable (UI gate E4).',
       value: '{{message}}',
+      untraced:
+        '{{message}} Its literal type is not traced to a declaration, so changing it elsewhere is not seen (UI gate E4).',
     },
   },
   create(context) {
@@ -927,11 +1001,17 @@ const inlineStyleKeys = {
           },
         });
       if (values === null) return;
-      for (const value of values)
+      // The same text from the same lines is one value (a list whose entries share a constant).
+      const unique = new Map(
+        values.map((value) => [`${value.text}\u0000${where(value.origins).join(',')}`, value]),
+      );
+      for (const value of unique.values())
         for (const { message } of valueProblems(value.text, prop, domain))
           context.report({
             node,
-            messageId: 'value',
+            // A literal type whose declaration cannot be located has no source line for the
+            // fingerprint: reported under its own message ID instead of degrading silently.
+            messageId: value.untraced ? 'untraced' : 'value',
             data: { message: withOrigins(message, where(value.origins)) },
           });
     };
@@ -980,7 +1060,15 @@ const inlineStyleKeys = {
               use,
               cssName(key),
               written ??
-                typeLiteralValues(checker.getTypeOfSymbolAtLocation(symbol, tsUse), unitFor(key)),
+                typeLiteralValues(
+                  checker.getTypeOfSymbolAtLocation(symbol, tsUse),
+                  unitFor(key),
+                )?.map((value) => ({
+                  ...value,
+                  origins: declarations.map((d) => d.type ?? d),
+                  untraced: declarations.length === 0,
+                })) ??
+                null,
               declarations[0],
             );
             continue;

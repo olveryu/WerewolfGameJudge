@@ -199,8 +199,14 @@ const GLOBAL_KEYWORDS = ['inherit', 'initial', 'unset', 'revert', 'revert-layer'
 /** Functions every token domain accepts: references and arithmetic over atoms. */
 const MATH_FUNCTIONS = ['calc', 'min', 'max', 'clamp'];
 
-/** Layout ratios a size, offset or track may use as literals: they are not design sizes. */
-const RATIO_UNITS = ['%', 'vw', 'vh', 'dvw', 'dvh', 'svw', 'svh', 'lvw', 'lvh'];
+/**
+ * Layout ratios a size, offset or track may use as literals: they are not design sizes. Viewport
+ * ratios are the dynamic, small and large units only: Modern Web Guidance `responsive-design`
+ * says to use `dvh`/`dvw` instead of `vh`/`vw`, which break when the mobile browser UI shows or
+ * hides. Container query units are registered with them (`css`: `cqi`/`cqb` instead of
+ * repeating box model values).
+ */
+const RATIO_UNITS = ['%', 'dvw', 'dvh', 'svw', 'svh', 'lvw', 'lvh', 'cqw', 'cqh', 'cqi', 'cqb'];
 const SIZE_KEYWORDS = ['auto', 'none', 'fit-content', 'min-content', 'max-content', 'stretch'];
 const POSITION_KEYWORDS = ['center', 'top', 'bottom', 'left', 'right'];
 
@@ -1069,3 +1075,6 @@ export const REACT_DOM_CLIENT_IMPORTS = Object.freeze(['createRoot']);
 export const SIZE_ATTRIBUTES = Object.freeze(new Set(['width', 'height']));
 /** React hooks whose first destructured element is their first argument at first render (E4). */
 export const STATE_HOOKS = Object.freeze(new Set(['useState']));
+
+/** Calls that return their only argument, read through by E4 (`Object.freeze({ … })`). */
+export const IDENTITY_CALLS = Object.freeze(new Set(['Object.freeze']));
