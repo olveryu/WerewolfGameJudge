@@ -18,11 +18,13 @@
 PRAGMA defer_foreign_keys = true;
 
 -- Key shapes project the engine's single rule (platform/protocol/catalogIds.ts); the D1 catalog
--- contract sweeps every BMP code point to prove code and these CHECKs agree.
+-- contract sweeps every BMP code point to prove code and these CHECKs agree. NUL is checked on the
+-- bytes because SQLite's length() and GLOB stop at it.
 CREATE TABLE game_types (
   -- GAME_ID_PATTERN /^[a-z][a-z0-9]{1,31}$/
   id TEXT PRIMARY KEY NOT NULL CHECK (
     typeof(id) = 'text'
+    AND instr(CAST(id AS BLOB), x'00') = 0
     AND length(id) BETWEEN 2 AND 32
     AND id GLOB '[a-z]*'
     AND id NOT GLOB '*[^a-z0-9]*'
@@ -56,19 +58,18 @@ CREATE TABLE word_categories (
   -- WORD_CATEGORY_ID_PATTERN /^[a-z][a-zA-Z0-9]{1,39}$/
   id TEXT NOT NULL CHECK (
     typeof(id) = 'text'
+    AND instr(CAST(id AS BLOB), x'00') = 0
     AND length(id) BETWEEN 2 AND 40
     AND id GLOB '[a-z]*'
     AND id NOT GLOB '*[^a-zA-Z0-9]*'
   ),
-  -- isWellFormedCatalogName: non-empty, no leading or trailing String#trim whitespace (the char()
-  -- list), no C0 control or DEL. NUL is checked on the bytes: SQLite text functions stop at it.
+  -- isWellFormedCatalogName: non-empty, no NUL, no leading or trailing String#trim whitespace (the
+  -- char() set). trim(X, Y), not GLOB: D1 caps a GLOB/LIKE pattern at 50 bytes.
   name TEXT NOT NULL CHECK (
     typeof(name) = 'text'
-    AND length(name) > 0
     AND instr(CAST(name AS BLOB), x'00') = 0
-    AND name NOT GLOB ('*[' || char(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 127) || ']*')
-    AND name NOT GLOB ('[' || char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279) || ']*')
-    AND name NOT GLOB ('*[' || char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279) || ']')
+    AND length(name) > 0
+    AND name = trim(name, char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279))
   ),
   sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
   PRIMARY KEY (game, id),

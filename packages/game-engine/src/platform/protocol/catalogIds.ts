@@ -20,20 +20,10 @@ export const WORD_CATEGORY_ID_PATTERN = /^[a-z][a-zA-Z0-9]{1,39}$/;
 export const WORD_CATEGORY_ID_RULE =
   'a lowercase letter, then letters or digits (camelCase), 2-40 characters';
 
-// C0 controls (U+0000-U+001F) and DEL (U+007F). Display names never carry them; NUL in particular
-// truncates SQLite text.
-const LAST_C0_CONTROL = 0x1f;
-const DELETE_CONTROL = 0x7f;
+// NUL truncates SQLite text (length(), GLOB and trim stop at it), so no key or name carries it.
+const NUL = '\u0000';
 
-function hasControlCharacter(value: string): boolean {
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
-    if (code <= LAST_C0_CONTROL || code === DELETE_CONTROL) return true;
-  }
-  return false;
-}
-export const CATALOG_NAME_RULE =
-  'non-empty, no leading or trailing whitespace, no control characters';
+export const CATALOG_NAME_RULE = 'non-empty, no leading or trailing whitespace, no NUL';
 
 export function isWellFormedGameId(value: string): boolean {
   return GAME_ID_PATTERN.test(value);
@@ -45,7 +35,7 @@ export function isWellFormedWordCategoryId(value: string): boolean {
 
 /** A display name stored in `word_categories.name`; whitespace is what `String#trim` strips. */
 export function isWellFormedCatalogName(value: string): boolean {
-  return value !== '' && value === value.trim() && !hasControlCharacter(value);
+  return value !== '' && value === value.trim() && !value.includes(NUL);
 }
 
 export interface WordCategoryInput {

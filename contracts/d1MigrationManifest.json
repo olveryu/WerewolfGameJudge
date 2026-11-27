@@ -92,7 +92,7 @@
   "0092_decrypto_word_supply.sql": "4974a93eb911830ccf8a42cb2a5c844f02b76b8a896b5ff26eaa3f91a3bd0610",
   "0093_toolbox.sql": "d1bd351c68746c1b0ab7db7290acbdb3fcd380f0d73812eb53ec1dea8675f083",
   "0094_toolbox_presets.sql": "0703c6d13f3769b32978dea749767adce1189dcde1d63dd4900e82044378e852",
-  "0095_game_catalog_lookup.sql": "c69f6e723f4538966ea81cfa7df8b67c457c8292ec54560cab919fd9fa2b2074",
+  "0095_game_catalog_lookup.sql": "9809026d1a61d86417020fa43870cccfe82b65edb3cc5c5427c85e8155b93bcb",
   "0096_word_category_lookup.sql": "edd30225f5771b0e081a6e5ffcda2bf7e748e54e9adb116cf31de4cdd191813b",
   "0097_word_submission_catalog_fk.sql": "05deaa9d72dede846dc0791450ff043749773b4004f2de678e83620b382b07ac"
 }
