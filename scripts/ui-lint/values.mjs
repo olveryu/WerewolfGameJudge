@@ -13,8 +13,30 @@ const OPERATORS = new Set(['+', '-', '*', '/']);
 const IDENT = /^-?[a-z_][\w-]*$/i;
 /** Color atoms besides `var()`: every domain that holds a color accepts them. */
 const COLOR_KEYWORDS = new Set(['transparent', 'currentcolor']);
-/** Functions whose arguments are references (a URL, an environment name), not values. */
-const REFERENCES = new Set(['url', 'env']);
+/** Functions whose arguments are references, not values: `url()` only (`env()` has a fallback). */
+const REFERENCES = new Set(['url']);
+/** `animation` keywords; any other identifier there names a keyframes rule. */
+const ANIMATION_KEYWORDS = new Set([
+  'infinite',
+  'linear',
+  'ease',
+  'ease-in',
+  'ease-out',
+  'ease-in-out',
+  'step-start',
+  'step-end',
+  'normal',
+  'reverse',
+  'alternate',
+  'alternate-reverse',
+  'none',
+  'forwards',
+  'backwards',
+  'both',
+  'running',
+  'paused',
+]);
+const ANIMATION_NAMES = new Set(['animation', 'animation-name']);
 
 export const valueMessages = {
   property: (prop) => `\`${prop}\` is not a registered property (UI gate S1).`,
@@ -23,6 +45,8 @@ export const valueMessages = {
     `\`${word}\` is not allowed in \`${prop}\`: the ${domain} domain takes var(--token) and registered keywords (UI gate S1).`,
   token: (prop) =>
     `\`${prop}\` is a design token; only tokens.css or colors.ts defines it (UI gate S4).`,
+  keyframes: (name) =>
+    `\`${name}\` is not a keyframes rule of this stylesheet; an animation runs only keyframes its own sheet defines (UI gate S1).`,
 };
 
 /**
@@ -52,10 +76,17 @@ function isZero(word) {
 
 /**
  * Problems of `value` in property `prop` (domain `domainName`): `[{ index, endIndex, message }]`
- * with offsets into `value`. `forced` is true inside `@media (forced-colors: active)`.
+ * with offsets into `value`. `forced` is true inside `@media (forced-colors: active)`;
+ * `keyframes` holds the keyframes names the same stylesheet defines (none for inline styles).
  */
-export function valueProblems(value, prop, domainName, { forced = false } = {}) {
+export function valueProblems(
+  value,
+  prop,
+  domainName,
+  { forced = false, keyframes = new Set() } = {},
+) {
   const problems = [];
+  const animation = ANIMATION_NAMES.has(prop.replace(VENDOR_PREFIX, ''));
   const problem = (node, message) =>
     problems.push({ index: node.sourceIndex, endIndex: node.sourceEndIndex, message });
 
@@ -73,7 +104,11 @@ export function valueProblems(value, prop, domainName, { forced = false } = {}) 
       if (number.unit === '') return Boolean(domain.unitless) && !inMath;
       return Boolean(domain.units?.includes(number.unit.toLowerCase()));
     }
-    return Boolean(domain.idents) && !text.startsWith('#') && IDENT.test(text);
+    if (!domain.idents || text.startsWith('#') || !IDENT.test(text)) return false;
+    if (animation && !ANIMATION_KEYWORDS.has(lower) && !keyframes.has(text)) {
+      problem(node, valueMessages.keyframes(text));
+    }
+    return true;
   };
 
   /** Every function in `nodes` (at any depth) is registered; nothing else is checked. */
@@ -130,16 +165,17 @@ export function valueProblems(value, prop, domainName, { forced = false } = {}) 
         problem(node, valueMessages.atom(`${node.value}()`, prop, name));
         continue;
       }
-      if (lower === 'var') {
+      if (lower === 'var' || lower === 'env') {
+        // The first argument names a variable; the fallback is a value of this domain.
         const [reference, ...fallback] = argumentsOf(node);
         const first = reference.find((child) => child.type !== 'space');
-        if (first?.type !== 'word' || !first.value.startsWith('--')) {
-          problem(node, valueMessages.atom('var()', prop, name));
+        if (first?.type !== 'word' || first.value.startsWith('--') !== (lower === 'var')) {
+          problem(node, valueMessages.atom(`${lower}()`, prop, name));
         }
         walk(fallback.flat(), domain, name, inMath);
         continue;
       }
-      if (REFERENCES.has(lower)) continue;
+      if (lower === 'url') continue;
       // Math reads its operands as atoms; a domain function (gradient, filter, easing) its arguments.
       walk(node.nodes, domain, name, inMath || MATH.has(lower));
     }

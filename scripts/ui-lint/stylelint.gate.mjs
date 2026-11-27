@@ -18,24 +18,30 @@ postcss
     if (decl.prop.startsWith('--')) tokens.add(decl.prop);
   });
 
-const exempt = (file, rules) => ({
-  files: [file],
-  rules: { 'ui/value-allowlist': null, ...rules },
-});
+const tokenOptions = { tokens: [...tokens].sort(), families: [...RUNTIME_TOKEN_FAMILIES] };
 
 export default {
   plugins,
   ignoreDisables: true,
   rules: {
-    'ui/value-allowlist': { tokens: [...tokens].sort(), families: [...RUNTIME_TOKEN_FAMILIES] },
+    'ui/value-allowlist': tokenOptions,
     'at-rule-allowed-list': [...AT_RULES],
   },
   overrides: [
-    exempt(TOKEN_SHEET.file, {
-      'ui/sheet-scope': { kind: 'tokens', selectors: [...TOKEN_SHEET.selectors] },
-    }),
-    ...Object.entries(ART_SHEETS).map(([file, prefix]) =>
-      exempt(file, { 'ui/sheet-scope': { kind: 'art', prefix } }),
-    ),
+    {
+      files: [TOKEN_SHEET.file],
+      rules: {
+        'ui/value-allowlist': null,
+        'ui/sheet-scope': { kind: 'tokens', selectors: [...TOKEN_SHEET.selectors] },
+      },
+    },
+    // An art sheet's values are free (D7); it still may not redefine a token (S4).
+    ...Object.entries(ART_SHEETS).map(([file, prefix]) => ({
+      files: [file],
+      rules: {
+        'ui/value-allowlist': { ...tokenOptions, values: false },
+        'ui/sheet-scope': { kind: 'art', prefix },
+      },
+    })),
   ],
 };

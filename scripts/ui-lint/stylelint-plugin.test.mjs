@@ -22,7 +22,7 @@ async function warnings(code, codeFilename = UI) {
   const [result] = results;
   return [
     ...result.warnings,
-    ...(result.invalidOptionWarnings ?? []).map((w) => ({ rule: 'invalid', text: w.text })),
+    ...result.invalidOptionWarnings.map((w) => ({ rule: 'invalid', text: w.text })),
   ];
 }
 
@@ -32,7 +32,8 @@ const GREEN = [
   'a { padding: 0 var(--space-small) calc(var(--space-small) * -1); }',
   'a { margin: auto; padding: env(safe-area-inset-bottom); }',
   'a { color: currentColor; background: transparent; border: var(--border-width) solid var(--color-border); }',
-  'a { transition: opacity var(--duration-fast) cubic-bezier(0.2, 0, 0, 1); animation: spin var(--duration-slow) linear infinite; }',
+  '@keyframes spin { to { transform: rotate(1turn); } } a { transition: opacity var(--duration-fast) cubic-bezier(0.2, 0, 0, 1); animation: spin var(--duration-slow) linear infinite; }',
+  'a { padding: env(safe-area-inset-top, var(--space-small)); }',
   'a { z-index: var(--layer-hand); font: inherit; font-weight: normal; }',
   'a { width: 100%; max-width: var(--size-max-content-width); min-height: 100dvh; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }',
   'a { transform: translateY(-50%) rotate(45deg) scale(1.05); transform-origin: center top; }',
@@ -108,6 +109,14 @@ const RED = [
   'a { mystery-property: 1; }',
   '@property --x { syntax: "<length>"; inherits: false; initial-value: 13px; }',
   '@font-face { font-family: x; }',
+  // env() fallbacks are values of the domain, like var() fallbacks (QA6 L1).
+  'a { padding: env(nope, 13px); }',
+  'a { top: env(safe-area-inset-top, 20px); }',
+  'a { --r: env(x, 13px); border-radius: var(--r); }',
+  'a { padding: env(--x); }',
+  // An animation runs only keyframes its own sheet defines (QA6 L3).
+  'a { animation: night-art-fade var(--duration-slow); }',
+  'a { animation-name: fade; }',
 ];
 
 describe('ui/value-allowlist', () => {
@@ -150,7 +159,7 @@ describe('ui/sheet-scope', () => {
   it('lets an art sheet write values on its own classes', async () => {
     expect(
       await warnings(
-        '.night-art .night-art-title { font-size: 31px; color: #fff; }\n.night-art:hover > .night-art__x::before { opacity: 0.4; }\n@keyframes x { from { opacity: 0; } }',
+        '.night-art .night-art-title { font-size: 31px; color: #fff; }\n.night-art:hover > .night-art__x::before { opacity: 0.4; }\n.night-art-y { &:hover { opacity: 0.5; } }\n@keyframes night-art-x { from { opacity: 0; } }\n.night-art-z { animation: night-art-x 1s; }',
         ART,
       ),
     ).toEqual([]);
@@ -169,7 +178,30 @@ describe('ui/sheet-scope', () => {
     ':root:has(.night-art) button { border-radius: 3px; }',
     '.night-art + div, .night-art > button { padding: 3px; }',
     '.night-art > :not(.night-art-x) { padding: 3px; }',
+    // An art sheet still may not redefine a token (QA6 L2), and its keyframes are art (L3).
+    '.night-art-bottom { --radius-medium: 0px; }',
+    '.night-art-bottom { --color-primary: #f00; }',
+    '@keyframes fade { to { border-radius: 3px; color: red; } }',
+    '.night-art { & .avatar { padding: 3px; } }',
   ])('rejects %s in an art sheet', async (code) => {
     expect((await warnings(code, ART)).length).toBeGreaterThan(0);
+  });
+});
+
+describe('rule options', () => {
+  // A rule enabled without its allow lists fails loudly instead of checking nothing.
+  it.each([
+    ['ui/value-allowlist', true],
+    ['ui/value-allowlist', { tokens: ['--a'] }],
+    ['ui/sheet-scope', { kind: 'art' }],
+    ['ui/sheet-scope', { kind: 'tokens' }],
+  ])('%s with %j', async (rule, options) => {
+    await expect(
+      stylelint.lint({
+        code: 'a { color: red; }',
+        codeFilename: UI,
+        config: { plugins: config.plugins, rules: { [rule]: options } },
+      }),
+    ).rejects.toThrow(rule);
   });
 });

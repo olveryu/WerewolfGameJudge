@@ -709,12 +709,18 @@ exports[`UI gate registry > pins PACKAGES exactly 1`] = `
     "why": "canvas renderer (D13: its own style writes)",
   },
   "react": {
+    "entries": [
+      "react",
+    ],
     "field": "dependencies",
     "why": "UI runtime",
   },
   "react-dom": {
+    "entries": [
+      "react-dom/client",
+    ],
     "field": "dependencies",
-    "why": "createRoot only (E11)",
+    "why": "createRoot only",
   },
   "react-router": {
     "field": "dependencies",
@@ -1119,6 +1125,15 @@ exports[`UI gate registry > pins SAFE_PRODUCTS exactly 1`] = `
   "HTMLAudioElement",
   "HTMLCanvasElement",
   "HTMLImageElement",
+]
+`;
+
+exports[`UI gate registry > pins SIZED_ELEMENTS exactly 1`] = `
+[
+  "canvas",
+  "iframe",
+  "img",
+  "svg",
 ]
 `;
 

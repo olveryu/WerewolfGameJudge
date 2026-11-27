@@ -118,6 +118,15 @@ describe('bundle graph allow list', () => {
     expect(problems.some((line) => line.includes(problem))).toBe(true);
   });
 
+  it('accepts a package only through its registered entries (QA6 L7)', () => {
+    const packages = { dep: { field: 'dependencies', why: 'fixture', entries: ['dep'] } };
+    expect(graph(main("import 'dep';"), packages).problems).toEqual([]);
+    for (const text of ["import 'dep/index.js';", "void import('dep/index.js');"]) {
+      const { problems } = graph(main(text), packages);
+      expect(problems.some((line) => line.includes('is not a registered entry'))).toBe(true);
+    }
+  });
+
   it('rejects an import through a symbolic link', () => {
     const root = fixture(main("import './link';"));
     fs.symlinkSync(

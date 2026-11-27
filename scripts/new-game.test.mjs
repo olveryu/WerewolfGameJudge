@@ -107,7 +107,9 @@ function generateNewGame(options) {
  * to run in parallel with other suites.
  */
 function makeRealRepoCopy() {
-  const root = fs.mkdtempSync(path.join(tmpdir(), 'wgj-new-game-real-repo-'));
+  // Beside the repository, on its file system, so the assets below hard-link (a tmpfs /tmp
+  // cannot hold a copy of them), and outside it, so no repository walk sees the copy.
+  const root = fs.mkdtempSync(path.join(path.dirname(REPO_ROOT), '.wgj-new-game-real-repo-'));
   fixtureRoots.add(root);
   for (const name of fs.readdirSync(REPO_ROOT)) {
     if (
@@ -125,8 +127,18 @@ function makeRealRepoCopy() {
         !path.relative(REPO_ROOT, source).split(path.sep).includes('node_modules'),
     });
   }
+  // Assets are files the web bundle graph reaches, and the UI gate rejects a graph file reached
+  // through a symbolic link: hard-link them (copy them where hard links are not allowed).
+  const assets = path.join(REPO_ROOT, 'assets');
+  if (fs.existsSync(assets)) {
+    try {
+      execFileSync('cp', ['-al', assets, path.join(root, 'assets')], { stdio: 'pipe' });
+    } catch {
+      fs.rmSync(path.join(root, 'assets'), { recursive: true, force: true });
+      fs.cpSync(assets, path.join(root, 'assets'), { recursive: true });
+    }
+  }
   for (const linked of [
-    'assets',
     'node_modules',
     'packages/game-engine/node_modules',
     'packages/api-worker/node_modules',
@@ -179,6 +191,7 @@ const CAPABILITY_FILE_ADDITIONS = [
       `${engine}/domain/nightSteps.ts`,
       `${engine}/state/nightCodec.ts`,
       `${engine}/__tests__/nightDriver.ts`,
+      `${engine}/__tests__/scaffoldNightSession.ts`,
       `${engine}/__tests__/nightScenarios.ts`,
       `${engine}/__tests__/nightSteps.contract.test.ts`,
       `${engine}/__tests__/nightCatalogue.integration.test.ts`,

@@ -26,8 +26,12 @@ import stylelintConfig from './stylelint.gate.mjs';
 
 export const BASELINE_FILE = 'ui-gate-baseline.json';
 
-const fingerprint = (rule, message, lines, line) =>
-  `${rule}\t${message}\t${(lines[line - 1] ?? '').trim()}`;
+function fingerprint(rule, message, lines, line, file) {
+  // A reported line outside the file is a linter or rule bug, never an empty fingerprint.
+  if (!Number.isInteger(line) || line < 1 || line > lines.length)
+    throw new Error(`UI gate: ${rule} reported line ${line} of ${file} (${lines.length} lines)`);
+  return `${rule}\t${message}\t${lines[line - 1].trim()}`;
+}
 
 function readLines(root, file) {
   return fs.readFileSync(path.join(root, file), 'utf8').split('\n');
@@ -66,14 +70,16 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
     for (const result of results) {
       const file = path.relative(root, result.source).split(path.sep).join('/');
       if (result.ignored) graph.problems.push(`${file}: Stylelint ignored this stylesheet`);
-      for (const warning of result.invalidOptionWarnings ?? [])
+      // Stylelint always returns both lists; an invalid rule option or a PostCSS parse message
+      // means the stylesheet was not linted as configured.
+      for (const warning of [...result.invalidOptionWarnings, ...result.parseErrors])
         graph.problems.push(`${file}: ${warning.text}`);
       const lines = readLines(root, file);
       for (const warning of result.warnings) {
         // A stylesheet that does not parse is not linted past the error: never a baseline entry.
         if (warning.rule === 'CssSyntaxError')
           graph.problems.push(`${file}:${warning.line}: ${warning.text}`);
-        else add(files, file, fingerprint(warning.rule, warning.text, lines, warning.line));
+        else add(files, file, fingerprint(warning.rule, warning.text, lines, warning.line, file));
       }
     }
   }
@@ -95,7 +101,8 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
       for (const message of result.messages) {
         if (message.ruleId === null)
           graph.problems.push(`${file}:${message.line}: ${message.message}`);
-        else add(files, file, fingerprint(message.ruleId, message.message, lines, message.line));
+        else
+          add(files, file, fingerprint(message.ruleId, message.message, lines, message.line, file));
       }
     }
   }
@@ -136,8 +143,9 @@ export function baselineAt(root, commit) {
 export function renamesSince(root, commit) {
   const renames = new Map();
   for (const line of git(root, ['diff', '-M', '--name-status', commit, '--']).split('\n')) {
+    if (line === '') continue;
     const [status, from, to] = line.split('\t');
-    if (status?.startsWith('R')) renames.set(from, to);
+    if (status.startsWith('R')) renames.set(from, to);
   }
   return renames;
 }

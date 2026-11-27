@@ -79,7 +79,8 @@ export const VIRTUAL_MODULE_PREFIXES = Object.freeze(['~icons/']);
  * Third-party packages the bundle may import (by script entry; package stylesheets never), each
  * with the manifest field it must be declared in and what it brings to the page. A package the
  * web manifest declares in `dependencies` and does not register here, or a registered package
- * the manifest does not declare in that field, is a graph problem.
+ * the manifest does not declare in that field, is a graph problem. A package with `entries`
+ * may be imported only by those specifiers.
  */
 export const PACKAGES = Object.freeze({
   '@ark-ui/react': { field: 'dependencies', why: 'headless components; styles come from us' },
@@ -88,8 +89,11 @@ export const PACKAGES = Object.freeze({
   '@zumer/snapdom': { field: 'dependencies', why: 'screenshot capture of our own DOM' },
   'pinyin-pro': { field: 'dependencies', why: 'text conversion; renders no UI' },
   'pixi.js': { field: 'dependencies', why: 'canvas renderer (D13: its own style writes)' },
-  react: { field: 'dependencies', why: 'UI runtime' },
-  'react-dom': { field: 'dependencies', why: 'createRoot only (E11)' },
+  // `entries`: the only specifiers of the package the bundle may import. React DOM's resource
+  // APIs (`preinit`, `preload`) insert <link>/<script> past the gate, and JSX goes through the
+  // compiler, not `react/jsx-runtime` (E11).
+  react: { field: 'dependencies', why: 'UI runtime', entries: ['react'] },
+  'react-dom': { field: 'dependencies', why: 'createRoot only', entries: ['react-dom/client'] },
   'react-router': { field: 'dependencies', why: 'routing; renders no UI' },
   sonner: { field: 'dependencies', why: 'toasts (D13: injects its own <style>)' },
   zod: { field: 'dependencies', why: 'validation; renders no UI' },
@@ -726,6 +730,9 @@ export const SVG_ATTRIBUTES = Object.freeze(
     ['letterSpacing', 'letter-spacing'],
   ]),
 );
+
+/** Elements whose `width`/`height` attributes size their box, judged in the size domain. */
+export const SIZED_ELEMENTS = Object.freeze(new Set(['canvas', 'iframe', 'img', 'svg']));
 
 // ---------------------------------------------------------------------------------------------
 // DOM write entry points (§2 E5)

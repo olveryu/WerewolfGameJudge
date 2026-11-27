@@ -14,7 +14,9 @@ import uiLint from './eslint-plugin.mjs';
 
 RuleTester.afterAll = afterAll;
 RuleTester.describe = describe;
-RuleTester.it = it;
+// The first typed case builds the fixture program, which can take longer than the default 5 s.
+const TYPED_CASE_TIMEOUT = 30_000;
+RuleTester.it = (name, fn) => it(name, fn, TYPED_CASE_TIMEOUT);
 RuleTester.itOnly = it.only;
 
 const FIXTURES = path.join(import.meta.dirname, '__fixtures__');
@@ -116,13 +118,27 @@ tester.run('ui/dom-allowlist', uiLint.rules['dom-allowlist'], {
         'declare const el: HTMLElement; const write = el.insertAdjacentHTML; void write;',
         'declare const el: HTMLElement; el.insertAdjacentHTML.call(el, "beforeend", "<b>");',
         'declare const el: HTMLElement; const { insertAdjacentHTML } = el; void insertAdjacentHTML;',
+        // Quoted and enumerable computed destructuring keys name the same member.
+        "declare const el: HTMLElement; const { 'insertAdjacentHTML': w } = el; void w;",
+        "declare const el: HTMLElement; const k = 'insertAdjacentHTML'; const { [k]: w } = el; void w;",
         'declare const el: HTMLElement; el["insertAdjacentHTML"]("beforeend", "<b>");',
         'declare const el: HTMLElement; declare const k: "innerHTML"; el[k] = "x";',
         'declare const el: HTMLElement; el.setHTMLUnsafe("<b>");',
       ],
       'member',
     ),
-    ...red(['declare const el: HTMLElement; declare const k: string; el[k]();'], 'computed'),
+    ...red(
+      ['declare const el: HTMLElement; declare const k: string; const { [k]: w } = el; void w;'],
+      'computed',
+    ),
+    // An unenumerable member call is both: the member is hidden and the call is unresolved.
+    {
+      filename,
+      code: 'declare const el: HTMLElement; declare const k: string; el[k]();',
+      errors: [{ messageId: 'unresolved' }, { messageId: 'computed' }],
+    },
+    // A call the checker cannot resolve is not assumed harmless (fail closed).
+    ...red(['declare const f: any; f(document.body);'], 'unresolved'),
     ...red(
       [
         'declare const el: HTMLElement; Object.assign(el.style, { borderRadius: "13px" });',
@@ -214,6 +230,7 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
       ],
       'dynamic',
     ),
+    ...red(['declare const make: any; make("style");'], 'unresolved'),
     // Raw HTML and styles reaching a native element past its attributes (QA5 K4).
     ...red(
       [
@@ -260,6 +277,17 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     'export const a = <svg><rect rx={0} fill="currentColor" stroke="url(#g)" opacity={1} /></svg>;',
     `${REACT}declare const vars: { [key: \`--\${string}\`]: string }; export const a = <div style={vars} />;`,
     'const Box = (_: { style: Record<string, string> }) => null; declare const r: Record<string, string>; export const a = <Box style={r} />;',
+    "const card = { borderRadius: 'var(--radius-card)', padding: 0 }; export const a = <div style={card} />;",
+    "const SIZE = 'var(--size-icon)'; export const a = <div style={{ width: `${SIZE}` }} />;",
+    'export const a = <svg width="100%" height="100%" />;',
+    // Type tracking stays on what reaches a native `style` (no false positives, QA6 L4).
+    "import { goodCard } from './styles'; export const a = <div style={goodCard} />;",
+    "import { tokenShorthandCard } from './styles'; export const a = <div style={tokenShorthandCard} />;",
+    "import { notAStyle } from './styles'; const Box = (_: { data: object }) => null; export const a = <Box data={notAStyle} />;",
+    'const card = { padding: 12 }; const Box = (_: { style: object }) => null; export const a = <Box style={card} />;',
+    `${REACT}declare const fromProps: CSSProperties; export const a = <div style={fromProps} />;`,
+    'declare const on: boolean; const card = { opacity: 1 }; export const a = <div style={on ? card : { opacity: 0 }} />;',
+    'declare const s: { opacity: number }; export const a = <div style={s} />;',
   ]),
   invalid: [
     ...red(
@@ -290,6 +318,20 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         'export const a = <svg><rect fill="#f00" /></svg>;',
         'export const a = <svg><rect strokeWidth={3} /></svg>;',
         "export const a = <div style={{ mysteryProperty: 'x' }} />;",
+        // A style object reached through a name, a member, a memo or a branch (QA6 L4).
+        'const card = { borderRadius: 7 }; export const a = <div style={card} />;',
+        'const styles = { card: { padding: 12 } }; export const a = <div style={styles.card} />;',
+        "import { useMemo } from 'react'; export function A() { const s = useMemo(() => ({ padding: 12 }), []); return <div style={s} />; }",
+        "declare const on: boolean; const card = { color: '#f00' }; export const a = <div style={on ? card : undefined} />;",
+        // Templates of literal parts, and the box size of an svg (QA6 L5, L6).
+        'const SIZE = 16; export const a = <div style={{ width: `${SIZE}px` }} />;',
+        'export const a = <svg width={16} />;',
+        'export const a = <img height="16" />;',
+        // Another file's literal and shorthand values; mapped and declared keys are judged too.
+        "import { badCard } from './styles'; export const a = <div style={badCard} />;",
+        "import { shorthandCard } from './styles'; export const a = <div style={shorthandCard} />;",
+        "declare const s: Record<'mysteryProperty', string>; export const a = <div style={s} />;",
+        'declare const s: { borderRadius: 7 }; export const a = <div style={s} />;',
       ],
       'value',
     ),

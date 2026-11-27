@@ -18,8 +18,12 @@ import { domainOf, valueMessages, valueProblems } from './values.mjs';
 
 const {
   createPlugin,
-  utils: { report, ruleMessages },
+  utils: { report, ruleMessages, validateOptions },
 } = stylelint;
+
+const isString = (value) => typeof value === 'string';
+const isBoolean = (value) => typeof value === 'boolean';
+const isKind = (value) => value === 'tokens' || value === 'art';
 
 const VALUE = 'ui/value-allowlist';
 const messages = ruleMessages(VALUE, valueMessages);
@@ -34,14 +38,29 @@ function inForcedColors(node) {
 }
 
 /**
- * Options: `{ tokens, families }`, the custom properties tokens.css defines and the prefixes of
- * the token families published at runtime.
+ * Options: `{ tokens, families, values }`, the custom properties tokens.css defines, the prefixes
+ * of the token families published at runtime, and `values: false` for an art sheet (D7), whose
+ * values are free but which may not redefine a token either.
  */
 const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
-  if (!options) return;
-  const tokens = new Set(options.tokens ?? []);
-  const families = options.families ?? [];
+  // A rule enabled without its lists would allow nothing it should know about: the options are
+  // required, and an invalid one is an invalid-option warning the gate fails on.
+  const valid = validateOptions(result, VALUE, {
+    actual: options,
+    possible: { tokens: [isString], families: [isString], values: [isBoolean] },
+  });
+  if (!valid || !Array.isArray(options.tokens) || !Array.isArray(options.families))
+    throw new Error(`${VALUE} needs { tokens: string[], families: string[] } options.`);
+  const tokens = new Set(options.tokens);
+  const { families } = options;
+  const keyframes = new Set();
+  root.walkAtRules(/keyframes$/i, (rule) => keyframes.add(rule.params.trim()));
   root.walkDecls((decl) => {
+    if (options.values === false) {
+      if (tokens.has(decl.prop) || families.some((family) => decl.prop.startsWith(family)))
+        report({ result, ruleName: VALUE, node: decl, message: messages.token(decl.prop) });
+      return;
+    }
     const raw = decl.prop;
     const domain = domainOf(raw);
     if (domain === undefined) {
@@ -55,6 +74,7 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
     const prop = domain === 'custom' ? 'custom property' : raw.toLowerCase();
     for (const problem of valueProblems(decl.value, prop, domain, {
       forced: inForcedColors(decl),
+      keyframes,
     })) {
       report({
         result,
@@ -81,6 +101,8 @@ const scopeMessages = ruleMessages(SCOPE, {
     `The subject of \`${selector}\` is not a \`${prefix}\` element: its last compound needs a \`${prefix}\` class (UI gate S10).`,
   unparsable: (selector) => `\`${selector}\` does not parse as a selector (UI gate S10).`,
   artAttribute: 'Art sheets select by class, not by `class`/`id` attributes (UI gate S10).',
+  artKeyframes: (name, prefix) =>
+    `Keyframes \`${name}\` of an art sheet carry its prefix \`${prefix}\` (UI gate S10).`,
 });
 
 function inKeyframes(rule) {
@@ -91,7 +113,14 @@ function inKeyframes(rule) {
 }
 
 const sheetScope = createPlugin(SCOPE, (options) => (root, result) => {
-  if (!options) return;
+  const valid = validateOptions(result, SCOPE, {
+    actual: options,
+    possible: { kind: [isKind], selectors: [isString], prefix: [isString] },
+  });
+  const complete =
+    options?.kind === 'tokens' ? Array.isArray(options.selectors) : isString(options?.prefix);
+  if (!valid || !complete)
+    throw new Error(`${SCOPE} needs { kind: 'tokens', selectors } or { kind: 'art', prefix }.`);
   const flag = (node, message) => report({ result, ruleName: SCOPE, node, message });
   if (options.kind === 'tokens') {
     root.walkDecls((decl) => {
@@ -108,9 +137,14 @@ const sheetScope = createPlugin(SCOPE, (options) => (root, result) => {
   const { prefix } = options;
   const own = (name) =>
     name === prefix || name.startsWith(`${prefix}-`) || name.startsWith(`${prefix}__`);
+  root.walkAtRules(/keyframes$/i, (rule) => {
+    if (!own(rule.params.trim()))
+      flag(rule, scopeMessages.artKeyframes(rule.params.trim(), prefix));
+  });
   root.walkRules((rule) => {
     if (inKeyframes(rule)) return;
     if (rule.selector.includes('\\')) return flag(rule, scopeMessages.escaped);
+    const nested = rule.parent?.type === 'rule';
     let selectors;
     try {
       selectors = selectorParser().astSync(rule.selector);
@@ -128,8 +162,10 @@ const sheetScope = createPlugin(SCOPE, (options) => (root, result) => {
         if (node.type === 'combinator') start = index + 1;
       });
       const subject = nodes.slice(start);
-      if (!subject.some((node) => node.type === 'class' && own(node.value)))
-        flag(rule, scopeMessages.artSubject(text, prefix));
+      // `&` in a nested rule's subject is the parent's subject, which is checked on its own.
+      const art = (node) =>
+        (node.type === 'class' && own(node.value)) || (nested && node.type === 'nesting');
+      if (!subject.some(art)) flag(rule, scopeMessages.artSubject(text, prefix));
       selector.walkClasses((node) => {
         if (!own(node.value)) flag(rule, scopeMessages.artClass(node.value, prefix));
       });

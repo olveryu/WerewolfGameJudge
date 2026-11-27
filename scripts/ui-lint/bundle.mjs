@@ -69,6 +69,7 @@ function compilerOptions(root) {
 function webPackages(root, packages, problems) {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, WEB_ROOT, 'package.json'), 'utf8'));
   const allowed = new Set();
+  // A manifest may omit the `dependencies` field; every registered package is checked below.
   for (const name of Object.keys(manifest.dependencies ?? {})) {
     if (packages[name]?.field !== 'dependencies')
       problems.push(`${WEB_ROOT}/package.json: dependency \`${name}\` is not registered`);
@@ -125,6 +126,7 @@ function scriptReferences(file, text) {
     ) {
       problems.push(`${at(node)}: \`import … = require()\` is not a bundled import`);
     } else if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
+      // `new Foo` without parentheses has no argument list.
       const [first, second] = node.arguments ?? [];
       const name = node.expression.text;
       const isModuleUrl = (expression) =>
@@ -219,6 +221,7 @@ function pageEntries(root, file, problems) {
       } else if (node.nodeName !== '#documentType')
         problems.push(`${rel(file)}: unexpected ${node.nodeName}`);
     } else {
+      // parse5: only element nodes carry `attrs`/`childNodes`; text and comments have neither.
       const attributes = new Map((node.attrs ?? []).map((attr) => [attr.name, attr.value]));
       if (!PAGE_ELEMENTS.has(node.nodeName))
         problems.push(`${rel(file)}: <${node.nodeName}> is not a registered page element`);
@@ -348,6 +351,8 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
       if (bare && !aliased) {
         if (!dependencies.has(packageName(specifier)))
           problems.push(`${at}: \`${specifier}\` is not a registered package of the web client`);
+        else if (packages[packageName(specifier)].entries?.includes(specifier) === false)
+          problems.push(`${at}: \`${specifier}\` is not a registered entry of its package`);
         else if (/\.css(\?|$)/.test(specifier))
           problems.push(`${at}: package stylesheets bypass the gate`);
         else if (!resolved) problems.push(`${at}: \`${specifier}\` does not resolve`);
@@ -360,7 +365,15 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
   };
 
   const followStyle = (file) => {
-    postcss.parse(fs.readFileSync(file, 'utf8'), { from: file }).walkAtRules('import', (rule) => {
+    let sheet;
+    try {
+      sheet = postcss.parse(fs.readFileSync(file, 'utf8'), { from: file });
+    } catch (error) {
+      if (error?.name !== 'CssSyntaxError') throw error;
+      // Stylelint reports the same error as a gate problem; the graph only stops following.
+      return;
+    }
+    sheet.walkAtRules('import', (rule) => {
       const at = `${relative(file)}:${rule.source.start.line}`;
       const match = rule.params.match(/^(['"])(\.{1,2}\/[^'"]+\.css)\1$/);
       if (!match) problems.push(`${at}: \`@import\` takes a quoted relative path to a .css file`);

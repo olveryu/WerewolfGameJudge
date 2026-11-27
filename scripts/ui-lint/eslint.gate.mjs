@@ -39,6 +39,8 @@ export function gateConfig(repoRoot) {
         '@typescript-eslint/no-unsafe-call': 'error',
         '@typescript-eslint/no-unsafe-argument': 'error',
         '@typescript-eslint/no-unsafe-assignment': 'error',
+        // Which package specifiers may be imported at all is the bundle graph's (`PACKAGES`
+        // entries); this keeps the one named import of the one React DOM entry.
         'no-restricted-imports': [
           'error',
           {
@@ -48,17 +50,7 @@ export function gateConfig(repoRoot) {
                 allowImportNames: ['createRoot'],
                 message: REACT_DOM_MESSAGE,
               },
-              { name: 'react-dom', message: REACT_DOM_MESSAGE },
-              {
-                name: 'react/jsx-runtime',
-                message: 'JSX goes through the compiler (UI gate E11).',
-              },
-              {
-                name: 'react/jsx-dev-runtime',
-                message: 'JSX goes through the compiler (UI gate E11).',
-              },
             ],
-            patterns: [{ group: ['react-dom/*', '!react-dom/client'], message: REACT_DOM_MESSAGE }],
           },
         ],
       },
