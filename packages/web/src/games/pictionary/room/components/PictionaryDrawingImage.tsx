@@ -1,9 +1,9 @@
 /** Load and present one protected Pictionary drawing without exposing its R2 object key. */
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import { type ReactNode, useEffect, useState } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Spinner } from '@/components/Spinner';
@@ -88,16 +88,19 @@ export function PictionaryDrawingImage({
             <span className="pictionary-drawing-expand" aria-hidden>
               <IconExpandOutline />
             </span>
-            <Dialog.Root
+            <AppDialog.Root
               open={isFullscreenOpen}
               onOpenChange={(details) => setIsFullscreenOpen(details.open)}
               lazyMount
               unmountOnExit
             >
               <Portal>
-                <Dialog.Backdrop className="pictionary-fullscreen-backdrop" />
-                <Dialog.Positioner className="pictionary-fullscreen-positioner">
-                  <Dialog.Content className="pictionary-fullscreen" aria-label={`${label}全屏预览`}>
+                <AppDialog.Backdrop className="pictionary-fullscreen-backdrop" />
+                <AppDialog.Positioner className="pictionary-fullscreen-positioner">
+                  <AppDialog.Content
+                    className="pictionary-fullscreen"
+                    aria-label={`${label}全屏预览`}
+                  >
                     <img
                       src={imageState.uri}
                       alt={`${label}全屏预览`}
@@ -110,10 +113,10 @@ export function PictionaryDrawingImage({
                       onClick={() => setIsFullscreenOpen(false)}
                       data-testid={TESTIDS.pictionaryDrawingFullscreenCloseButton}
                     />
-                  </Dialog.Content>
-                </Dialog.Positioner>
+                  </AppDialog.Content>
+                </AppDialog.Positioner>
               </Portal>
-            </Dialog.Root>
+            </AppDialog.Root>
           </>
         ) : imageState.kind === 'loading' ? (
           <div className="pictionary-drawing-status">

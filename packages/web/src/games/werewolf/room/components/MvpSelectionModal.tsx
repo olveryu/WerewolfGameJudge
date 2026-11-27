@@ -2,11 +2,11 @@
 import '@/components/CenterDialog.css';
 import './MvpSelectionModal.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useState } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { TESTIDS } from '@/testids';
@@ -38,19 +38,19 @@ export function MvpSelectionModal({
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       onOpenChange={(details) => {
         if (!details.open) onClose();
       }}
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="mvp-dialog" data-testid={TESTIDS.mvpSelectionModal}>
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner className="center-dialog-positioner">
+          <AppDialog.Content className="mvp-dialog" data-testid={TESTIDS.mvpSelectionModal}>
             <header className="mvp-header">
               <IconTrophyOutline className="mvp-header-icon" aria-hidden />
-              <Dialog.Title className="mvp-title">本局 MVP</Dialog.Title>
+              <AppDialog.Title className="mvp-title">本局 MVP</AppDialog.Title>
               <IconButton
                 label="关闭 MVP 评选"
                 icon={<IconClose aria-hidden />}
@@ -118,9 +118,9 @@ export function MvpSelectionModal({
                 </Button>
               </div>
             </footer>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

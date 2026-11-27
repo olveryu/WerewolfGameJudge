@@ -38,9 +38,4 @@ export interface RoleRevealAnimatorProps {
   readonly testIDPrefix?: string;
   readonly allRoles?: readonly RevealRoleData[];
   readonly remainingCards?: number;
-  /**
-   * Escape closes the reveal and reports completion. The room's reveal stays modal until the
-   * effect finishes; product previews of an effect are dismissible.
-   */
-  readonly dismissible?: boolean;
 }

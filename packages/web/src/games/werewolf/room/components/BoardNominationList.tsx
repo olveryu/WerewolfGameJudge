@@ -8,7 +8,6 @@
 import '@/components/CenterDialog.css';
 import './BoardNominationList.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import {
   type BoardNomination,
@@ -18,6 +17,7 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { useState } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { IconButton } from '@/components/IconButton';
 import { FactionRoleList } from '@/games/werewolf/components/FactionRoleList';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
@@ -170,7 +170,7 @@ export function BoardNominationModal({
 
   return (
     <>
-      <Dialog.Root
+      <AppDialog.Root
         open
         closeOnInteractOutside={false}
         onOpenChange={(details) => {
@@ -178,13 +178,13 @@ export function BoardNominationModal({
         }}
       >
         <Portal>
-          <Dialog.Backdrop className="center-dialog-backdrop" />
-          <Dialog.Positioner className="center-dialog-positioner">
-            <Dialog.Content className="nomination-dialog">
+          <AppDialog.Backdrop className="center-dialog-backdrop" />
+          <AppDialog.Positioner className="center-dialog-positioner">
+            <AppDialog.Content className="nomination-dialog">
               <header className="nomination-dialog-header">
-                <Dialog.Title className="nomination-dialog-title">
+                <AppDialog.Title className="nomination-dialog-title">
                   板子建议（{entries.length}）
-                </Dialog.Title>
+                </AppDialog.Title>
                 <IconButton label="关闭" icon={<IconClose aria-hidden />} onClick={onClose} />
               </header>
               <div className="nomination-dialog-body">
@@ -213,10 +213,10 @@ export function BoardNominationModal({
                   ))
                 )}
               </div>
-            </Dialog.Content>
-          </Dialog.Positioner>
+            </AppDialog.Content>
+          </AppDialog.Positioner>
         </Portal>
-      </Dialog.Root>
+      </AppDialog.Root>
 
       <RoleCardSimple
         visible={previewRoleId !== null}

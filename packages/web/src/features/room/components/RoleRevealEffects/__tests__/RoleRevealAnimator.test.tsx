@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { debugLogStore } from '@/utils/debugLogStore';
+
 import { RoleRevealAnimator } from '../RoleRevealAnimator';
 
 vi.mock('../RevealEffectStage', () => ({
@@ -27,6 +29,16 @@ it('offers a focused way to view the role while the scene is unavailable', async
   expect(screen.getByRole('alert').textContent).toContain('动画暂时无法显示');
   const fallback = screen.getByRole('button', { name: '查看身份' });
   expect(document.activeElement).toBe(fallback);
+  const addLog = vi.spyOn(debugLogStore, 'addLog');
   await user.click(fallback);
   expect(onComplete).toHaveBeenCalledOnce();
+  // The skip is logged with its reason, next to the `[Scene]` loss that caused it.
+  const reason = JSON.stringify({ effectType: 'tarot', reason: 'sceneUnavailable' });
+  expect(
+    addLog.mock.calls.filter(
+      ([line]) =>
+        line.includes('[RoleReveal]') && line.includes('fallback button') && line.includes(reason),
+    ),
+  ).toHaveLength(1);
+  addLog.mockRestore();
 });

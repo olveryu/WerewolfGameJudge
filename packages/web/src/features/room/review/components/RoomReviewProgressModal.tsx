@@ -8,9 +8,9 @@
 import '@/components/CenterDialog.css';
 import './review.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { Spinner } from '@/components/Spinner';
 import { TESTIDS } from '@/testids';
@@ -38,7 +38,7 @@ export function RoomReviewProgressModal({
 }) {
   const status = formatReviewShareRun(run);
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       role="alertdialog"
       onOpenChange={(details) => {
@@ -46,13 +46,13 @@ export function RoomReviewProgressModal({
       }}
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner className="center-dialog-positioner">
+          <AppDialog.Content
             className="center-dialog review-progress"
             data-testid={TESTIDS.roomReviewProgress}
           >
-            <Dialog.Title className="visually-hidden">分享战报</Dialog.Title>
+            <AppDialog.Title className="visually-hidden">分享战报</AppDialog.Title>
             <Spinner label={status} size="lg" />
             <p className="review-progress-status">{status}</p>
             {run.phase === 'capturing' && run.total > 0 && (
@@ -61,9 +61,9 @@ export function RoomReviewProgressModal({
             <Button variant="ghost" onClick={onCancel} aria-label="取消分享">
               取消
             </Button>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

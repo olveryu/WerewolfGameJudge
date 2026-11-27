@@ -1,8 +1,9 @@
 import './BottomSheet.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
+
+import { AppDialog } from '@/components/AppDialog';
 
 /**
  * Bottom sheet (Ark UI dialog): slides up from the bottom edge, dismissed by the backdrop,
@@ -23,7 +24,7 @@ export function BottomSheet({
   readonly children: ReactNode;
 }) {
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       closeOnEscape={!requireConfirmation}
       closeOnInteractOutside={!requireConfirmation}
@@ -32,14 +33,14 @@ export function BottomSheet({
       }}
     >
       <Portal>
-        <Dialog.Backdrop className="bottom-sheet-backdrop" />
-        <Dialog.Positioner className="bottom-sheet-positioner">
-          <Dialog.Content className="bottom-sheet" aria-label={title} data-testid={testId}>
+        <AppDialog.Backdrop className="bottom-sheet-backdrop" />
+        <AppDialog.Positioner className="bottom-sheet-positioner">
+          <AppDialog.Content className="bottom-sheet" aria-label={title} data-testid={testId}>
             <span className="bottom-sheet-handle" aria-hidden />
             {children}
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

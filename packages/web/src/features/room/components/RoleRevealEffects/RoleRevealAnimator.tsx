@@ -1,12 +1,13 @@
 /**
  * Full-screen role reveal: dialog, backdrop, DOM title and the scene overlay.
  */
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import { Suspense, useLayoutEffect, useRef, useState } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
+import { log } from '@/utils/logger';
 
 import {
   REVEAL_ROOT_STYLE,
@@ -16,6 +17,8 @@ import {
 } from './common/shell';
 import RevealEffectStage, { prefetchRevealEffect } from './RevealEffectStage';
 import type { RevealEffectProps, RevealEffectType, RoleRevealAnimatorProps } from './types';
+
+const revealLog = log.extend('RoleReveal');
 
 /**
  * Prepares the cached effect promise ahead of the reveal. Effect code is already available.
@@ -33,7 +36,6 @@ export function RoleRevealAnimator({
   testIDPrefix = 'role-reveal',
   allRoles,
   remainingCards,
-  dismissible = false,
 }: RoleRevealAnimatorProps) {
   const systemReducedMotion = usePrefersReducedMotion();
   const [sceneAvailable, setSceneAvailable] = useState(true);
@@ -50,18 +52,17 @@ export function RoleRevealAnimator({
     remainingCards,
   };
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
+      // Ends only through `onComplete` (the effect, or the fallback button): Escape and outside
+      // interactions never close a reveal, in the room or in the product preview.
       closeOnInteractOutside={false}
-      closeOnEscape={dismissible}
-      onOpenChange={({ open }) => {
-        if (!open) onComplete();
-      }}
+      closeOnEscape={false}
     >
       <Portal>
-        <Dialog.Content data-testid={`${testIDPrefix}-modal`} style={REVEAL_ROOT_STYLE}>
+        <AppDialog.Content data-testid={`${testIDPrefix}-modal`} style={REVEAL_ROOT_STYLE}>
           <div style={REVEAL_TITLE_ROW_STYLE}>
-            <Dialog.Title style={REVEAL_TITLE_STYLE}>{revealTitle(effectType)}</Dialog.Title>
+            <AppDialog.Title style={REVEAL_TITLE_STYLE}>{revealTitle(effectType)}</AppDialog.Title>
           </div>
           <div inert={!sceneAvailable}>
             <Suspense fallback={null}>
@@ -88,13 +89,23 @@ export function RoleRevealAnimator({
               }}
             >
               <p role="alert">动画暂时无法显示，可以直接查看身份。</p>
-              <Button ref={fallbackButtonRef} onClick={onComplete}>
+              <Button
+                ref={fallbackButtonRef}
+                onClick={() => {
+                  // The effect never played: keep the skip visible next to the `[Scene]` loss.
+                  revealLog.warn('Reveal ended by the fallback button without the effect', {
+                    effectType,
+                    reason: 'sceneUnavailable',
+                  });
+                  onComplete();
+                }}
+              >
                 查看身份
               </Button>
             </div>
           )}
-        </Dialog.Content>
+        </AppDialog.Content>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

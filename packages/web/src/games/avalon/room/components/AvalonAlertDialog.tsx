@@ -6,9 +6,9 @@
  */
 import '@/components/CenterDialog.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 
@@ -37,7 +37,7 @@ export function AvalonAlertDialog({
   readonly requireConfirmation?: boolean;
 }) {
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       role="alertdialog"
       closeOnEscape={!requireConfirmation}
@@ -49,21 +49,21 @@ export function AvalonAlertDialog({
       unmountOnExit
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner
           className="center-dialog-positioner"
           data-testid={TESTIDS.alertModalOverlay}
         >
-          <Dialog.Content className="center-dialog" data-testid={TESTIDS.alertModal}>
-            <Dialog.Title className="center-dialog-title" data-testid={TESTIDS.alertTitle}>
+          <AppDialog.Content className="center-dialog" data-testid={TESTIDS.alertModal}>
+            <AppDialog.Title className="center-dialog-title" data-testid={TESTIDS.alertTitle}>
               {title}
-            </Dialog.Title>
-            <Dialog.Description
+            </AppDialog.Title>
+            <AppDialog.Description
               className="center-dialog-subtitle"
               data-testid={TESTIDS.alertMessage}
             >
               {message}
-            </Dialog.Description>
+            </AppDialog.Description>
             <div className="center-dialog-actions" data-stacked={buttons.length > 2}>
               {buttons.map((button, index) => (
                 <Button
@@ -77,9 +77,9 @@ export function AvalonAlertDialog({
                 </Button>
               ))}
             </div>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

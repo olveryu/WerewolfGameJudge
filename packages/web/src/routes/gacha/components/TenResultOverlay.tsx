@@ -1,11 +1,11 @@
 import './gachaResult.css';
 import './TenResultOverlay.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { Rarity } from '@game-judge/game-engine/product/rewards';
 import { type CSSProperties, type RefObject, useRef } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
@@ -117,7 +117,7 @@ export function TenResultOverlay({
   const totalShards = results.reduce((sum, item) => sum + item.shardsAwarded, 0);
   const isGolden = drawType === 'golden';
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       onOpenChange={(details) => {
         if (!details.open) onClose();
@@ -127,9 +127,9 @@ export function TenResultOverlay({
       unmountOnExit
     >
       <Portal>
-        <Dialog.Backdrop className="gacha-result-backdrop" />
-        <Dialog.Positioner className="gacha-result-positioner" style={GACHA_PALETTE_VARS}>
-          <Dialog.Content className="ten-result-card" data-testid="gacha-ten-result">
+        <AppDialog.Backdrop className="gacha-result-backdrop" />
+        <AppDialog.Positioner className="gacha-result-positioner" style={GACHA_PALETTE_VARS}>
+          <AppDialog.Content className="ten-result-card" data-testid="gacha-ten-result">
             <ResidentSceneLayer hostRef={sceneHostRef} />
             <IconButton
               label="关闭"
@@ -137,10 +137,10 @@ export function TenResultOverlay({
               className="ten-result-close"
               onClick={onClose}
             />
-            <Dialog.Title className="ten-result-title" data-golden={isGolden}>
+            <AppDialog.Title className="ten-result-title" data-golden={isGolden}>
               {isGolden ? <IconStar aria-hidden /> : <IconSparkles aria-hidden />}
               {isGolden ? '黄金10连抽结果' : '10连抽结果'}
-            </Dialog.Title>
+            </AppDialog.Title>
             <div ref={scrollRootRef} className="ten-result-scroll">
               {groups.map((group) => {
                 const visual = RARITY_VISUAL[group.rarity];
@@ -189,9 +189,9 @@ export function TenResultOverlay({
                 去装扮
               </Button>
             )}
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

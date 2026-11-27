@@ -7,12 +7,12 @@
  */
 import '@/components/CenterDialog.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import { useEffect } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Spinner } from '@/components/Spinner';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { prefetchRoleReveal } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
@@ -53,19 +53,19 @@ export function WerewolfRoleCardModal({
 
   if (isLoading) {
     return (
-      <Dialog.Root open role="alertdialog" closeOnInteractOutside={false} closeOnEscape={false}>
+      <AppDialog.Root open role="alertdialog" closeOnInteractOutside={false} closeOnEscape={false}>
         <Portal>
-          <Dialog.Backdrop className="center-dialog-backdrop" />
-          <Dialog.Positioner className="center-dialog-positioner">
-            <Dialog.Content className="center-dialog" aria-label="正在确认身份…">
+          <AppDialog.Backdrop className="center-dialog-backdrop" />
+          <AppDialog.Positioner className="center-dialog-positioner">
+            <AppDialog.Content className="center-dialog" aria-label="正在确认身份…">
               <Spinner label="正在确认身份…" size="lg" />
-              <Dialog.Description className="center-dialog-subtitle">
+              <AppDialog.Description className="center-dialog-subtitle">
                 正在确认身份…
-              </Dialog.Description>
-            </Dialog.Content>
-          </Dialog.Positioner>
+              </AppDialog.Description>
+            </AppDialog.Content>
+          </AppDialog.Positioner>
         </Portal>
-      </Dialog.Root>
+      </AppDialog.Root>
     );
   }
   const seerLabel = seerLabelMap?.[roleId];

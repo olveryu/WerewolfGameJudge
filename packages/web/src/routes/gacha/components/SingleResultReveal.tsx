@@ -1,11 +1,11 @@
 import './gachaResult.css';
 import './SingleResultReveal.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { Rarity, RewardType } from '@game-judge/game-engine/product/rewards';
 import { useRef } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
@@ -75,7 +75,7 @@ export function SingleResultReveal({
   const glow = CARD_GLOWS[rarity];
   const isTopTier = rarity === 'legendary' || rarity === 'mythic';
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       onOpenChange={(details) => {
         if (!details.open) onDismiss();
@@ -84,8 +84,8 @@ export function SingleResultReveal({
       unmountOnExit
     >
       <Portal>
-        <Dialog.Backdrop className="gacha-result-backdrop" />
-        <Dialog.Positioner
+        <AppDialog.Backdrop className="gacha-result-backdrop" />
+        <AppDialog.Positioner
           className="gacha-result-positioner"
           data-rarity={rarity}
           data-reduced-motion={reducedMotion}
@@ -97,7 +97,7 @@ export function SingleResultReveal({
         >
           {rarity !== 'common' && <span className="single-reveal-glow" aria-hidden />}
           {isTopTier && <span className="single-reveal-pillar" aria-hidden />}
-          <Dialog.Content
+          <AppDialog.Content
             className="single-reveal-card"
             data-testid="gacha-single-result"
             style={{
@@ -130,12 +130,12 @@ export function SingleResultReveal({
                   scrollRootRef={scrollRootRef}
                 />
               </span>
-              <Dialog.Title className="single-reveal-name">
+              <AppDialog.Title className="single-reveal-name">
                 {getRewardDisplayName(productUi, item.rewardType, item.rewardId)}
-              </Dialog.Title>
-              <Dialog.Description className="single-reveal-type">
+              </AppDialog.Title>
+              <AppDialog.Description className="single-reveal-type">
                 {REWARD_TYPE_LABELS[item.rewardType]}
-              </Dialog.Description>
+              </AppDialog.Description>
               {item.isDuplicate ? (
                 <span className="single-reveal-duplicate">
                   <span className="single-reveal-owned">已拥有</span>
@@ -150,9 +150,9 @@ export function SingleResultReveal({
                 去装扮
               </Button>
             )}
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

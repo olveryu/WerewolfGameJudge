@@ -7,10 +7,10 @@
 import '@/components/CenterDialog.css';
 import './RoleCard.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { IonIcon } from '@/components/icons/IonIcon';
 import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
@@ -154,7 +154,7 @@ export function RoleCardDialog({
   readonly confirmDisabled?: boolean;
 }) {
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       closeOnEscape={!requireConfirmation}
       closeOnInteractOutside={!requireConfirmation}
@@ -163,9 +163,13 @@ export function RoleCardDialog({
       }}
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="role-card-dialog" data-testid={testId} aria-label={role.name}>
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner className="center-dialog-positioner">
+          <AppDialog.Content
+            className="role-card-dialog"
+            data-testid={testId}
+            aria-label={role.name}
+          >
             <div className="role-card-scroll">
               <RoleCardContent
                 role={role}
@@ -184,9 +188,9 @@ export function RoleCardDialog({
             >
               {confirmText}
             </Button>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

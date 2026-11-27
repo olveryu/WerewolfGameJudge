@@ -1,9 +1,9 @@
 import './CenterDialog.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import { useState, useSyncExternalStore } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import { type AlertButton, type AlertConfig, alertStore, dismissAlert } from '@/utils/alert';
@@ -38,7 +38,7 @@ function orderButtons(buttons: readonly AlertButton[]): readonly AlertButton[] {
 export function AlertHost() {
   const alert = useSyncExternalStore(alertStore.subscribe, alertStore.getSnapshot);
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open={alert !== null}
       role="alertdialog"
       closeOnInteractOutside={false}
@@ -47,17 +47,17 @@ export function AlertHost() {
       unmountOnExit
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner
           className="center-dialog-positioner"
           data-testid={TESTIDS.alertModalOverlay}
         >
-          <Dialog.Content className="center-dialog" data-testid={TESTIDS.alertModal}>
+          <AppDialog.Content className="center-dialog" data-testid={TESTIDS.alertModal}>
             {alert && <AlertBody key={alert.generation} alert={alert} />}
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }
 
@@ -81,16 +81,16 @@ function AlertBody({ alert }: { alert: AlertConfig }) {
 
   return (
     <>
-      <Dialog.Title className="center-dialog-title" data-testid={TESTIDS.alertTitle}>
+      <AppDialog.Title className="center-dialog-title" data-testid={TESTIDS.alertTitle}>
         {alert.title}
-      </Dialog.Title>
+      </AppDialog.Title>
       {alert.message && (
-        <Dialog.Description
+        <AppDialog.Description
           className="center-dialog-subtitle alert-message"
           data-testid={TESTIDS.alertMessage}
         >
           {alert.message}
-        </Dialog.Description>
+        </AppDialog.Description>
       )}
       {alert.input && (
         <input

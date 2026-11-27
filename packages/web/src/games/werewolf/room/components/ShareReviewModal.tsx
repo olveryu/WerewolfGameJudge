@@ -9,11 +9,11 @@
 import '@/components/CenterDialog.css';
 import './ShareReviewModal.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useState } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import IconCheckmark from '~icons/ion/checkmark';
@@ -62,23 +62,23 @@ export function ShareReviewModal({
   };
 
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       onOpenChange={(details) => {
         if (!details.open) onClose();
       }}
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner className="center-dialog-positioner">
+          <AppDialog.Content
             className="center-dialog share-review-dialog"
             data-testid={TESTIDS.shareReviewModal}
           >
-            <Dialog.Title className="center-dialog-title">授权查看本局复盘</Dialog.Title>
-            <Dialog.Description className="center-dialog-subtitle">
+            <AppDialog.Title className="center-dialog-title">授权查看本局复盘</AppDialog.Title>
+            <AppDialog.Description className="center-dialog-subtitle">
               选择可以查看「本局复盘」的玩家
-            </Dialog.Description>
+            </AppDialog.Description>
             <div className="share-review-seats">
               {seats.map(({ seat, displayName }) => {
                 const isSelected = selected.has(seat);
@@ -114,9 +114,9 @@ export function ShareReviewModal({
                   : `确认${selected.size > 0 ? `（${selected.size}人）` : ''}`}
               </Button>
             </div>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }
