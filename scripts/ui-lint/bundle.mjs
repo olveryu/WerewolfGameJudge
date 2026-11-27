@@ -22,19 +22,23 @@ import {
   ASSET_EXTENSIONS,
   ASSET_QUERIES,
   BUILD_ENTRIES,
+  DECLARATION_FILE,
+  GLOB_BRACE,
+  GLOB_NAME,
+  GLOB_OPTIONS,
+  GLOB_PATH,
   PACKAGES,
   PAGE_ATTRIBUTES,
   PAGE_ELEMENTS,
   PAGE_HTTP_EQUIV,
   PAGE_LINK_RELS,
+  SCRIPT_FILE,
   VIRTUAL_MODULE_PREFIXES,
+  WORKER_CONSTRUCTORS,
   WEB_ROOT,
 } from './registry.mjs';
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
-
-const SCRIPT = /\.(?:ts|tsx)$/;
-const DECLARATION = /\.d\.ts$/;
 
 function rel(file) {
   return path.relative(REPO_ROOT, file).split(path.sep).join('/');
@@ -142,7 +146,7 @@ function scriptReferences(file, text) {
             `${at(node)}: \`new URL(…, import.meta.url)\` takes a literal relative path`,
           );
         else references.push({ specifier, url: true, at: at(node) });
-      } else if (name === 'Worker' || name === 'SharedWorker') {
+      } else if (WORKER_CONSTRUCTORS.has(name)) {
         const ok =
           first !== undefined &&
           ts.isNewExpression(first) &&
@@ -164,31 +168,59 @@ function scriptReferences(file, text) {
         node.expression.name.text === 'glob' &&
         ts.isMetaProperty(node.expression.expression)
       ) {
-        const [patterns, options] = node.arguments;
+        const [patterns, options, ...rest] = node.arguments;
         const list =
           patterns && ts.isArrayLiteralExpression(patterns) ? patterns.elements : [patterns];
-        const query =
-          options && ts.isObjectLiteralExpression(options)
-            ? options.properties.find((p) => p.name?.getText() === 'query')
-            : undefined;
-        const queryText =
-          query === undefined
-            ? ''
-            : ts.isPropertyAssignment(query)
-              ? literal(query.initializer)
-              : undefined;
-        for (const element of list) {
-          const pattern = literal(element);
-          if (pattern === undefined || queryText === undefined) {
-            problems.push(`${at(node)}: \`import.meta.glob\` takes literal patterns and query`);
-          } else references.push({ specifier: pattern + queryText, glob: true, at: at(node) });
-        }
+        const { query, problem } = globOptions(options, literal);
+        if (rest.length > 0 || problem !== undefined) {
+          problems.push(
+            `${at(node)}: \`import.meta.glob\` ${problem ?? 'takes a pattern and options'}`,
+          );
+        } else
+          for (const element of list) {
+            const pattern = literal(element);
+            if (pattern === undefined)
+              problems.push(`${at(node)}: \`import.meta.glob\` takes literal patterns`);
+            // `?` is a glob wildcard here, not a query (queries go in the `query` option).
+            else if (pattern.includes('?'))
+              problems.push(
+                `${at(node)}: \`import.meta.glob('${pattern}')\`: only \`*\` and \`{a,b}\` lists are expanded`,
+              );
+            else references.push({ specifier: pattern + query, glob: true, at: at(node) });
+          }
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(source);
   return { references, problems };
+}
+
+/**
+ * The options of an `import.meta.glob` call: only `GLOB_OPTIONS` keys, as literals, are read
+ * (`base` or any option that changes which files match is a problem, P1 QA8 FIX-FIRST-1).
+ */
+function globOptions(options, literal) {
+  if (options === undefined) return { query: '' };
+  if (!ts.isObjectLiteralExpression(options)) return { problem: 'takes literal options' };
+  let query = '';
+  for (const property of options.properties) {
+    const name =
+      ts.isPropertyAssignment(property) &&
+      (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+        ? property.name.text
+        : undefined;
+    if (name === undefined || !GLOB_OPTIONS.has(name))
+      return { problem: `option \`${property.name?.getText() ?? '…'}\` is not registered` };
+    const value = property.initializer;
+    if (name === 'eager') {
+      if (value.kind !== ts.SyntaxKind.TrueKeyword && value.kind !== ts.SyntaxKind.FalseKeyword)
+        return { problem: 'option `eager` takes a boolean literal' };
+    } else if (literal(value) === undefined)
+      return { problem: `option \`${name}\` takes a string literal` };
+    if (name === 'query') query = literal(value);
+  }
+  return { query };
 }
 
 /**
@@ -203,12 +235,17 @@ function expandGlob(pattern, from, root, options) {
   if (pattern.startsWith('!')) return { problem: 'negated patterns are not expanded' };
   const braces = pattern.match(/\{([^{}]*)\}/);
   if (braces) {
+    if (!GLOB_BRACE.test(braces[1])) return { problem: `\`${braces[0]}\` is not a list of names` };
     const results = braces[1]
       .split(',')
       .map((choice) => expandGlob(pattern.replace(braces[0], choice), from, root, options));
     const failed = results.find((result) => result.problem !== undefined);
     return failed ?? { matches: [...new Set(results.flatMap((result) => result.matches))] };
   }
+  // Only `*` is a wildcard the gate expands; any other glob syntax Vite (picomatch) reads (`?`,
+  // `[…]`, `@(…)`, ranges) would match files the gate does not see (P1 QA8 FIX-FIRST-1).
+  if (!GLOB_PATH.test(path.posix.dirname(pattern)) || !GLOB_NAME.test(path.posix.basename(pattern)))
+    return { problem: 'only `*` and `{a,b}` lists are expanded' };
   const absolute = pattern.startsWith('.')
     ? path.resolve(path.dirname(from), pattern)
     : pattern.startsWith('/')
@@ -265,7 +302,7 @@ function pageEntries(root, file, problems) {
           attributes.get('type') !== 'module' ||
           !src ||
           /^[a-z]+:/i.test(src) ||
-          !SCRIPT.test(src)
+          !SCRIPT_FILE.test(src)
         ) {
           problems.push(`${rel(file)}: a page script is a module entry with a local .ts/.tsx src`);
         } else entries.push(resolve(src));
@@ -330,7 +367,7 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
     if (file.split(path.sep).includes('node_modules'))
       return problems.push(`${at}: \`${specifier}\` imports a file from a package`);
     if (extension === 'css' && query === '') return queue.push(file);
-    if ((extension === 'ts' || extension === 'tsx') && query === '' && !DECLARATION.test(file))
+    if ((extension === 'ts' || extension === 'tsx') && query === '' && !DECLARATION_FILE.test(file))
       return queue.push(file);
     if (ASSET_EXTENSIONS.has(extension) && ASSET_QUERIES.has(query)) return undefined;
     return problems.push(`${at}: \`${specifier}\` is not a checked module or a registered asset`);

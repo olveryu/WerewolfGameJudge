@@ -83,6 +83,8 @@ exports[`UI gate registry > pins COLOR_KEYWORDS exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins DECLARATION_FILE exactly 1`] = `"/\\.d\\.ts$/"`;
+
 exports[`UI gate registry > pins DOM_ALLOW exactly 1`] = `
 [
   "Animation.cancel",
@@ -722,6 +724,20 @@ exports[`UI gate registry > pins FUNCTIONS exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins GLOB_BRACE exactly 1`] = `"/^[\\w.*-]+(?:,[\\w.*-]+)+$/"`;
+
+exports[`UI gate registry > pins GLOB_NAME exactly 1`] = `"/^[\\w.*-]+$/"`;
+
+exports[`UI gate registry > pins GLOB_OPTIONS exactly 1`] = `
+[
+  "eager",
+  "import",
+  "query",
+]
+`;
+
+exports[`UI gate registry > pins GLOB_PATH exactly 1`] = `"/^(?:@\\/|\\/|\\.{1,2}\\/)?[\\w./-]*$/"`;
+
 exports[`UI gate registry > pins HTML_KEYS exactly 1`] = `
 [
   "__html",
@@ -1166,6 +1182,12 @@ exports[`UI gate registry > pins PROPERTIES exactly 1`] = `
 }
 `;
 
+exports[`UI gate registry > pins REACT_DOM_CLIENT_IMPORTS exactly 1`] = `
+[
+  "createRoot",
+]
+`;
+
 exports[`UI gate registry > pins REACT_UNITLESS exactly 1`] = `
 [
   "animationIterationCount",
@@ -1257,12 +1279,27 @@ exports[`UI gate registry > pins SAFE_PRODUCTS exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins SCRIPT_FILE exactly 1`] = `"/\\.(?:ts|tsx)$/"`;
+
+exports[`UI gate registry > pins SIZE_ATTRIBUTES exactly 1`] = `
+[
+  "height",
+  "width",
+]
+`;
+
 exports[`UI gate registry > pins SIZED_ELEMENTS exactly 1`] = `
 [
   "canvas",
   "iframe",
   "img",
   "svg",
+]
+`;
+
+exports[`UI gate registry > pins STATE_HOOKS exactly 1`] = `
+[
+  "useState",
 ]
 `;
 
@@ -1372,4 +1409,20 @@ exports[`UI gate registry > pins VIRTUAL_MODULE_PREFIXES exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins VITE_PLUGINS exactly 1`] = `
+{
+  "Icons": "serves the \`~icons/*\` virtual modules (VIRTUAL_MODULE_PREFIXES)",
+  "babel": "React Compiler transform; adds no modules",
+  "bootSplash": "adds the boot splash entry (BUILD_ENTRIES)",
+  "react": "transforms JSX and Fast Refresh; adds no modules",
+}
+`;
+
 exports[`UI gate registry > pins WEB_ROOT exactly 1`] = `"packages/web"`;
+
+exports[`UI gate registry > pins WORKER_CONSTRUCTORS exactly 1`] = `
+[
+  "SharedWorker",
+  "Worker",
+]
+`;

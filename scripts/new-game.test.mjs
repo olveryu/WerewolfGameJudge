@@ -14,7 +14,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import ts from 'typescript';
 import { afterAll, it } from 'vitest';
 
 import {
@@ -1685,8 +1684,10 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
 
       // Generated files meet the UI gate with no recorded debt, judged by the gate itself: its
       // scope is the copy's bundle graph and its own configurations, so this test holds no
-      // second definition of either. A generated web source outside the graph must be one Vite
-      // does not bundle either (P1 QA7 F1): a module of types only, or one only tests import.
+      // second definition of either. A generated source outside the graph is one Vite does not
+      // bundle (a module of types only, or one only tests import, as in the shipped games): that
+      // the graph holds every module Vite bundles is a property of `bundle.mjs`, checked against
+      // Vite's own build in `scripts/ui-lint/gate.test.mjs` (P1 QA7 F1, QA8 should-fix 5).
       execFileSync('git', ['init', '-q'], { cwd: root, stdio: 'pipe' });
       execFileSync('git', ['add', '-A'], { cwd: root, stdio: 'pipe' });
       const { runGate } = await import(
@@ -1705,46 +1706,6 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
       const gate = await runGate({ root, only: new Set(webSources) });
       assert.deepEqual(gate.problems, []);
       const scope = new Set([...gate.graph.scripts, ...gate.graph.styles]);
-      const webTree = path.join(root, 'packages/web/src');
-      const runtimeSources = [];
-      const walk = (directory) => {
-        for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-          const full = path.join(directory, entry.name);
-          if (entry.isDirectory()) {
-            if (entry.name !== '__tests__') walk(full);
-          } else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name))
-            runtimeSources.push(full);
-        }
-      };
-      walk(webTree);
-      const isTypesOnly = (file) =>
-        ts
-          .createSourceFile(
-            file,
-            fs.readFileSync(path.join(root, file), 'utf8'),
-            ts.ScriptTarget.Latest,
-          )
-          .statements.every(
-            (statement) =>
-              ts.isInterfaceDeclaration(statement) ||
-              ts.isTypeAliasDeclaration(statement) ||
-              (ts.isImportDeclaration(statement) && statement.importClause?.isTypeOnly) ||
-              (ts.isExportDeclaration(statement) && statement.isTypeOnly),
-          );
-      const importedAtRuntime = (file) => {
-        const stem = path.basename(file).replace(/\.tsx?$/, '');
-        const pattern = new RegExp(`^import (?!type )[^;]*['"][^'"]*/${stem}['"]`, 'm');
-        return runtimeSources.some(
-          (source) =>
-            source !== path.join(root, file) && pattern.test(fs.readFileSync(source, 'utf8')),
-        );
-      };
-      for (const file of webSources.filter((source) => !scope.has(source))) {
-        assert.ok(
-          isTypesOnly(file) || !importedAtRuntime(file),
-          `${file} is outside the bundle graph but is a runtime module a page imports`,
-        );
-      }
       assert.ok(
         webSources.some((file) => scope.has(file) && file.endsWith('.tsx')),
         'the graph reaches the generated screens',

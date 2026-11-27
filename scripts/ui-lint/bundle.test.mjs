@@ -112,8 +112,20 @@ describe('bundle graph allow list', () => {
     ['declare const s: string; void new URL(s, import.meta.url);', 'takes a literal relative path'],
     ["void new URL('./missing.ts', import.meta.url);", 'resolves to no file'],
     ["void new Worker('/w.js');", 'a worker takes'],
-    ["void import.meta.glob('./**/*.ts');", 'must match files of one directory'],
-    ["void import.meta.glob('./*/x.ts');", 'must match files of one directory'],
+    ["void import.meta.glob('./**/*.ts');", 'only `*` and `{a,b}` lists'],
+    ["void import.meta.glob('./*/x.ts');", 'only `*` and `{a,b}` lists'],
+    // Glob syntax Vite reads that the gate would not expand (QA8 FIX-FIRST-1).
+    ["void import.meta.glob('./g/x?.ts');", 'only `*` and `{a,b}` lists'],
+    ["void import.meta.glob('./g/[xy]*.ts');", 'only `*` and `{a,b}` lists'],
+    ["void import.meta.glob('./g/@(x|y).ts');", 'only `*` and `{a,b}` lists'],
+    ["void import.meta.glob('./g/x{1..3}.ts');", 'is not a list of names'],
+    ["void import.meta.glob('./*.ts', { base: './g' });", 'option `base` is not registered'],
+    ["void import.meta.glob('./*.ts', { eager: 1 });", 'option `eager` takes a boolean literal'],
+    [
+      "declare const q: string; void import.meta.glob('./*.ts', { query: q });",
+      'option `query` takes a string literal',
+    ],
+    ["declare const o: object; void import.meta.glob('./*.ts', o);", 'takes literal options'],
     ["void import.meta.glob('!./b.ts');", 'negated patterns'],
     ["void import.meta.glob('./nowhere/*.ts');", 'does not exist'],
     ["void import.meta.glob('lib/*.ts');", 'not relative, rooted or aliased'],
@@ -132,6 +144,7 @@ describe('bundle graph allow list', () => {
     ["void import.meta.glob('@/g/*.ts');", [X]],
     ["void import.meta.glob('./g/*.{ts,tsx}');", [X, Y]],
     ["void import.meta.glob(['./g/x.ts', '@/g/y.tsx']);", [X, Y]],
+    ["void import.meta.glob('./g/*.ts', { eager: true, import: 'default', 'query': '' });", [X]],
   ])('follows the matches of %s', (text, matched) => {
     const result = graph({
       ...main(text),

@@ -22,6 +22,26 @@ import {
 const VENDOR_PREFIX = /^-(?:webkit|moz|ms|o)-/;
 const IDENT = /^-?[a-z_][\w-]*$/i;
 
+/**
+ * Where a reported value is written, appended to its message as `Written at file:line[, …].`
+ * (`withOrigins`) and read back by the gate (`originsOf`) to put those source lines in the
+ * fingerprint. One format, defined here only.
+ */
+const ORIGINS = / Written at ([^ ,]+:\d+(?:, [^ ,]+:\d+)*)\.$/;
+export function withOrigins(message, origins) {
+  const unique = [...new Set(origins)];
+  return unique.length === 0 ? message : `${message} Written at ${unique.join(', ')}.`;
+}
+export function originsOf(message) {
+  const match = ORIGINS.exec(message);
+  return match === null
+    ? []
+    : match[1].split(', ').map((origin) => {
+        const at = origin.lastIndexOf(':');
+        return { file: origin.slice(0, at), line: Number(origin.slice(at + 1)) };
+      });
+}
+
 export const valueMessages = {
   property: (prop) => `\`${prop}\` is not a registered property (UI gate S1).`,
   func: (name) => `\`${name}()\` is not a registered CSS function (UI gate S2).`,

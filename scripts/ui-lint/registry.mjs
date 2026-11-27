@@ -18,6 +18,17 @@ export const WEB_ROOT = 'packages/web';
 /** Entries a Vite plugin adds to the build besides the pages (checked against the plugin). */
 export const BUILD_ENTRIES = Object.freeze(['packages/web/src/boot/bootSplash.ts']);
 
+/**
+ * The Vite plugins of `vite.config.ts`, by factory name, and what each adds to the module graph
+ * the gate checks (P1 QA7/QA8 N2): a new plugin, or one that adds entries, changes this list.
+ */
+export const VITE_PLUGINS = Object.freeze({
+  react: 'transforms JSX and Fast Refresh; adds no modules',
+  babel: 'React Compiler transform; adds no modules',
+  Icons: 'serves the `~icons/*` virtual modules (VIRTUAL_MODULE_PREFIXES)',
+  bootSplash: 'adds the boot splash entry (BUILD_ENTRIES)',
+});
+
 /** Elements and attributes a page may hold; a page has no inline style, script or handler. */
 export const PAGE_ELEMENTS = Object.freeze(
   new Set([
@@ -1040,3 +1051,21 @@ export const ANIMATION_KEYWORDS = Object.freeze(
   ]),
 );
 export const ANIMATION_NAMES = Object.freeze(new Set(['animation', 'animation-name']));
+
+/** `import.meta.glob` shapes the bundle graph expands exactly (P1 QA7 F3, QA8 FIX-FIRST-1). */
+export const GLOB_OPTIONS = Object.freeze(new Set(['eager', 'import', 'query']));
+export const GLOB_PATH = /^(?:@\/|\/|\.{1,2}\/)?[\w./-]*$/;
+export const GLOB_NAME = /^[\w.*-]+$/;
+export const GLOB_BRACE = /^[\w.*-]+(?:,[\w.*-]+)+$/;
+
+/** Scripts the graph follows, and declaration files it never does. */
+export const SCRIPT_FILE = /\.(?:ts|tsx)$/;
+export const DECLARATION_FILE = /\.d\.ts$/;
+/** Constructors that start a module graph of their own (`new Worker(new URL(…))`). */
+export const WORKER_CONSTRUCTORS = Object.freeze(new Set(['Worker', 'SharedWorker']));
+/** The only `react-dom/client` export the app may import (E11). */
+export const REACT_DOM_CLIENT_IMPORTS = Object.freeze(['createRoot']);
+/** Attributes that size the box of a `SIZED_ELEMENTS` element (E4). */
+export const SIZE_ATTRIBUTES = Object.freeze(new Set(['width', 'height']));
+/** React hooks whose first destructured element is their first argument at first render (E4). */
+export const STATE_HOOKS = Object.freeze(new Set(['useState']));

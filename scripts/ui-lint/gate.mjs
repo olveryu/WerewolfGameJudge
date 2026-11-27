@@ -7,8 +7,10 @@
  *    (own configurations only, inline disables ignored).
  * 3. Turn every violation into a fingerprint and compare. A fingerprint is the violation's
  *    identity in code: rule ID, message ID (ESLint; Stylelint has none) and the trimmed source
- *    line. The message text is not part of it, so rewording a message records no new debt
- *    (P1 QA7 F2); renaming a message ID is renaming part of a rule's identity, like a rule ID.
+ *    line, plus the source lines a report says its value is written on (`Written at …`, from
+ *    `values.mjs`) when they are elsewhere. The message text is not part of it, so rewording a
+ *    message records no new debt (P1 QA7 F2), and changing a value written elsewhere is new
+ *    debt (QA8 FIX-FIRST-2); renaming a message ID is renaming part of a rule's identity.
  *    - exactly equal to `ui-gate-baseline.json` (a fixed violation must shrink the baseline);
  *    - no fingerprint beyond the baseline at the comparison base (renames followed), except
  *      for rule IDs the base baseline does not list yet (a new rule records its existing debt).
@@ -24,6 +26,7 @@ import { ESLint } from 'eslint';
 import stylelint from 'stylelint';
 
 import { bundleGraph, REPO_ROOT } from './bundle.mjs';
+import { originsOf } from './values.mjs';
 import { gateConfig } from './eslint.gate.mjs';
 import stylelintConfig from './stylelint.gate.mjs';
 
@@ -41,6 +44,11 @@ function remember(reports, file, key, line, message) {
   const list = reports.get(`${file}\t${key}`) ?? [];
   list.push(`${file}:${line}: ${message}`);
   reports.set(`${file}\t${key}`, list);
+}
+
+/** The trimmed source line a report says a value is written on; outside the file is a bug. */
+function sourceLine(root, { file, line }, rule) {
+  return fingerprint(rule, '', readLines(root, file), line, file).split('\t')[2];
 }
 
 function readLines(root, file) {
@@ -121,7 +129,15 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
           // Every rule of the gate configuration reports through `messages` (message IDs).
           if (message.messageId === undefined)
             throw new Error(`UI gate: ${message.ruleId} reported without a message ID in ${file}`);
-          const key = fingerprint(message.ruleId, message.messageId, lines, message.line, file);
+          // A value written on another line or in another file: its source lines join the
+          // fingerprint (P1 QA8 FIX-FIRST-2).
+          const written = originsOf(message.message)
+            .filter((origin) => origin.file !== file || origin.line !== message.line)
+            .map((origin) => sourceLine(root, origin, message.ruleId));
+          const key = [
+            fingerprint(message.ruleId, message.messageId, lines, message.line, file),
+            ...written,
+          ].join('\t');
           add(files, file, key);
           remember(reports, file, key, message.line, message.message);
         }

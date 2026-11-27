@@ -8,6 +8,7 @@
 import tseslint from 'typescript-eslint';
 
 import uiPlugin from './eslint-plugin.mjs';
+import { REACT_DOM_CLIENT_IMPORTS } from './registry.mjs';
 
 const REACT_DOM_MESSAGE =
   'Only createRoot from react-dom/client: React DOM resource APIs insert <link>/<script> past the gate (UI gate E11).';
@@ -47,7 +48,7 @@ export function gateConfig(repoRoot) {
             paths: [
               {
                 name: 'react-dom/client',
-                allowImportNames: ['createRoot'],
+                allowImportNames: [...REACT_DOM_CLIENT_IMPORTS],
                 message: REACT_DOM_MESSAGE,
               },
             ],

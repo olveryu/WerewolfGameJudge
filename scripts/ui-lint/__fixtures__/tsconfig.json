@@ -18,6 +18,7 @@
   "include": [
     "probe.tsx",
     "styles.ts",
+    "origins-probe.tsx",
     "__tests__/probe.tsx"
   ]
 }

@@ -300,6 +300,11 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "const sizes = { card: 'var(--space-3)' }; export const a = <div style={{ padding: sizes.card }} />;",
     // A typed style literal in another file is judged where it is written, not again here (N3).
     "import { typedCard } from './styles'; export const a = <div style={typedCard} />;",
+    // `n && v` writes `v` or nothing: the left side is never a style value (QA8 should-fix 4).
+    "const n = 3; export const a = <div style={{ padding: n && 'var(--space-2)' }} />;",
+    // Tables of tokens, and a table whose key is runtime but whose entries are all tokens.
+    "const C = { a: 'var(--a)', b: 'var(--b)' }; declare const k: string; export const a = <div style={{ color: (C as Record<string, string>)[k] }} />;",
+    "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW((v) => v + 1); return <div style={{ opacity: w ? 1 : 0 }} />; }",
   ]),
   invalid: [
     ...red(
@@ -355,6 +360,19 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "import { templateCard } from './styles'; export const a = <div style={templateCard} />;",
         "import { fallbackCard } from './styles'; export const a = <div style={fallbackCard} />;",
         'declare const open: number | undefined; export const a = <div style={{ width: open || 12 }} />;',
+        // Tables read by member or element, annotated or not (QA8 FIX-FIRST-3).
+        "const C: Record<'a' | 'b', string> = { a: '#f00', b: 'var(--a)' }; declare const k: 'a' | 'b'; export const a = <div style={{ color: C[k] }} />;",
+        "const C: Record<'a', string> = { a: '#f00' }; export const a = <div style={{ color: C.a }} />;",
+        "const C: { a: string } = { a: '#f00' }; export const a = <div style={{ color: C.a }} />;",
+        "const C = { a: '#f00', b: 'var(--a)' }; declare const k: string; export const a = <div style={{ color: (C as Record<string, string>)[k] }} />;",
+        "const C = ['#f00', 'var(--a)']; declare const i: number; export const a = <div style={{ color: C[i] }} />;",
+        "const C: Record<'a', string> = { a: '#f00' }; export const a = <svg><rect fill={C.a} /></svg>;",
+        "const RED = { primary: '#f00' }; const THEMES: Record<'x', { primary: string }> = { x: RED }; declare const k: 'x'; export const a = <div style={{ color: THEMES[k].primary }} />;",
+        'const card: { padding: number } = { padding: 12 }; export const a = <div style={card} />;',
+        // Later writes and lazy initial state (QA8 should-fix 3).
+        'let gap = 0; gap = 12; export const a = <div style={{ gap }} />;',
+        "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW(16); return <div style={{ width: w }} />; }",
+        "import { useState } from 'react'; export function A() { const [w] = useState(() => 16); return <div style={{ width: w }} />; }",
       ],
       'value',
     ),

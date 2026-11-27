@@ -4,12 +4,14 @@
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { bundleGraph } from './bundle.mjs';
+import { bundleGraph, REPO_ROOT } from './bundle.mjs';
 import {
   BASELINE_FILE,
   baselineAt,
@@ -49,25 +51,63 @@ describe('baseline format (P1 QA7 F2)', () => {
     );
     for (const list of Object.values(saved.files))
       for (const key of list) {
-        const [rule, messageId, source, ...rest] = key.split('\t');
+        // rule, message ID, source line, then the lines the value is written on elsewhere
+        const [rule, messageId, ...sources] = key.split('\t');
         expect(saved.rules).toContain(rule);
         expect(messageId).toMatch(/^(?:[a-zA-Z]+)?$/);
-        expect(source).not.toBe('');
-        expect(rest).toEqual([]);
+        expect(sources.length).toBeGreaterThan(0);
+        for (const source of sources) expect(source).not.toBe('');
       }
   });
 });
 
+// One graph for both describes below (it takes about a minute on a shared runner).
+let graphOnce;
+const graph = () => (graphOnce ??= bundleGraph());
+
+describe('bundle graph against Vite (P1 QA8 should-fix 5)', () => {
+  // The graph is the gate's scope because it is what Vite bundles: checked against Vite's own
+  // build, every module of the repository Vite transforms is in the graph. A gap here is a module
+  // that reaches the page unchecked; extra graph files (type-only imports elided by Vite) are
+  // checked needlessly, never missed.
+  it('holds every repository module of the production build', async () => {
+    const web = path.join(REPO_ROOT, 'packages/web');
+    const require = createRequire(path.join(web, 'package.json'));
+    const { build } = await import(pathToFileURL(require.resolve('vite')).href);
+    const transformed = new Set();
+    await build({
+      root: web,
+      logLevel: 'silent',
+      build: { write: false },
+      plugins: [
+        {
+          name: 'ui-gate-collect',
+          transform(_code, id) {
+            const file = id.split('?')[0];
+            if (path.isAbsolute(file) && !file.split(path.sep).includes('node_modules'))
+              transformed.add(path.relative(REPO_ROOT, file).split(path.sep).join('/'));
+          },
+        },
+      ],
+    });
+    const { scripts, styles } = graph();
+    const scope = new Set([...scripts, ...styles]);
+    const modules = [...transformed].filter((file) => /\.(?:tsx?|css)$/.test(file));
+    expect(modules.length).toBeGreaterThan(1000);
+    expect(modules.filter((file) => !scope.has(file))).toEqual([]);
+  }, 900_000);
+});
+
 describe('bundle graph', () => {
   it('has no problems and reaches the app, the boot splash and the token sheet', () => {
-    const graph = bundleGraph();
-    expect(graph.problems).toEqual([]);
-    expect(graph.scripts).toContain('packages/web/src/main.tsx');
-    expect(graph.scripts).toContain('packages/web/src/boot/bootSplash.ts');
-    expect(graph.styles).toContain('packages/web/src/theme/tokens.css');
-    expect(graph.scripts.some((file) => file.startsWith('packages/game-engine/src/'))).toBe(true);
-    expect(graph.scripts.some((file) => /\/__tests__\/|\.test\.tsx?$/.test(file))).toBe(false);
-  }, 60_000);
+    const result = graph();
+    expect(result.problems).toEqual([]);
+    expect(result.scripts).toContain('packages/web/src/main.tsx');
+    expect(result.scripts).toContain('packages/web/src/boot/bootSplash.ts');
+    expect(result.styles).toContain('packages/web/src/theme/tokens.css');
+    expect(result.scripts.some((file) => file.startsWith('packages/game-engine/src/'))).toBe(true);
+    expect(result.scripts.some((file) => /\/__tests__\/|\.test\.tsx?$/.test(file))).toBe(false);
+  }, 300_000);
 });
 
 describe('comparison base (P1 QA5 K10)', () => {
