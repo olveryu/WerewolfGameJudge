@@ -556,24 +556,6 @@ const ADAPTED = [
 ];
 tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
   valid: [
-    // React's dependency lists compare identities and hand nothing on.
-    ...green(
-      [
-        "import { Graphics } from 'pixi.js'; import { useEffect } from 'react'; const g = new Graphics(); export function useG(): void { useEffect(() => undefined, [g]); }",
-      ],
-      [
-        {
-          packages: {
-            'pixi.js': {
-              field: 'dependencies',
-              why: 'fixture',
-              entries: ['pixi.js'],
-              adapters: { 'pixi.js': PROBE },
-            },
-          },
-        },
-      ],
-    ),
     ...green([
       "export type { ToasterProps } from 'sonner';",
       "import { z } from 'zod'; export const s = z.string();",
@@ -581,27 +563,15 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
     ]),
     ...green(
       [
+        // The adapter's exports write only our own types; inside, it uses the package freely.
         "import { toast } from 'sonner'; export function notify(message: string) { toast(message); }",
         'import { Toaster } from \'sonner\'; export function AppToaster() { return <Toaster position="top-center" />; }',
         "import { toast } from 'sonner'; export const notifier = { show: (message: string) => void toast(message) };",
-        // A package's value stays under its own type: a binding without an annotation, its own
-        // calls, elements and props.
-        "import { toast } from 'sonner'; const t = toast; export function notify(m: string) { t(m, { duration: 1 }); }",
         "import { toast, type ExternalToast } from 'sonner'; const o: ExternalToast = {}; export function notify(m: string) { toast(m, o); }",
-        'import { Toaster } from \'sonner\'; const T = Toaster; export function AppToaster() { return <T position="top-center" />; }',
-        // Only the types a page-writing package ships are its own: zod's are not.
-        "import 'sonner'; import { z } from 'zod'; declare function keep(x: unknown): void; keep(z.string()); export const s = z.string();",
-        "import { toast } from 'sonner'; const { success } = toast; export function ok(m: string) { success(m); }",
-        "import { toast } from 'sonner'; class Holder { t = toast; } export function show(m: string) { new Holder().t(m); }",
-        // Handed to the package itself: its calls, members, elements and callbacks.
-        "import { toast } from 'sonner'; toast('a', { onDismiss: (t) => void t.id });",
-        "import { toast, type ToastT } from 'sonner'; function seen(t: ToastT): void { void t.id; } toast('a', { onDismiss: seen });",
-        // A rest parameter written with the package's type takes every argument (P1 QA28 S1).
-        "import { toast } from 'sonner'; function hold(...all: (typeof toast)[]): void { void all; } hold(toast, toast);",
-        "import { Toaster } from 'sonner'; const T = Toaster; export function A() { return <T toastOptions={{ duration: 1 }} />; }",
-        // A written place, a method, an extended class, `as const`: no other type taken.
-        "import { toast } from 'sonner'; const box = { t: toast } as const; export function show(m: string) { box.t(m); }",
-        "import { toast } from 'sonner'; class Holder { t = toast; reset() { this.t = toast; } run() { return toast; } } export function show(m: string) { new Holder().run()(m); }",
+        "import { toast } from 'sonner'; class Notifier { #t = toast; private u = toast; show(m: string): void { this.#t(m); this.u(m); } } export { Notifier };",
+        "import { toast } from 'sonner'; const show = (m: string): void => void toast(m); export { show };",
+        // A property key or a qualified name's member is not the binding.
+        "import { toast } from 'sonner'; export interface Options { toast: string } void toast;",
       ],
       ADAPTED,
     ),
@@ -619,6 +589,8 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         "import * as Sentry from '@sentry/react'; void Sentry;",
         "import { Portal } from '@ark-ui/react/portal'; void Portal;",
         "import sonner = require('sonner'); void sonner;",
+        // A debt module's exports are not judged: its import is the debt.
+        "import { Graphics } from 'pixi.js'; export const make = (): Graphics => new Graphics();",
       ],
       'none',
     ),
@@ -636,6 +608,7 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
     ),
     // The adapter hands the package on.
     ...red(["export { toast } from 'sonner';", "export * from 'sonner';"], 'reexport', ADAPTED),
+    // Its exports name the package (judged at the export by syntax, plan §4 P1).
     ...red(
       [
         "import { toast } from 'sonner'; export const notify = toast;",
@@ -643,95 +616,20 @@ tester.run('ui/package-adapter', uiLint.rules['package-adapter'], {
         "import { toast as t } from 'sonner'; export { t as show };",
         "import { toast } from 'sonner'; export default toast;",
         "import { toast } from 'sonner'; export const notifier = { show: toast };",
+        "import { toast } from 'sonner'; export const all = [toast.success];",
+        "import { toast } from 'sonner'; const notify = toast; export { notify };",
         "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; export type Props = ComponentProps<typeof Toaster>;",
-        "import { Toaster } from 'sonner'; export const U = Toaster;",
+        "import { Toaster } from 'sonner'; export const U = Toaster as unknown;",
         "import { toast, type ExternalToast } from 'sonner'; export function notify(message: string, options: ExternalToast) { toast(message, options); }",
-        "import { toast } from 'sonner'; export function make() { return toast; }",
+        "import type { ToastT } from 'sonner'; export function last(): ToastT | undefined { return undefined; }",
+        "import type { ToastT } from 'sonner'; export const seen = (t: ToastT): void => void t;",
+        "import type { ToastT } from 'sonner'; export interface Shown { toast: ToastT }",
+        "import type { ToastT } from 'sonner'; export class Shown { last?: ToastT; }",
+        "import type { ToastT } from 'sonner'; export class Shown { show(t: ToastT): void { void t; } }",
+        "import type sonner from 'sonner'; export type S = typeof sonner;",
       ],
       'exposes',
       ADAPTED,
     ),
-    // The package leaves under another type (P1 QA25 F1, QA24 F1, QA23 F1).
-    ...red(
-      [
-        "import { Toaster } from 'sonner'; import type { FC } from 'react'; export const T: FC<{ gap?: number }> = Toaster;",
-        "import { toast } from 'sonner'; export const notify: (m: string, o: { offset: number }) => void = toast;",
-        "import { toast } from 'sonner'; let slot: ((m: string) => void) | undefined; export const keep = () => slot; slot = toast;",
-        "import { toast } from 'sonner'; declare function keep(f: (m: string) => void): void; keep(toast);",
-        "import { toast } from 'sonner'; setTimeout(toast, 0, 'x');",
-        "import { toast } from 'sonner'; declare function keep(f: unknown): void; keep(toast.success);",
-        "import { toast } from 'sonner'; const f = toast as unknown as () => void; f();",
-        "import { Toaster } from 'sonner'; export function make(): unknown { return Toaster; }",
-        "import { Toaster } from 'sonner'; import type { ComponentType } from 'react'; const later = (c: ComponentType<any>) => c; export const T = later(Toaster);",
-        // No contextual type, and a position that takes the value somewhere no type describes
-        // (P1 QA26 F1, F3).
-        "import { toast } from 'sonner'; export function fail(): void { throw toast; }",
-        "import { toast } from 'sonner'; queueMicrotask(() => { throw toast; });",
-        "import { toast } from 'sonner'; class Holder { t: unknown = toast; } void Holder;",
-        "import { toast } from 'sonner'; export function* each(): Generator<unknown> { yield toast; }",
-        "import 'sonner'; export const load = (): Promise<unknown> => import('sonner');",
-        // Handed to code no package declares, whatever type it takes it as: a generic, a
-        // library call, a global (P1 QA27 F1–F3).
-        "import { toast } from 'sonner'; function keep<T>(v: T): void { void v; } keep(toast);",
-        "import { toast } from 'sonner'; export const box: { t?: unknown } = {}; Object.assign(box, { t: toast });",
-        "import { toast } from 'sonner'; function keep(v: unknown): void { void v; } keep.call(null, toast);",
-        "import { toast } from 'sonner'; declare global { var held: unknown; } globalThis.held = toast;",
-        "import { toast } from 'sonner'; export const slot: { t?: unknown } = {}; slot.t = toast;",
-      ],
-      'escapes',
-      ADAPTED,
-    ),
-    // A function the package calls with its values takes them under another type (QA27 F1).
-    ...red(
-      [
-        "import { toast } from 'sonner'; toast('a', { onDismiss: (t: unknown) => void t });",
-        "import { toast } from 'sonner'; function seen(t: object): void { void t; } toast('a', { onAutoClose: seen });",
-        // A library method or another module's function takes it as ours (P1 QA28 F1).
-        "import { toast } from 'sonner'; export const parts = new Set<unknown>(); [toast].forEach(parts.add, parts);",
-        "import { toast } from 'sonner'; import { keepPart } from './keep'; [toast].forEach(keepPart);",
-        "import { toast } from 'sonner'; import { keepPart } from './keep'; toast('a', { onDismiss: keepPart });",
-        "import { toast } from 'sonner'; toast('a', { onDismiss: (...all: unknown[]) => void all });",
-      ],
-      'takes',
-      ADAPTED,
-    ),
-    {
-      filename,
-      code: "import { toast } from 'sonner'; queueMicrotask(toast.bind(null, 'x'));",
-      options: ADAPTED,
-      errors: [{ messageId: 'escapes' }],
-    },
-    {
-      filename,
-      code: "import { toast } from 'sonner'; export const slot: { root?: unknown } = {}; const keep = (v: unknown): void => { slot.root = v; }; [toast].forEach(keep);",
-      options: ADAPTED,
-      errors: [{ messageId: 'takes' }],
-    },
-    // A slot of a package type is declared where no package is imported, or declared global:
-    // the module or global holding it exposes the package (P1 QA26 F2).
-    ...red(
-      [
-        "export function keep(f: typeof import('sonner').toast): void { void f; }",
-        "export let slot: typeof import('sonner').Toaster | undefined;",
-        "declare global { var shown: typeof import('sonner').toast; } export {};",
-        "declare global { interface Window { shown: typeof import('sonner').toast } } export {};",
-        "declare var shown: typeof import('sonner').toast;",
-        "import type { Toaster } from 'sonner'; export type T = typeof Toaster;",
-        "import type sonner = require('sonner'); export type S = typeof sonner;",
-      ],
-      'exposes',
-      ADAPTED,
-    ),
-    // A debt module (no adapter yet) is judged the same: its import is debt, and it hands nothing on.
-    {
-      filename,
-      code: "import { Graphics } from 'pixi.js'; export const make = () => new Graphics();",
-      errors: [{ messageId: 'none' }, { messageId: 'exposes' }],
-    },
-    {
-      filename,
-      code: "import { Graphics } from 'pixi.js'; declare function keep(g: object): void; keep(new Graphics());",
-      errors: [{ messageId: 'none' }, { messageId: 'escapes' }],
-    },
   ],
 });

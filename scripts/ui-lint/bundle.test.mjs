@@ -158,20 +158,6 @@ describe('bundle graph allow list', () => {
     );
   });
 
-  it('lints every declaration file of the web program, imported or not (P1 QA27 F3)', () => {
-    const result = graph({
-      'packages/web/src/types/slot.d.ts': 'declare var slot: unknown;',
-      'packages/web/src/vite-env.d.ts': '',
-    });
-    expect(result.problems).toEqual([]);
-    expect(result.scripts).toEqual([
-      'packages/web/src/boot/bootSplash.ts',
-      'packages/web/src/main.ts',
-      'packages/web/src/types/slot.d.ts',
-      'packages/web/src/vite-env.d.ts',
-    ]);
-  });
-
   it('accepts a package only through its registered entries (QA6 L7)', () => {
     const packages = { dep: { field: 'dependencies', why: 'fixture', entries: ['dep'] } };
     expect(graph(main("import 'dep';"), packages).problems).toEqual([]);

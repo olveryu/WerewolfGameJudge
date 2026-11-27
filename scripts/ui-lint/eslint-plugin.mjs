@@ -26,7 +26,6 @@
  *   imported only by its registered adapter, judged by the import's syntax; no module that
  *   imports it re-exports it, exposes its types or lets its values leave under another type.
  */
-import fs from 'node:fs';
 import path from 'node:path';
 
 import ts from 'typescript';
@@ -41,9 +40,7 @@ import {
   FILE_ELEMENTS,
   HTML_KEYS,
   NAMED_WRITERS,
-  EXPOSABLE_TYPE_PACKAGES,
   OPEN_ATTRIBUTES,
-  WEB_ROOT,
   PACKAGES,
   REACT_UNITLESS,
   REFLECTION,
@@ -1191,199 +1188,13 @@ const inlineStyleKeys = {
 /**
  * `ui/package-adapter` (E12): a package that writes the page from the values it is handed is
  * imported only by its adapter (`PACKAGES` adapters), judged by the import's syntax alone: a
- * static import, a dynamic `import()`, a re-export. In the adapter, the package is not handed on:
- * neither re-exported nor reachable through the types of the module's exports, so what callers
- * pass reaches the package only through our own types, in one module.
+ * static import, a dynamic `import()`, a re-export. The adapter's own exports name no package
+ * binding (`exposes`), judged by syntax at the export: the type annotations it writes (a
+ * variable's, a function's parameters and return, a class's public members, a type or
+ * interface), and a variable's initializer that is the package's binding itself (directly, or
+ * as an object or array literal's entry). Values handed on through other code (a callback, a
+ * generic, a global slot) are review's and the P2 screenshots' (plan §4 P1, the lint boundary).
  */
-/**
- * The directory of package `name` as Node resolves it from `from` (a directory): the first
- * `node_modules/<name>` up the tree. A dependency that is declared and not installed is a broken
- * install, never a package to skip.
- */
-function packageDirectory(name, from) {
-  for (let at = from; ; at = path.dirname(at)) {
-    const candidate = path.join(at, 'node_modules', name);
-    if (fs.existsSync(path.join(candidate, 'package.json'))) return fs.realpathSync(candidate);
-    if (path.dirname(at) === at)
-      throw new Error(
-        `UI gate E12: \`${name}\` is a dependency but is not installed above ${from}.`,
-      );
-  }
-}
-
-/**
- * The packages whose types a page-writing package hands out (E12): the packages with adapters
- * and, transitively, their `dependencies` (Ark ships `@zag-js/*`, Pixi its `@pixi/*`), resolved
- * from the web client. A type of any other package (data fetching, routing, icons) is not one.
- */
-const shippedCache = new Map();
-function shippedPackages(packages, webRoot) {
-  const key = `${webRoot}\u0000${Object.keys(packages).join(',')}`;
-  if (shippedCache.has(key)) return shippedCache.get(key);
-  const out = new Set();
-  const visit = (name, from) => {
-    if (out.has(name)) return;
-    out.add(name);
-    const directory = packageDirectory(name, from);
-    const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8'));
-    for (const dependency of Object.keys(manifest.dependencies ?? {})) visit(dependency, directory);
-  };
-  for (const [name, { adapters }] of Object.entries(packages))
-    if (adapters !== undefined) visit(name, webRoot);
-  shippedCache.set(key, out);
-  return out;
-}
-
-/** ESTree parents through which an identifier is still the value it names. */
-const TRANSPARENT_TS = new Set(['TSAsExpression', 'TSSatisfiesExpression', 'TSNonNullExpression']);
-
-/**
- * Whether an identifier reads the value it names here: not a name being declared or written, a
- * key, a label, an import or export name (an export is judged by its type, `exposes`), or a type.
- */
-function isValueReference(node) {
-  const parent = node.parent;
-  switch (parent.type) {
-    case 'MemberExpression':
-      return parent.object === node || parent.computed;
-    case 'Property':
-      // A destructuring pattern's property declares its value; a literal's carries it.
-      if (parent.parent.type === 'ObjectPattern') return parent.computed && parent.key === node;
-      return parent.value === node && (parent.shorthand || parent.key !== node || parent.computed);
-    case 'PropertyDefinition':
-    case 'MethodDefinition':
-    case 'TSAbstractPropertyDefinition':
-      return parent.value === node || (parent.computed && parent.key === node);
-    case 'VariableDeclarator':
-      return parent.init === node;
-    case 'AssignmentExpression':
-      return parent.right === node;
-    case 'AssignmentPattern':
-      return parent.right === node;
-    case 'FunctionDeclaration':
-    case 'FunctionExpression':
-    case 'ArrowFunctionExpression':
-      return parent.body === node;
-    case 'ClassDeclaration':
-    case 'ClassExpression':
-      return parent.superClass === node;
-    case 'ArrayPattern':
-    case 'ObjectPattern':
-    case 'RestElement':
-    case 'UpdateExpression':
-    case 'CatchClause':
-    case 'LabeledStatement':
-    case 'BreakStatement':
-    case 'ContinueStatement':
-    case 'ImportSpecifier':
-    case 'ImportDefaultSpecifier':
-    case 'ImportNamespaceSpecifier':
-    case 'ExportSpecifier':
-    case 'MetaProperty':
-      return false;
-    default:
-      return !parent.type.startsWith('TS') || TRANSPARENT_TS.has(parent.type);
-  }
-}
-
-const FUNCTIONS = new Set(['ArrowFunctionExpression', 'FunctionExpression']);
-
-/** `takesNoOtherType` positions that carry the value into the expression around it. */
-const CARRIERS = new Set([
-  'Property',
-  'ArrayExpression',
-  'SpreadElement',
-  'ConditionalExpression',
-  'LogicalExpression',
-  'SequenceExpression',
-  'AwaitExpression',
-  'ChainExpression',
-  'TSNonNullExpression',
-  'TSAsExpression',
-  'ArrowFunctionExpression',
-  'ReturnStatement',
-]);
-
-/** `reach`'s owner of a type of ours declared in another file (judged there). */
-const ELSEWHERE = Symbol('declared in another file of ours');
-
-/**
- * The positions where a value of a package's type stays within this module by syntax alone (E12
- * `escapes`): it is called, bound without an annotation, discarded, tested, compared or turned
- * into a primitive, or carried into the expression around it (an object, array, branch, `await`,
- * a function's body or `return`), which is held and judged itself. Handing it on (a call's
- * argument, a member read, a JSX prop, an assigned member) is judged by `handedToPackage`; every
- * other position (a `throw`, a `yield`, a default value, …) is reported (P1 QA26 F1, QA27).
- */
-function takesNoOtherType(node) {
-  const { parent } = node;
-  switch (parent.type) {
-    case 'CallExpression':
-    case 'NewExpression':
-      return parent.callee === node;
-    case 'TaggedTemplateExpression':
-      return parent.tag === node;
-    case 'VariableDeclarator':
-      return parent.init === node && parent.id.typeAnnotation === undefined;
-    case 'PropertyDefinition':
-      return parent.value === node && parent.typeAnnotation == null;
-    case 'AssignmentExpression':
-      // The place written, not a value read; the value written is judged against its type.
-      return parent.left === node;
-    case 'TSAsExpression':
-      // `as const` keeps the value's own type; the assertion is held and judged itself.
-      return (
-        parent.typeAnnotation.type === 'TSTypeReference' &&
-        parent.typeAnnotation.typeName.type === 'Identifier' &&
-        parent.typeAnnotation.typeName.name === 'const'
-      );
-    case 'MethodDefinition':
-      // A method is judged as a member of its class (`exposes`, or where the class goes).
-      return parent.value === node;
-    case 'ClassDeclaration':
-    case 'ClassExpression':
-      // Extended, the class is ours and is judged by its own type.
-      return parent.superClass === node;
-    case 'ForOfStatement':
-    case 'ForInStatement':
-      // Iterated into a binding without an annotation, judged where read.
-      return (
-        parent.right === node &&
-        parent.left.type === 'VariableDeclaration' &&
-        parent.left.declarations.every(({ id }) => id.typeAnnotation === undefined)
-      );
-    case 'IfStatement':
-    case 'WhileStatement':
-    case 'DoWhileStatement':
-    case 'ForStatement':
-      return parent.test === node;
-    case 'SpreadElement':
-      return parent.parent.type === 'ArrayExpression' || parent.parent.type === 'ObjectExpression';
-    case 'Property':
-      return parent.value === node && parent.parent.type === 'ObjectExpression';
-    case 'ArrowFunctionExpression':
-      return parent.body === node;
-    case 'ExportDefaultDeclaration':
-      // Judged as the module's export (`exposes`).
-      return true;
-    case 'ExpressionStatement':
-    case 'UnaryExpression':
-    case 'BinaryExpression':
-    case 'TemplateLiteral':
-    case 'ConditionalExpression':
-    case 'LogicalExpression':
-    case 'SequenceExpression':
-    case 'AwaitExpression':
-    case 'ChainExpression':
-    case 'TSNonNullExpression':
-    case 'ArrayExpression':
-    case 'ReturnStatement':
-      return true;
-    default:
-      return false;
-  }
-}
-
 const packageAdapter = {
   meta: {
     type: 'problem',
@@ -1405,24 +1216,17 @@ const packageAdapter = {
       none: '`{{specifier}}` writes the page from the values it is handed and has no adapter yet: this import is debt until one module of ours is registered as its adapter and the others use it (UI gate E12, scripts/ui-lint/registry.mjs PACKAGES adapters).',
       reexport:
         'The adapter re-exports `{{specifier}}`, handing the package on past it: export functions or components of ours that take our own types instead (UI gate E12).',
-      takes:
-        "This function is given where `{{pkg}}` calls it with `{{type}}`, but its parameter `{{name}}` takes that as `{{taken}}`, so the package's value leaves this module unseen: leave the parameter unannotated or write it with the package's type (UI gate E12).",
       exposes:
-        "`{{name}}` is exported or declared global here and exposes `{{type}}` of `{{pkg}}`, so other modules reach the package through it: export and declare only our own types (React's allowed) (UI gate E12).",
-      escapes:
-        'This value is `{{type}}` of `{{pkg}}`, and it goes to {{target}}, so the package leaves this module unseen: hand it only to `{{pkg}}` itself (its own calls, members, elements and props), bind it without an annotation or call it, and hand other code values of our own types (UI gate E12).',
+        "`{{name}}` is exported and its declaration names `{{binding}}` of `{{specifier}}`, so other modules reach the package through the adapter's exports: export functions, components and types of ours that take our own types (token names, registered runtime values) instead (UI gate E12).",
     },
   },
   create(context) {
-    const { services, checker } = typedServices(context);
     const file = fileKey(context, context.filename);
     const packages = context.options[0]?.packages ?? PACKAGES;
-    // The registered entries this file imports for their values, adapter or not (a debt module
-    // hands the package on no more than an adapter does).
-    const reached = new Set();
-    // Every expression that can hold a value of a package, judged at Program:exit once the file is
-    // known to reach one.
-    const held = [];
+    // Local names this adapter binds to its registered entries (`import type` included): the
+    // names its exports may not write.
+    const bindings = new Map();
+    const exported = [];
     // The package's adapter rule for a written specifier; a non-literal or relative specifier is
     // the bundle graph's.
     const ruleOf = (source) => {
@@ -1441,9 +1245,6 @@ const packageAdapter = {
       const rule = ruleOf(source);
       if (rule === undefined) return;
       const { specifier, adapter } = rule;
-      // Another module's entry is reported here as an import; what this file then does with it
-      // is that report's, not `escapes`'.
-      if (adapter === null || adapter === file) reached.add(specifier);
       if (adapter !== file)
         return context.report({
           node,
@@ -1452,90 +1253,108 @@ const packageAdapter = {
         });
       if (reexport) return context.report({ node, messageId: 'reexport', data: { specifier } });
     };
-    /**
-     * The first type of a package (other than `EXPOSABLE_TYPE_PACKAGES`) reachable from `root`:
-     * through unions and intersections, type arguments, signatures' parameters and returns,
-     * properties (a property a package declares is one) and index signatures. The TypeScript
-     * library's types and React's are not looked into, only their type arguments.
-     */
-    const shipped = shippedPackages(packages, path.join(context.cwd, WEB_ROOT));
-    const found = new Map();
-    const foreignType = (root) => {
-      if (!found.has(root)) found.set(root, reach(root));
-      return found.get(root);
-    };
-    const reach = (root) => {
-      const seen = new Set();
-      const owner = (symbol) => {
-        const site = symbol?.declarations?.[0];
-        if (site === undefined) return undefined;
-        // A type written out where it is used (a function or object type, such as the one `bind`
-        // returns) has no owner: its signatures and members are what it holds.
-        if (ts.isTypeLiteralNode(site) || ts.isFunctionTypeNode(site) || ts.isMappedTypeNode(site))
-          return undefined;
-        if (services.program.isSourceFileDefaultLibrary(site.getSourceFile())) return null;
-        const pkg = packageOf(site);
-        // A type of ours declared in another file is judged there, where it is exported
-        // (`exposes`): only its type arguments are this file's.
-        if (pkg === undefined)
-          return site.getSourceFile() === services.program.getSourceFile(context.filename)
-            ? undefined
-            : ELSEWHERE;
-        return EXPOSABLE_TYPE_PACKAGES.has(pkg) || !shipped.has(pkg) ? null : pkg;
-      };
-      const argumentsOf = (type) => [
-        ...(type.aliasTypeArguments ?? []),
-        ...(type.flags & ts.TypeFlags.Object && type.objectFlags & ts.ObjectFlags.Reference
-          ? checker.getTypeArguments(type)
-          : []),
-      ];
-      const visit = (type) => {
-        if (seen.has(type)) return undefined;
-        seen.add(type);
-        if (type.isUnionOrIntersection()) return first(type.types);
+    /** Every package binding named in a type annotation's subtree (type positions only). */
+    const named = (node, out) => {
+      if (node === null || typeof node !== 'object') return out;
+      if (Array.isArray(node)) {
+        for (const child of node) named(child, out);
+        return out;
+      }
+      if (typeof node.type !== 'string') return out;
+      // A function's or method's body is not its signature.
+      for (const [key, child] of Object.entries(node)) {
+        if (key === 'parent' || key === 'value' || key === 'init') continue;
         if (
-          type.flags &
-          (ts.TypeFlags.Primitive | ts.TypeFlags.Never | ts.TypeFlags.Any | ts.TypeFlags.Unknown)
+          key === 'body' &&
+          (FUNCTION_TYPES.has(node.type) || node.type === 'FunctionDeclaration')
         )
-          return undefined;
-        const pkg = owner(type.aliasSymbol ?? type.getSymbol());
-        if (typeof pkg === 'string') return { pkg, type: checker.typeToString(type) };
-        const nested = first(argumentsOf(type));
-        if (nested !== undefined || pkg === null || pkg === ELSEWHERE) return nested;
-        for (const signature of [...type.getCallSignatures(), ...type.getConstructSignatures()]) {
-          const found = first([
-            ...signature.getParameters().map((parameter) => checker.getTypeOfSymbol(parameter)),
-            signature.getReturnType(),
+          continue;
+        if (key === 'right' && node.type === 'TSQualifiedName') continue;
+        if (key === 'key' && !node.computed) continue;
+        named(child, out);
+      }
+      if (node.type === 'Identifier' && bindings.has(node.name)) out.push(node);
+      return out;
+    };
+    /** The package binding an initializer is: itself, or an object or array literal's entry. */
+    const held = (node, out) => {
+      if (node === null || node === undefined) return out;
+      if (TRANSPARENT_TS.has(node.type)) return held(node.expression, out);
+      if (node.type === 'ArrayExpression') for (const element of node.elements) held(element, out);
+      else if (node.type === 'ObjectExpression')
+        for (const property of node.properties)
+          held(property.type === 'Property' ? property.value : property.argument, out);
+      else if (node.type === 'SpreadElement') held(node.argument, out);
+      else if (node.type === 'MemberExpression' && !node.computed) held(node.object, out);
+      else if (node.type === 'Identifier' && bindings.has(node.name)) out.push(node);
+      else if (FUNCTION_TYPES.has(node.type))
+        named([node.params, node.returnType, node.typeParameters], out);
+      return out;
+    };
+    /** The binding names a declaration exports, and the nodes its exported signature writes. */
+    const signature = (declaration) => {
+      switch (declaration.type) {
+        case 'VariableDeclaration':
+          return declaration.declarations.flatMap((declarator) => [
+            ...named(declarator.id.typeAnnotation, []),
+            ...held(declarator.init, []),
           ]);
-          if (found !== undefined) return found;
-        }
-        for (const property of checker.getPropertiesOfType(type)) {
-          const declared = owner(property);
-          if (declared === ELSEWHERE) continue;
-          if (typeof declared === 'string')
-            return { pkg: declared, type: `${checker.typeToString(type)}.${property.getName()}` };
-          if (declared === undefined) {
-            const found = visit(checker.getTypeOfSymbol(property));
-            if (found !== undefined) return found;
-          }
-        }
-        return first(checker.getIndexInfosOfType(type).map((info) => info.type));
-      };
-      const first = (types) => {
-        for (const type of types) {
-          const found = visit(type);
-          if (found !== undefined) return found;
-        }
-        return undefined;
-      };
-      return visit(root);
+        case 'FunctionDeclaration':
+        case 'TSDeclareFunction':
+          return named(
+            [declaration.params, declaration.returnType, declaration.typeParameters],
+            [],
+          );
+        case 'ClassDeclaration':
+          return named(
+            [
+              declaration.typeParameters,
+              declaration.superClass,
+              declaration.implements,
+              declaration.body.body
+                .filter(
+                  (member) =>
+                    member.accessibility !== 'private' && member.key?.type !== 'PrivateIdentifier',
+                )
+                .map((member) =>
+                  member.type === 'MethodDefinition' || member.type === 'TSAbstractMethodDefinition'
+                    ? [member.value.params, member.value.returnType]
+                    : [member.typeAnnotation, member.parameter],
+                ),
+            ],
+            [],
+          ).concat(declaration.superClass ? held(declaration.superClass, []) : []);
+        case 'TSTypeAliasDeclaration':
+        case 'TSInterfaceDeclaration':
+        case 'TSEnumDeclaration':
+        case 'TSModuleDeclaration':
+          return named(declaration, []);
+        default:
+          return held(declaration, []);
+      }
     };
     return {
       ImportDeclaration(node) {
+        const rule = ruleOf(node.source);
+        if (rule?.adapter === file)
+          for (const specifier of node.specifiers)
+            bindings.set(specifier.local.name, rule.specifier);
         if (node.importKind !== 'type') judge(node, node.source, false);
       },
       ExportNamedDeclaration(node) {
-        if (node.source !== null && node.exportKind !== 'type') judge(node, node.source, true);
+        if (node.source !== null) {
+          if (node.exportKind !== 'type') judge(node, node.source, true);
+          return;
+        }
+        if (node.declaration !== null) exported.push({ node: node.declaration, name: null });
+        for (const specifier of node.specifiers)
+          exported.push({
+            node: specifier.local,
+            name: specifier.exported.name ?? specifier.exported.value,
+          });
+      },
+      ExportDefaultDeclaration(node) {
+        exported.push({ node: node.declaration, name: 'default' });
       },
       ExportAllDeclaration(node) {
         if (node.exportKind !== 'type') judge(node, node.source, true);
@@ -1547,344 +1366,53 @@ const packageAdapter = {
         if (node.importKind !== 'type' && node.moduleReference.type === 'TSExternalModuleReference')
           judge(node, node.moduleReference.expression, false);
       },
-      // Every expression's own value (never a name being declared, a key or a type): all kinds,
-      // `import()` and composites included (P1 QA26 F3), so none carries a package value unseen.
-      ':expression'(node) {
-        // A JSX element's name is its tag, judged as the element (E2/E4), not a value handed on.
-        // esquery's `:expression` also matches type nodes such as `TSTypeLiteral`: of the TS
-        // nodes only the expressions are values.
-        if (
-          node.type === 'Literal' ||
-          node.type === 'TemplateLiteral' ||
-          node.type.startsWith('JSX') ||
-          (node.type.startsWith('TS') && !node.type.endsWith('Expression'))
-        )
-          return;
-        if (node.type === 'Identifier' && !isValueReference(node)) return;
-        held.push(node);
-      },
-      'Program:exit'() {
-        const source = services.program.getSourceFile(context.filename);
-        if (source === undefined)
-          throw new Error(`ui-gate E12: ${file} is not in the TypeScript program`);
-        if (reached.size > 0) judgeEscapes();
-        judgeTakes();
-        judgeExposed(source);
+      'Program:exit'(program) {
+        if (bindings.size === 0) return;
+        // `export { x }` exports the top-level declaration named `x`: judged as that declaration.
+        const declared = new Map();
+        for (const statement of program.body) {
+          const own = statement.type.startsWith('Export') ? statement.declaration : statement;
+          if (own == null) continue;
+          if (own.type === 'VariableDeclaration')
+            for (const declarator of own.declarations)
+              if (declarator.id.type === 'Identifier') declared.set(declarator.id.name, own);
+          if (own.id?.type === 'Identifier') declared.set(own.id.name, own);
+        }
+        for (const { node, name } of exported) {
+          const declaration =
+            node.type === 'Identifier' && !bindings.has(node.name) ? declared.get(node.name) : node;
+          if (declaration === undefined)
+            throw new Error(
+              `ui-gate E12: ${file}: \`export { ${node.name} }\` names no top-level declaration`,
+            );
+          const exportName = name ?? exportedName(declaration);
+          for (const binding of signature(declaration))
+            context.report({
+              node: binding,
+              messageId: 'exposes',
+              data: {
+                name: exportName,
+                binding: binding.name,
+                specifier: bindings.get(binding.name),
+              },
+            });
+        }
       },
     };
-    /** Whether an array is a React dependency list (identities compared, nothing handed on). */
-    function isDependencyList(node) {
-      if (node.type !== 'ArrayExpression') return false;
-      const list = checker.getContextualType(services.esTreeNodeToTSNodeMap.get(node));
-      const alias = list && checker.getNonNullableType(list).aliasSymbol;
-      return (
-        alias?.getName() === 'DependencyList' &&
-        alias.declarations?.some((site) => packageOf(site) === '@types/react') === true
-      );
-    }
-    /**
-     * A value of a package stays one: wherever it goes, the type it is taken as is the package's
-     * (its contextual type reaches a package type) or, with no contextual type, its position takes
-     * no other type (`takesNoOtherType`). Under any other type (ours, `any`, `unknown`, a type
-     * parameter, an asserted type) or position, the package leaves the module without its type
-     * showing it.
-     */
-    function judgeEscapes() {
-      for (const node of held) {
-        const expression = services.esTreeNodeToTSNodeMap.get(node);
-        const own = foreignType(checker.getTypeAtLocation(expression));
-        if (own === undefined) continue;
-        // An unannotated destructuring takes the package's own members apart; the pattern's
-        // implied type is no type the value is taken as, and each binding is judged where read.
-        const { parent } = node;
-        if (
-          parent.type === 'VariableDeclarator' &&
-          parent.init === node &&
-          parent.id.type !== 'Identifier' &&
-          parent.id.typeAnnotation === undefined
-        )
-          continue;
-        // React's dependency lists compare identities and hand nothing on.
-        if (
-          isDependencyList(node) ||
-          (parent.type === 'ArrayExpression' && isDependencyList(parent))
-        )
-          continue;
-        // A function written here hands on only what it returns, held and judged at its
-        // `return`; what it takes is judged by `takes` below.
-        if (FUNCTIONS.has(node.type) || handedToPackage(node)) continue;
-        if (takesNoOtherType(node)) {
-          // Carried into the expression around it, a value takes that place's type where one is
-          // written (a `return` under a declared return type, an element of an annotated
-          // array): it must be the package's, as the outer expression is judged by its own.
-          const written = CARRIERS.has(node.parent.type)
-            ? checker.getContextualType(expression)
-            : undefined;
-          if (written === undefined || foreignType(written) !== undefined) continue;
-        }
-        context.report({
-          node,
-          messageId: 'escapes',
-          data: { ...own, target: positionOf(node) },
-        });
-      }
-    }
-    /**
-     * A value given where the package calls it with its own values (a callback option, a render
-     * prop, `forEach` over the package's values) takes them under the type its declaration
-     * writes. Every such place is judged, in every file, by a whitelist (P1 QA27 F1, QA28 F1): a
-     * function written here whose parameter there is unannotated or written with the package's
-     * type; a value whose signatures are declared in the package, or whose declared parameter
-     * there is written with the package's type (never a type parameter). Anything else, a
-     * library method, a function of another module taking it as ours, `any` or `unknown`, or a
-     * signature with no declaration, is reported.
-     */
-    function judgeTakes() {
-      for (const node of held) {
-        const expression = services.esTreeNodeToTSNodeMap.get(node);
-        const contextual = checker.getContextualType(expression);
-        if (contextual === undefined) continue;
-        for (const expected of checker.getNonNullableType(contextual).getCallSignatures()) {
-          expected.getParameters().forEach((parameter, index) => {
-            const given = checker.getTypeOfSymbol(parameter);
-            const found = foreignType(given);
-            if (found === undefined) return;
-            const taken = takenAs(node, expression, index);
-            if (taken === undefined) return;
-            context.report({
-              node,
-              messageId: 'takes',
-              data: { ...found, type: checker.typeToString(given), ...taken },
-            });
-          });
-        }
-      }
-    }
-    /**
-     * How `node` takes the package's value given at parameter `index`, when that is not provably
-     * the package's type: `{ name, taken }` for the message, `undefined` when it is.
-     */
-    function takenAs(node, expression, index) {
-      if (FUNCTIONS.has(node.type)) {
-        const written = parameterAt(expression, index);
-        if (written === undefined || written.type === undefined) return undefined;
-        const type = checker.getTypeAtLocation(written.type);
-        return declaresPackage(type)
-          ? undefined
-          : { name: written.name.getText(), taken: checker.typeToString(type) };
-      }
-      for (const signature of checker.getTypeAtLocation(expression).getCallSignatures()) {
-        const site = signature.getDeclaration();
-        if (site === undefined)
-          return { name: `#${index}`, taken: 'a signature with no declaration' };
-        if (inPackage(site)) continue;
-        const written = parameterAt(site, index);
-        if (written === undefined) continue;
-        const type = checker.getTypeAtLocation(written);
-        if (!declaresPackage(type))
-          return { name: written.name.getText(), taken: checker.typeToString(type) };
-      }
-      return undefined;
-    }
-    /** The parameter declaration of `site` that receives argument `index`, a rest one included. */
-    function parameterAt(site, index) {
-      const { parameters } = site;
-      const last = parameters.at(-1);
-      return (
-        parameters[index] ??
-        (last !== undefined && last.dotDotDotToken !== undefined ? last : undefined)
-      );
-    }
-    /** Whether every declaration of `symbol` (an alias resolved) is a package's. */
-    function declaredInPackage(symbol) {
-      if (symbol === undefined) return false;
-      const resolved =
-        symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-      const sites = resolved.declarations ?? [];
-      return sites.length > 0 && sites.every(inPackage);
-    }
-    /** Whether a declared type holds a package's type (a type parameter never does). */
-    function declaresPackage(type) {
-      return !(type.flags & ts.TypeFlags.TypeParameter) && foreignType(type) !== undefined;
-    }
-    function inPackage(site) {
-      const pkg = packageOf(site);
-      return pkg !== undefined && shipped.has(pkg) && !EXPOSABLE_TYPE_PACKAGES.has(pkg);
-    }
-    function symbolOf(node) {
-      return checker.getSymbolAtLocation(services.esTreeNodeToTSNodeMap.get(node));
-    }
-    /**
-     * Whether a value of a package's type is handed to the package itself, judged by where what
-     * takes it is declared (never by an inferred or contextual type): the argument of a call
-     * whose signature a package declares, the object of a member a package declares, a prop or
-     * child of an element whose tag a package declares, or a member a package declares assigned.
-     */
-    function handedToPackage(node) {
-      let { parent } = node;
-      let child = node;
-      if (parent.type === 'SpreadElement') [child, parent] = [parent, parent.parent];
-      switch (parent.type) {
-        case 'CallExpression':
-        case 'NewExpression': {
-          const index = parent.arguments.indexOf(child);
-          if (index === -1) return false;
-          const signature = checker.getResolvedSignature(
-            services.esTreeNodeToTSNodeMap.get(parent),
-          );
-          const site = signature?.getDeclaration();
-          if (site === undefined) return false;
-          if (inPackage(site)) return true;
-          // Our own function or class takes it where its declaration writes the package's type
-          // (never a type parameter, never the type a call infers).
-          const written = parameterAt(site, index);
-          if (written === undefined) return false;
-          const type = checker.getTypeAtLocation(written);
-          return declaresPackage(
-            written.dotDotDotToken === undefined
-              ? type
-              : (checker.getIndexTypeOfType(type, ts.IndexKind.Number) ?? type),
-          );
-        }
-        case 'MemberExpression':
-          // Reading a member hands nothing on: the member read is a value of its own type, held
-          // and judged where it goes, and a callback given to a member call is judged by `takes`.
-          return parent.object === node;
-        case 'AssignmentExpression': {
-          // A member of the package, or a binding or member whose declared type is the
-          // package's.
-          if (parent.right !== node) return false;
-          const { left } = parent;
-          const place =
-            left.type === 'Identifier'
-              ? symbolOf(left)
-              : left.type === 'MemberExpression' && !left.computed
-                ? symbolOf(left.property)
-                : undefined;
-          return (
-            place !== undefined &&
-            (declaredInPackage(place) || declaresPackage(checker.getTypeOfSymbol(place)))
-          );
-        }
-        case 'VariableDeclarator':
-          return (
-            parent.init === node &&
-            parent.id.typeAnnotation !== undefined &&
-            declaresPackage(
-              checker.getTypeAtLocation(
-                services.esTreeNodeToTSNodeMap.get(parent.id.typeAnnotation.typeAnnotation),
-              ),
-            )
-          );
-        case 'JSXExpressionContainer': {
-          const holder =
-            parent.parent.type === 'JSXAttribute'
-              ? parent.parent.parent
-              : parent.parent.openingElement;
-          return holder !== undefined && declaredInPackage(symbolOf(rootTag(holder.name)));
-        }
-        case 'JSXSpreadAttribute':
-          return declaredInPackage(symbolOf(rootTag(parent.parent.name)));
-        default:
-          return false;
-      }
-    }
-    /** A JSX tag's last name part (`Dialog.Root` → `Root`), the component it renders. */
-    function rootTag(name) {
-      return name.type === 'JSXMemberExpression' ? name.property : name;
-    }
-    /** Where a value stands, for the message. */
-    function positionOf(node) {
-      const { parent } = node;
-      switch (parent.type) {
-        case 'CallExpression':
-        case 'NewExpression':
-          return 'an argument of a call no package declares';
-        case 'MemberExpression':
-          return 'the object of a member no package declares';
-        case 'AssignmentExpression':
-          return 'assigned to a place no package declares';
-        case 'JSXExpressionContainer':
-          return 'a prop or child of an element no package declares';
-        default:
-          return `a \`${parent.type}\`, which takes it out of the package's reach`;
-      }
-    }
-    /**
-     * What this file makes visible to other modules may not reach a package type: its exports,
-     * and what it declares global (a script's top level, `declare global`, `declare module`
-     * augmentations), in every file, so no module of ours can hold a package value in a slot
-     * other modules read (P1 QA26 F2).
-     */
-    function judgeExposed(source) {
-      const report = (name, site, type) => {
-        const found = foreignType(type);
-        if (found === undefined) return false;
-        const node = services.tsNodeToESTreeNodeMap.get(site);
-        if (node === undefined)
-          throw new Error(
-            `ui-gate E12: ${file}: no ESTree node for the declaration of \`${name}\``,
-          );
-        context.report({ node, messageId: 'exposes', data: { name, ...found } });
-        return true;
-      };
-      const module = checker.getSymbolAtLocation(source);
-      for (const exported of module === undefined ? [] : checker.getExportsOfModule(module)) {
-        const symbol =
-          exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
-        // A re-export from a package is reported as one where it is written.
-        const site = exported.declarations?.[0];
-        if (
-          site === undefined ||
-          site.getSourceFile() !== source ||
-          (ts.isExportSpecifier(site) && site.parent.parent.moduleSpecifier !== undefined)
-        )
-          continue;
-        const types = [];
-        if (symbol.flags & ts.SymbolFlags.Value) types.push(checker.getTypeOfSymbol(symbol));
-        if (symbol.flags & ts.SymbolFlags.Type) types.push(checker.getDeclaredTypeOfSymbol(symbol));
-        for (const type of types) if (report(exported.getName(), site, type)) break;
-      }
-      const globals = (statements) => {
-        for (const statement of statements) {
-          if (ts.isModuleDeclaration(statement)) {
-            if (statement.body !== undefined && ts.isModuleBlock(statement.body))
-              globals(statement.body.statements);
-            continue;
-          }
-          // An interface or class is judged by the members declared here (a global interface
-          // such as `Window` merges with the library's, whose own members are not ours).
-          const members =
-            ts.isInterfaceDeclaration(statement) || ts.isClassDeclaration(statement)
-              ? statement.members
-              : ts.isVariableStatement(statement)
-                ? statement.declarationList.declarations
-                : [statement];
-          for (const member of members) {
-            const name = ts.getNameOfDeclaration(member);
-            if (name === undefined) continue;
-            const symbol = checker.getSymbolAtLocation(name);
-            if (symbol === undefined)
-              throw new Error(`ui-gate E12: ${file}: no symbol for global \`${name.getText()}\``);
-            const types = [];
-            if (symbol.flags & ts.SymbolFlags.Value) types.push(checker.getTypeOfSymbol(symbol));
-            if (symbol.flags & ts.SymbolFlags.Type)
-              types.push(checker.getDeclaredTypeOfSymbol(symbol));
-            for (const type of types) if (report(symbol.getName(), member, type)) break;
-          }
-        }
-      };
-      if (module === undefined) globals(source.statements);
-      for (const statement of source.statements)
-        if (
-          ts.isModuleDeclaration(statement) &&
-          statement.body !== undefined &&
-          ts.isModuleBlock(statement.body)
-        )
-          globals(statement.body.statements);
-    }
   },
 };
+
+/** The name a declaration is exported under (its own, or the variables it declares). */
+function exportedName(declaration) {
+  if (declaration.type === 'VariableDeclaration')
+    return declaration.declarations.map((declarator) => declarator.id.name ?? '…').join(', ');
+  return declaration.id?.name ?? 'default';
+}
+
+const FUNCTION_TYPES = new Set(['ArrowFunctionExpression', 'FunctionExpression']);
+
+/** Type syntax an expression passes through unchanged. */
+const TRANSPARENT_TS = new Set(['TSAsExpression', 'TSSatisfiesExpression', 'TSNonNullExpression']);
 
 export default {
   meta: { name: 'ui-gate' },

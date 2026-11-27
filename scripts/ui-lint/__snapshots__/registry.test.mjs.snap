@@ -1038,13 +1038,6 @@ exports[`UI gate registry > pins ELEMENTS exactly 1`] = `
 ]
 `;
 
-exports[`UI gate registry > pins EXPOSABLE_TYPE_PACKAGES exactly 1`] = `
-[
-  "@types/react",
-  "csstype",
-]
-`;
-
 exports[`UI gate registry > pins FACTORIES exactly 1`] = `
 [
   "createElement",

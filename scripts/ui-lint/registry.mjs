@@ -225,13 +225,6 @@ export function adapterOf(specifier, packages = PACKAGES) {
   return { pkg, adapter: adapters[specifier] };
 }
 
-/**
- * Packages whose types an adapter may expose (E12): React's own, which describe elements and
- * styles we write. Any other type declared in a package, reachable from an adapter's exports,
- * hands the package's API on.
- */
-export const EXPOSABLE_TYPE_PACKAGES = Object.freeze(new Set(['@types/react', 'csstype']));
-
 // ---------------------------------------------------------------------------------------------
 // CSS (§2 S1, S2, S4, S7, S10)
 // ---------------------------------------------------------------------------------------------
