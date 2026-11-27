@@ -18,7 +18,7 @@ const PREVIEW_ROLES: readonly RevealRoleData[] = [
 /**
  * Plays `effectId` for a villager among six roles through the room's own reveal dialog, so the
  * preview stacks above the page, traps focus and locks scroll exactly as the real reveal does.
- * Unlike the room's reveal it can be dismissed with Escape, which also reports completion.
+ * Like the room's reveal it ends only when the effect completes.
  */
 export function WerewolfRevealEffectPreview({ effectId, onComplete }: RevealEffectPreviewProps) {
   return (
@@ -27,7 +27,6 @@ export function WerewolfRevealEffectPreview({ effectId, onComplete }: RevealEffe
       role={PREVIEW_ROLE}
       allRoles={PREVIEW_ROLES}
       onComplete={onComplete}
-      dismissible
     />
   );
 }

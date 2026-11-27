@@ -4,10 +4,10 @@
 import '@/components/CenterDialog.css';
 import './AvalonResultPanel.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
 
@@ -37,15 +37,15 @@ export function AvalonResultDialog({
   readonly children: ReactNode;
 }) {
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       onEscapeKeyDown={(event) => event.preventDefault()}
       onInteractOutside={(event) => event.preventDefault()}
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner className="center-dialog-positioner">
+          <AppDialog.Content
             className="center-dialog"
             data-kind={kind}
             data-testid={TESTIDS.avalonResultPanel(kind)}
@@ -60,13 +60,13 @@ export function AvalonResultDialog({
               />
             )}
             {kind === 'vote' && <p className="avalon-vote-result-eyebrow">圆桌投票</p>}
-            <Dialog.Title
+            <AppDialog.Title
               className="avalon-result-banner"
               data-outcome={outcome}
               data-testid={TESTIDS.avalonResultBanner(kind)}
             >
               {banner}
-            </Dialog.Title>
+            </AppDialog.Title>
             {children}
             {remainingSeconds === null && <p>等待进入下一阶段…</p>}
             {remainingSeconds !== null && remainingSeconds > 0 && (
@@ -80,9 +80,9 @@ export function AvalonResultDialog({
               onRetry={onRetry}
               waitingLabel="等待进入下一阶段…"
             />
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

@@ -9,11 +9,11 @@
 import './DrawingToolbar.css';
 
 import { ColorPicker, parseColor } from '@ark-ui/react/color-picker';
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { ComponentType, CSSProperties, SVGProps } from 'react';
 import { useRef, useState } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { TESTIDS } from '@/testids';
 import IconAdd from '~icons/ion/add';
 import IconArrowBack from '~icons/ion/arrow-back';
@@ -304,7 +304,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         />
       )}
 
-      <Dialog.Root
+      <AppDialog.Root
         open={isPanelOpen && activePanel === 'color'}
         onOpenChange={(details) => {
           if (!details.open) closeColorPanel();
@@ -313,9 +313,9 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         unmountOnExit
       >
         <Portal>
-          <Dialog.Backdrop className="drawing-toolbar-backdrop" />
-          <Dialog.Positioner className="drawing-toolbar-positioner">
-            <Dialog.Content
+          <AppDialog.Backdrop className="drawing-toolbar-backdrop" />
+          <AppDialog.Positioner className="drawing-toolbar-positioner">
+            <AppDialog.Content
               className="drawing-color-panel"
               data-placement={colorPlacement.kind}
               style={colorPanelStyle(colorPlacement)}
@@ -398,12 +398,12 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                   )}
                 </div>
               )}
-            </Dialog.Content>
-          </Dialog.Positioner>
+            </AppDialog.Content>
+          </AppDialog.Positioner>
         </Portal>
-      </Dialog.Root>
+      </AppDialog.Root>
 
-      <Dialog.Root
+      <AppDialog.Root
         open={isPanelOpen && activePanel !== 'color'}
         onOpenChange={(details) => {
           if (!details.open) closePanel();
@@ -412,13 +412,13 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         unmountOnExit
       >
         <Portal>
-          <Dialog.Backdrop className="drawing-toolbar-backdrop" />
-          <Dialog.Positioner className="drawing-toolbar-positioner drawing-toolbar-sheet-positioner">
-            <Dialog.Content className="drawing-toolbar-sheet">
+          <AppDialog.Backdrop className="drawing-toolbar-backdrop" />
+          <AppDialog.Positioner className="drawing-toolbar-positioner drawing-toolbar-sheet-positioner">
+            <AppDialog.Content className="drawing-toolbar-sheet">
               <div className="drawing-toolbar-panel-header">
-                <Dialog.Title className="drawing-toolbar-panel-title">
+                <AppDialog.Title className="drawing-toolbar-panel-title">
                   {activePanel === 'tool' ? '绘画工具' : '画笔粗细'}
-                </Dialog.Title>
+                </AppDialog.Title>
                 <PanelCloseButton onClick={closePanel} />
               </div>
               {activePanel === 'tool' && (
@@ -480,10 +480,10 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
                   ))}
                 </div>
               )}
-            </Dialog.Content>
-          </Dialog.Positioner>
+            </AppDialog.Content>
+          </AppDialog.Positioner>
         </Portal>
-      </Dialog.Root>
+      </AppDialog.Root>
     </div>
   );
 }

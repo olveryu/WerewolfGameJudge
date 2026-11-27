@@ -1,9 +1,9 @@
 import './CenterDialog.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { IconButton } from '@/components/IconButton';
 import IconClose from '~icons/ion/close';
 
@@ -35,7 +35,7 @@ export function CenterDialog({
   requireConfirmation = false,
 }: CenterDialogProps) {
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open={open}
       closeOnEscape={!requireConfirmation}
       closeOnInteractOutside={!requireConfirmation}
@@ -46,9 +46,9 @@ export function CenterDialog({
       unmountOnExit
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner className="center-dialog-positioner">
+          <AppDialog.Content
             className={['center-dialog', className].filter(Boolean).join(' ')}
             data-has-close-button={closeButtonLabel !== undefined}
             data-testid={testId}
@@ -61,16 +61,18 @@ export function CenterDialog({
                 onClick={onClose}
               />
             )}
-            <Dialog.Title className="center-dialog-title" data-testid={titleTestId}>
+            <AppDialog.Title className="center-dialog-title" data-testid={titleTestId}>
               {title}
-            </Dialog.Title>
+            </AppDialog.Title>
             {subtitle && (
-              <Dialog.Description className="center-dialog-subtitle">{subtitle}</Dialog.Description>
+              <AppDialog.Description className="center-dialog-subtitle">
+                {subtitle}
+              </AppDialog.Description>
             )}
             {children}
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

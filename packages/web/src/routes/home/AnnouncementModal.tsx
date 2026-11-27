@@ -6,11 +6,11 @@
 import '@/components/CenterDialog.css';
 import './AnnouncementModal.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import { Tabs } from '@ark-ui/react/tabs';
 import { Suspense, useState } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Spinner } from '@/components/Spinner';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -61,7 +61,7 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
   const [activeTab, setActiveTab] = useState(CHANGELOG_TAB);
 
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open={open}
       onOpenChange={(details) => {
         if (!details.open) onClose();
@@ -70,19 +70,19 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
       unmountOnExit
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="center-dialog announcement-modal">
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner className="center-dialog-positioner">
+          <AppDialog.Content className="center-dialog announcement-modal">
             <header className="announcement-header">
               <IconMegaphoneOutline className="announcement-header-icon" aria-hidden />
-              <Dialog.Title className="announcement-title">公告与反馈</Dialog.Title>
-              <Dialog.CloseTrigger
+              <AppDialog.Title className="announcement-title">公告与反馈</AppDialog.Title>
+              <AppDialog.CloseTrigger
                 className="announcement-close"
                 aria-label="关闭公告"
                 data-testid={TESTIDS.homeAnnouncementCloseButton}
               >
                 <IconClose aria-hidden />
-              </Dialog.CloseTrigger>
+              </AppDialog.CloseTrigger>
             </header>
 
             <Tabs.Root
@@ -130,9 +130,9 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
                 </div>
               </Tabs.Content>
             </Tabs.Root>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

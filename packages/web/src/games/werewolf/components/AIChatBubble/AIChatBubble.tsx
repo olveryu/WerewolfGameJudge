@@ -7,10 +7,10 @@
  */
 import './AIChatBubble.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import { useLayoutEffect, useRef, useState } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { IconButton } from '@/components/IconButton';
 import { Spinner } from '@/components/Spinner';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
@@ -103,7 +103,7 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
         </button>
       </div>
 
-      <Dialog.Root
+      <AppDialog.Root
         open={chat.isOpen}
         onOpenChange={(details) => {
           if (!details.open) chat.close();
@@ -112,14 +112,14 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
         unmountOnExit
       >
         <Portal>
-          <Dialog.Backdrop className="ai-chat-backdrop" />
-          <Dialog.Positioner
+          <AppDialog.Backdrop className="ai-chat-backdrop" />
+          <AppDialog.Positioner
             className="ai-chat-positioner"
             style={{ paddingBottom: `calc(${chat.keyboardHeight}px + var(--space-small))` }}
           >
-            <Dialog.Content className="ai-chat-window">
+            <AppDialog.Content className="ai-chat-window">
               <header className="ai-chat-header">
-                <Dialog.Title className="ai-chat-title">狼人杀助手</Dialog.Title>
+                <AppDialog.Title className="ai-chat-title">狼人杀助手</AppDialog.Title>
                 <div className="ai-chat-header-buttons">
                   <IconButton
                     label="清除聊天记录"
@@ -209,10 +209,10 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
                   {renderSendContent()}
                 </button>
               </div>
-            </Dialog.Content>
-          </Dialog.Positioner>
+            </AppDialog.Content>
+          </AppDialog.Positioner>
         </Portal>
-      </Dialog.Root>
+      </AppDialog.Root>
     </>
   );
 }

@@ -1174,6 +1174,27 @@ describe('Client storage ownership', () => {
   });
 });
 
+describe('Client dialogs: one Ark dialog root', () => {
+  // Ark's own Dialog.Root lets zag close a dialog when the dialog below it is removed; every
+  // dialog goes through AppDialog, which blocks that cascade (see its file header). The bare
+  // `@ark-ui/react` barrel re-exports Dialog, so it is closed as well.
+  const ARK_DIALOG_SPECIFIER =
+    /^(?:@ark-ui\/react(?:\/dialog|\/dist\/.*dialog.*)?|@zag-js\/dialog)$/;
+
+  it('imports the Ark dialog only in the shared AppDialog module', () => {
+    const consumers = srcFiles.filter((filePath) => {
+      const source = fs.readFileSync(filePath, 'utf-8');
+      // Every matching specifier contains one of these strings; skip parsing the rest.
+      if (!source.includes('@ark-ui/react') && !source.includes('@zag-js/dialog')) return false;
+      return getModuleSpecifiers(filePath, source).some((specifier) =>
+        ARK_DIALOG_SPECIFIER.test(specifier),
+      );
+    });
+
+    expect(consumers.map(repoPath)).toEqual(['packages/web/src/components/AppDialog.tsx']);
+  });
+});
+
 describe('Client room creation ownership', () => {
   const concreteGameFiles = GAME_TYPES.flatMap((gameType) =>
     getAllProductionFiles(path.join(gamesDir, gameType)),

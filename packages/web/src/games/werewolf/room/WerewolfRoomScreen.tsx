@@ -8,7 +8,6 @@
  */
 import './WerewolfRoomScreen.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import {
   findClosestPresetName,
@@ -21,6 +20,7 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { AppDialog } from '@/components/AppDialog';
 import { IconButton } from '@/components/IconButton';
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
@@ -459,20 +459,20 @@ function WerewolfRoomContent(
             </RoomDialog>
           )}
           {state.sheriffElection?.phase === 'result' && sheriffElectionPanel !== null && (
-            <Dialog.Root
+            <AppDialog.Root
               open
               onEscapeKeyDown={(event) => event.preventDefault()}
               onInteractOutside={(event) => event.preventDefault()}
             >
               <Portal>
-                <Dialog.Backdrop className="center-dialog-backdrop" />
-                <Dialog.Positioner className="center-dialog-positioner">
-                  <Dialog.Content
+                <AppDialog.Backdrop className="center-dialog-backdrop" />
+                <AppDialog.Positioner className="center-dialog-positioner">
+                  <AppDialog.Content
                     className="center-dialog"
                     aria-describedby={undefined}
                     data-testid={TESTIDS.sheriffResultDialog}
                   >
-                    <Dialog.Title>警长竞选结果</Dialog.Title>
+                    <AppDialog.Title>警长竞选结果</AppDialog.Title>
                     <p>{sheriffElectionPanel.view.phaseDescription}</p>
                     <SheriffElectionPanel model={sheriffElectionPanel} />
                     <p>
@@ -480,10 +480,10 @@ function WerewolfRoomContent(
                         ? '等待进入下一阶段…'
                         : `${remainingSeconds} 秒后继续`}
                     </p>
-                  </Dialog.Content>
-                </Dialog.Positioner>
+                  </AppDialog.Content>
+                </AppDialog.Positioner>
               </Portal>
-            </Dialog.Root>
+            </AppDialog.Root>
           )}
         </>
       }

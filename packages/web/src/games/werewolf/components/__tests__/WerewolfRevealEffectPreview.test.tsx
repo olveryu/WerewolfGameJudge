@@ -86,7 +86,7 @@ describe('Werewolf product reveal preview', () => {
   });
 
   it.each(ROLE_REVEAL_EFFECT_IDS)(
-    'plays %s in the shared reveal dialog above every page layer, dismissible with Escape',
+    'plays %s in the shared reveal dialog above every page layer until the effect completes',
     async (effectId) => {
       const productUi = createClientProductUi(await loadGameProductUiContributions());
       const { Preview } = productUi.getRevealEffectPresentation(effectId);
@@ -107,7 +107,11 @@ describe('Werewolf product reveal preview', () => {
       expect(document.body.contains(dialog)).toBe(true);
       await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
 
+      // Like the room's reveal, Escape does not end a preview; only the effect does.
       await userEvent.keyboard('{Escape}');
+      expect(onComplete).not.toHaveBeenCalled();
+      expect(dialog).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: '完成动画预览' }));
       expect(onComplete).toHaveBeenCalledOnce();
       root.remove();
     },

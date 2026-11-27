@@ -1,10 +1,10 @@
 import '@/components/CenterDialog.css';
 import './RoomDialog.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
+import { AppDialog } from '@/components/AppDialog';
 import { IconButton } from '@/components/IconButton';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { TESTIDS } from '@/testids';
@@ -40,33 +40,28 @@ export function RoomDialog({
 }) {
   const width = resolveRoomDialogWidth(useViewportWidth());
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open
       onOpenChange={(details) => {
         if (!details.open) onClose();
       }}
       closeOnEscape={dismissOnEscape}
       closeOnInteractOutside={false}
-      // These dialogs can outlive the confirmation alert that opened them. Escape is explicit;
-      // an outside interaction must not dismiss the nested room dialog.
-      onRequestDismiss={(event) => {
-        if (!dismissOnEscape) event.preventDefault();
-      }}
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner className="room-dialog-positioner">
-          <Dialog.Content className="room-dialog" style={{ width }} data-testid={testId}>
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner className="room-dialog-positioner">
+          <AppDialog.Content className="room-dialog" style={{ width }} data-testid={testId}>
             <header className="room-dialog-header">
               <div className="room-dialog-heading">
                 {subtitle !== undefined && (
-                  <Dialog.Description className="room-dialog-subtitle">
+                  <AppDialog.Description className="room-dialog-subtitle">
                     {subtitle}
-                  </Dialog.Description>
+                  </AppDialog.Description>
                 )}
-                <Dialog.Title className="room-dialog-title" data-testid={titleTestId}>
+                <AppDialog.Title className="room-dialog-title" data-testid={titleTestId}>
                   {title}
-                </Dialog.Title>
+                </AppDialog.Title>
               </div>
               <IconButton
                 label="关闭详情"
@@ -79,9 +74,9 @@ export function RoomDialog({
               {children}
             </div>
             {footer !== null && <footer className="room-dialog-footer">{footer}</footer>}
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }

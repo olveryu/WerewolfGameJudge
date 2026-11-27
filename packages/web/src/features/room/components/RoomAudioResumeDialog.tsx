@@ -6,9 +6,9 @@
  */
 import '@/components/CenterDialog.css';
 
-import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 
+import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 
@@ -24,7 +24,7 @@ export function RoomAudioResumeDialog({
   readonly onContinue: () => void;
 }) {
   return (
-    <Dialog.Root
+    <AppDialog.Root
       open={visible}
       role="alertdialog"
       closeOnInteractOutside={false}
@@ -35,29 +35,29 @@ export function RoomAudioResumeDialog({
       unmountOnExit
     >
       <Portal>
-        <Dialog.Backdrop className="center-dialog-backdrop" />
-        <Dialog.Positioner
+        <AppDialog.Backdrop className="center-dialog-backdrop" />
+        <AppDialog.Positioner
           className="center-dialog-positioner"
           data-testid={TESTIDS.alertModalOverlay}
         >
-          <Dialog.Content className="center-dialog" data-testid={TESTIDS.alertModal}>
-            <Dialog.Title className="center-dialog-title" data-testid={TESTIDS.alertTitle}>
+          <AppDialog.Content className="center-dialog" data-testid={TESTIDS.alertModal}>
+            <AppDialog.Title className="center-dialog-title" data-testid={TESTIDS.alertTitle}>
               {ROOM_AUDIO_RESUME_TITLE}
-            </Dialog.Title>
-            <Dialog.Description
+            </AppDialog.Title>
+            <AppDialog.Description
               className="center-dialog-subtitle"
               data-testid={TESTIDS.alertMessage}
             >
               {ROOM_AUDIO_RESUME_MESSAGE}
-            </Dialog.Description>
+            </AppDialog.Description>
             <div className="center-dialog-actions">
               <Button onClick={onContinue} data-testid={TESTIDS.alertButton(0)}>
                 {ROOM_AUDIO_RESUME_BUTTON}
               </Button>
             </div>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          </AppDialog.Content>
+        </AppDialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </AppDialog.Root>
   );
 }
