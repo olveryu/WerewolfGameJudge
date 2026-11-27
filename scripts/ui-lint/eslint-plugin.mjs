@@ -841,6 +841,8 @@ const inlineStyleKeys = {
       indirect:
         'This DOM method writes a style value; call it directly so its value is checked (UI gate E4).',
       prop: '`{{name}}` is declared by `{{pkg}}` and not registered in `PACKAGE_PROPS`: a value handed to a third-party API can reach the page as a style the gate does not see. Register it as `plain` (behaviour or content), `options` (an object whose keys are registered in turn) or with the CSS property its value is (UI gate E4, scripts/ui-lint/registry.mjs).',
+      callable:
+        'A package function or component is handed to a position typed by another declaration, so what is later passed to it there (for example `{{key}}`) is not seen as handed to the package: call or render it directly where its arguments are written, or keep it at a position of its own type (UI gate E4).',
       undeclared:
         '`{{name}}` has no declaration in the type that receives it, so what reads it (and whether it reaches the page as a style) is not shown: declare it in our props type, or, for a package, register its declaration in `PACKAGE_PROPS` (UI gate E4, scripts/ui-lint/registry.mjs).',
       handover:
@@ -850,7 +852,7 @@ const inlineStyleKeys = {
       alias:
         'A style declaration is handed to a position not typed as one, where the properties written through it are not shown as style writes: write them on the declaration itself (UI gate E4).',
       styleText:
-        'A `style` attribute is written as CSS text, whose declarations are not shown as properties: write each property through `style` instead (UI gate E4).',
+        'A style is written as CSS text (a `style` attribute, `cssText`), whose declarations are not shown as properties: write each property through `style` instead (UI gate E4).',
     },
   },
   create(context) {
@@ -1047,6 +1049,52 @@ const inlineStyleKeys = {
         ) === true
       );
     };
+    /**
+     * The first key a package reads as other than `plain` among the bags of options the
+     * parameters of `signature` from `from` on take (by their instantiated types), or undefined.
+     */
+    const carriedKey = (signature, from) => {
+      if (signature === undefined) return undefined;
+      for (let index = from; index < signature.getParameters().length; index += 1) {
+        const key = bagKey(signature.getTypeParameterAtPosition(index));
+        if (key !== undefined) return key;
+      }
+      return undefined;
+    };
+    /**
+     * Whether every key the bags of options `signature`'s parameters take is declared by a
+     * package (none is ours, which would be judged nowhere once handed to a package).
+     */
+    const takesPackageKeysOnly = (signature) =>
+      signature
+        .getParameters()
+        .every((_, index) =>
+          members(checker.getApparentType(signature.getTypeParameterAtPosition(index))).every(
+            (member) =>
+              member.flags & ts.TypeFlags.Primitive ||
+              checker
+                .getPropertiesOfType(member)
+                .every((property) =>
+                  property.declarations?.every(
+                    (site) =>
+                      services.program.isSourceFileDefaultLibrary(site.getSourceFile()) ||
+                      packageOf(site) !== undefined,
+                  ),
+                ),
+          ),
+        );
+    /** The call and construct signatures of `type` a package declares. */
+    const packageSignatures = (type) =>
+      members(type)
+        .flatMap((part) => [...part.getCallSignatures(), ...part.getConstructSignatures()])
+        .filter((signature) => {
+          const site = signature.getDeclaration();
+          return (
+            site !== undefined &&
+            !services.program.isSourceFileDefaultLibrary(site.getSourceFile()) &&
+            packageOf(site) !== undefined
+          );
+        });
     /** Whether a value is a literal or its type is primitive (a string, number, null, …): no keys. */
     const isPrimitive = (expression) =>
       ['Literal', 'TemplateLiteral'].includes(strip(expression).type) ||
@@ -1195,10 +1243,41 @@ const inlineStyleKeys = {
         return;
       // Re-exported or discarded, it keeps its own type.
       if (parent.type === 'ExpressionStatement' || parent.type === 'ExportSpecifier') return;
-      if (!isStyleDeclaration(node)) return;
       const contextual = checker.getContextualType(toTs(at));
-      if (contextual !== undefined && receivesDeclaration(contextual)) return;
-      context.report({ node, messageId: 'alias' });
+      if (isStyleDeclaration(node)) {
+        if (contextual !== undefined && receivesDeclaration(contextual)) return;
+        return context.report({ node, messageId: 'alias' });
+      }
+      // A package's function or component landing in a position typed by another declaration
+      // (our annotation, a prop, a parameter): what is later handed to it through that type is
+      // no longer seen as handed to the package (P1 QA23 F1). It may be called, rendered,
+      // `new`ed, read from, bound untyped, or kept at a position whose signatures still take
+      // the package's keys.
+      if (
+        contextual === undefined ||
+        // A JSX tag renders it; `typeof` names its type.
+        ['JSXOpeningElement', 'JSXClosingElement', 'JSXMemberExpression', 'TSTypeQuery'].includes(
+          parent.type,
+        )
+      )
+        return;
+      const type = services.getTypeAtLocation(node);
+      const own = packageSignatures(type);
+      if (own.length === 0) return;
+      // A position whose signatures take only keys a package declares (its own declaration, or
+      // one inferred from it: `createElement(Toaster, …)`) judges whatever is passed through it
+      // by `PACKAGE_PROPS`; a key of ours there would not be.
+      const received = members(contextual).flatMap((part) => [
+        ...part.getCallSignatures(),
+        ...part.getConstructSignatures(),
+      ]);
+      // A position with no signature (`unknown`, a dependency list) cannot call it without an
+      // assertion, which is reported where it is written.
+      if (received.every(takesPackageKeysOnly)) return;
+      const key = own
+        .map((signature) => carriedKey(signature, 0))
+        .find((found) => found !== undefined);
+      if (key !== undefined) context.report({ node, messageId: 'callable', data: { key } });
     };
     // Any write to a member of a style declaration or a `CSSProperties` object (`writeOf`: `=`,
     // a compound operator, `++`, a destructuring or `for…of` target).
@@ -1209,6 +1288,9 @@ const inlineStyleKeys = {
       const key = writtenKey(member.property, member.computed);
       if (key === null)
         return context.report({ node: member, messageId: declaration ? 'name' : 'computed' });
+      // CSS text, not a property (P1 QA23 S2).
+      if (declaration && key === 'cssText')
+        return context.report({ node: member, messageId: 'styleText' });
       const unit = declaration ? String : unitFor(key);
       // Only a plain `=` shows the value it writes; any other write computes it or receives it
       // from elsewhere.
@@ -1407,10 +1489,7 @@ const inlineStyleKeys = {
             else {
               // Its elements land on no written position, literal or not: the parameters it fills
               // must take no bag of options a package reads (P1 QA21 F1).
-              const bag = (checker.getResolvedSignature(toTs(node))?.getParameters() ?? [])
-                .slice(index)
-                .map((parameter) => bagKey(checker.getTypeAtLocation(parameter.valueDeclaration)))
-                .find((key) => key !== undefined);
+              const bag = carriedKey(checker.getResolvedSignature(toTs(node)), index);
               if (bag !== undefined)
                 context.report({ node: argument, messageId: 'handover', data: { key: bag } });
             }

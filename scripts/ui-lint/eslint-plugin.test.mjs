@@ -345,6 +345,8 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     `${REACT}export const a = <div style={{ opacity: 1 } as CSSProperties} />;`,
     // Registered keys, options and arguments of a package (P1 QA18 F1).
     "import { Toaster, toast } from 'sonner'; export const a = <Toaster position=\"top-center\" />; toast('x', { duration: 3, description: 'y' });",
+    // A package's function kept untyped, or handed where only primitives can be passed to it.
+    "import { toast } from 'sonner'; const t = toast; t('x'); export const n: { show: (m: string) => void } = { show: toast };",
     "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; void snapdom.toCanvas(el, { dpr: 2 });",
     // A package's key registered per declaration, a value typed as the package's own type (its
     // keys judged where the literal is written), a class instance and a spread into a `plain`
@@ -483,6 +485,19 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; declare const raw: unknown; export const a = <Toaster position={(raw as ComponentProps<typeof Toaster>).position} />;",
       ],
       'handover',
+    ),
+    // A package's function or component handed to a position typed by another declaration:
+    // what is later passed to it there is not seen as handed to the package (P1 QA23 F1).
+    ...red(
+      [
+        "import type { FC } from 'react'; import { Toaster } from 'sonner'; const T: FC<{ gap?: number }> = Toaster; export const a = <T />;",
+        "import { snapdom } from '@zumer/snapdom'; const f: (el: HTMLElement, o: { backgroundColor?: string }) => Promise<HTMLCanvasElement> = snapdom.toCanvas; void f;",
+        "import { toast } from 'sonner'; const show: (m: string, d?: { style?: { width?: number } }) => void = toast; show('x');",
+        "import type { FC } from 'react'; import { Toaster } from 'sonner'; const Render = ({ C }: { C: FC<{ gap?: number }> }) => <C />; export const a = <Render C={Toaster} />;",
+        "import { toast } from 'sonner'; export const notifier: { show: (m: string, d?: { style?: { width?: number } }) => void } = { show: toast };",
+        "import type { FC } from 'react'; import { Toaster, type ToasterProps } from 'sonner'; const T: FC<Pick<ToasterProps, 'offset'> & { gap?: number }> = Toaster; export const a = <T />;",
+      ],
+      'callable',
     ),
     // A name with no declaration in the receiving type is reported; only the open families
     // (`aria-*`, `data-*`, handlers) are attributes handed on (P1 QA22 F3).
