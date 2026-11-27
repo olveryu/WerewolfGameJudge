@@ -142,7 +142,7 @@ export function UiGallery() {
       </section>
 
       <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('avatar')}>
-        <div className="ui-gallery-row">
+        <div className="ui-gallery-avatars">
           {AVATAR_SEEDS.map((seed) => (
             <Avatar key={seed} userId={seed} avatarUrl={null} size={48} />
           ))}

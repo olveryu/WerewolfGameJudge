@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
@@ -47,18 +49,14 @@ function randomRegions(page: Page): Locator[] {
   return [page.getByTestId(TESTIDS.roomHeaderTitle)];
 }
 
-/**
- * Avatars on app pages are drawn from the random user id of the run. Playwright's screenshot
- * stylesheet hides them by the avatar's own class (every variant: photo, generated, fallback), so
- * the component carries no test-only hook; the gallery block draws them from fixed ids instead.
- */
-const HIDE_RANDOM_AVATARS = '.avatar { visibility: hidden !important; }';
+/** Hides the avatars on app pages, drawn from the random user id of the run (see the file). */
+const HIDE_RANDOM_AVATARS = path.join(__dirname, 'hide-random-avatars.css');
 
 async function expectPage(page: Page, name: string): Promise<void> {
   await expect(page).toHaveScreenshot(`${name}.png`, {
     fullPage: true,
     mask: randomRegions(page),
-    style: HIDE_RANDOM_AVATARS,
+    stylePath: HIDE_RANDOM_AVATARS,
   });
 }
 

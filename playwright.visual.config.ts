@@ -25,6 +25,9 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report-visual' }]],
   outputDir: 'test-results-visual',
   snapshotPathTemplate: '{testDir}/__screenshots__/{arg}{ext}',
+  // A compare run never writes a baseline, not even a missing one: it fails and leaves the
+  // actual image in outputDir. Only `--update` (scripts/e2e-visual.mjs) rewrites baselines.
+  updateSnapshots: 'none',
   expect: {
     toHaveScreenshot: {
       animations: 'disabled',

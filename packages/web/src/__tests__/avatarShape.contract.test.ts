@@ -103,6 +103,7 @@ const AVATAR_HOSTS: readonly string[] = [
   'seat-avatar',
   'settings-teaser-item',
   'toolbox-room-avatar',
+  'ui-gallery-avatars',
   'undercover-reveal-identity',
   'unlocks-thumb',
 ];
@@ -124,6 +125,8 @@ const HOST_BOXES: Readonly<Record<string, string | null>> = {
   'seat-avatar': 'seat-tile-button',
   'settings-teaser-item': null,
   'toolbox-room-avatar': null,
+  // The gallery lays its fixed-seed avatars out bare in a row.
+  'ui-gallery-avatars': null,
   'undercover-reveal-identity': null,
   'unlocks-thumb': 'unlocks-cell-frame',
 };
@@ -206,6 +209,7 @@ const AVATAR_SITES: Readonly<Record<string, readonly string[]>> = {
     'Avatar in <span> < <PickerCell>',
     'ResidentAvatarTile in <PickerCell>',
   ],
+  'routes/bench/UiGallery.tsx': ['Avatar in ui-gallery-avatars'],
   'routes/gacha/components/RewardPreview.tsx': [
     'ResidentAvatarTile in held by body',
     'Avatar in held by body',

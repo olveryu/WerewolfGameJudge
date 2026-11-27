@@ -17,7 +17,10 @@
   background: var(--color-surface);
 }
 
-.ui-gallery-row {
+.ui-gallery-row,
+/* The avatar block's row is the avatars' host (avatarShape contract): it lays them out and
+   sets no corners. */
+.ui-gallery-avatars {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
