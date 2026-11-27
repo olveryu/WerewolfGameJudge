@@ -53,6 +53,10 @@ const RED = [
   // `vh`/`vw` break when mobile browser UI shows or hides: `dvh`/`dvw` (Modern Web Guidance
   // `responsive-design`).
   'a { min-height: 100vh; }',
+  // Keywords and counts only (P1 QA10 S4); `clip` is gone, `clip-path: inset(50%)` replaces it.
+  'a { text-size-adjust: 137%; }',
+  'a { cursor: url(./x.png) 13 13, pointer; cursor: default; grid-row: 2px; }',
+  'a { clip: rect(0, 0, 0, 0); }',
   'a { width: calc(100vw - var(--space-small)); }',
   // Ordinary drift (S1/S2).
   'a { border-radius: 13px; }',
@@ -135,6 +139,12 @@ describe('ui/value-allowlist', () => {
   it('reports at the offending word', async () => {
     const [warning] = await warnings('a {\n  color: var(--a);\n  padding: 0\n    13px;\n}');
     expect(warning.line).toBe(4);
+  });
+  // A comment in the value: PostCSS strips it from `decl.value`, so offsets into the source are
+  // unknown and the whole declaration is the reported span (P1 QA10 FIX-FIRST-1).
+  it('reports a value with a comment across its whole declaration', async () => {
+    const [warning] = await warnings('a {\n  padding: var(--a) /* top */\n    1px;\n}');
+    expect([warning.line, warning.endLine]).toEqual([2, 3]);
   });
   it('ignores inline disable comments', async () => {
     expect(

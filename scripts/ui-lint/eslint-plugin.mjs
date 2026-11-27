@@ -42,6 +42,7 @@ import {
   SIZED_ELEMENTS,
   STATE_HOOKS,
   IDENTITY_CALLS,
+  MEMO_HOOKS,
   STYLE_INTERFACES,
   SVG_ATTRIBUTES,
   TAG_MAPS,
@@ -54,8 +55,13 @@ const REPO_ROOT = path.resolve(import.meta.dirname, '../..');
 function typedServices(context) {
   const services = context.sourceCode.parserServices;
   if (services?.program == null) throw new Error(`${context.id} needs type information.`);
-  return { services, program: services.program, checker: services.program.getTypeChecker() };
+  const checker = services.program.getTypeChecker();
+  programs.set(checker, services.program);
+  return { services, program: services.program, checker };
 }
+
+/** The program of each checker, for reads that cover every file (member writes). */
+const programs = new WeakMap();
 
 const managedCache = new WeakMap();
 
@@ -654,9 +660,74 @@ function writesIn(sourceFile, checker) {
   return writes;
 }
 
+const memberWritesCache = new WeakMap();
+
+/**
+ * Every `obj.key = value` and `obj['key'] = value` in the program, by the member's declaration
+ * (an access resolves to a widened copy of the declared symbol, so symbols do not match): a
+ * table entry written after its literal (`S.box.padding = 23`, P1 QA10 S1), in any file.
+ */
+function memberWrites(checker) {
+  const program = programs.get(checker);
+  let writes = memberWritesCache.get(program);
+  if (writes !== undefined) return writes;
+  writes = new Map();
+  const visit = (node) => {
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      (ts.isPropertyAccessExpression(node.left) || ts.isElementAccessExpression(node.left))
+    ) {
+      const symbol = checker.getSymbolAtLocation(
+        ts.isPropertyAccessExpression(node.left) ? node.left.name : node.left.argumentExpression,
+      );
+      for (const declaration of symbol?.declarations ?? [])
+        writes.set(declaration, [...(writes.get(declaration) ?? []), node.right]);
+    }
+    ts.forEachChild(node, visit);
+  };
+  for (const sourceFile of program.getSourceFiles())
+    if (!sourceFile.isDeclarationFile && !sourceFile.fileName.includes('/node_modules/'))
+      visit(sourceFile);
+  memberWritesCache.set(program, writes);
+  return writes;
+}
+
+/**
+ * The functions a call runs whose return value is the call's value: an immediately invoked
+ * function, a memo hook's factory (`useMemo(() => 19, [])`), or the declaration the callee names
+ * (`pad()`, P1 QA10 S1). Empty when the callee is not a function written in the program.
+ */
+function calledFunctions(call, checker) {
+  const callee = strip(call.expression);
+  if (ts.isArrowFunction(callee) || ts.isFunctionExpression(callee)) return [callee];
+  const name = ts.isPropertyAccessExpression(callee) ? callee.name : callee;
+  if (ts.isIdentifier(name) && MEMO_HOOKS.has(name.text) && call.arguments[0])
+    return [strip(call.arguments[0])];
+  const functions = [];
+  for (const declaration of targetSymbol(name, checker)?.declarations ?? []) {
+    if (declaration.getSourceFile().isDeclarationFile) continue;
+    if (ts.isFunctionDeclaration(declaration) || ts.isMethodDeclaration(declaration))
+      functions.push(declaration);
+    else if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
+      const initializer = strip(declaration.initializer);
+      if (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+        functions.push(initializer);
+    }
+  }
+  return functions;
+}
+
 /** The expressions a function returns (`() => 16`, `() => { return 16; }`), or null. */
 function returnedExpressions(fn) {
-  if (!ts.isArrowFunction(fn) && !ts.isFunctionExpression(fn)) return null;
+  if (
+    !ts.isArrowFunction(fn) &&
+    !ts.isFunctionExpression(fn) &&
+    !ts.isFunctionDeclaration(fn) &&
+    !ts.isMethodDeclaration(fn)
+  )
+    return null;
+  if (fn.body === undefined) return null;
   if (!ts.isBlock(fn.body)) return [fn.body];
   const found = [];
   const visit = (node) => {
@@ -728,6 +799,11 @@ function readLiteralValues(node, checker, unit, visiting) {
     if (operator === ts.SyntaxKind.AmpersandAmpersandToken) return recurse(node.right);
     if (operator === ts.SyntaxKind.BarBarToken || operator === ts.SyntaxKind.QuestionQuestionToken)
       return either(recurse(node.left), recurse(node.right));
+  }
+  if (ts.isCallExpression(node)) {
+    const returned = calledFunctions(node, checker).flatMap((fn) => returnedExpressions(fn) ?? []);
+    const written = either(...returned.map((expression) => recurse(expression)));
+    if (written !== null) return written;
   }
   if (
     ts.isIdentifier(node) ||
@@ -842,11 +918,15 @@ function sourcesOfDeclaration(declaration, checker, visiting) {
     (ts.isVariableDeclaration(declaration) ||
       ts.isParameter(declaration) ||
       ts.isPropertyAssignment(declaration) ||
+      ts.isPropertyDeclaration(declaration) ||
       ts.isBindingElement(declaration) ||
       ts.isEnumMember(declaration)) &&
     declaration.initializer
   )
     sources.push(declaration.initializer);
+  // A member written after its declaration, in any file (`S.box.padding = 23`).
+  if (ts.isPropertyAssignment(declaration) || ts.isPropertyDeclaration(declaration))
+    sources.push(...(memberWrites(checker).get(declaration) ?? []));
   if (symbol !== undefined && !ts.isPropertyAssignment(declaration))
     sources.push(...(writes.assigned.get(symbol) ?? []));
   if (ts.isBindingElement(declaration)) {
@@ -952,8 +1032,11 @@ function entriesOf(containers, keys, checker, visiting) {
           : undefined;
       if (name === undefined) return null;
       if (keys !== null && !keys.includes(name)) continue;
-      if (ts.isPropertyAssignment(property)) found.push(property.initializer);
-      else if (ts.isShorthandPropertyAssignment(property)) found.push(property.name);
+      if (ts.isPropertyAssignment(property)) {
+        found.push(property.initializer);
+        // An entry written after the literal (`S.box.padding = 23`, P1 QA10 S1).
+        found.push(...(memberWrites(checker).get(property) ?? []));
+      } else if (ts.isShorthandPropertyAssignment(property)) found.push(property.name);
       else return null;
     }
   }
@@ -987,8 +1070,9 @@ const inlineStyleKeys = {
     const where = (nodes) =>
       nodes.map((origin) => {
         const sourceFile = origin.getSourceFile();
-        const { line } = sourceFile.getLineAndCharacterOfPosition(origin.getStart());
-        return `${fileKey(sourceFile.fileName)}:${line + 1}`;
+        const start = sourceFile.getLineAndCharacterOfPosition(origin.getStart()).line + 1;
+        const end = sourceFile.getLineAndCharacterOfPosition(origin.getEnd()).line + 1;
+        return `${fileKey(sourceFile.fileName)}:${start}${end === start ? '' : `-${end}`}`;
       });
     const judge = (node, prop, values, keyOrigin) => {
       const domain = domainOf(prop);

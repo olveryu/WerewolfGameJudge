@@ -27,7 +27,7 @@ const IDENT = /^-?[a-z_][\w-]*$/i;
  * (`withOrigins`) and read back by the gate (`originsOf`) to put those source lines in the
  * fingerprint. One format, defined here only.
  */
-const ORIGINS = / Written at ([^ ,]+:\d+(?:, [^ ,]+:\d+)*)\.$/;
+const ORIGINS = / Written at ([^ ,]+:\d+(?:-\d+)?(?:, [^ ,]+:\d+(?:-\d+)?)*)\.$/;
 export function withOrigins(message, origins) {
   const unique = [...new Set(origins)];
   return unique.length === 0 ? message : `${message} Written at ${unique.join(', ')}.`;
@@ -37,12 +37,19 @@ export function originsOf(message) {
   return match === null
     ? []
     : match[1].split(', ').map((origin) => {
+        // `file:line` or `file:line-endLine` (a value written over several lines).
         const at = origin.lastIndexOf(':');
-        return { file: origin.slice(0, at), line: Number(origin.slice(at + 1)) };
+        const [line, endLine = line] = origin
+          .slice(at + 1)
+          .split('-')
+          .map(Number);
+        return { file: origin.slice(0, at), line, endLine };
       });
 }
 
 export const valueMessages = {
+  measure: (word, prop) =>
+    `\`${word}\` is not allowed in \`${prop}\`: it takes keywords and counts only (UI gate S1).`,
   property: (prop) => `\`${prop}\` is not a registered property (UI gate S1).`,
   func: (name) => `\`${name}()\` is not a registered CSS function (UI gate S2).`,
   atom: (word, prop, domain) =>
@@ -116,8 +123,14 @@ export function valueProblems(
   };
 
   /** Every function in `nodes` (at any depth) is registered; nothing else is checked. */
+  /** The free domain: keywords and counts (`grid-row: 1 / -1`), never a length or ratio. */
   const registeredOnly = (nodes) => {
     for (const node of nodes) {
+      if (node.type === 'word') {
+        const number = valueParser.unit(node.value);
+        if (number !== false && number.unit !== '')
+          problem(node, valueMessages.measure(node.value, prop));
+      }
       if (node.type !== 'function') continue;
       if (node.value !== '' && !FUNCTIONS.has(node.value))
         problem(node, valueMessages.func(node.value));

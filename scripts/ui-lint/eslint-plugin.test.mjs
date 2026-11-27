@@ -300,6 +300,8 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "const sizes = { card: 'var(--space-3)' }; export const a = <div style={{ padding: sizes.card }} />;",
     // A typed style literal in another file is judged where it is written, not again here (N3).
     "import { typedCard } from './styles'; export const a = <div style={typedCard} />;",
+    // A function of its arguments is computed at runtime (QA10 S1 control).
+    'function pad(n: number) { return n; } export const a = (n: number) => <div style={{ opacity: pad(n) }} />;',
     // Every element of a list of tokens, through a callback (QA9 FIX-FIRST-1 control).
     "const C = [{ c: 'var(--a)' }, { c: 'var(--b)' }]; export const a = C.map((x) => <div style={{ color: x.c }} />);",
     'const [o] = [1]; export const a = <div style={{ opacity: o }} />;',
@@ -379,6 +381,13 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "const [, h] = ['var(--a)', 240]; export const a = <div style={{ height: h }} />;",
         "const C = Object.freeze({ a: '#f00' }); export const a = <div style={{ color: C.a }} />;",
         'enum Gap { Wide = 12 } export const a = <div style={{ gap: Gap.Wide }} />;',
+        // Function returns, memo factories, immediately invoked functions, class fields, member
+        // writes after the literal (QA10 S1).
+        'function pad() { return 21; } export const a = <div style={{ padding: pad() }} />;',
+        "import { useMemo } from 'react'; export function A() { const p = useMemo(() => 19, []); return <div style={{ padding: p }} />; }",
+        'export const a = <div style={{ padding: (() => 21)() }} />;',
+        'class S { static PAD = 21; } export const a = <div style={{ padding: S.PAD }} />;',
+        "const S = { box: { padding: 'var(--a)' } }; S.box.padding = '23px'; export const a = <div style={{ padding: S.box.padding }} />;",
         // Later writes and lazy initial state (QA8 should-fix 3).
         'let gap = 0; gap = 12; export const a = <div style={{ gap }} />;',
         "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW(16); return <div style={{ width: w }} />; }",

@@ -70,8 +70,12 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
     if (tokens.has(raw) || families.some((family) => raw.startsWith(family))) {
       report({ result, ruleName: VALUE, node: decl, message: messages.token(raw), word: raw });
     }
-    const valueStart = decl.toString().indexOf(decl.value, decl.prop.length);
     const prop = domain === 'custom' ? 'custom property' : raw.toLowerCase();
+    // PostCSS strips comments from `decl.value` and keeps the source text in `raws.value.raw`:
+    // problem offsets in the stripped value do not map onto the source then, so such a
+    // declaration is reported as a whole (its whole span is the fingerprint, P1 QA10).
+    const exact = decl.raws.value === undefined;
+    const valueStart = exact ? decl.toString().indexOf(decl.value, decl.prop.length) : 0;
     for (const problem of valueProblems(decl.value, prop, domain, {
       forced: inForcedColors(decl),
       keyframes,
@@ -81,8 +85,9 @@ const valueAllowlist = createPlugin(VALUE, (options) => (root, result) => {
         ruleName: VALUE,
         node: decl,
         message: problem.message,
-        index: valueStart + problem.index,
-        endIndex: valueStart + problem.endIndex,
+        ...(exact
+          ? { index: valueStart + problem.index, endIndex: valueStart + problem.endIndex }
+          : {}),
       });
     }
   });

@@ -63,11 +63,11 @@ function keys(table, probe) {
 
 describe('value origins', () => {
   it('round-trips through the message', () => {
-    const message = withOrigins('`#f00` is not allowed.', ['a/b.ts:3', 'a/b.ts:3', 'c.ts:9']);
-    expect(message).toBe('`#f00` is not allowed. Written at a/b.ts:3, c.ts:9.');
+    const message = withOrigins('`#f00` is not allowed.', ['a/b.ts:3', 'a/b.ts:3', 'c.ts:9-11']);
+    expect(message).toBe('`#f00` is not allowed. Written at a/b.ts:3, c.ts:9-11.');
     expect(originsOf(message)).toEqual([
-      { file: 'a/b.ts', line: 3 },
-      { file: 'c.ts', line: 9 },
+      { file: 'a/b.ts', line: 3, endLine: 3 },
+      { file: 'c.ts', line: 9, endLine: 11 },
     ]);
     expect(originsOf('`#f00` is not allowed.')).toEqual([]);
   });
@@ -77,7 +77,7 @@ describe('value origins', () => {
       "export const card = { color: '#f00' };\n",
       "import { card } from './origins-table';\nexport const a = <div style={card} />;\n",
     );
-    expect(report.origins).toEqual([{ file: relative(TABLE), line: 1 }]);
+    expect(report.origins).toEqual([{ file: relative(TABLE), line: 1, endLine: 1 }]);
   }, 60_000);
 
   // Changing a value written elsewhere changes the fingerprint, however it is read: a table
@@ -99,6 +99,12 @@ describe('value origins', () => {
       "import type { P } from './origins-table';\nexport const A = ({ tone }: P) => <div style={{ color: tone }} />;\n",
     ],
     [
+      // The value line of a value written over several lines (P1 QA10 FIX-FIRST-1).
+      'a value written over several lines',
+      (v) => `export const C = {\n  shadow: \`var(--a)\n    ${v}\`,\n};\n`,
+      "import { C } from './origins-table';\nexport const a = <div style={{ boxShadow: C.shadow }} />;\n",
+    ],
+    [
       'an enum member',
       (v) => `export enum Gap { Wide = ${v} }\n`,
       "import { Gap } from './origins-table';\nexport const a = <div style={{ gap: Gap.Wide }} />;\n",
@@ -106,9 +112,13 @@ describe('value origins', () => {
   ])(
     'changes with %s',
     async (_name, table, probe) => {
-      const isEnum = table('x').includes('enum');
-      const before = keys(table(isEnum ? '12' : '#f00'), probe);
-      const after = keys(table(isEnum ? '14' : '#0f0'), probe);
+      const [first, second] = table('x').includes('enum')
+        ? ['12', '14']
+        : table('x').includes('shadow')
+          ? ['27px', '31px']
+          : ['#f00', '#0f0'];
+      const before = keys(table(first), probe);
+      const after = keys(table(second), probe);
       expect(before.map((r) => r.messageId)).toEqual(['value']);
       expect(after.map((r) => r.messageId)).toEqual(['value']);
       expect(after[0].key).not.toBe(before[0].key);

@@ -18,6 +18,7 @@ import {
   comparisonBase,
   differences,
   growth,
+  presentAt,
   renamesSince,
 } from './gate.mjs';
 
@@ -32,13 +33,42 @@ describe('baseline comparison', () => {
     expect(differences({ 'a.css': [A] }, { 'a.css': [A] })).toEqual([]);
   });
 
-  it('only shrinks against the base, following renames, letting a new rule record its debt', () => {
+  const always = () => true;
+  it('only shrinks against the base, following renames', () => {
     const base = { rules: ['ui/value-allowlist'], files: { 'old.css': [A] } };
-    expect(growth({ 'new.css': [A] }, base, new Map([['old.css', 'new.css']]))).toEqual([]);
-    expect(growth({ 'new.css': [A] }, base, new Map())).toEqual([['new.css', A, 1]]);
-    expect(growth({ 'old.css': [A, A] }, base, new Map())).toEqual([['old.css', A, 1]]);
-    expect(growth({ 'old.css': [A, NEW] }, base, new Map())).toEqual([]);
-    expect(growth({}, base, new Map())).toEqual([]);
+    expect(growth({ 'new.css': [A] }, base, new Map([['old.css', 'new.css']]), always)).toEqual([]);
+    expect(growth({ 'new.css': [A] }, base, new Map(), always)).toEqual([['new.css', A, 1]]);
+    expect(growth({ 'old.css': [A, A] }, base, new Map(), always)).toEqual([['old.css', A, 1]]);
+    expect(growth({}, base, new Map(), always)).toEqual([]);
+  });
+
+  // A rule new to the base records existing debt only: every source text of the fingerprint was
+  // already at the base (P1 QA10 FIX-FIRST-2).
+  it('lets a new rule record only debt that was already there', () => {
+    const base = { rules: ['ui/value-allowlist'], files: {} };
+    const sourced = `${NEW}\tt.ts: c: '#f00',`;
+    const without = (file, text) => (seen) => (f, t) => !(f === file && t === text) && seen;
+    expect(growth({ 'old.css': [NEW] }, base, new Map(), always)).toEqual([]);
+    expect(growth({ 'old.css': [NEW] }, base, new Map(), without('old.css', 'x')(true))).toEqual([
+      ['old.css', NEW, 1],
+    ]);
+    expect(growth({ 'a.tsx': [sourced] }, base, new Map(), always)).toEqual([]);
+    expect(
+      growth({ 'a.tsx': [sourced] }, base, new Map(), without('t.ts', "c: '#f00',")(true)),
+    ).toEqual([['a.tsx', sourced, 1]]);
+    // A renamed file is looked up under its name at the base.
+    const asked = [];
+    growth({ 'b.css': [NEW] }, base, new Map([['a.css', 'b.css']]), (f) => asked.push(f) > 0);
+    expect(asked).toEqual(['a.css']);
+    // The first baseline: no rules at the base at all.
+    expect(
+      growth(
+        { 'a.css': [A] },
+        { rules: [], files: {} },
+        new Map(),
+        without('a.css', 'border-radius: 13px;')(true),
+      ),
+    ).toEqual([['a.css', A, 1]]);
   });
 });
 
@@ -135,6 +165,15 @@ describe('comparison base (P1 QA5 K10)', () => {
     expect(() => comparisonBase(root, { GITHUB_ACTIONS: 'true' })).toThrow(/UI_GATE_BASE/);
     expect(() => comparisonBase(root, { UI_GATE_BASE: '0'.repeat(40) })).toThrow(/zero SHA/);
     expect(() => comparisonBase(root, { UI_GATE_BASE: 'f'.repeat(40) })).toThrow();
+  });
+
+  it('knows which source text was already at the base', () => {
+    fs.writeFileSync(path.join(root, 'c.css'), 'a {\n  padding: 1px;\n}\n');
+    const present = presentAt(root, second);
+    expect(present('b.css', 'a {} a {}')).toBe(true);
+    expect(present('c.css', 'padding: 1px;')).toBe(false);
+    fs.rmSync(path.join(root, 'c.css'));
+    expect(presentAt(root, first)('a.css', 'a {}')).toBe(true);
   });
 
   it('reads the base baseline, empty only when the commit has none', () => {

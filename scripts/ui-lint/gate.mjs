@@ -32,11 +32,30 @@ import stylelintConfig from './stylelint.gate.mjs';
 
 export const BASELINE_FILE = 'ui-gate-baseline.json';
 
-function fingerprint(rule, messageId, lines, line, file) {
-  // A reported line outside the file is a linter or rule bug, never an empty fingerprint.
-  if (!Number.isInteger(line) || line < 1 || line > lines.length)
-    throw new Error(`UI gate: ${rule} reported line ${line} of ${file} (${lines.length} lines)`);
-  return `${rule}\t${messageId}\t${lines[line - 1].trim()}`;
+/**
+ * The source text of lines `line` to `endLine`, each trimmed, joined by one space: a report
+ * whose value spans several lines is identified by all of them (P1 QA10 FIX-FIRST-1).
+ */
+function span(rule, lines, line, endLine, file) {
+  // A reported range outside the file is a linter or rule bug, never an empty fingerprint.
+  if (
+    !Number.isInteger(line) ||
+    !Number.isInteger(endLine) ||
+    line < 1 ||
+    endLine < line ||
+    endLine > lines.length
+  )
+    throw new Error(
+      `UI gate: ${rule} reported lines ${line}-${endLine} of ${file} (${lines.length} lines)`,
+    );
+  return lines
+    .slice(line - 1, endLine)
+    .map((text) => text.trim())
+    .join(' ');
+}
+
+function fingerprint(rule, messageId, lines, { line, endLine = line }, file) {
+  return `${rule}\t${messageId}\t${span(rule, lines, line, endLine, file)}`;
 }
 
 /** Where and why each current fingerprint was reported, for the failure output (P1 QA7 S1). */
@@ -47,26 +66,29 @@ function remember(reports, file, key, line, message) {
 }
 
 /**
- * The fingerprint of one ESLint report: rule ID, message ID, the trimmed line it is on, then
- * `file: line` for each line elsewhere its message says the value is written on (P1 QA8/QA9
+ * The fingerprint of one ESLint report: rule ID, message ID, the lines it spans, then
+ * `file: text` for the lines elsewhere its message says the value is written on (P1 QA8/QA9
  * FIX-FIRST-2).
  */
 export function scriptKey(root, file, lines, message) {
   // Every rule of the gate configuration reports through `messages` (message IDs).
   if (message.messageId === undefined)
     throw new Error(`UI gate: ${message.ruleId} reported without a message ID in ${file}`);
+  const endLine = message.endLine ?? message.line;
   const written = originsOf(message.message)
-    .filter((origin) => origin.file !== file || origin.line !== message.line)
+    .filter(
+      (origin) => origin.file !== file || origin.line < message.line || origin.endLine > endLine,
+    )
     .map((origin) => sourceLine(root, origin, message.ruleId));
   return [
-    fingerprint(message.ruleId, message.messageId, lines, message.line, file),
+    fingerprint(message.ruleId, message.messageId, lines, { line: message.line, endLine }, file),
     ...written,
   ].join('\t');
 }
 
-/** `file: trimmed line` for a line a report says a value is written on; out of range throws. */
-function sourceLine(root, { file, line }, rule) {
-  return `${file}: ${fingerprint(rule, '', readLines(root, file), line, file).split('\t')[2]}`;
+/** `file: text` for the lines a report says a value is written on; out of range throws. */
+function sourceLine(root, { file, line, endLine }, rule) {
+  return `${file}: ${span(rule, readLines(root, file), line, endLine, file)}`;
 }
 
 function readLines(root, file) {
@@ -118,7 +140,13 @@ export async function runGate({ root = REPO_ROOT, styles = true, scripts = true,
         if (warning.rule === 'CssSyntaxError')
           graph.problems.push(`${file}:${warning.line}: ${warning.text}`);
         else {
-          const key = fingerprint(warning.rule, '', lines, warning.line, file);
+          const key = fingerprint(
+            warning.rule,
+            '',
+            lines,
+            { line: warning.line, endLine: warning.endLine ?? warning.line },
+            file,
+          );
           add(files, file, key);
           remember(reports, file, key, warning.line, warning.text);
         }
@@ -218,14 +246,68 @@ export function differences(left, right) {
   return out;
 }
 
-/** Fingerprints in `current` beyond `base` (after renames), excluding rules new to the base. */
-export function growth(current, base, renames) {
+/**
+ * Whether source text was already in a file at `commit`: the working tree file is unchanged
+ * since then, or the file there holds the same lines (each trimmed, joined by one space, as
+ * fingerprints write them). Files are read once per commit.
+ */
+export function presentAt(root, commit) {
+  const changed = new Set(
+    git(root, ['diff', '--no-renames', '--name-only', commit, '--'])
+      .split('\n')
+      .concat(git(root, ['ls-files', '--others', '--exclude-standard']).split('\n'))
+      .filter((line) => line !== ''),
+  );
+  const texts = new Map();
+  const textAt = (file) => {
+    if (!texts.has(file)) {
+      const listed = git(root, ['ls-tree', '--name-only', commit, '--', file]).trim() !== '';
+      texts.set(
+        file,
+        listed
+          ? git(root, ['show', `${commit}:${file}`])
+              .split('\n')
+              .map((line) => line.trim())
+              .join(' ')
+          : null,
+      );
+    }
+    return texts.get(file);
+  };
+  return (file, text) => !changed.has(file) || (textAt(file)?.includes(text) ?? false);
+}
+
+/** The `[file, text]` sources a fingerprint depends on: the reported span and each origin. */
+function sourcesOf(file, key) {
+  const [, , text, ...origins] = key.split('\t');
+  return [
+    [file, text],
+    ...origins.map((origin) => {
+      const at = origin.indexOf(': ');
+      return [origin.slice(0, at), origin.slice(at + 2)];
+    }),
+  ];
+}
+
+/**
+ * Fingerprints in `current` beyond `base` (after renames). A rule the base lists no entries for
+ * records existing debt only: each of its fingerprints must have every source text (the reported
+ * span and the lines its value is written on) already present at the base, so the violation was
+ * there before (P1 QA10 FIX-FIRST-2). The first baseline is held to the same condition.
+ */
+export function growth(current, base, renames, present) {
   const mapped = {};
   for (const [file, list] of Object.entries(base.files))
     mapped[renames.get(file) ?? file] = [...(mapped[renames.get(file) ?? file] ?? []), ...list];
   const known = new Set(base.rules);
+  const formerly = new Map([...renames].map(([from, to]) => [to, from]));
   return differences(current, mapped).filter(
-    ([, key, delta]) => delta > 0 && known.has(key.split('\t')[0]),
+    ([file, key, delta]) =>
+      delta > 0 &&
+      (known.has(key.split('\t')[0]) ||
+        sourcesOf(file, key).some(
+          ([source, text]) => !present(formerly.get(source) ?? source, text),
+        )),
   );
 }
 
@@ -251,7 +333,12 @@ async function main() {
   const args = process.argv.slice(2);
   const write = args.includes('--write');
   const stylesOnly = args.includes('--styles');
+  if (write && stylesOnly) throw new Error('UI gate: --write needs the whole gate, not --styles');
   const root = REPO_ROOT;
+  const baselinePath = path.join(root, BASELINE_FILE);
+  // Only --write creates the baseline; a gate run without one is a setup error (P1 QA10 N2).
+  if (!write && !fs.existsSync(baselinePath))
+    throw new Error(`UI gate: ${BASELINE_FILE} is missing; run pnpm run lint:ui:baseline`);
   const current = await runGate({ root, scripts: !stylesOnly });
   let failed = false;
   const fail = (lines) => {
@@ -264,9 +351,7 @@ async function main() {
       ...current.problems.map((p) => `  ${p}`),
     ]);
 
-  const baselinePath = path.join(root, BASELINE_FILE);
   if (write) {
-    if (stylesOnly) throw new Error('--write needs the whole gate');
     fs.writeFileSync(
       baselinePath,
       `${JSON.stringify({ rules: current.rules, files: current.files }, null, 2)}\n`,
@@ -274,9 +359,7 @@ async function main() {
     console.log(`UI gate: wrote ${BASELINE_FILE}.`);
     process.exit(failed ? 1 : 0);
   }
-  const saved = fs.existsSync(baselinePath)
-    ? JSON.parse(fs.readFileSync(baselinePath, 'utf8'))
-    : { rules: [], files: {} };
+  const saved = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
   const scope = stylesOnly ? onlyStyles : (files) => files;
   if (!stylesOnly && JSON.stringify(saved.rules) !== JSON.stringify(current.rules)) {
     fail([
@@ -292,7 +375,12 @@ async function main() {
   }
   if (!stylesOnly) {
     const base = comparisonBase(root);
-    const grown = growth(saved.files, baselineAt(root, base), renamesSince(root, base));
+    const grown = growth(
+      saved.files,
+      baselineAt(root, base),
+      renamesSince(root, base),
+      presentAt(root, base),
+    );
     if (grown.length > 0) {
       fail([
         `UI gate: ${BASELINE_FILE} grew against ${base.slice(0, 12)}; the baseline only shrinks:`,

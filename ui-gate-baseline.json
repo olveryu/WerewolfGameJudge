@@ -109,15 +109,15 @@
       "ui/value-allowlist\t\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *"
     ],
     "packages/web/src/components/nameStyles/nameStyles.css": [
-      "ui/sheet-scope\t\t@keyframes goldenScriptCharge {",
-      "ui/sheet-scope\t\t@keyframes goldenScriptWeave {",
-      "ui/sheet-scope\t\t@keyframes nameStyleShift {",
-      "ui/sheet-scope\t\t@keyframes pearlOathCaustic {",
-      "ui/sheet-scope\t\t@keyframes pearlOathRefraction {",
-      "ui/sheet-scope\t\t@keyframes sovereignNameGlow {",
-      "ui/sheet-scope\t\t@keyframes sovereignNameSweep {",
-      "ui/sheet-scope\t\t@keyframes vermilionNameBrush {",
-      "ui/sheet-scope\t\t@keyframes vermilionNameSeal {"
+      "ui/sheet-scope\t\t@keyframes goldenScriptCharge { 0%, 100% { filter: var(--name-style-filter-0); }  46% { filter: var(--name-style-filter-1); } }",
+      "ui/sheet-scope\t\t@keyframes goldenScriptWeave { 0% { background-position: 100% 50%; }  100% { background-position: 0% 50%; } }",
+      "ui/sheet-scope\t\t@keyframes nameStyleShift { 0%, 100% { background-position: 0% 50%; }  50% { background-position: 100% 50%; } }",
+      "ui/sheet-scope\t\t@keyframes pearlOathCaustic { 0%, 100% { filter: var(--name-style-filter-0); }  50% { filter: var(--name-style-filter-1); } }",
+      "ui/sheet-scope\t\t@keyframes pearlOathRefraction { 0%, 100% { background-position: 0% 0%; background-size: 180% 280%; }  50% { background-position: 100% 100%; background-size: 260% 180%; } }",
+      "ui/sheet-scope\t\t@keyframes sovereignNameGlow { 0%, 50%, 100% { filter: var(--name-style-filter-0); }  20%, 70% { filter: var(--name-style-filter-1); }  32%, 82% { filter: var(--name-style-filter-2); } }",
+      "ui/sheet-scope\t\t@keyframes sovereignNameSweep { 0%, 100% { background-position: 100% 50%; }  50% { background-position: 0% 50%; } }",
+      "ui/sheet-scope\t\t@keyframes vermilionNameBrush { 0%, 12% { background-position: 100% 50%; }  48%, 80% { background-position: 0% 50%; }  100% { background-position: 100% 50%; } }",
+      "ui/sheet-scope\t\t@keyframes vermilionNameSeal { 0%, 44%, 100% { filter: var(--name-style-filter-0); }  52%, 72% { filter: var(--name-style-filter-1); } }"
     ],
     "packages/web/src/features/auth/LoginDialog.css": [
       "ui/value-allowlist\t\topacity: 0.7;",
@@ -876,10 +876,10 @@
       "ui/inline-style-keys\tvalue\t<stop offset={1} stopColor=\"rgba(200,220,255,0)\" />",
       "ui/inline-style-keys\tvalue\t<stop offset={1} stopColor={SKY_COLORS.bottom} />\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: bottom: '#0d2818',",
       "ui/inline-style-keys\tvalue\tbackground: HUNT_COLORS.animalNameBg,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: animalNameBg: 'rgba(0, 0, 0, 0.5)',",
-      "ui/inline-style-keys\tvalue\tbackground: reducedMotion\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: top: '#0b1a2d',",
-      "ui/inline-style-keys\tvalue\tbackground: reducedMotion\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: top: '#0b1a2d',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: mid2: '#1a3a3a',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: bottom: '#0d2818',",
-      "ui/inline-style-keys\tvalue\tbackground: reducedMotion\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: top: '#0b1a2d',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: mid2: '#1a3a3a',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: bottom: '#0d2818',",
-      "ui/inline-style-keys\tvalue\tbackground: reducedMotion\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: top: '#0b1a2d',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: mid2: '#1a3a3a',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: bottom: '#0d2818',",
+      "ui/inline-style-keys\tvalue\tbackground: reducedMotion ? `linear-gradient(180deg, ${SKY_COLORS.top}, ${SKY_COLORS.mid2}, ${SKY_COLORS.bottom})` : SKY_COLORS.top,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: top: '#0b1a2d',",
+      "ui/inline-style-keys\tvalue\tbackground: reducedMotion ? `linear-gradient(180deg, ${SKY_COLORS.top}, ${SKY_COLORS.mid2}, ${SKY_COLORS.bottom})` : SKY_COLORS.top,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: top: '#0b1a2d',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: mid2: '#1a3a3a',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: bottom: '#0d2818',",
+      "ui/inline-style-keys\tvalue\tbackground: reducedMotion ? `linear-gradient(180deg, ${SKY_COLORS.top}, ${SKY_COLORS.mid2}, ${SKY_COLORS.bottom})` : SKY_COLORS.top,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: top: '#0b1a2d',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: mid2: '#1a3a3a',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: bottom: '#0d2818',",
+      "ui/inline-style-keys\tvalue\tbackground: reducedMotion ? `linear-gradient(180deg, ${SKY_COLORS.top}, ${SKY_COLORS.mid2}, ${SKY_COLORS.bottom})` : SKY_COLORS.top,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: top: '#0b1a2d',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: mid2: '#1a3a3a',\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: bottom: '#0d2818',",
       "ui/inline-style-keys\tvalue\tborderRadius: 6,",
       "ui/inline-style-keys\tvalue\tcolor: HUNT_COLORS.animalName,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/RoleHunt.tsx: animalName: '#ffffff',",
       "ui/inline-style-keys\tvalue\tfontSize: 12,",
@@ -1106,7 +1106,7 @@
       "ui/inline-style-keys\tvalue\ttextShadow: `0px 0px 12px ${TAROT_COLORS.goldGlow}`,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx: goldGlow: '#ffd700',",
       "ui/inline-style-keys\tvalue\ttextShadow: `0px 0px 12px ${TAROT_COLORS.goldGlow}`,\tpackages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx: goldGlow: '#ffd700',",
       "ui/inline-style-keys\tvalue\ttop: 'calc(env(safe-area-inset-top) + 60px)',",
-      "ui/inline-style-keys\tvalue\ttransform: reducedMotion\tpackages/web/src/features/room/components/RoleRevealEffects/effects/TarotDraw.tsx: ? 'perspective(1200px) rotateY(180deg)'",
+      "ui/inline-style-keys\tvalue\ttransform: reducedMotion ? 'perspective(1200px) rotateY(180deg)' : `translateY(${-wheelRadius}px)`,",
       "ui/inline-style-keys\tvalue\twidth: 3,",
       "ui/inline-style-keys\tvalue\tzIndex: 1,",
       "ui/inline-style-keys\tvalue\tzIndex: REVEAL_DOM_LAYER.aboveCanvas,\tpackages/web/src/features/room/components/RoleRevealEffects/common/layers.ts: aboveCanvas: 3,"
@@ -1158,6 +1158,11 @@
       "ui/value-allowlist\t\tz-index: 1;",
       "ui/value-allowlist\t\tz-index: 1;",
       "ui/value-allowlist\t\tz-index: 2;"
+    ],
+    "packages/web/src/features/room/components/RoomSeatBoard.tsx": [
+      "ui/inline-style-keys\tvalue\tstyle={{ '--seat-columns': columns }}\tpackages/web/src/features/room/components/RoomSeatBoard.tsx: if (viewportWidth >= 600) return 5;",
+      "ui/inline-style-keys\tvalue\tstyle={{ '--seat-columns': columns }}\tpackages/web/src/features/room/components/RoomSeatBoard.tsx: if (viewportWidth >= 768) return 6;",
+      "ui/inline-style-keys\tvalue\tstyle={{ '--seat-columns': columns }}\tpackages/web/src/features/room/components/RoomSeatBoard.tsx: return 4;"
     ],
     "packages/web/src/features/room/components/RoomShareDialog.css": [
       "ui/value-allowlist\t\tfont-size: calc(var(--size-icon-xl) * 2);",
@@ -1214,6 +1219,7 @@
       "ui/value-allowlist\t\tanimation: drawguess-shake 0.32s ease-in-out;",
       "ui/value-allowlist\t\tanimation: drawguess-toast-in 0.25s ease-out;",
       "ui/value-allowlist\t\tbox-shadow 100ms ease-out;",
+      "ui/value-allowlist\t\tclip: rect(0, 0, 0, 0);",
       "ui/value-allowlist\t\tflex: 0 0 320px;",
       "ui/value-allowlist\t\theight: 1px;",
       "ui/value-allowlist\t\tmax-width: 430px;",
@@ -1423,6 +1429,7 @@
       "ui/value-allowlist\t\t'Microsoft YaHei',",
       "ui/value-allowlist\t\t'PingFang SC',",
       "ui/value-allowlist\t\t-apple-system,",
+      "ui/value-allowlist\t\t-webkit-text-size-adjust: 100%;",
       "ui/value-allowlist\t\tanimation-duration: 0.01ms !important;",
       "ui/value-allowlist\t\tanimation: spinner-turn 800ms linear infinite;",
       "ui/value-allowlist\t\theight: 1px;",
@@ -1692,6 +1699,8 @@
       "ui/inline-style-keys\tvalue\t<span className=\"unlocks-thumb unlocks-thumb-text\" style={{ opacity: thumbOpacity }}>\tpackages/web/src/routes/unlocks/UnlocksPage.tsx: const LOCKED_THUMB_OPACITY = 0.2;",
       "ui/inline-style-keys\tvalue\t<span className=\"unlocks-thumb\" style={{ opacity: thumbOpacity }}>\tpackages/web/src/routes/unlocks/UnlocksPage.tsx: const LOCKED_THUMB_OPACITY = 0.2;"
     ],
-    "packages/web/src/theme/nightArt.css": ["ui/sheet-scope\t\t.night-art-title h1 {"]
+    "packages/web/src/theme/nightArt.css": [
+      "ui/sheet-scope\t\t.night-art-title h1 { margin: 0; font-size: var(--font-display); font-weight: 900; letter-spacing: 10px; text-shadow: 0 4px 12px rgb(0 0 0 / 80%); }"
+    ]
   }
 }

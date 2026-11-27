@@ -206,7 +206,11 @@ const MATH_FUNCTIONS = ['calc', 'min', 'max', 'clamp'];
  * hides. Container query units are registered with them (`css`: `cqi`/`cqb` instead of
  * repeating box model values).
  */
-const RATIO_UNITS = ['%', 'dvw', 'dvh', 'svw', 'svh', 'lvw', 'lvh', 'cqw', 'cqh', 'cqi', 'cqb'];
+const RATIO_UNITS = [
+  '%',
+  ...['dvw', 'dvh', 'dvmin', 'dvmax', 'svw', 'svh', 'svmin', 'svmax'],
+  ...['lvw', 'lvh', 'lvmin', 'lvmax', 'cqw', 'cqh', 'cqi', 'cqb', 'cqmin', 'cqmax'],
+];
 const SIZE_KEYWORDS = ['auto', 'none', 'fit-content', 'min-content', 'max-content', 'stretch'];
 const POSITION_KEYWORDS = ['center', 'top', 'bottom', 'left', 'right'];
 
@@ -583,7 +587,6 @@ export const PROPERTIES = Object.freeze(
       'text-transform',
       'word-break',
       'float',
-      'clip',
       'table-layout',
       'border-collapse',
       'border-style',
@@ -1078,3 +1081,6 @@ export const STATE_HOOKS = Object.freeze(new Set(['useState']));
 
 /** Calls that return their only argument, read through by E4 (`Object.freeze({ … })`). */
 export const IDENTITY_CALLS = Object.freeze(new Set(['Object.freeze']));
+
+/** Hooks whose value is what their first argument returns, read through by E4 (`useMemo`). */
+export const MEMO_HOOKS = Object.freeze(new Set(['useMemo']));
