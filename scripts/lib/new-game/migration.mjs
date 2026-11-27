@@ -142,25 +142,6 @@ export function findHardCodedGameLists(database, knownGames) {
 }
 
 /**
- * Validate the approved category list with the engine's own rule (`wordCategoryListProblems`,
- * which `defineWordCategoryCatalog` throws on), so the generator never writes a catalog that
- * fails at module load or rows the word_categories CHECKs reject.
- */
-function wordCategoryProblems(gameId, categories) {
-  const untyped = categories.filter(
-    (entry) => typeof entry.id !== 'string' || typeof entry.name !== 'string',
-  );
-  if (untyped.length > 0) {
-    return untyped.map(
-      (entry) => `word category ${JSON.stringify(entry)} of '${gameId}' needs string id and name`,
-    );
-  }
-  return wordCategoryListProblems(categories).map(
-    (problem) => `word category list of '${gameId}' ${problem}`,
-  );
-}
-
-/**
  * Every reason the registration cannot be generated, split by remedy: `input` is a malformed
  * --word-category list (fix the arguments), `schema` needs a hand-written migration.
  */
@@ -201,8 +182,9 @@ export function registrationPreflightProblems(
       `${object} hard-codes a game list in its SQL; registering would need a constraint change and a table rebuild`,
     );
   }
-  // The list becomes the generated wordCategories.ts; its D1 rows are written in step 7.
-  const input = wordCategories === null ? [] : wordCategoryProblems(gameId, wordCategories);
+  // The list becomes the generated wordCategories.ts (defineWordCategoryCatalog throws on the same
+  // engine rule at module load); its D1 rows are written in step 7.
+  const input = wordCategories === null ? [] : wordCategoryListProblems(wordCategories);
   return { input, schema: problems };
 }
 

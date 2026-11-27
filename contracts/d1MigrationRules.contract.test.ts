@@ -50,9 +50,35 @@ function captured(match: RegExpMatchArray, group: number): string {
   return value;
 }
 
+interface SqlToken {
+  readonly kind: 'space' | 'comment' | 'string' | 'quoted' | 'word' | 'other';
+  readonly text: string;
+}
+
+/**
+ * Every character of `sql`, in order, as SQLite lexes it: a `--` or `/* *\/` inside a string is
+ * data, and a quoted identifier ("x", `x`, [x]) is never a keyword. The only SQL lexer here.
+ */
+const SQL_LEXEME =
+  /(\s+)|(--[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^']|'')*'?)|("(?:[^"]|"")*"?|\x60(?:[^\x60]|\x60\x60)*\x60?|\[[^\]]*\]?)|([A-Za-z_][A-Za-z0-9_$]*)|([\s\S])/g;
+
+function sqlTokens(sql: string): SqlToken[] {
+  return Array.from(sql.matchAll(SQL_LEXEME), (match): SqlToken => {
+    const text = match[0];
+    if (match[1] !== undefined) return { kind: 'space', text };
+    if (match[2] !== undefined) return { kind: 'comment', text };
+    if (match[3] !== undefined) return { kind: 'string', text };
+    if (match[4] !== undefined) return { kind: 'quoted', text };
+    if (match[5] !== undefined) return { kind: 'word', text };
+    return { kind: 'other', text };
+  });
+}
+
 /** SQL without `--` line or block comments, so commented-out statements never count. */
 function stripComments(sql: string): string {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, '');
+  return sqlTokens(sql)
+    .map((token) => (token.kind === 'comment' ? ' ' : token.text))
+    .join('');
 }
 
 /** The identifier a TABLE_NAME match captured, starting at group `first`. */
@@ -604,44 +630,40 @@ it('migration files match the recorded sha256 manifest', () => {
  * built at run time cannot be measured here, so every pattern must be a literal.
  */
 const D1_PATTERN_MAX_BYTES = 50;
+const PATTERN_KEYWORDS = new Set(['GLOB', 'LIKE']);
+
 /**
- * The SQL as tokens that matter for patterns: string literals kept verbatim, comments dropped and
- * quoted identifiers ("x", `x`, [x]) replaced by a bare placeholder, so a keyword inside or touching
- * a quoted name is judged exactly like the unquoted spelling.
+ * Judges the token after every unquoted GLOB/LIKE keyword: `glob(…)`, `like(…)` and `GLOB (…)`
+ * hide their pattern, an operand other than one string literal is computed, and a literal must fit.
  */
-const SQL_TOKEN =
-  /'(?:[^']|'')*'|--[^\n]*|\/\*[\s\S]*?\*\/|"(?:[^"]|"")*"|\x60(?:[^\x60]|\x60\x60)*\x60|\[[^\]]*\]/g;
-const QUOTED_IDENTIFIER = ' quoted_identifier ';
-
-function patternTokens(sql: string): string {
-  return sql.replace(SQL_TOKEN, (token) => {
-    if (token.startsWith("'")) return token;
-    if (token.startsWith('--') || token.startsWith('/*')) return ' ';
-    return QUOTED_IDENTIFIER;
-  });
-}
-
-/** `x GLOB '…'` operator form; `glob(…)`, `like(…)` and `GLOB ('…')` all capture `(`. */
-const PATTERN_OPERAND = /\b(GLOB|LIKE)\b\s*(\(|'(?:[^']|'')*'|[^\s(),']+)/gi;
-
 function patternProblems(sql: string): string[] {
+  const tokens = sqlTokens(sql).filter(
+    (token) => token.kind !== 'space' && token.kind !== 'comment',
+  );
   const problems: string[] = [];
-  for (const match of patternTokens(sql).matchAll(PATTERN_OPERAND)) {
-    const keyword = captured(match, 1);
-    const operand = captured(match, 2);
-    if (operand === '(') {
-      problems.push(`${keyword}(…) hides its pattern; write x ${keyword} '<literal>'`);
-      continue;
+  tokens.forEach((token, index) => {
+    if (token.kind !== 'word' || !PATTERN_KEYWORDS.has(token.text.toUpperCase())) return;
+    const operand = tokens[index + 1];
+    if (operand === undefined) {
+      problems.push(`${token.text} has no pattern`);
+      return;
     }
-    if (!operand.startsWith("'")) {
-      problems.push(`${keyword} ${operand} is not a literal pattern`);
-      continue;
+    if (operand.text === '(') {
+      problems.push(`${token.text}(…) hides its pattern; write x ${token.text} '<literal>'`);
+      return;
     }
-    const bytes = Buffer.byteLength(operand.slice(1, -1).replaceAll("''", "'"), 'utf8');
+    const concatenated = tokens[index + 2]?.text === '|' && tokens[index + 3]?.text === '|';
+    if (operand.kind !== 'string' || concatenated) {
+      problems.push(
+        `${token.text} ${operand.text}${concatenated ? ' || …' : ''} is not a literal pattern`,
+      );
+      return;
+    }
+    const bytes = Buffer.byteLength(operand.text.slice(1, -1).replaceAll("''", "'"), 'utf8');
     if (bytes > D1_PATTERN_MAX_BYTES) {
-      problems.push(`${keyword} pattern of ${bytes} bytes exceeds D1's ${D1_PATTERN_MAX_BYTES}`);
+      problems.push(`${token.text} pattern of ${bytes} bytes exceeds D1's ${D1_PATTERN_MAX_BYTES}`);
     }
-  }
+  });
   return problems;
 }
 
@@ -676,8 +698,18 @@ it('flags a computed pattern and a literal over 50 bytes', () => {
     patternProblems(`CHECK ("col"GLOB ${"'" + '[0-9]'.repeat(11) + "'"} AND \x60c\x60LIKE 'a%')`),
   ).toEqual(["GLOB pattern of 55 bytes exceeds D1's 50"]);
   expect(patternProblems('CHECK (x GLOB"col" AND y LIKE\x60c\x60)')).toEqual([
-    'GLOB quoted_identifier is not a literal pattern',
-    'LIKE quoted_identifier is not a literal pattern',
+    'GLOB "col" is not a literal pattern',
+    'LIKE \x60c\x60 is not a literal pattern',
+  ]);
+  // A keyword inside a string is data: it neither hides a later pattern nor raises a problem.
+  expect(
+    patternProblems(
+      `CHECK (note <> 'foo LIKE' AND t <> 'it''s GLOB' AND code GLOB ${"'" + '[0-9]'.repeat(11) + "'"})`,
+    ),
+  ).toEqual(["GLOB pattern of 55 bytes exceeds D1's 50"]);
+  expect(patternProblems("INSERT INTO t VALUES ('x', 'I like cats', '/* glob */')")).toEqual([]);
+  expect(patternProblems("CHECK (code GLOB '[0-9]' || '[0-9]')")).toEqual([
+    "GLOB '[0-9]' || … is not a literal pattern",
   ]);
   // A string holding -- is data, not a comment.
   expect(

@@ -103,10 +103,12 @@ file under `packages/api-worker/migrations` in order into an in-memory
 judges the schema that results against the code's `GAME_TYPES`:
 
 - it refuses, before writing anything, when the id is already in
-  `game_types`, `<id>_user_stats` already exists, the category list repeats an id
-  or name or has a blank one, a lookup table is missing, `game_types`
-  drifts from `GAME_TYPES`, or any CHECK hard-codes a game list (that would
-  need a constraint change, i.e. a table rebuild);
+  `game_types`, `<id>_user_stats` already exists, a lookup table is missing,
+  `game_types` drifts from `GAME_TYPES`, or any CHECK hard-codes a game list
+  (that would need a constraint change, i.e. a table rebuild);
+- it also refuses a `--word-category` list that breaks the engine rule in
+  `catalogIds.ts` (malformed or repeated id or name); that is an input error,
+  reported under its own heading: fix the arguments and run again;
 - otherwise it emits inserts only: one `game_types` row appended after the
   current maximum `sort_order`; with `stats=enabled` a brand-new
   `<id>_user_stats` table. No `DROP`, `ALTER`, `RENAME`, `PRAGMA` or `_next`;
@@ -125,7 +127,7 @@ The report's word-supply step renders the matching inserts
 joins code and rows in one change.
 
 The same run appends the new file's sha256 to
-`contracts/d1MigrationManifest.json` (a `SHARED_EDITS` entry). A refusal
+`contracts/d1MigrationManifest.json` (a `SHARED_EDITS` entry). A schema refusal
 means the migration is hand-written under the D1 rules in
 `packages/api-worker/AGENTS.md` (rebuild with every descendant and trigger,
 write estimate, reset window, manifest). The generated migration is a
@@ -134,7 +136,7 @@ this game's requirements before committing, and never copy it or an
 earlier migration mechanically. The same run generates the game's
 `defineWordCategoryCatalog` catalog (`packages/game-engine/src/games/<id>/wordCategories.ts`,
 exported from `public.ts`) from the same `--word-category` list as the
-migration's word rows. `GAME_WORD_GAMES` and `WORD_CATEGORY_CATALOGS`
+word rows the report renders for the supply migration. `GAME_WORD_GAMES` and `WORD_CATEGORY_CATALOGS`
 (`packages/game-engine/src/games/wordCategoryCatalogs.ts`, the map
 `contracts/d1Catalog.contract.test.ts` pins against D1) are not edited: joining
 them requires every `GameWordGame`-keyed adapter, so it stays manual (report step 7,
