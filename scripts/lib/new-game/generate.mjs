@@ -574,6 +574,7 @@ function buildGenerationPlan(context) {
     editedFiles,
     migrationName,
     production,
+    wordCategories,
   });
 
   return { created, edited, createdFiles, editedFiles, migrationName, reportPath, report };

@@ -3,6 +3,7 @@ import {
   formatFeatureSummary,
   resolveFeatureTestRequirements,
 } from './features.mjs';
+import { wordLibraryRowsSql } from './migration.mjs';
 
 /**
  * 接入报告 (integration report) builder: after a generation run the
@@ -24,6 +25,7 @@ export function buildIntegrationReport({
   editedFiles,
   migrationName,
   production,
+  wordCategories,
 }) {
   const capabilityRows = Object.entries(capabilities)
     .map(([key, value]) => `| \`${key}\` | ${value ? '开' : '关'} |`)
@@ -74,7 +76,7 @@ export function buildIntegrationReport({
   const wordSupplyStep =
     wordSupplyMode === 'none'
       ? '7. **词库：不适用**：特征声明为 `wordSupply=none`；设计变更需要词库时，先更新特征声明并补齐三处 workflow 接线。'
-      : `7. **词库（${wordSupplyMode}）**：按已声明的供应模式实现 workflow，并为实际准备/后台供应流程补行为测试；同时登记 \`packages/game-engine/src/games/registry.ts\` 的 \`workerWorkflows\`（\`workflowName: '${gameId}-word-supply'\`、\`binding: '${gameId.toUpperCase()}_WORD_SUPPLY'\`、\`exportName: '${names.pascal}WordSupplyWorkflow'\`）、\`packages/api-worker/src/index.ts\`（\`export { ${names.pascal}WordSupplyWorkflow } from './games/${gameId}/wordSupplyWorkflow';\`）、\`packages/api-worker/wrangler.toml\` 的 \`[[workflows]]\` block（\`binding = "${gameId.toUpperCase()}_WORD_SUPPLY"\`），并运行 Wrangler 更新 \`worker-configuration.d.ts\`。架构合同核对 registry、部署配置与 Env 类型。生成器已从同一份 \`--word-category\` 输入产出：\`packages/game-engine/src/games/${gameId}/wordCategories.ts\`（\`defineWordCategoryCatalog('${gameId}', [...])\`，已由 \`public.ts\` 导出）与注册迁移 \`${migrationName}\` 插好的 \`word_games\` 与 \`word_categories\` 行。加入共享供词契约须在这一步与全部适配一起手工完成：在 \`GAME_WORD_GAMES\` 加 \`${gameId}\`、在 \`packages/game-engine/src/games/wordCategoryCatalogs.ts\` 的 \`WORD_CATEGORY_CATALOGS\` 登记目录（Worker、admin mock 与 \`contracts/d1Catalog.contract.test.ts\` 都读这一份），然后 typecheck 会逐个点名按 \`GameWordGame\` 穷举的适配（Env 供词开关、提交适配器、发布/编辑/供词 provider、抽词、admin 仪表盘表名映射）；admin 游戏名取自客户端 catalog 的 \`gameDisplayName\`，无须手写。生成器不改这两处，因为没有这些适配时加入会让生成产物过不了 typecheck；\`contracts/d1Catalog.contract.test.ts\` 会在漏登记时按游戏名报错（查表与代码逐行相等，条目须与 \`--word-category\` 逐项相同、顺序相同）。抽词行也不由注册迁移产出：只有走共享抽词（\`platform/wordSupply/wordDraw.ts\`）的池才需要 \`word_draw_index\` 的 \`'all'\` 分区行与 \`word_draw_ordinals\` 行（fibking/undercover/drawguess 有，decrypto 不走共享抽词、没有）；它们随词表、draw_ordinal 列与维护触发器一起，写在实现供词的迁移里，不在注册迁移里。`;
+      : `7. **词库（${wordSupplyMode}）**：按已声明的供应模式实现 workflow，并为实际准备/后台供应流程补行为测试；同时登记 \`packages/game-engine/src/games/registry.ts\` 的 \`workerWorkflows\`（\`workflowName: '${gameId}-word-supply'\`、\`binding: '${gameId.toUpperCase()}_WORD_SUPPLY'\`、\`exportName: '${names.pascal}WordSupplyWorkflow'\`）、\`packages/api-worker/src/index.ts\`（\`export { ${names.pascal}WordSupplyWorkflow } from './games/${gameId}/wordSupplyWorkflow';\`）、\`packages/api-worker/wrangler.toml\` 的 \`[[workflows]]\` block（\`binding = "${gameId.toUpperCase()}_WORD_SUPPLY"\`），并运行 Wrangler 更新 \`worker-configuration.d.ts\`。架构合同核对 registry、部署配置与 Env 类型。生成器已从同一份 \`--word-category\` 输入产出：\`packages/game-engine/src/games/${gameId}/wordCategories.ts\`（\`defineWordCategoryCatalog('${gameId}', [...])\`，已由 \`public.ts\` 导出）；注册迁移 \`${migrationName}\` 只登记 \`game_types\`，不插词库行。加入共享供词契约须在这一步与全部适配一起手工完成，代码与 D1 投影同一个提交落地：在 \`GAME_WORD_GAMES\` 加 \`${gameId}\`、在 \`packages/game-engine/src/games/wordCategoryCatalogs.ts\` 的 \`WORD_CATEGORY_CATALOGS\` 登记目录（Worker、admin mock 与 \`contracts/d1Catalog.contract.test.ts\` 都读这一份），并在同一步实现供词的新迁移里（与词表一起）插入它们在 D1 的投影行——由同一份 \`--word-category\` 输入渲染如下，审过再用：\n\n\`\`\`sql\n${wordLibraryRowsSql(gameId, wordCategories)}\n\`\`\`\n\n然后 typecheck 会逐个点名按 \`GameWordGame\` 穷举的适配（Env 供词开关、提交适配器、发布/编辑/供词 provider、抽词、admin 仪表盘表名映射）；admin 游戏名取自客户端 catalog 的 \`gameDisplayName\`，无须手写。生成器不改这两处，因为没有这些适配时加入会让生成产物过不了 typecheck；\`contracts/d1Catalog.contract.test.ts\` 会在漏登记时按游戏名报错（查表与代码逐行相等，条目须与 \`--word-category\` 逐项相同、顺序相同）。抽词行也不由注册迁移产出：只有走共享抽词（\`platform/wordSupply/wordDraw.ts\`）的池才需要 \`word_draw_index\` 的 \`'all'\` 分区行与 \`word_draw_ordinals\` 行（fibking/undercover/drawguess 有，decrypto 不走共享抽词、没有）；它们随词表、draw_ordinal 列与维护触发器一起，写在实现供词的迁移里，不在注册迁移里。`;
   return `# ${home.displayName}（${gameId}）接入报告
 
 > 由 \`corepack pnpm new-game ${gameId}${featureArgs}${production ? ' --production' : ''}\` 生成。骨架只接通底盘，尚不是可玩的游戏；所有 \`TODO(gameplay)\` 都必须完成。
@@ -119,7 +121,7 @@ ${edited}
 2. **玩法实现**：在 engine、worker、web 的 \`${gameId}\` 目录处理所有 \`TODO(gameplay)\`。在 engine \`__tests__/engine.test.ts\` 为每个批准的状态转移、边界和拒绝路径补行为断言；示例命令的 \`notImplemented\` 测试必须保留到玩法真正实现，不能以骨架通过冒充完成。按 [骨架与接线清单](.agents/skills/new-game/references/skeleton-and-wiring.md) 复用房间组件，验证阶段操作、隐私投影、房主控件、素材预加载、身份/机器人变体与终局界面。${audioNote}${catalogueNote}
 3. **本局复盘填空**：实现 \`packages/web/src/games/${gameId}/review/to${names.pascal}ReviewDocument.ts\` 和 \`review/${names.camel}Review.ts\`，补齐 \`review/__tests__/${names.camel}Review.test.ts\`。只用 \`packages/web/src/features/room/review/types.ts\` 的封闭 block vocabulary；需要新表达时先扩展平台。按批准玩法断言终局事实、参与者/身份/成绩归属、轮次标识、阶段可用性和观战者内容，不要只保留生成器的通用名单示例。局面 fixture \`${names.upper}_REVIEW_ROUNDS\` 已注册，玩法变化时同步维护。
 ${rewardsAndStatsStep}
-5. **审 migration**：生成器先在 node:sqlite 里按顺序重放现有全部迁移、按得到的实际 schema 做前置检查，再生成并试跑；它的产物只是起点，不是模板。提交前对照当前 schema 与本游戏需求手工审 \`packages/api-worker/migrations/${migrationName}\`：只插 \`game_types\` 一行（\`sort_order\` 追加在末尾，与 \`GAME_TYPES\` 一致）、词库游戏另插 \`word_games\`/\`word_categories\`，不重建任何表；改了这份迁移就同步改 \`contracts/d1MigrationManifest.json\` 里它的 sha256；新增累计表的约束与外键按 [注册清单](.agents/skills/new-game/references/registration-checklist.md) 审。迁移规则见 \`packages/api-worker/AGENTS.md\`。
+5. **审 migration**：生成器先在 node:sqlite 里按顺序重放现有全部迁移、按得到的实际 schema 做前置检查，再生成并试跑；它的产物只是起点，不是模板。提交前对照当前 schema 与本游戏需求手工审 \`packages/api-worker/migrations/${migrationName}\`：只插 \`game_types\` 一行（\`sort_order\` 追加在末尾，与 \`GAME_TYPES\` 一致），不插词库行（词库游戏的 \`word_games\`/\`word_categories\` 行在第 7 步随供词迁移落地），不重建任何表；改了这份迁移就同步改 \`contracts/d1MigrationManifest.json\` 里它的 sha256；新增累计表的约束与外键按 [注册清单](.agents/skills/new-game/references/registration-checklist.md) 审。迁移规则见 \`packages/api-worker/AGENTS.md\`。
 6. **e2e 启用需用户批准**：\`e2e/specs/${gameId}.spec.ts.tmpl\` 默认不进 CI。批准后按 \`new-e2e-spec\` skill 改为真实多 context 测试，并将 spec 加入 \`.github/workflows/ci.yml\` 分片矩阵。
 ${wordSupplyStep}
 8. **验证**：运行 skill acceptance commands、generator contract、受影响包测试/typecheck、lint/format 和 \`knip\`。覆盖玩法完成、授权/隐私、确认与音频回执顺序、统计原子性/重试及 profile/settings 的加载、错误、空态、真实数量；注册迁移要在完整迁移链上跑 \`contracts/d1Catalog.contract.test.ts\`（查表与代码逐行相等）并检查外键。完整 quality/E2E 由 CI 执行。每一步记录验证证据，或用户批准的不适用理由。

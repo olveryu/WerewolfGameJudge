@@ -43,7 +43,7 @@ export function defineWordCategoryCatalog<const Game extends GameType, const Id 
     if (entry.id.trim() === '' || entry.name.trim() === '') {
       throw new Error(`${game} word category catalog has a blank id or name`);
     }
-    // Ids are D1 CHECK ids and TS identifiers: lowercase first letter, letters and digits only.
+    // Ids are word_categories ids and TS identifiers: lowercase first letter, letters and digits only.
     if (!/^[a-z][a-zA-Z0-9]*$/.test(entry.id)) {
       throw new Error(
         `${game} word category catalog has an invalid id "${entry.id}" (lowercase first letter, letters and digits only)`,

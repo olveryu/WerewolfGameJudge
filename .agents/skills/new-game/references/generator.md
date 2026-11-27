@@ -98,19 +98,26 @@ file under `packages/api-worker/migrations` in order into an in-memory
 judges the schema that results against the code's `GAME_TYPES`:
 
 - it refuses, before writing anything, when the id is already in
-  `game_types`, the game already has `word_games` or `word_categories`
-  rows, `<id>_user_stats` already exists, the category list repeats an id
+  `game_types`, `<id>_user_stats` already exists, the category list repeats an id
   or name or has a blank one, a lookup table is missing, `game_types`
   drifts from `GAME_TYPES`, or any CHECK hard-codes a game list (that would
   need a constraint change, i.e. a table rebuild);
 - otherwise it emits inserts only: one `game_types` row appended after the
-  current maximum `sort_order`; with a word library (`wordSupply` other
-  than `none`) one `word_games` row and the approved categories passed as
-  `--word-category <id>=<name>` (required exactly then, in display order)
-  as `word_categories` rows; with `stats=enabled` a brand-new
+  current maximum `sort_order`; with `stats=enabled` a brand-new
   `<id>_user_stats` table. No `DROP`, `ALTER`, `RENAME`, `PRAGMA` or `_next`;
 - it applies the generated SQL to the replayed database and verifies the
   resulting rows and `PRAGMA foreign_key_check` before writing.
+
+A word library (`wordSupply` other than `none`) needs the approved
+categories as `--word-category <id>=<name>` (required exactly then, in
+display order). They become the generated `wordCategories.ts`, not
+registration rows: `word_games` / `word_categories` are the D1 projection
+of `GAME_WORD_GAMES` / `WORD_CATEGORY_CATALOGS`, which the generator does
+not edit, so the generated tree keeps `contracts/d1Catalog.contract.test.ts`
+green (the tooling-present case in `scripts/new-game.test.mjs` runs it).
+The report's word-supply step renders the matching inserts
+(`wordLibraryRowsSql` in `migration.mjs`) for the supply migration that
+joins code and rows in one change.
 
 The same run appends the new file's sha256 to
 `contracts/d1MigrationManifest.json` (a `SHARED_EDITS` entry). A refusal

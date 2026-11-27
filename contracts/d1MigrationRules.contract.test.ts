@@ -91,9 +91,10 @@ function tableEffects(database: DatabaseSync, sql: string): TableEffects {
   // Groups: 1–4 created, 5–8 renamed from, 9–12 renamed to, 13–16 dropped.
   const statement = new RegExp(
     [
-      String.raw`\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?${TABLE_NAME}`,
-      String.raw`\bALTER\s+TABLE\s+${TABLE_NAME}\s+RENAME\s+TO\s+${IDENT}`,
-      String.raw`\bDROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?${TABLE_NAME}`,
+      // `\s*` after TABLE: SQLite accepts a quoted name with no space (`DROP TABLE"rooms"`).
+      String.raw`\bCREATE\s+TABLE\s*(?:IF\s+NOT\s+EXISTS\s+)?${TABLE_NAME}`,
+      String.raw`\bALTER\s+TABLE\s*${TABLE_NAME}\s+RENAME\s+TO\s*${IDENT}`,
+      String.raw`\bDROP\s+TABLE\s*(?:IF\s+EXISTS\s+)?${TABLE_NAME}`,
     ].join('|'),
     'gi',
   );
@@ -281,15 +282,22 @@ function tableRootPages(database: DatabaseSync): Map<string, number> {
 }
 
 /**
- * Tables SQLite itself dropped while applying a file: gone afterwards, or present on a new root
- * page. Ground truth for the text parse above, which must have seen every one of them.
+ * Pre-existing tables whose b-tree did not survive the file: the name is gone (and its root page
+ * did not move to a renamed table) or now sits on a different root page. A cross-check on the
+ * text parse above, not a proof: SQLite can reuse a freed root page, so a DROP + CREATE of the
+ * same name inside one file may keep the page and pass unseen here.
  */
 function structurallyDropped(
   before: ReadonlyMap<string, number>,
   after: ReadonlyMap<string, number>,
 ): string[] {
+  const renamedPages = new Set(
+    [...after].filter(([name]) => !before.has(name)).map(([, rootpage]) => rootpage),
+  );
   return [...before]
-    .filter(([name, rootpage]) => after.get(name) !== rootpage)
+    .filter(([name, rootpage]) =>
+      after.has(name) ? after.get(name) !== rootpage : !renamedPages.has(rootpage),
+    )
     .map(([name]) => name)
     .sort();
 }
@@ -316,7 +324,8 @@ it('every rebuilt parent table rebuilds all foreign-key descendants and referenc
       }
     }
     expect(violations).toEqual([]);
-    // A DROP spelled in a way the parse misses would skip the descendant check; fail instead.
+    // A DROP the parse misses would skip the descendant check; the root-page cross-check catches
+    // the ones that leave a trace in sqlite_master.
     expect(unparsedDrops).toEqual([]);
   } finally {
     database.close();
@@ -424,6 +433,7 @@ describe('rebuild guard probes on the current schema', () => {
       'DROP TABLE \x60rooms\x60;',
       'DROP TABLE [rooms];',
       'DROP /* rebuild */ TABLE IF EXISTS rooms;',
+      'DROP TABLE"rooms";',
     ]) {
       expect(problems(spelling), spelling).toEqual(missingFromRooms(roomsDescendants));
     }
@@ -495,6 +505,25 @@ it('new migrations never reset defer_foreign_keys', () => {
     .filter((name) => name > RULES_BASELINE)
     .filter((name) => DEFER_FOREIGN_KEYS_RESET.test(readMigration(name)));
   expect(offenders).toEqual([]);
+});
+
+it('the root-page cross-check counts drops and rebuilds but not renames', () => {
+  const database = new DatabaseSync(':memory:');
+  try {
+    database.exec(`CREATE TABLE kept (id INTEGER PRIMARY KEY);
+      CREATE TABLE renamed (id INTEGER PRIMARY KEY);
+      CREATE TABLE dropped (id INTEGER PRIMARY KEY);
+      CREATE TABLE rebuilt (id INTEGER PRIMARY KEY);`);
+    const before = tableRootPages(database);
+    database.exec(`ALTER TABLE renamed RENAME TO renamed_away;
+      DROP TABLE dropped;
+      CREATE TABLE rebuilt_next (id INTEGER PRIMARY KEY);
+      DROP TABLE rebuilt;
+      ALTER TABLE rebuilt_next RENAME TO rebuilt;`);
+    expect(structurallyDropped(before, tableRootPages(database))).toEqual(['dropped', 'rebuilt']);
+  } finally {
+    database.close();
+  }
 });
 
 it('resetting defer_foreign_keys inside a transaction lets a violation commit', () => {
