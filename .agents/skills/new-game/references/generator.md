@@ -52,8 +52,13 @@ identity-viewing gate.
 
 Defaults: display name = game id, tier `mini`, rewards 5 XP / 1 draw /
 daily target 5 (`DEFAULT_REWARDS` in `generate.mjs`); reward options fail with
-`rewards=none`. The game id must match `/^[a-z][a-z0-9]*$/` (`render.mjs`,
-`assertValidGameId`); class names derive from it.
+`rewards=none`. The game id must satisfy `GAME_ID_PATTERN` (a lowercase
+letter, then lowercase letters or digits, 2-32 characters) and category ids and
+names `wordCategoryListProblems`, both in
+`packages/game-engine/src/platform/protocol/catalogIds.ts`, the one rule that
+`defineWordCategoryCatalog` and the 0095 `game_types` / `word_categories`
+CHECKs also enforce. The generator imports that file directly (Node type
+stripping, Node `>=22.18.0`); class names derive from the game id.
 Directory visibility is printed by the CLI and report: the default remains
 registered-but-hidden. Explicit `--production` updates both the registry and
 the Home production contract; it does not deploy or certify the gameplay.

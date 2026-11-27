@@ -57,6 +57,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './platform/engine',
   './platform/identifiers',
   './platform/protocol/canonicalJson',
+  './platform/protocol/catalogIds',
   './platform/protocol/commandResult',
   './platform/protocol/commands',
   './platform/protocol/gameTypes',

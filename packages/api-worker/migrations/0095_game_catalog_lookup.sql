@@ -17,8 +17,16 @@
 --    fib_word_progress / fib_word_exposures, unread and unwritten since 0067.
 PRAGMA defer_foreign_keys = true;
 
+-- Key shapes project the engine's single rule (platform/protocol/catalogIds.ts); the D1 catalog
+-- contract sweeps every BMP code point to prove code and these CHECKs agree.
 CREATE TABLE game_types (
-  id TEXT PRIMARY KEY NOT NULL CHECK (id GLOB '[a-z]*' AND length(id) BETWEEN 2 AND 32),
+  -- GAME_ID_PATTERN /^[a-z][a-z0-9]{1,31}$/
+  id TEXT PRIMARY KEY NOT NULL CHECK (
+    typeof(id) = 'text'
+    AND length(id) BETWEEN 2 AND 32
+    AND id GLOB '[a-z]*'
+    AND id NOT GLOB '*[^a-z0-9]*'
+  ),
   sort_order INTEGER NOT NULL UNIQUE CHECK (sort_order >= 0)
 ) WITHOUT ROWID;
 INSERT INTO game_types (id, sort_order) VALUES
@@ -45,8 +53,23 @@ INSERT INTO word_games (game) VALUES
 
 CREATE TABLE word_categories (
   game TEXT NOT NULL REFERENCES word_games(game),
-  id TEXT NOT NULL CHECK (id GLOB '[a-z]*' AND length(id) BETWEEN 2 AND 40),
-  name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+  -- WORD_CATEGORY_ID_PATTERN /^[a-z][a-zA-Z0-9]{1,39}$/
+  id TEXT NOT NULL CHECK (
+    typeof(id) = 'text'
+    AND length(id) BETWEEN 2 AND 40
+    AND id GLOB '[a-z]*'
+    AND id NOT GLOB '*[^a-zA-Z0-9]*'
+  ),
+  -- isWellFormedCatalogName: non-empty, no leading or trailing String#trim whitespace (the char()
+  -- list), no C0 control or DEL. NUL is checked on the bytes: SQLite text functions stop at it.
+  name TEXT NOT NULL CHECK (
+    typeof(name) = 'text'
+    AND length(name) > 0
+    AND instr(CAST(name AS BLOB), x'00') = 0
+    AND name NOT GLOB ('*[' || char(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 127) || ']*')
+    AND name NOT GLOB ('[' || char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279) || ']*')
+    AND name NOT GLOB ('*[' || char(9, 10, 11, 12, 13, 32, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288, 65279) || ']')
+  ),
   sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
   PRIMARY KEY (game, id),
   UNIQUE (game, name),

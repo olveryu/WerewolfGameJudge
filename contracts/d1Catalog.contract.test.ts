@@ -1,9 +1,14 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
+import { DatabaseSync, type StatementSync } from 'node:sqlite';
 
 import { DECRYPTO_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/decrypto/public';
 import { UNDERCOVER_WORD_CATEGORY_CATALOG } from '@game-judge/game-engine/games/undercover/public';
 import { WORD_CATEGORY_CATALOGS } from '@game-judge/game-engine/games/wordCategoryCatalogs';
+import {
+  isWellFormedCatalogName,
+  isWellFormedGameId,
+  isWellFormedWordCategoryId,
+} from '@game-judge/game-engine/platform/protocol/catalogIds';
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { GAME_WORD_GAMES } from '@game-judge/game-engine/product/wordSupply';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -179,5 +184,152 @@ describe('D1 catalog projection', () => {
       `INSERT INTO decrypto_words (id, word, category, status, created_at) VALUES ('w1', '探针', '${category}', 'active', 'now')`,
     );
     expectRejected(`DELETE FROM word_categories WHERE game = 'decrypto' AND id = '${category}'`);
+  });
+
+  describe('key shapes: the 0095 CHECKs accept exactly what catalogIds.ts accepts', () => {
+    const CHECK_FAILED = /CHECK constraint failed/;
+
+    /** True when the row is stored; the row is removed again so probes never collide. */
+    function stored(insert: () => void, remove: () => void): boolean {
+      try {
+        insert();
+      } catch (error) {
+        if (error instanceof Error && CHECK_FAILED.test(error.message)) return false;
+        throw error;
+      }
+      remove();
+      return true;
+    }
+
+    let insertGame: StatementSync;
+    let deleteGame: StatementSync;
+    let insertCategory: StatementSync;
+    let deleteCategories: StatementSync;
+
+    // A probe word game of its own, so no probe name meets a shipped name's UNIQUE (game, name).
+    beforeEach(() => {
+      database.exec(`
+        INSERT INTO game_types (id, sort_order) VALUES ('zzprobe', 999);
+        INSERT INTO word_games (game) VALUES ('zzprobe');
+      `);
+      insertGame = database.prepare('INSERT INTO game_types (id, sort_order) VALUES (?, 1000)');
+      deleteGame = database.prepare('DELETE FROM game_types WHERE sort_order = 1000');
+      insertCategory = database.prepare(
+        "INSERT INTO word_categories (game, id, name, sort_order) VALUES ('zzprobe', ?, ?, 0)",
+      );
+      deleteCategories = database.prepare("DELETE FROM word_categories WHERE game = 'zzprobe'");
+    });
+
+    function gameIdStored(id: string): boolean {
+      return stored(
+        () => insertGame.run(id),
+        () => deleteGame.run(),
+      );
+    }
+
+    function categoryStored(id: string, name: string): boolean {
+      return stored(
+        () => insertCategory.run(id, name),
+        () => deleteCategories.run(),
+      );
+    }
+
+    // Every BMP code point except lone surrogates, which are not valid text.
+    const BMP = Array.from({ length: 0x10000 }, (_, codePoint) => codePoint)
+      .filter((codePoint) => codePoint < 0xd800 || codePoint > 0xdfff)
+      .map((codePoint) => String.fromCharCode(codePoint));
+    const ASTRAL = ['\u{1F600}', '\u{20000}'];
+    // ~130k-260k real inserts per sweep: seconds, not the default 5 s budget on a loaded runner.
+    const SWEEP_TIMEOUT_MS = 60_000;
+
+    it('every shipped id and name satisfies the code rule', () => {
+      expect(GAME_TYPES.filter((id) => !isWellFormedGameId(id))).toEqual([]);
+      for (const catalog of CATEGORY_CATALOGS) {
+        expect(
+          catalog.entries.filter(
+            (entry) =>
+              !isWellFormedWordCategoryId(entry.id) || !isWellFormedCatalogName(entry.name),
+          ),
+          catalog.game,
+        ).toEqual([]);
+      }
+    });
+
+    it(
+      'game ids: one character at the head or inside, and the length bounds',
+      () => {
+        database.exec('BEGIN');
+        const disagreements: string[] = [];
+        for (const character of [...BMP, ...ASTRAL]) {
+          for (const id of [`${character}ab`, `a${character}b`]) {
+            if (gameIdStored(id) !== isWellFormedGameId(id)) disagreements.push(JSON.stringify(id));
+          }
+        }
+        for (const id of ['', 'a', 'ab', `a${'b'.repeat(31)}`, `a${'b'.repeat(32)}`, 'a\u0000b']) {
+          if (gameIdStored(id) !== isWellFormedGameId(id)) disagreements.push(JSON.stringify(id));
+        }
+        database.exec('ROLLBACK');
+        expect(disagreements).toEqual([]);
+      },
+      SWEEP_TIMEOUT_MS,
+    );
+
+    it(
+      'category ids: one character at the head or inside, and the length bounds',
+      () => {
+        database.exec('BEGIN');
+        const disagreements: string[] = [];
+        for (const character of [...BMP, ...ASTRAL]) {
+          for (const id of [`${character}ab`, `a${character}b`]) {
+            if (categoryStored(id, '探针') !== isWellFormedWordCategoryId(id)) {
+              disagreements.push(JSON.stringify(id));
+            }
+          }
+        }
+        for (const id of ['', 'a', 'aB', `a${'b'.repeat(39)}`, `a${'b'.repeat(40)}`, 'a\u0000b']) {
+          if (categoryStored(id, '探针') !== isWellFormedWordCategoryId(id)) {
+            disagreements.push(JSON.stringify(id));
+          }
+        }
+        database.exec('ROLLBACK');
+        expect(disagreements).toEqual([]);
+      },
+      SWEEP_TIMEOUT_MS,
+    );
+
+    it(
+      'category names: one character alone, leading, trailing or inside',
+      () => {
+        database.exec('BEGIN');
+        const disagreements: string[] = [];
+        for (const character of [...BMP, ...ASTRAL]) {
+          for (const name of [character, `${character}名`, `名${character}`, `名${character}字`]) {
+            if (categoryStored('probe', name) !== isWellFormedCatalogName(name)) {
+              disagreements.push(JSON.stringify(name));
+            }
+          }
+        }
+        if (categoryStored('probe', '') !== isWellFormedCatalogName('')) disagreements.push('""');
+        database.exec('ROLLBACK');
+        expect(disagreements).toEqual([]);
+      },
+      SWEEP_TIMEOUT_MS,
+    );
+
+    it('stores keys only as text', () => {
+      expect(() =>
+        database.exec("INSERT INTO game_types (id, sort_order) VALUES (CAST('ab' AS BLOB), 1000)"),
+      ).toThrow(CHECK_FAILED);
+      expect(() =>
+        database.exec(
+          "INSERT INTO word_categories (game, id, name, sort_order) VALUES ('zzprobe', CAST('ab' AS BLOB), '探针', 0)",
+        ),
+      ).toThrow(CHECK_FAILED);
+      expect(() =>
+        database.exec(
+          "INSERT INTO word_categories (game, id, name, sort_order) VALUES ('zzprobe', 'ab', CAST('探针' AS BLOB), 0)",
+        ),
+      ).toThrow(CHECK_FAILED);
+    });
   });
 });

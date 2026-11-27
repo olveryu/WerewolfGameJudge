@@ -5,36 +5,39 @@ import { defineWordCategoryCatalog } from '../categoryCatalog';
 describe('defineWordCategoryCatalog', () => {
   it('projects ids and names in entry order', () => {
     const catalog = defineWordCategoryCatalog('decrypto', [
-      { id: 'b', name: '乙' },
-      { id: 'a', name: '甲' },
+      { id: 'bb', name: '乙' },
+      { id: 'aa', name: '甲' },
     ]);
     expect(catalog.game).toBe('decrypto');
-    expect(catalog.ids).toEqual(['b', 'a']);
-    expect(catalog.names).toEqual({ b: '乙', a: '甲' });
+    expect(catalog.ids).toEqual(['bb', 'aa']);
+    expect(catalog.names).toEqual({ bb: '乙', aa: '甲' });
   });
 
   it.each([
     [
       'a repeated id',
       [
-        { id: 'a', name: '甲' },
-        { id: 'a', name: '乙' },
+        { id: 'aa', name: '甲' },
+        { id: 'aa', name: '乙' },
       ],
-      'repeats id "a"',
+      'repeats id "aa"',
     ],
     [
       'a repeated name',
       [
-        { id: 'a', name: '甲' },
-        { id: 'b', name: '甲' },
+        { id: 'aa', name: '甲' },
+        { id: 'bb', name: '甲' },
       ],
       'repeats name "甲"',
     ],
-    ['a blank id', [{ id: ' ', name: '甲' }], 'blank id or name'],
-    ['an id with a space', [{ id: 'a b', name: '甲' }], 'invalid id "a b"'],
-    ['an id starting uppercase', [{ id: 'Ab', name: '甲' }], 'invalid id "Ab"'],
-    ['an id with an underscore', [{ id: 'a_b', name: '甲' }], 'invalid id "a_b"'],
-    ['a blank name', [{ id: 'a', name: '' }], 'blank id or name'],
+    ['a blank id', [{ id: ' ', name: '甲' }], 'malformed id " "'],
+    ['an id with a space', [{ id: 'a b', name: '甲' }], 'malformed id "a b"'],
+    ['an id starting uppercase', [{ id: 'Ab', name: '甲' }], 'malformed id "Ab"'],
+    ['an id with an underscore', [{ id: 'a_b', name: '甲' }], 'malformed id "a_b"'],
+    ['a one-character id', [{ id: 'a', name: '甲' }], 'malformed id "a"'],
+    ['a 41-character id', [{ id: `a${'b'.repeat(40)}`, name: '甲' }], 'malformed id'],
+    ['a blank name', [{ id: 'ab', name: '' }], 'malformed name ""'],
+    ['a padded name', [{ id: 'ab', name: '甲\u3000' }], 'malformed name "甲\u3000"'],
   ] as const)('rejects %s at definition time', (_label, entries, message) => {
     expect(() => defineWordCategoryCatalog('undercover', entries)).toThrow(message);
   });
