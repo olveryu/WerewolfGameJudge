@@ -24,6 +24,7 @@ import {
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
+import { containsIgnoringAsciiCase } from '../../platform/storage/substringSearch';
 import type { Env } from '../../env';
 import { FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS } from '../../games/fibking/wordPublication';
 import { createFibWordSearchQuery } from '../../games/fibking/wordSearchPlan';
@@ -505,11 +506,6 @@ function extractSubmissionDefinition(
   return null;
 }
 
-/** LIKE wildcards in the search term match literally, not as patterns. */
-function escapeLikeTerm(term: string): string {
-  return term.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
-
 /** Submission stream, oldest first, keyset-paged on (batch created_at, item
  * id). Search matches titles; category is an exact filter. Totals ignore
  * filters and cursor. Inventory never enters the stream. */
@@ -518,8 +514,6 @@ export async function listLibraryItems(
   input: ListLibraryItemsInput,
 ): Promise<WordLibraryItems> {
   const searchTerm = input.search?.trim();
-  const likePattern =
-    searchTerm === undefined || searchTerm === '' ? null : `%${escapeLikeTerm(searchTerm)}%`;
   const cursor = input.cursor === undefined ? undefined : decodeLibraryCursor(input.cursor);
 
   const binds: unknown[] = [input.game];
@@ -532,9 +526,10 @@ export async function listLibraryItems(
     where += ' AND item.category = ?';
     binds.push(input.category);
   }
-  if (likePattern !== null) {
-    where += ` AND item.title LIKE ? ESCAPE '\\'`;
-    binds.push(likePattern);
+  if (searchTerm !== undefined && searchTerm !== '') {
+    const title = containsIgnoringAsciiCase('item.title', searchTerm);
+    where += ` AND ${title.sql}`;
+    binds.push(...title.bindings);
   }
   if (cursor !== undefined) {
     where += ' AND (batch.created_at, item.id) > (?, ?)';

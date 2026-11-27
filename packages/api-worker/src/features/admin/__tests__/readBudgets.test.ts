@@ -164,6 +164,31 @@ describe('admin indexed read budgets', () => {
     ).toBe(false);
   });
 
+  it('searches nicknames past the D1 LIKE pattern limit, literally and ASCII case-insensitively', async () => {
+    const longName = '狼'.repeat(30);
+    const names = [longName, 'a%b', 'a_b', 'axb', 'a\\b', 'Mixed Case', 'Élan'];
+    await env.DB.batch(
+      names.map((name, index) =>
+        env.DB.prepare(
+          `INSERT INTO users (id, display_name, created_at, updated_at)
+           VALUES (?, ?, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+        ).bind(`budget-search-${index}`, name),
+      ),
+    );
+    const namesFor = async (q: string) =>
+      (await queryUserDirectory(env.DB, { q })).users.map((user) => user.displayName);
+
+    // 30 CJK characters are 90 bytes: as a LIKE pattern D1 rejects it as too complex.
+    expect(await namesFor(longName)).toEqual([longName]);
+    expect(await namesFor('狼'.repeat(20))).toEqual([longName]);
+    expect(await namesFor('a%b')).toEqual(['a%b']);
+    expect(await namesFor('a_b')).toEqual(['a_b']);
+    expect(await namesFor('a\\b')).toEqual(['a\\b']);
+    expect(await namesFor('mixed CASE')).toEqual(['Mixed Case']);
+    // LIKE folds ASCII letters only; the search keeps that rule.
+    expect(await namesFor('élan')).toEqual([]);
+  });
+
   it('validates a session without reading or writing D1 and still requires the token', async () => {
     const measured = createRowCountingDb(env.DB);
     const bindings = { ...env, DB: measured.db };
