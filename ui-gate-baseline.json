@@ -39,6 +39,9 @@
     "packages/web/src/boot/bootSplash.ts": [
       "ui/inline-style-keys\tuntracked\ttrackProgress > record\tprogressBar.style.transform = `scaleX(${fraction})`;"
     ],
+    "packages/web/src/components/AppDialog.tsx": [
+      "ui/inline-style-keys\thandover\tAppDialogRoot > <Dialog.Root>\treturn <Dialog.Root {...props} onRequestDismiss={preventCascadeDismiss} />;"
+    ],
     "packages/web/src/components/BottomSheet.css": [
       "ui/value-allowlist\t\t.bottom-sheet\tmax-height: 85vh;",
       "ui/value-allowlist\t\t.bottom-sheet-backdrop[data-state='open']\tanimation: bottom-sheet-fade 180ms ease-out;",
@@ -170,6 +173,9 @@
       "ui/value-allowlist\t\t.avatar-concentric\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *",
       "ui/value-allowlist\t\t.avatar-concentric\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *",
       "ui/value-allowlist\t\t.avatar-concentric\tvar(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *"
+    ],
+    "packages/web/src/components/icons/IonIcon.tsx": [
+      "ui/inline-style-keys\thandover\tIonIcon > <Icon>\treturn <Icon aria-hidden={props['aria-label'] === undefined} {...props} />;"
     ],
     "packages/web/src/components/nameStyles/NameStyleText.tsx": [
       "ui/inline-style-keys\tcomputed\tbuildStyle\tstyle[`--name-style-filter-${index}`] = filter;",
@@ -2267,6 +2273,11 @@
       "ui/inline-style-keys\tuntracked\tapplyPose\telement.style.opacity = String(Math.min(1, Math.max(0, pose.opacity)));",
       "ui/inline-style-keys\tuntracked\tapplyPose\telement.style.transform = cssTransform(pose);",
       "ui/inline-style-keys\tuntracked\tapplyPose\tpose.clipTop === 0 && pose.clipRight === 0 ? '' : `inset(${pose.clipTop * 100}% ${pose.clipRight * 100}% 0 0)`;"
+    ],
+    "packages/web/src/scene/stage.ts": [
+      "ui/inline-style-keys\tprop\tSceneStage > fitCanvas\tthis.surface.renderer.resize(target.clientWidth, target.clientHeight);",
+      "ui/inline-style-keys\tprop\tSceneStage > fitCanvas\tthis.surface.renderer.resize(target.clientWidth, target.clientHeight);",
+      "ui/inline-style-keys\tprop\tcreateSceneRenderer > autoDensity\tautoDensity: true,"
     ],
     "packages/web/src/theme/colors.ts": [
       "ui/dom-allowlist\tname\tapplyColorTokens\troot.style.setProperty(",

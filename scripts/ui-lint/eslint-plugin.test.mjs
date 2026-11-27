@@ -346,6 +346,12 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     // Registered keys, options and arguments of a package (P1 QA18 F1).
     "import { Toaster, toast } from 'sonner'; export const a = <Toaster position=\"top-center\" />; toast('x', { duration: 3, description: 'y' });",
     "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; void snapdom.toCanvas(el, { dpr: 2 });",
+    // A package's key registered per declaration, a value typed as the package's own type (its
+    // keys judged where the literal is written), a class instance and a spread into a `plain`
+    // parameter (P1 QA19 F1/F2).
+    "import { Graphics } from 'pixi.js'; const g = new Graphics(); g.rect(0, 0, 40, 40).fill(0xffffff); g.x = 3;",
+    "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; const cfg: ComponentProps<typeof Toaster> = { position: 'top-center' }; export const a = <Toaster position={cfg.position} />;",
+    "import { Container, Graphics } from 'pixi.js'; const c = new Container(); const gs = [new Graphics()]; c.addChild(...gs);",
     // Our own declarations and the TypeScript library's are checked where they land.
     'declare function f(o: { gap: number }): void; f({ gap: 14 }); JSON.stringify({ gap: 14 });',
     'export const a = <svg data-x="1" />; declare function C(p: { a?: number }): null; export const b = <C data-step="2" />;',
@@ -439,6 +445,47 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; void snapdom.toCanvas(el, { backgroundColor: '#f00' });",
       ],
       'prop',
+    ),
+    // A value handed to a package's type without its keys written out where it is handed (a
+    // spread, a binding, a computed key, an assertion): none of its keys can be judged (P1 QA19
+    // F1).
+    ...red(
+      [
+        "import { Toaster } from 'sonner'; const cfg = { offset: 37, gap: 14 }; export const a = <Toaster {...cfg} />;",
+        "import { toast } from 'sonner'; const T = { style: { background: '#f00' } }; toast('a', { ...T });",
+        "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; const S = { backgroundColor: '#f00' }; void snapdom.toCanvas(el, { ...S });",
+        "import { snapdom } from '@zumer/snapdom'; declare const el: HTMLElement; declare const K: 'backgroundColor'; void snapdom.toCanvas(el, { [K]: '#f00' });",
+        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; const cfg = { autoDensity: true, width: 400 }; void r.init(cfg);",
+        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; declare const o: object; void r.init(o);",
+        "import { Toaster } from 'sonner'; import type { ComponentProps } from 'react'; declare const raw: unknown; export const a = <Toaster position={(raw as ComponentProps<typeof Toaster>).position} />;",
+      ],
+      'handover',
+    ),
+    // A package's key not registered, whatever it is called elsewhere in the package: keys are
+    // registered per declaration (Pixi's renderer `autoDensity` and `resize`, `DOMContainer`,
+    // the Sentry Feedback widget) (P1 QA19 F2).
+    ...red(
+      [
+        "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; void r.init({ autoDensity: true });",
+        "import { DOMContainer } from 'pixi.js'; export const d = new DOMContainer({});",
+        "import { DOMContainer } from 'pixi.js'; declare const div: HTMLDivElement; const d = new DOMContainer(); d.element = div;",
+        "import { feedbackIntegration } from '@sentry/react'; export const f = feedbackIntegration({});",
+        "import { createElement } from 'react'; import { Toaster } from 'sonner'; export const a = createElement(Toaster, { offset: 37 });",
+      ],
+      'prop',
+    ),
+    // Each argument of the renderer's `resize` (its CSS box with `autoDensity`) is reported.
+    {
+      filename,
+      code: "import type { WebGLRenderer } from 'pixi.js'; declare const r: WebGLRenderer; r.resize(400, 300, 1);",
+      errors: [{ messageId: 'prop' }, { messageId: 'prop' }, { messageId: 'prop' }],
+    },
+    // `createElement`'s props are an options object: not a literal, its keys are hidden.
+    ...red(
+      [
+        "import { createElement } from 'react'; import { Toaster } from 'sonner'; const cfg = { offset: 37 }; export const a = createElement(Toaster, cfg);",
+      ],
+      'options',
     ),
     // A registered options argument that is not an object literal hides its keys (P1 QA18 F1).
     ...red(

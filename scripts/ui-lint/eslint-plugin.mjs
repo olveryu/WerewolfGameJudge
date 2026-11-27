@@ -562,17 +562,38 @@ function packageOf(declaration) {
 /** Every member of a union or intersection, flattened. */
 const members = (type) => (type.isUnionOrIntersection() ? type.types.flatMap(members) : [type]);
 
+/** React's own attribute interfaces: `key` and `ref`, read by React, not by an element. */
+const REACT_OWN_ATTRIBUTES = new Set(['Attributes', 'RefAttributes', 'ClassAttributes']);
+
 /**
- * Where a prop or option key we write is declared, the one definition of what a third-party API
- * does with a value we hand it (P1 QA17 F1/F3, QA18 F1). The declarations are those of the key in
- * every member of the type that receives it; a key without one (a mapped type's, an index
- * signature's) is declared where that type is:
+ * The name of the declaration that holds `site`, or is `site` (an interface, class or type
+ * alias): the key's own declaration, never the type it reaches us through (`Partial<…>`).
+ */
+function holderName(site) {
+  for (let node = site; node !== undefined; node = node.parent)
+    if (
+      (ts.isInterfaceDeclaration(node) ||
+        ts.isClassDeclaration(node) ||
+        ts.isTypeAliasDeclaration(node)) &&
+      node.name !== undefined
+    )
+      return node.name.text;
+  return undefined;
+}
+
+/**
+ * Where a key we write into a receiving type is declared, the one definition of what code that
+ * is not ours does with a value we hand it (P1 QA17 F1/F3, QA18 F1, QA19 F2). The declarations
+ * are those of the key in every member of the receiving type; a key without one (a mapped
+ * type's, an index signature's) is declared where that type is:
  * - `{ react }`: a React DOM attribute interface (`SVGAttributes`, `ImgHTMLAttributes`, …): the
  *   prop is handed to a native element and judged as that attribute.
- * - `{ pkg, meaning }`: any other package, with its `PACKAGE_PROPS` registration (`plain`,
- *   `options`, or the CSS property its value is), `meaning` undefined when not registered.
- * - `{ own: true }`: declared only in our code or the TypeScript library: its use is checked where
- *   it lands.
+ * - `{ pkg, key, meaning }`: any other package. The key is qualified by the declaration that
+ *   holds it (`ToasterProps.offset`, `ViewSystemOptions.autoDensity`), so one name that means two
+ *   things in a package (Pixi's `width` of a drawing and of its renderer) is registered twice,
+ *   never once for both; `meaning` is its `PACKAGE_PROPS` registration, undefined when not
+ *   registered.
+ * - `{ own: true }`: declared only in our code or the TypeScript library: checked where it lands.
  * - `null`: no declaration can be found for the key.
  */
 function propSource(owner, name, checker, program) {
@@ -591,14 +612,53 @@ function propSource(owner, name, checker, program) {
   const site = sites.find(foreign);
   if (site === undefined) return { own: true };
   const pkg = packageOf(site);
-  const holder = site.parent;
+  const parent = site.parent;
+  // `key` and `ref` (React's `Attributes`, `RefAttributes`, `ClassAttributes`) are read by React
+  // itself, never handed to an element as a value.
   if (
     pkg === '@types/react' &&
-    ts.isInterfaceDeclaration(holder) &&
-    /Attributes$/.test(holder.name.text)
+    ts.isInterfaceDeclaration(parent) &&
+    REACT_OWN_ATTRIBUTES.has(parent.name.text)
   )
-    return { react: holder.name.text };
-  return { pkg, meaning: packageProp(pkg, name) };
+    return { own: true };
+  if (
+    pkg === '@types/react' &&
+    ts.isInterfaceDeclaration(parent) &&
+    /Attributes$/.test(parent.name.text)
+  )
+    return { react: parent.name.text };
+  const holder = holderName(site);
+  const key = holder === undefined ? name : `${holder}.${name}`;
+  return { pkg, key, meaning: packageProp(pkg, key) };
+}
+
+/**
+ * The package a call's resolved signature is declared in, and the key of each argument: the
+ * function's name and the parameter's (`toast(message)`, `snapdom.toCanvas(element)`), or null
+ * for a signature of ours or the TypeScript library's.
+ */
+function callee(call, checker, program) {
+  const site = checker.getResolvedSignature(call)?.getDeclaration();
+  if (site === undefined || program.isSourceFileDefaultLibrary(site.getSourceFile())) return null;
+  const pkg = packageOf(site);
+  if (pkg === undefined) return null;
+  // A function or method has its own name; a signature in a type (`(message) => …`) takes the
+  // name of what declares it (a variable, property or type alias).
+  // A function or method is named by its own declaration; a signature in a type
+  // (`(message) => …`) by the nearest declaration with a name (a variable, property, alias).
+  let owner = site;
+  while (owner !== undefined && !(owner.name !== undefined && ts.isIdentifier(owner.name)))
+    owner = owner.parent;
+  const fn = owner?.name.text ?? '';
+  // A method is qualified by the declaration holding it (`Graphics.rect`, `Ticker.add`).
+  const holder = owner === undefined ? undefined : holderName(owner.parent);
+  const keyOf = (index) => {
+    const parameter = site.parameters[Math.min(index, site.parameters.length - 1)];
+    const param =
+      parameter === undefined || !ts.isIdentifier(parameter.name) ? index : parameter.name.text;
+    return `${[holder, fn].filter(Boolean).join('.')}(${param})`;
+  };
+  return { pkg, keyOf };
 }
 
 const elementAllowlist = {
@@ -763,6 +823,8 @@ const inlineStyleKeys = {
       indirect:
         'This DOM method writes a style value; call it directly so its value is checked (UI gate E4).',
       prop: '`{{name}}` is declared by `{{pkg}}` and not registered in `PACKAGE_PROPS`: a value handed to a third-party API can reach the page as a style the gate does not see. Register it as `plain` (behaviour or content), `options` (an object whose keys are registered in turn) or with the CSS property its value is (UI gate E4, scripts/ui-lint/registry.mjs).',
+      handover:
+        'This value is handed to a type with keys a package reads (`{{key}}`), but its keys are not written out here (a spread, a binding, a call or a computed key), so none of them can be judged: write each key as a literal property or attribute here, each judged by its PACKAGE_PROPS registration in scripts/ui-lint/registry.mjs (UI gate E4, P1 QA19 F1).',
       options:
         '`{{name}}` of `{{pkg}}` takes an object some of whose keys reach the page as styles (`PACKAGE_PROPS`), and it is not an object literal here, so its keys are not shown: write the object literal at this call (UI gate E4).',
       alias:
@@ -860,6 +922,74 @@ const inlineStyleKeys = {
         .every(isDeclarationType);
     const isStyleObject = (node) => isCssProperties(services.getTypeAtLocation(node));
     /**
+     * The first package (or React DOM attribute interface) that declares a key of `type` not
+     * registered `plain`, or undefined when there is none: a value whose keys are not written out where it is handed
+     * to such a type (a spread, a variable, a computed key) cannot be judged key by key, so it is
+     * reported (`handover`, P1 QA19 F1).
+     */
+    const foreignCache = new Map();
+    const foreignKey = (type) => {
+      if (foreignCache.has(type)) return foreignCache.get(type);
+      let found;
+      for (const member of members(checker.getApparentType(type))) {
+        for (const property of checker.getPropertiesOfType(member)) {
+          const source = propSource(member, property.name, checker, services.program);
+          // A key registered `plain` carries no style value, whatever is spread into it.
+          if (source !== null && !source.own && source.meaning !== 'plain') {
+            found =
+              source.react !== undefined
+                ? `${source.react}.${property.name} (@types/react)`
+                : `${source.key} (${source.pkg})`;
+            break;
+          }
+        }
+        if (found !== undefined) break;
+      }
+      foreignCache.set(type, found);
+      return found;
+    };
+    const hasForeignKeys = (type) => foreignKey(type) !== undefined;
+    /**
+     * The first key a value handed over unwritten (a binding, a call) may carry into `into` that
+     * a package reads as other than `plain`, by the keys of the value's type, or a description
+     * when its keys cannot be listed (`any`, `object`, an index signature). A value that carries
+     * no keys of its own (a literal, a primitive, a function or class, an instance of a class) or
+     * whose type a package or library declares (made by the package, or a literal typed as its
+     * type, whose keys `Property` judged where written) is not a bag we wrote; undefined when
+     * none.
+     */
+    const handedKey = (expression, into) => {
+      if (['Literal', 'TemplateLiteral'].includes(strip(expression).type)) return undefined;
+      for (const type of members(checker.getApparentType(services.getTypeAtLocation(expression)))) {
+        const symbol = type.aliasSymbol ?? type.getSymbol();
+        if (
+          type.flags & (ts.TypeFlags.Primitive | ts.TypeFlags.Never) ||
+          type.getCallSignatures().length > 0 ||
+          type.getConstructSignatures().length > 0 ||
+          (symbol !== undefined && symbol.flags & ts.SymbolFlags.Class) ||
+          // A type a package or a library declares: an object the package made, or a literal
+          // typed as the package's type, whose keys were judged where written (`Property`).
+          symbol?.declarations?.some(
+            (site) =>
+              services.program.isSourceFileDefaultLibrary(site.getSourceFile()) ||
+              packageOf(site) !== undefined,
+          )
+        )
+          continue;
+        const properties = checker.getPropertiesOfType(type);
+        if (properties.length === 0 || checker.getIndexInfosOfType(type).length > 0)
+          return `${checker.typeToString(type)}: its keys cannot be listed`;
+        for (const property of properties) {
+          const source = propSource(into, property.name, checker, services.program);
+          if (source === null || source.own || source.meaning === 'plain') continue;
+          return source.react !== undefined
+            ? `${source.react}.${property.name} (@types/react)`
+            : `${source.key} (${source.pkg})`;
+        }
+      }
+      return undefined;
+    };
+    /**
      * A prop or option key we hand to code that is not ours to check, by where it is declared
      * (`propSource`): our own is checked where it lands; a React DOM attribute is judged as the
      * attribute it becomes (a component's `style` is a position typed as a style object,
@@ -879,14 +1009,31 @@ const inlineStyleKeys = {
         return;
       }
       if (source.meaning === undefined)
-        return context.report({ node, messageId: 'prop', data: { name, pkg: source.pkg } });
-      if (source.meaning === 'plain' || expression === null) return;
+        return context.report({
+          node,
+          messageId: 'prop',
+          data: { name: source.key, pkg: source.pkg },
+        });
+      if (expression === null) return;
+      if (source.meaning === 'plain') {
+        // A plain key that takes a bag of options whose keys the package reads (`init(options)`,
+        // `fill(style)`), handed an object not written out here (a binding, a call): its keys
+        // cannot be judged (`handedKey`, P1 QA19 F1). An object literal's keys are judged where
+        // written.
+        if (strip(expression).type === 'ObjectExpression') return;
+        const into = checker.getContextualType(toTs(expression));
+        const key =
+          into === undefined || !hasForeignKeys(into) ? undefined : handedKey(expression, into);
+        if (key !== undefined)
+          context.report({ node: expression, messageId: 'handover', data: { key } });
+        return;
+      }
       if (source.meaning === 'options') {
         if (strip(expression).type !== 'ObjectExpression')
           context.report({
             node: expression,
             messageId: 'options',
-            data: { name, pkg: source.pkg },
+            data: { name: source.key, pkg: source.pkg },
           });
         return;
       }
@@ -923,12 +1070,10 @@ const inlineStyleKeys = {
         !call.arguments.includes(outer)
       )
         return null;
-      const site = checker.getResolvedSignature(toTs(call))?.getDeclaration();
-      if (site === undefined) return null;
-      const pkg = services.program.isSourceFileDefaultLibrary(site.getSourceFile())
-        ? undefined
-        : packageOf(site);
-      return pkg === undefined ? { own: true } : { pkg, meaning: packageProp(pkg, name) };
+      const target = callee(toTs(call), checker, services.program);
+      if (target === null) return { own: true };
+      const key = target.keyOf(call.arguments.indexOf(outer));
+      return { pkg: target.pkg, key, meaning: packageProp(target.pkg, key) };
     };
     const isCssPropertiesLiteral = (node) => {
       const contextual = checker.getContextualType(toTs(node));
@@ -1106,9 +1251,6 @@ const inlineStyleKeys = {
       throw new Error(`UI gate E4: unknown DOM value writer ${writer}`);
     };
     return {
-      AssignmentExpression(node) {
-        intoStyle(node.right);
-      },
       VariableDeclarator(node) {
         intoStyle(node.init);
       },
@@ -1141,9 +1283,18 @@ const inlineStyleKeys = {
         // `positioning={{ gutter }}`) is judged as a prop of that package. A style object's own
         // keys are judged by `checkObject`.
         const key = writtenKey(node.key, node.computed);
-        if (key === null || isCssPropertiesLiteral(node.parent)) return;
+        if (isCssPropertiesLiteral(node.parent)) return;
         const contextual = checker.getContextualType(toTs(node.parent));
         if (contextual === undefined) return;
+        if (key === null) {
+          if (hasForeignKeys(contextual))
+            context.report({
+              node,
+              messageId: 'handover',
+              data: { key: foreignKey(contextual) },
+            });
+          return;
+        }
         checkKey(
           node,
           key,
@@ -1156,16 +1307,70 @@ const inlineStyleKeys = {
       // parameter, `(name)` (`toast(message)`, `snapdom.toCanvas(element)`): a value handed to
       // code that is not ours to check (P1 QA18 F1).
       'CallExpression, NewExpression'(node) {
-        const site = checker.getResolvedSignature(toTs(node))?.getDeclaration();
-        if (site === undefined || services.program.isSourceFileDefaultLibrary(site.getSourceFile()))
-          return;
-        const pkg = packageOf(site);
-        if (pkg === undefined) return;
+        const target = callee(toTs(node), checker, services.program);
+        if (target === null) return;
         node.arguments.forEach((argument, index) => {
-          const parameter = site.parameters[Math.min(index, site.parameters.length - 1)];
-          const name = `(${parameter === undefined || !ts.isIdentifier(parameter.name) ? index : parameter.name.text})`;
-          checkKey(argument, name, { pkg, meaning: packageProp(pkg, name) }, argument);
+          const key = target.keyOf(index);
+          // Spread arguments are handed on without being written here: only a `plain`
+          // parameter takes them (`addChild(...children)`).
+          if (argument.type === 'SpreadElement') {
+            if (packageProp(target.pkg, key) !== 'plain')
+              context.report({
+                node: argument,
+                messageId: 'handover',
+                data: { key: `${key} (${target.pkg})` },
+              });
+            return;
+          }
+          checkKey(
+            argument,
+            key,
+            { pkg: target.pkg, key, meaning: packageProp(target.pkg, key) },
+            argument,
+          );
         });
+      },
+      // A member of a package's object written by assignment (`container.x = 37`): a value
+      // handed to code that is not ours to check, keyed by the object's type (P1 QA19 F1).
+      AssignmentExpression(node) {
+        intoStyle(node.right);
+        const target = node.left;
+        if (target.type !== 'MemberExpression') return;
+        const name = target.computed ? writtenKey(target.property, true) : target.property.name;
+        const owner = services.getTypeAtLocation(target.object);
+        // A style object's member is judged where the object is written (`style={…}`).
+        if (isCssProperties(owner)) return;
+        if (name === null) {
+          if (hasForeignKeys(owner))
+            context.report({ node: target, messageId: 'handover', data: { key: 'a package' } });
+          return;
+        }
+        const source = propSource(owner, name, checker, services.program);
+        if (source === null || source.own || source.react !== undefined) return;
+        checkKey(target, name, source, node.operator === '=' ? node.right : node);
+      },
+      // An assertion to a type whose keys a package reads (`x as ToasterProps`) gives a value
+      // the package's type without its keys being written: only an object literal's are judged
+      // (`Property`), so any other operand is reported (P1 QA19 F1).
+      'TSAsExpression, TSTypeAssertion'(node) {
+        if (strip(node.expression).type === 'ObjectExpression') return;
+        if (
+          node.typeAnnotation.type === 'TSTypeReference' &&
+          node.typeAnnotation.typeName.name === 'const'
+        )
+          return;
+        const key = foreignKey(services.getTypeAtLocation(node));
+        if (key !== undefined) context.report({ node, messageId: 'handover', data: { key } });
+      },
+      SpreadElement(node) {
+        if (node.parent.type !== 'ObjectExpression' || isCssPropertiesLiteral(node.parent)) return;
+        const contextual = checker.getContextualType(toTs(node.parent));
+        if (contextual !== undefined && hasForeignKeys(contextual))
+          context.report({
+            node,
+            messageId: 'handover',
+            data: { key: foreignKey(contextual) },
+          });
       },
       ArrayExpression(node) {
         for (const element of node.elements) intoStyle(element);
@@ -1229,6 +1434,15 @@ const inlineStyleKeys = {
       // value): checked where it is written.
       ObjectExpression(node) {
         if (isCssPropertiesLiteral(node)) checkObject(node);
+      },
+      // Props spread into a component whose props a package declares: their keys are not
+      // written here, so none of them can be judged (P1 QA19 F1). Into a native element, the
+      // spread is element-allowlist's.
+      JSXSpreadAttribute(node) {
+        if (nativeTags(node.parent.name, services) !== undefined) return;
+        const props = checker.getContextualType(toTs(node).parent);
+        if (props !== undefined && hasForeignKeys(props))
+          context.report({ node, messageId: 'handover', data: { key: foreignKey(props) } });
       },
       JSXAttribute(node) {
         if (node.name.type !== 'JSXIdentifier') return;
