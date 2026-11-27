@@ -1497,10 +1497,15 @@ describe('Client room creation ownership', () => {
   );
 
   it('composes the room creation application service only at the app root', () => {
+    // Each source file is read and parsed once, then matched against every creation module.
+    const sourceImports = srcFiles.map((filePath) => ({
+      filePath,
+      specifiers: new Set(getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'))),
+    }));
     for (const moduleSpecifier of applicationCreationModules) {
-      const consumers = srcFiles.filter((filePath) =>
-        getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes(moduleSpecifier),
-      );
+      const consumers = sourceImports
+        .filter(({ specifiers }) => specifiers.has(moduleSpecifier))
+        .map(({ filePath }) => filePath);
       const expected =
         moduleSpecifier === '@/features/room/services/RoomCreationIntentStore'
           ? [
