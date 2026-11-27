@@ -214,7 +214,6 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
     'const ui = { Card: () => null }; export const a = <ui.Card />;',
     `${REACT}const C = () => null; createElement(C);`,
     'declare const Tag: "div" | "span"; export const a = <Tag />;',
-    `${REACT}declare const p: React.ButtonHTMLAttributes<HTMLButtonElement>; export const a = <button {...p} />;`,
     `${REACT}declare const p: { title: string; 'data-x'?: string }; export const a = <div {...p} />;`,
     `${REACT}createElement('div', { title: 'x' });`,
   ]),
@@ -266,8 +265,27 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
       [
         'const props = { style: { borderRadius: 3 } }; export const a = <div {...props} />;',
         `${REACT}createElement('div', { style: { borderRadius: 3 } });`,
+        // A pass-through props type may carry a style value or an unregistered attribute (QA14 F6).
+        `${REACT}declare const p: React.ButtonHTMLAttributes<HTMLButtonElement>; export const a = <button {...p} />;`,
+        "declare const c: boolean; const p = c ? { style: { padding: '13px' } } : {}; export const a = <div {...p} />;",
+        "const q = { fill: '#f00' }; export const a = <svg><rect {...q} /></svg>;",
+        "const r = { width: 130, alt: '' }; export const a = <img {...r} />;",
+        `${REACT}createElement('rect', { fill: '#f00' });`,
       ],
-      'style',
+      'spread',
+    ),
+    // Native attributes are registered per element (QA14 F5, N2).
+    ...red(
+      [
+        'export const a = <table border={3} />;',
+        'export const a = <table bgcolor="#f00" />;',
+        'export const a = <table width={130} />;',
+        'export const a = <table cellPadding={13} />;',
+        'export const a = <td height={13} />;',
+        'export const a = <div width={13} />;',
+        'export const a = <input src="/x" />;',
+      ],
+      'attribute',
     ),
     ...red(
       [
@@ -318,10 +336,8 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     "declare const el: HTMLElement; declare const w: number; el.style.setProperty('--seat-width', `${w}px`);",
     'declare const n: number; export const a = <div style={{ gridRow: n, flexGrow: n }} />;',
     'declare const n: number | undefined; declare const on: boolean; export const a = <div style={{ flexGrow: on && n }} />;',
-    // P1 QA13: an element callback reads every element of the literal list it walks; a member
-    // written on a `CSSProperties` object is checked where it is written.
+    // P1 QA13: an element callback reads every element of the literal list it walks.
     "const C = [{ c: 'var(--a)' }]; export const a = C.map(({ c }) => <div style={{ color: c }} />);",
-    `${REACT}const style: CSSProperties = { color: 'var(--a)' }; style.width = 'var(--w)'; export const a = <span style={style} />;`,
   ]),
   // DOM style writes (QA11 F2): what the registered entry points write takes the same check.
   // (The values below are probes, not registrations: which writes a file may make is E5's.)
@@ -390,10 +406,8 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         "declare const s: Record<'mysteryProperty', string>; export const a = <div style={s} />;",
         'declare const s: { borderRadius: 7 }; export const a = <div style={s} />;',
         // Written literals TypeScript widens are read from their initializers (QA7 F4).
-        'let gap = 12; gap += 0; export const a = <div style={{ gap }} />;',
         'const sizes = { card: 12 }; export const a = <div style={{ padding: sizes.card }} />;',
         "import { widened } from './styles'; export const a = <div style={{ width: widened.size }} />;",
-        "import { useState } from 'react'; export function A() { const [w] = useState(16); return <div style={{ width: w }} />; }",
         // One literal reading in this file and in another (QA7 F5).
         "import { templateCard } from './styles'; export const a = <div style={templateCard} />;",
         // Tables read by member or element, annotated or not (QA8 FIX-FIRST-3).
@@ -417,12 +431,6 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
         'function pad() { return 21; } export const a = <div style={{ padding: pad() }} />;',
         "import { useMemo } from 'react'; export function A() { const p = useMemo(() => 19, []); return <div style={{ padding: p }} />; }",
         'export const a = <div style={{ padding: (() => 21)() }} />;',
-        'class S { static PAD = 21; } export const a = <div style={{ padding: S.PAD }} />;',
-        "const S = { box: { padding: 'var(--a)' } }; S.box.padding = '23px'; export const a = <div style={{ padding: S.box.padding }} />;",
-        // Later writes and lazy initial state (QA8 should-fix 3).
-        'let gap = 0; gap = 12; export const a = <div style={{ gap }} />;',
-        "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW(16); return <div style={{ width: w }} />; }",
-        "import { useState } from 'react'; export function A() { const [w] = useState(() => 16); return <div style={{ width: w }} />; }",
         // A literal branch of a template beside a runtime one is still read (a runtime custom
         // property value fits, its literal branch does not).
         'const HIGH = 300; export const A = (on: boolean, i: number) => <div style={{ ["--d"]: `${on ? HIGH : i * 2}ms` }} />;',
@@ -482,25 +490,101 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
       'value',
     ),
     // P1 QA13 F1: a write into a `CSSProperties` value is checked where it is written, whether
-    // the object is annotated, flows in without a contextual type, or is mutated.
+    // the object is annotated or flows in without a contextual type.
     ...red(
       [
-        `${REACT}const style: CSSProperties = { color: 'var(--a)' }; style.width = '13px'; export const a = <span style={style} />;`,
         `${REACT}const o = { width: 13 }; const s: CSSProperties = o; export const a = <div style={s} />;`,
         `${REACT}function mk(): CSSProperties { const o = { width: 13 }; return o; } export const a = <div style={mk()} />;`,
         `${REACT}import { useMemo } from 'react'; export function A() { const s = useMemo((): CSSProperties => { const o = { width: 13 }; return o; }, []); return <div style={s} />; }`,
-        `${REACT}const style: CSSProperties = {}; Object.assign(style, { width: 13 }); export const a = <div style={style} />;`,
+        `${REACT}declare function Avatar(p: { style: CSSProperties }): null; export const a = <Avatar style={{ width: 13 }} />;`,
+      ],
+      'value',
+    ),
+    // A binding some use can change is read from its type, never as the literal it started as
+    // (QA14 F1–F3): a member write, a mutating call, an escape, any write but `=`.
+    ...red(
+      [
+        'let gap = 12; gap += 0; export const a = <div style={{ gap }} />;',
+        "const S = { box: { padding: 'var(--a)' } }; S.box.padding = '23px'; export const a = <div style={{ padding: S.box.padding }} />;",
+        "const S = { box: { padding: 'var(--a)' } }; S.box.padding = '23px'; export const a = <div style={S.box} />;",
+        "const S = { box: { padding: 'var(--a)' } }; S.box.padding = '23px'; export const a = <div style={{ ...S.box }} />;",
+        "const s: { padding?: string } = { padding: 'var(--a)' }; s.padding = '13px'; export const a = <div style={s} />;",
+        "const s = { padding: 'var(--a)' }; Object.assign(s, { padding: '13px' }); export const a = <div style={s} />;",
+        "const s = { padding: 'var(--a)' }; Reflect.set(s, 'padding', '13px'); export const a = <div style={s} />;",
+        "const pads = ['var(--a)']; pads[0] = '13px'; export const a = <div style={{ padding: pads[0] }} />;",
+        "const pads = ['var(--a)', '13px'].reverse(); export const a = <div style={{ padding: pads[0] }} />;",
+        "const L = ['var(--a)']; L.push('13px'); export const a = L.map((p) => <div style={{ padding: p }} />);",
+        "const o = { p: 'var(--a)' }; function m(x: { p: string }) { x.p = '13px'; } m(o); export const a = <div style={{ padding: o.p }} />;",
+        "const o = { p: 'var(--a)' }; const alias = o; alias.p = '13px'; export const a = <div style={{ padding: o.p }} />;",
+        "let pad = () => 'var(--a)'; pad = () => String(13); export const a = <div style={{ padding: pad() }} />;",
+        "let p = 'var(--a)'; [p] = ['13px']; export const a = <div style={{ padding: p }} />;",
+        "let p = 'var(--a)'; p += ' 13px'; export const a = <div style={{ padding: p }} />;",
+        "const o = { p: 'var(--a)' }; export function get() { return o; } get().p = '13px'; export const a = <div style={{ padding: o.p }} />;",
         `${REACT}declare function Avatar(p: { style: CSSProperties }): null; const o = { width: 13 }; export const a = <Avatar style={o} />;`,
+        // A branch the gate cannot read is read from its type, whatever literal stands beside it (QA14 F2).
+        "const base = { padding: 'var(--a)' }; function F({ s = base }: { s?: typeof base }) { return <div style={s} />; } export const a = <F s={{ padding: 'var(--b)' }} />;",
+        "const base = { padding: 'var(--a)' }; export const F = (c: boolean, p: typeof base) => <div style={c ? base : p} />;",
+        "const base = { padding: 'var(--a)' }; export const F = (p?: typeof base) => <div style={p ?? base} />;",
+      ],
+      'untracked',
+    ),
+    // A DOM value writer is judged however it is spelled, and reported when handed on (QA14 F4).
+    ...red(
+      [
+        "declare const el: HTMLElement; el['animate']([{ padding: '13px' }]);",
+        "declare const el: Element; el['setAttribute']('fill', '#f00');",
+        "declare const el: HTMLElement; el.style['setProperty']('padding', '13px');",
+        "declare const el: Element; el.setAttributeNS(null, 'fill', '#f00');",
+        "declare const el: HTMLElement; Object.assign(el.style, { padding: '13px' });",
       ],
       'value',
     ),
     ...red(
       [
-        `${REACT}declare const s: string; const style: CSSProperties = { color: 'var(--a)' }; style.textShadow = s; export const a = <span style={style} />;`,
+        "declare const el: HTMLElement; el.animate.call(el, [{ padding: '13px' }], 100);",
+        'declare const el: HTMLElement; export const anim = el.animate.bind(el);',
+        'declare const el: Element; export const set = el.setAttribute;',
+        'declare const el: HTMLElement; export const { animate } = el;',
+      ],
+      'indirect',
+    ),
+    ...red(
+      [
         `${REACT}declare const n: number; const o = { width: n }; const s: CSSProperties = o; export const a = <div style={s} />;`,
       ],
       'untracked',
     ),
+    // v3.11 (P1 QA14): only a provable binding is read from what is written to it. A `let`, a
+    // `useState` value, a field that is not `readonly`, and an object any use writes to (even a
+    // style object written where it is checked) hold what their type allows.
+    ...red(
+      [
+        "import { useState } from 'react'; export function A() { const [w] = useState(16); return <div style={{ width: w }} />; }",
+        'class S { static PAD = 21; } export const a = <div style={{ padding: S.PAD }} />;',
+        'let gap = 0; gap = 12; export const a = <div style={{ gap }} />;',
+        "import { useState } from 'react'; export function A() { const [w, setW] = useState(0); setW(16); return <div style={{ width: w }} />; }",
+        "import { useState } from 'react'; export function A() { const [w] = useState(() => 16); return <div style={{ width: w }} />; }",
+        `${REACT}const style: CSSProperties = { color: 'var(--a)' }; style.width = 'var(--w)'; export const a = <span style={style} />;`,
+      ],
+      'untracked',
+    ),
+    // The write is judged where it is written, and the object it changes is not read as its
+    // initializer where it is used.
+    {
+      filename,
+      code: `${REACT}const style: CSSProperties = { color: 'var(--a)' }; style.width = '13px'; export const a = <span style={style} />;`,
+      errors: [{ messageId: 'value' }, { messageId: 'untracked' }],
+    },
+    {
+      filename,
+      code: `${REACT}declare const s: string; const style: CSSProperties = { color: 'var(--a)' }; style.textShadow = s; export const a = <span style={style} />;`,
+      errors: [{ messageId: 'untracked' }, { messageId: 'untracked' }],
+    },
+    {
+      filename,
+      code: `${REACT}const style: CSSProperties = {}; Object.assign(style, { width: 13 }); export const a = <div style={style} />;`,
+      errors: [{ messageId: 'untracked' }, { messageId: 'value' }, { messageId: 'untracked' }],
+    },
     // A literal beside a runtime value: both are reported, neither hides the other.
     ...[
       'export const A = ({ size = 8 }: { size?: number }) => <div style={{ width: size }} />;',

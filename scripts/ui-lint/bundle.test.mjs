@@ -39,7 +39,7 @@ function fixture(files = {}) {
   const all = {
     'packages/web/package.json': JSON.stringify({
       dependencies: { dep: '1.0.0' },
-      devDependencies: { devdep: '1.0.0' },
+      devDependencies: { devdep: '1.0.0', '@iconify-json/ion': '1.0.0' },
     }),
     'packages/web/tsconfig.json': JSON.stringify({
       compilerOptions: {
@@ -198,7 +198,10 @@ describe('bundle graph allow list', () => {
   describe("Ark's dialog only in AppDialog (the registry's own entry)", () => {
     const OWNER = 'packages/web/src/components/AppDialog.tsx';
     const ark = {
-      'packages/web/package.json': JSON.stringify({ dependencies: { '@ark-ui/react': '5.0.0' } }),
+      'packages/web/package.json': JSON.stringify({
+        dependencies: { '@ark-ui/react': '5.0.0' },
+        devDependencies: { '@iconify-json/ion': '1.0.0' },
+      }),
       'packages/web/node_modules/@ark-ui/react/package.json': JSON.stringify({
         name: '@ark-ui/react',
         exports: {
@@ -330,6 +333,28 @@ describe('bundle graph allow list', () => {
         line.includes('`@import` takes'),
       ),
     ).toBe(true);
+  });
+
+  it('accepts icons only from a registered collection (QA14 F7)', () => {
+    expect(graph(main("import A from '~icons/ion/add';")).problems).toEqual([]);
+    expect(graph(main("import A from '~icons/noto/apple';")).problems).toEqual([
+      'packages/web/src/main.ts:1: `~icons/noto/apple` is not a registered virtual module',
+    ]);
+    const manifest = (devDependencies) => ({
+      'packages/web/package.json': JSON.stringify({
+        dependencies: { dep: '1.0.0' },
+        devDependencies,
+      }),
+    });
+    expect(
+      graph(manifest({ '@iconify-json/ion': '1', '@iconify-json/noto': '1' })).problems,
+    ).toEqual([
+      'packages/web/package.json: icon collection `@iconify-json/noto` is not registered',
+    ]);
+    expect(graph(manifest({ '@iconify/json': '1' })).problems).toEqual([
+      'packages/web/package.json: icon collection `@iconify/json` is not registered',
+      'registry: `@iconify-json/ion` (serving `~icons/ion/`) is not in the web devDependencies',
+    ]);
   });
 
   it('keeps the registry and the web manifest in step', () => {

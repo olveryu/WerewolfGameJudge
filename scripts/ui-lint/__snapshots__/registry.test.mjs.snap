@@ -82,6 +82,226 @@ exports[`UI gate registry > pins AT_RULES exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins ATTRIBUTES exactly 1`] = `
+{
+  "accept": [
+    "input",
+  ],
+  "alt": [
+    "img",
+  ],
+  "autoComplete": [
+    "input",
+  ],
+  "autoCorrect": [
+    "input",
+  ],
+  "autoFocus": [
+    "input",
+  ],
+  "checked": [
+    "input",
+  ],
+  "children": [
+    "*",
+  ],
+  "className": [
+    "*",
+  ],
+  "colSpan": [
+    "td",
+  ],
+  "crossOrigin": [
+    "img",
+  ],
+  "cx": [
+    "circle",
+    "radialGradient",
+  ],
+  "cy": [
+    "circle",
+    "radialGradient",
+  ],
+  "d": [
+    "path",
+  ],
+  "dateTime": [
+    "time",
+  ],
+  "decoding": [
+    "img",
+  ],
+  "defaultValue": [
+    "input",
+    "textarea",
+  ],
+  "disabled": [
+    "button",
+    "fieldset",
+    "input",
+    "option",
+    "select",
+    "textarea",
+  ],
+  "draggable": [
+    "*",
+  ],
+  "enterKeyHint": [
+    "input",
+  ],
+  "filterUnits": [
+    "filter",
+  ],
+  "form": [
+    "button",
+  ],
+  "gradientUnits": [
+    "linearGradient",
+    "radialGradient",
+  ],
+  "height": [
+    "filter",
+    "rect",
+  ],
+  "hidden": [
+    "*",
+  ],
+  "htmlFor": [
+    "label",
+  ],
+  "id": [
+    "*",
+  ],
+  "inert": [
+    "*",
+  ],
+  "inputMode": [
+    "input",
+  ],
+  "key": [
+    "*",
+  ],
+  "list": [
+    "input",
+  ],
+  "max": [
+    "input",
+    "progress",
+  ],
+  "maxLength": [
+    "input",
+    "textarea",
+  ],
+  "min": [
+    "input",
+  ],
+  "name": [
+    "input",
+    "select",
+    "textarea",
+  ],
+  "offset": [
+    "stop",
+  ],
+  "open": [
+    "details",
+  ],
+  "pathLength": [
+    "circle",
+    "path",
+  ],
+  "placeholder": [
+    "input",
+    "textarea",
+  ],
+  "preserveAspectRatio": [
+    "svg",
+  ],
+  "r": [
+    "circle",
+    "radialGradient",
+  ],
+  "readOnly": [
+    "input",
+    "textarea",
+  ],
+  "ref": [
+    "*",
+  ],
+  "required": [
+    "input",
+    "textarea",
+  ],
+  "role": [
+    "*",
+  ],
+  "rows": [
+    "textarea",
+  ],
+  "scope": [
+    "th",
+  ],
+  "src": [
+    "iframe",
+    "img",
+  ],
+  "stdDeviation": [
+    "feGaussianBlur",
+  ],
+  "step": [
+    "input",
+  ],
+  "tabIndex": [
+    "*",
+  ],
+  "title": [
+    "*",
+  ],
+  "type": [
+    "button",
+    "input",
+  ],
+  "value": [
+    "input",
+    "option",
+    "progress",
+    "select",
+    "textarea",
+  ],
+  "viewBox": [
+    "svg",
+  ],
+  "width": [
+    "filter",
+    "rect",
+  ],
+  "x": [
+    "filter",
+    "rect",
+  ],
+  "x1": [
+    "line",
+    "linearGradient",
+  ],
+  "x2": [
+    "line",
+    "linearGradient",
+  ],
+  "y": [
+    "filter",
+    "rect",
+  ],
+  "y1": [
+    "line",
+    "linearGradient",
+  ],
+  "y2": [
+    "line",
+    "linearGradient",
+  ],
+}
+`;
+
 exports[`UI gate registry > pins BREAKPOINTS exactly 1`] = `[]`;
 
 exports[`UI gate registry > pins BUILD_ENTRIES exactly 1`] = `
@@ -193,6 +413,15 @@ exports[`UI gate registry > pins DOM_ALLOW exactly 1`] = `
   "toBlob",
   "toDataURL",
 ]
+`;
+
+exports[`UI gate registry > pins DOM_VALUE_WRITERS exactly 1`] = `
+{
+  "Animatable.animate": "animate",
+  "CSSStyleDeclarationBase.setProperty": "setProperty",
+  "Element.setAttribute": "setAttribute",
+  "Element.setAttributeNS": "setAttributeNS",
+}
 `;
 
 exports[`UI gate registry > pins DOM_WRITERS exactly 1`] = `
@@ -844,6 +1073,8 @@ exports[`UI gate registry > pins HTML_KEYS exactly 1`] = `
 ]
 `;
 
+exports[`UI gate registry > pins ICON_COLLECTION_PACKAGE exactly 1`] = `"/^@iconify-json\\/|^@iconify\\/json$/"`;
+
 exports[`UI gate registry > pins IDENTITY_CALLS exactly 1`] = `
 [
   "Object.freeze",
@@ -881,6 +1112,14 @@ exports[`UI gate registry > pins NAMED_WRITERS exactly 1`] = `
   "setAttributeNS",
   "setProperty",
   "toggleAttribute",
+]
+`;
+
+exports[`UI gate registry > pins OPEN_ATTRIBUTES exactly 1`] = `
+[
+  "/^aria-/",
+  "/^data-/",
+  "/^on[A-Z]/",
 ]
 `;
 
@@ -1610,15 +1849,21 @@ exports[`UI gate registry > pins UNMANAGED exactly 1`] = `
 ]
 `;
 
-exports[`UI gate registry > pins VIRTUAL_MODULE_PREFIXES exactly 1`] = `
-[
-  "~icons/",
-]
+exports[`UI gate registry > pins VIRTUAL_MODULE_FAMILY exactly 1`] = `"~icons/"`;
+
+exports[`UI gate registry > pins VIRTUAL_MODULES exactly 1`] = `
+{
+  "~icons/ion/": {
+    "field": "devDependencies",
+    "package": "@iconify-json/ion",
+    "why": "Ionicons, single-colour outline glyphs drawn in currentColor",
+  },
+}
 `;
 
 exports[`UI gate registry > pins VITE_PLUGINS exactly 1`] = `
 {
-  "Icons": "serves the \`~icons/*\` virtual modules (VIRTUAL_MODULE_PREFIXES)",
+  "Icons": "serves the \`~icons/*\` virtual modules (VIRTUAL_MODULES)",
   "babel": "React Compiler transform; adds no modules",
   "bootSplash": "adds the boot splash entry (BUILD_ENTRIES)",
   "react": "transforms JSX and Fast Refresh; adds no modules",

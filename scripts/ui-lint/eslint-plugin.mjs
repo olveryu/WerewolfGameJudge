@@ -27,13 +27,16 @@ import path from 'node:path';
 import ts from 'typescript';
 
 import {
+  ATTRIBUTES,
   DOM_ALLOW,
+  DOM_VALUE_WRITERS,
   DOM_WRITERS,
   ELEMENTS,
   FACTORIES,
   FILE_ELEMENTS,
   HTML_KEYS,
   NAMED_WRITERS,
+  OPEN_ATTRIBUTES,
   OPEN_KEY_HEADS,
   REACT_UNITLESS,
   REFLECTION,
@@ -496,6 +499,38 @@ function keyNames(property, services) {
   return possibleStrings(property.key, services);
 }
 
+/** A JSX attribute's name as written (`xlink:href` for a namespaced one). */
+const attributeName = (name) =>
+  name.type === 'JSXNamespacedName' ? `${name.namespace.name}:${name.name.name}` : name.name;
+
+/**
+ * Whether `<tag>` may carry `name` as a registered attribute whose value is not a style value
+ * (`tag` `*`: an element not known, which takes only the global ones).
+ */
+function isPlainAttribute(name, tag) {
+  if (OPEN_ATTRIBUTES.some((pattern) => pattern.test(name))) return true;
+  const elements = ATTRIBUTES.get(name);
+  return elements !== undefined && (elements.has('*') || elements.has(tag));
+}
+
+/**
+ * Whether `<tag>` may carry `name` written as an attribute: a plain one, or one whose value
+ * `ui/inline-style-keys` judges (`style`, an SVG presentation attribute, the size of a sized
+ * element), or raw HTML, which is reported as such.
+ */
+function isAttribute(name, tag) {
+  return isPlainAttribute(name, tag) || isValueAttribute(name, tag) || HTML_KEYS.has(name);
+}
+
+/** Whether the value of `name` on `<tag>` is judged as a style value (E4). */
+function isValueAttribute(name, tag) {
+  return (
+    name === 'style' ||
+    SVG_ATTRIBUTES.has(name) ||
+    (SIZED_ELEMENTS.has(tag) && SIZE_ATTRIBUTES.has(name))
+  );
+}
+
 const elementAllowlist = {
   meta: {
     type: 'problem',
@@ -508,8 +543,10 @@ const elementAllowlist = {
       html: '`{{name}}` writes raw HTML past the gate (UI gate E11).',
       opaque:
         'These props hide which keys they carry (any, unknown or an index signature) (UI gate E11).',
-      style:
-        'A `style` in spread or createElement props bypasses the inline style check; pass `style={…}` (UI gate E4).',
+      attribute:
+        '`{{name}}` is not a registered attribute of `<{{tag}}>` (UI gate E11, scripts/ui-lint/registry.mjs ATTRIBUTES).',
+      spread:
+        'These props reach `<{{tag}}>` by spread or createElement and can carry {{count}} key(s) that are not registered attributes or carry a style value ({{keys}}): write each as an attribute (UI gate E4, E11).',
       unresolved:
         'The checker cannot resolve what this call is, so it may create an element (UI gate E11).',
     },
@@ -524,13 +561,36 @@ const elementAllowlist = {
         if (!ELEMENTS.has(tag) && !own.has(tag))
           context.report({ node, messageId: 'element', data: { tag } });
     };
-    /** Props reaching a native element without being written as attributes. */
-    const checkProps = (node) => {
+    /**
+     * Props reaching native elements without being written as attributes (spread, createElement,
+     * cloneElement; `tags` null when the element is not known). Every key any member of their
+     * type may carry, optional or not, is a registered attribute that holds no style value: a
+     * spread value is not judged where it is written, so a key that may carry one is reported
+     * (P1 QA14 F6).
+     */
+    const checkProps = (node, tags) => {
       const type = services.getTypeAtLocation(node);
       if (isOpaque(type, checker)) return context.report({ node, messageId: 'opaque' });
-      const style = checker.getPropertyOfType(checker.getApparentType(type), 'style');
-      if (style && !(style.flags & ts.SymbolFlags.Optional))
-        context.report({ node, messageId: 'style' });
+      const keys = new Set();
+      for (const part of type.isUnion() ? type.types : [type])
+        for (const symbol of checker.getPropertiesOfType(checker.getApparentType(part)))
+          keys.add(symbol.getName());
+      for (const tag of tags ?? ['*']) {
+        // Raw HTML keys are reported as such wherever they are written.
+        const rejected = [...keys]
+          .filter((key) => !isPlainAttribute(key, tag) && !HTML_KEYS.has(key))
+          .sort();
+        if (rejected.length > 0)
+          context.report({
+            node,
+            messageId: 'spread',
+            data: {
+              tag,
+              count: rejected.length,
+              keys: `${rejected.slice(0, 6).join(', ')}${rejected.length > 6 ? ', …' : ''}`,
+            },
+          });
+      }
     };
     const isNative = (name) => name.type === 'JSXIdentifier' && /^[a-z]/.test(name.name);
     return {
@@ -538,7 +598,17 @@ const elementAllowlist = {
         const { name } = node;
         for (const attribute of node.attributes) {
           if (attribute.type === 'JSXSpreadAttribute') {
-            if (isNative(name)) checkProps(attribute.argument);
+            if (isNative(name)) checkProps(attribute.argument, [name.name]);
+          } else if (
+            isNative(name) &&
+            (ELEMENTS.has(name.name) || own.has(name.name)) &&
+            !isAttribute(attributeName(attribute.name), name.name)
+          ) {
+            context.report({
+              node: attribute,
+              messageId: 'attribute',
+              data: { name: attributeName(attribute.name), tag: name.name },
+            });
           } else if (
             attribute.name.type === 'JSXIdentifier' &&
             HTML_KEYS.has(attribute.name.name)
@@ -586,9 +656,9 @@ const elementAllowlist = {
         if (name === 'createElement' && tag) {
           const tags = tagNames(tag, services);
           check(node, tags);
-          if (tags !== undefined && props) checkProps(props);
+          if (tags !== undefined && props) checkProps(props, tags);
         }
-        if (name === 'cloneElement' && props) checkProps(props);
+        if (name === 'cloneElement' && props) checkProps(props, null);
       },
     };
   },
@@ -673,89 +743,401 @@ const strip = (node) =>
     ? strip(node.expression)
     : node;
 
-const writesCache = new WeakMap();
+const identifiersCache = new WeakMap();
 
-/**
- * The writes in one source file, keyed by symbol: `assigned` holds the values of `x = v`,
- * `called` the first argument of each call `f(v)` (read only for a state hook's setter).
- */
-function writesIn(sourceFile, checker) {
-  let writes = writesCache.get(sourceFile);
-  if (writes !== undefined) return writes;
-  writes = { assigned: new Map(), called: new Map() };
-  const push = (map, target, value) => {
-    const symbol = checker.getSymbolAtLocation(target);
-    if (symbol !== undefined) map.set(symbol, [...(map.get(symbol) ?? []), value]);
-  };
+/** Every identifier in the program's own files, by its text (built once per program). */
+function identifiersByText(program) {
+  let index = identifiersCache.get(program);
+  if (index !== undefined) return index;
+  index = new Map();
   const visit = (node) => {
-    if (
-      ts.isBinaryExpression(node) &&
-      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-      ts.isIdentifier(node.left)
-    )
-      push(writes.assigned, node.left, node.right);
-    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.arguments[0])
-      push(writes.called, node.expression, node.arguments[0]);
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  writesCache.set(sourceFile, writes);
-  return writes;
-}
-
-const memberWritesCache = new WeakMap();
-
-/**
- * Every `obj.key = value` and `obj['key'] = value` in the program, by the member's declaration
- * (an access resolves to a widened copy of the declared symbol, so symbols do not match): a
- * table entry written after its literal (`S.box.padding = 23`, P1 QA10 S1), in any file.
- */
-function memberWrites(checker) {
-  const program = programs.get(checker);
-  let writes = memberWritesCache.get(program);
-  if (writes !== undefined) return writes;
-  writes = new Map();
-  const visit = (node) => {
-    if (
-      ts.isBinaryExpression(node) &&
-      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-      (ts.isPropertyAccessExpression(node.left) || ts.isElementAccessExpression(node.left))
-    ) {
-      const symbol = checker.getSymbolAtLocation(
-        ts.isPropertyAccessExpression(node.left) ? node.left.name : node.left.argumentExpression,
-      );
-      for (const declaration of symbol?.declarations ?? [])
-        writes.set(declaration, [...(writes.get(declaration) ?? []), node.right]);
-    }
+    if (ts.isIdentifier(node)) index.set(node.text, [...(index.get(node.text) ?? []), node]);
     ts.forEachChild(node, visit);
   };
   for (const sourceFile of program.getSourceFiles())
     if (!sourceFile.isDeclarationFile && !sourceFile.fileName.includes('/node_modules/'))
       visit(sourceFile);
-  memberWritesCache.set(program, writes);
-  return writes;
+  identifiersCache.set(program, index);
+  return index;
+}
+
+const sealedCache = new WeakMap();
+
+/**
+ * Whether the value a binding holds is the one written to it (P1 QA14 F1–F3): a value is read
+ * from what is written only when every reference to the binding, in any file, is a use that
+ * cannot change it. Any write (`=`, `+=`, `++`, a destructuring target, `delete`), and for an
+ * object or array any use that can change what it holds (a member write, even to a style
+ * object, `Object.assign`, a mutating method, passing it to a call, handing it to a component),
+ * is not, and the binding is then read from its type (v3.11: the write itself is judged where it
+ * is written, and the binding no longer claims to hold only its initializer).
+ * The uses that keep a value are listed in `keepsValue`; anything else does not (allow list).
+ */
+function isSealed(symbol, checker, open = new Set(), mode = 'value') {
+  const program = programs.get(checker);
+  let caches = sealedCache.get(program);
+  if (caches === undefined)
+    sealedCache.set(program, (caches = { value: new Map(), returns: new Map() }));
+  const cache = caches[mode];
+  if (cache.has(symbol)) return cache.get(symbol);
+  // A binding reached again through its own uses (`const a = b; const b = a`) adds no use.
+  const marker = { symbol, mode };
+  if ([...open].some((entry) => entry.symbol === symbol && entry.mode === mode)) return true;
+  open.add(marker);
+  let sealed = true;
+  try {
+    const names = new Set((symbol.declarations ?? []).map((d) => d.name).filter(Boolean));
+    for (const identifier of identifiersByText(program).get(symbol.getName()) ?? []) {
+      if (names.has(identifier)) continue;
+      const parent = identifier.parent;
+      const refers = ts.isShorthandPropertyAssignment(parent)
+        ? checker.getShorthandAssignmentValueSymbol(parent) === symbol
+        : targetSymbol(identifier, checker) === symbol;
+      if (!refers) continue;
+      // An import that renames the binding: its uses are the local name's.
+      if (ts.isImportSpecifier(parent)) {
+        const local = checker.getSymbolAtLocation(parent.name);
+        if (parent.propertyName === identifier && local !== undefined && local !== symbol) {
+          if (!isSealed(local, checker, open, mode)) sealed = false;
+        }
+        if (!sealed) break;
+        continue;
+      }
+      if (ts.isImportClause(parent) || ts.isNamespaceImport(parent)) continue;
+      if (ts.isExportSpecifier(parent)) {
+        // A renamed re-export is imported under a name the gate does not follow.
+        if (parent.propertyName !== undefined) sealed = false;
+        if (!sealed) break;
+        continue;
+      }
+      const use = useOf(identifier);
+      if (
+        mode === 'returns' ? !callKeepsValue(use, checker, open) : !keepsValue(use, checker, open)
+      ) {
+        sealed = false;
+        break;
+      }
+    }
+  } finally {
+    open.delete(marker);
+  }
+  // A result reached while another binding is open may rest on that binding being sealed.
+  if (!sealed || open.size === 0) cache.set(symbol, sealed);
+  return sealed;
+}
+
+/**
+ * Whether a reference to a function keeps what it returns: it is called, and the call's value
+ * is kept (`keepsValue`). Any other reference hands the function on, and its callers are not
+ * followed.
+ */
+function callKeepsValue(use, checker, open) {
+  let node = use;
+  while (isTransparent(node.parent)) node = node.parent;
+  if (ts.isTypeQueryNode(node.parent)) return true;
+  const call = node.parent;
+  return ts.isCallExpression(call) && call.expression === node && keepsValue(call, checker, open);
+}
+
+/**
+ * Whether a value a function returns is kept: every call of the function keeps it (an
+ * immediately invoked function, a memo hook's factory, or a function bound to a name).
+ */
+function returnKept(fn, checker, open) {
+  let holder = fn.parent;
+  let node = fn;
+  while (isTransparent(holder)) {
+    node = holder;
+    holder = holder.parent;
+  }
+  if (ts.isCallExpression(holder)) {
+    if (holder.expression === node) return keepsValue(holder, checker, open);
+    const callee = holder.expression;
+    const name = ts.isPropertyAccessExpression(callee) ? callee.name : callee;
+    if (ts.isIdentifier(name) && MEMO_HOOKS.has(name.text) && holder.arguments[0] === node)
+      return keepsValue(holder, checker, open);
+    return false;
+  }
+  const name =
+    ts.isFunctionDeclaration(fn) || ts.isMethodDeclaration(fn)
+      ? fn.name
+      : ts.isVariableDeclaration(holder) && holder.initializer === node
+        ? holder.name
+        : undefined;
+  if (name === undefined || !ts.isIdentifier(name)) return false;
+  const symbol = checker.getSymbolAtLocation(name);
+  return symbol !== undefined && isSealed(symbol, checker, open, 'returns');
+}
+
+/** The expression a reference stands for: a member's access (`this.x`, `M.x`), else the name. */
+const useOf = (identifier) =>
+  (ts.isPropertyAccessExpression(identifier.parent) && identifier.parent.name === identifier) ||
+  (ts.isQualifiedName(identifier.parent) && identifier.parent.right === identifier)
+    ? identifier.parent
+    : identifier;
+
+/** Methods of an array or object that read it and do not change it. */
+const READING_METHODS = new Set([
+  'at',
+  'concat',
+  'entries',
+  'every',
+  'filter',
+  'find',
+  'findIndex',
+  'findLast',
+  'findLastIndex',
+  'flat',
+  'flatMap',
+  'forEach',
+  'get',
+  'has',
+  'includes',
+  'indexOf',
+  'join',
+  'keys',
+  'lastIndexOf',
+  'map',
+  'reduce',
+  'slice',
+  'some',
+  'toString',
+  'values',
+]);
+
+/**
+ * Calls that read their argument: `copies` hold its entries (they keep its value only as long
+ * as their result does), the others only read it.
+ */
+const READING_CALLS = new Map([
+  ['Array.from', 'copies'],
+  ['Array.isArray', 'reads'],
+  ['JSON.stringify', 'reads'],
+  ['Object.entries', 'copies'],
+  ['Object.hasOwn', 'reads'],
+  ['Object.keys', 'reads'],
+  ['Object.values', 'copies'],
+]);
+
+const isTransparent = (node) =>
+  ts.isParenthesizedExpression(node) ||
+  ts.isAsExpression(node) ||
+  ts.isSatisfiesExpression(node) ||
+  ts.isNonNullExpression(node) ||
+  ts.isTypeAssertionExpression(node);
+
+/** Whether `node` is written by its parent (any assignment, `++`, `delete`, a loop target). */
+function isWritten(node) {
+  const parent = node.parent;
+  if (ts.isBinaryExpression(parent) && parent.left === node)
+    return (
+      parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+      parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment
+    );
+  if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent))
+    return (
+      parent.operator === ts.SyntaxKind.PlusPlusToken ||
+      parent.operator === ts.SyntaxKind.MinusMinusToken
+    );
+  if (ts.isDeleteExpression(parent)) return true;
+  if ((ts.isForInStatement(parent) || ts.isForOfStatement(parent)) && parent.initializer === node)
+    return true;
+  return false;
+}
+
+/** Whether a value can be changed in place (an object or array that is not a function). */
+function isMutable(type, checker) {
+  return (type.isUnion() ? type.types : [type]).some(
+    (part) =>
+      part.flags & ts.TypeFlags.Object &&
+      checker.getSignaturesOfType(part, ts.SignatureKind.Call).length === 0,
+  );
+}
+
+/**
+ * Whether a use of a binding's value keeps it as written (`isSealed`). Only the uses listed here
+ * do; any other use does not.
+ */
+function keepsValue(use, checker, open) {
+  // A type position (`typeof S`) holds no value.
+  if (ts.isTypeQueryNode(use.parent) || ts.isQualifiedName(use.parent) || ts.isQualifiedName(use))
+    return true;
+  let node = use;
+  for (;;) {
+    const parent = node.parent;
+    if (isTransparent(parent)) node = parent;
+    else if (ts.isConditionalExpression(parent) && parent.condition !== node) node = parent;
+    else if (
+      ts.isBinaryExpression(parent) &&
+      (parent.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+        parent.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+        (parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+          parent.right === node))
+    )
+      node = parent;
+    else break;
+  }
+  const parent = node.parent;
+  if (isWritten(node)) return false;
+  // A destructuring assignment target (`[p] = …`, `({ p } = …)`).
+  if (
+    (ts.isArrayLiteralExpression(parent) ||
+      ts.isShorthandPropertyAssignment(parent) ||
+      ts.isPropertyAssignment(parent) ||
+      ts.isSpreadElement(parent)) &&
+    isDestructuringTarget(parent)
+  )
+    return false;
+  if (!isMutable(checker.getTypeAtLocation(node), checker)) return true;
+  // The binding's object or array: only reads keep it.
+  if (
+    (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) &&
+    parent.expression === node
+  ) {
+    const call = parent.parent;
+    if (ts.isCallExpression(call) && call.expression === parent) {
+      const method = ts.isPropertyAccessExpression(parent)
+        ? parent.name.text
+        : ts.isStringLiteral(parent.argumentExpression)
+          ? parent.argumentExpression.text
+          : undefined;
+      if (method === undefined || !READING_METHODS.has(method)) return false;
+      // A callback's parameters hold the receiver's entries: they keep them only if sealed too.
+      return call.arguments.every((argument) => {
+        const fn = strip(argument);
+        if (!ts.isArrowFunction(fn) && !ts.isFunctionExpression(fn)) return true;
+        return fn.parameters.every((parameter) => bindingKeeps(parameter.name, checker, open));
+      });
+    }
+    return keepsValue(parent, checker, open);
+  }
+  if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) return true;
+  if (
+    ts.isSpreadAssignment(parent) ||
+    ts.isSpreadElement(parent) ||
+    ts.isJsxSpreadAttribute(parent)
+  )
+    return true;
+  if (ts.isJsxExpression(parent)) {
+    const holder = parent.parent;
+    // Rendered as a child, or a native element's attribute (React does not change them).
+    if (ts.isJsxElement(holder) || ts.isJsxFragment(holder)) return true;
+    if (ts.isJsxAttribute(holder)) {
+      const tag = holder.parent.parent.tagName;
+      return ts.isIdentifier(tag) && /^[a-z]/.test(tag.text);
+    }
+    return false;
+  }
+  if (ts.isVariableDeclaration(parent) && parent.initializer === node)
+    return bindingKeeps(parent.name, checker, open);
+  // An entry of an object or array literal: kept as long as the literal is.
+  if (
+    (ts.isPropertyAssignment(parent) && parent.initializer === node) ||
+    ts.isShorthandPropertyAssignment(parent)
+  )
+    return keepsValue(parent.parent, checker, open);
+  if (ts.isArrayLiteralExpression(parent)) return keepsValue(parent, checker, open);
+  if (ts.isCallExpression(parent) && parent.arguments.includes(node)) {
+    const callee = parent.expression.getText();
+    if (IDENTITY_CALLS.has(callee) || READING_CALLS.get(callee) === 'copies')
+      return keepsValue(parent, checker, open);
+    return READING_CALLS.get(callee) === 'reads';
+  }
+  if (ts.isExportAssignment(parent)) return false;
+  if (ts.isReturnStatement(parent)) {
+    const fn = ts.findAncestor(parent, ts.isFunctionLike);
+    return fn !== undefined && returnKept(fn, checker, open);
+  }
+  if (ts.isArrowFunction(parent) && parent.body === node) return returnKept(parent, checker, open);
+  if (ts.isTemplateSpan(parent) || ts.isTypeOfExpression(parent)) return true;
+  if (ts.isPrefixUnaryExpression(parent) && parent.operator === ts.SyntaxKind.ExclamationToken)
+    return true;
+  if (ts.isBinaryExpression(parent)) {
+    const kind = parent.operatorToken.kind;
+    return (
+      kind === ts.SyntaxKind.EqualsEqualsEqualsToken ||
+      kind === ts.SyntaxKind.ExclamationEqualsEqualsToken ||
+      kind === ts.SyntaxKind.EqualsEqualsToken ||
+      kind === ts.SyntaxKind.ExclamationEqualsToken ||
+      kind === ts.SyntaxKind.InKeyword ||
+      kind === ts.SyntaxKind.InstanceOfKeyword ||
+      (kind === ts.SyntaxKind.AmpersandAmpersandToken && parent.left === node)
+    );
+  }
+  if (
+    (ts.isIfStatement(parent) || ts.isWhileStatement(parent) || ts.isDoStatement(parent)) &&
+    parent.expression === node
+  )
+    return true;
+  if (ts.isConditionalExpression(parent) && parent.condition === node) return true;
+  return false;
+}
+
+/** Whether every name a binding (a name or a destructuring pattern) introduces is sealed. */
+function bindingKeeps(name, checker, open) {
+  if (ts.isIdentifier(name)) {
+    const symbol = checker.getSymbolAtLocation(name);
+    return symbol !== undefined && isSealed(symbol, checker, open);
+  }
+  return name.elements.every(
+    (element) => ts.isOmittedExpression(element) || bindingKeeps(element.name, checker, open),
+  );
+}
+
+/** Whether an array or object literal entry sits on the left of a destructuring assignment. */
+function isDestructuringTarget(node) {
+  let current = node;
+  while (
+    ts.isArrayLiteralExpression(current.parent) ||
+    ts.isObjectLiteralExpression(current.parent) ||
+    ts.isPropertyAssignment(current.parent) ||
+    ts.isShorthandPropertyAssignment(current.parent) ||
+    ts.isSpreadElement(current.parent) ||
+    ts.isSpreadAssignment(current.parent)
+  )
+    current = current.parent;
+  const top =
+    ts.isArrayLiteralExpression(current) || ts.isObjectLiteralExpression(current)
+      ? current
+      : current.parent;
+  const holder = top.parent;
+  return (
+    (ts.isBinaryExpression(holder) &&
+      holder.left === top &&
+      holder.operatorToken.kind === ts.SyntaxKind.EqualsToken) ||
+    ((ts.isForOfStatement(holder) || ts.isForInStatement(holder)) && holder.initializer === top)
+  );
 }
 
 /**
  * The functions a call runs whose return value is the call's value: an immediately invoked
- * function, a memo hook's factory (`useMemo(() => 19, [])`), or the declaration the callee names
- * (`pad()`, P1 QA10 S1). Empty when the callee is not a function written in the program.
+ * function, a memo hook's factory (`useMemo(() => 19, [])`), or every function the callee's
+ * binding is given (`pad()`, a `let` rebound to another function: P1 QA10 S1, QA14 F3). `UNREAD`
+ * among them stands for a callee whose value the gate cannot follow; empty when the callee is
+ * not written in the program.
  */
-function calledFunctions(call, checker) {
+function calledFunctions(call, checker, visiting) {
   const callee = strip(call.expression);
   if (ts.isArrowFunction(callee) || ts.isFunctionExpression(callee)) return [callee];
   const name = ts.isPropertyAccessExpression(callee) ? callee.name : callee;
   if (ts.isIdentifier(name) && MEMO_HOOKS.has(name.text) && call.arguments[0])
     return [strip(call.arguments[0])];
   const functions = [];
-  for (const declaration of targetSymbol(name, checker)?.declarations ?? []) {
+  const symbol = targetSymbol(name, checker);
+  for (const declaration of symbol?.declarations ?? []) {
     if (declaration.getSourceFile().isDeclarationFile) continue;
-    if (ts.isFunctionDeclaration(declaration) || ts.isMethodDeclaration(declaration))
-      functions.push(declaration);
-    else if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
-      const initializer = strip(declaration.initializer);
-      if (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
-        functions.push(initializer);
+    if (ts.isFunctionDeclaration(declaration) || ts.isMethodDeclaration(declaration)) {
+      functions.push(isSealed(symbol, checker) ? declaration : UNREAD);
+      continue;
+    }
+    if (!ts.isVariableDeclaration(declaration)) continue;
+    for (const source of sourcesOfDeclaration(declaration, checker, visiting) ?? []) {
+      const value = source === UNREAD ? UNREAD : strip(source);
+      functions.push(
+        value !== UNREAD && (ts.isArrowFunction(value) || ts.isFunctionExpression(value))
+          ? value
+          : UNREAD,
+      );
     }
   }
   return functions;
@@ -853,8 +1235,18 @@ function readLiteralValues(node, checker, unit, visiting) {
       return [...recurse(node.left), ...recurse(node.right)];
   }
   if (ts.isCallExpression(node)) {
-    const returned = calledFunctions(node, checker).flatMap((fn) => returnedExpressions(fn) ?? []);
-    if (returned.length > 0) return returned.flatMap((expression) => recurse(expression));
+    const functions = calledFunctions(node, checker, visiting);
+    if (functions.length > 0) {
+      // A function the gate cannot follow, or one that returns nothing it can read, holds what
+      // the call's type allows.
+      const returned = functions.map((fn) => (fn === UNREAD ? null : returnedExpressions(fn)));
+      const read = returned
+        .flatMap((list) => list ?? [])
+        .flatMap((expression) => recurse(expression));
+      return returned.some((list) => list === null || list.length === 0)
+        ? [...read, ...readType(node)]
+        : read;
+    }
   }
   if (
     ts.isIdentifier(node) ||
@@ -874,6 +1266,11 @@ function readLiteralValues(node, checker, unit, visiting) {
     return typeReadings(checker.getTypeAtLocation(at), unit, typeOrigins(at, checker), at);
   }
 }
+
+const writesNothing = (type) =>
+  (type.isUnion() ? type.types : [type]).every(
+    (part) => part.flags & (ts.TypeFlags.Nullable | ts.TypeFlags.Void | ts.TypeFlags.BooleanLike),
+  );
 
 /** Array methods whose callback's first parameter is each element of the receiver. */
 const ELEMENT_CALLBACKS = new Set([
@@ -984,9 +1381,10 @@ function valueSources(node, checker, visiting) {
 }
 
 function sourcesOfDeclaration(declaration, checker, visiting) {
+  // The one gate of the reading (v3.11, P1 QA14): a declaration is read from what is written to
+  // it only in a provable form; any other declaration holds what its type allows.
+  if (!provable(declaration, checker)) return [UNREAD];
   const sources = [];
-  const writes = writesIn(declaration.getSourceFile(), checker);
-  const symbol = declaration.name ? checker.getSymbolAtLocation(declaration.name) : undefined;
   if (
     (ts.isVariableDeclaration(declaration) ||
       ts.isParameter(declaration) ||
@@ -997,13 +1395,10 @@ function sourcesOfDeclaration(declaration, checker, visiting) {
     declaration.initializer
   )
     sources.push(declaration.initializer);
-  // A member written after its declaration, in any file (`S.box.padding = 23`).
-  if (ts.isPropertyAssignment(declaration) || ts.isPropertyDeclaration(declaration))
-    sources.push(...(memberWrites(checker).get(declaration) ?? []));
-  if (symbol !== undefined && !ts.isPropertyAssignment(declaration))
-    sources.push(...(writes.assigned.get(symbol) ?? []));
   if (ts.isParameter(declaration)) sources.push(...argumentsOf(declaration, checker, visiting));
   if (ts.isBindingElement(declaration)) {
+    // `const { gap } = sizes`, `const [w, h] = [320, 240]`, `({ size }) => …`: the entry of
+    // the object or array behind the pattern (a parameter's is what its callers pass).
     const pattern = declaration.parent;
     const holder = pattern.parent;
     const key = ts.isObjectBindingPattern(pattern)
@@ -1011,45 +1406,65 @@ function sourcesOfDeclaration(declaration, checker, visiting) {
       : declaration.dotDotDotToken
         ? null
         : String(pattern.elements.indexOf(declaration));
-    const init = ts.isVariableDeclaration(holder) ? holder.initializer : undefined;
-    const callee =
-      init && ts.isCallExpression(init)
-        ? ts.isPropertyAccessExpression(init.expression)
-          ? init.expression.name
-          : init.expression
-        : undefined;
-    if (
-      ts.isArrayBindingPattern(pattern) &&
-      callee &&
-      ts.isIdentifier(callee) &&
-      STATE_HOOKS.has(callee.text)
-    ) {
-      // `const [size, setSize] = useState(16)`: the initial value (or what a lazy initializer
-      // returns) and every value passed to the setter.
-      if (key === '0') {
-        const [initial] = init.arguments;
-        if (initial) sources.push(...(returnedExpressions(strip(initial)) ?? [initial]));
-        const setter = pattern.elements[1];
-        if (setter && ts.isBindingElement(setter)) {
-          for (const value of writes.called.get(checker.getSymbolAtLocation(setter.name)) ?? [])
-            sources.push(...(returnedExpressions(strip(value)) ?? [value]));
-        }
-      }
-    } else {
-      // `const { gap } = sizes`, `const [w, h] = [320, 240]`, `({ size }) => …`: the entry of
-      // the object or array behind the pattern (a parameter's is what its callers pass).
-      const whole = ts.isParameter(holder)
-        ? argumentsOf(holder, checker, visiting)
-        : init
-          ? [init]
-          : [UNREAD];
-      const containers = whole.flatMap((value) =>
-        value === UNREAD ? [UNREAD] : containersOf(value, checker, visiting),
-      );
-      sources.push(...entriesOf(containers, key === null ? null : [key], checker, visiting));
-    }
+    const whole = ts.isParameter(holder)
+      ? argumentsOf(holder, checker, visiting)
+      : ts.isVariableDeclaration(holder) && holder.initializer
+        ? [holder.initializer]
+        : [UNREAD];
+    const containers = whole.flatMap((value) =>
+      value === UNREAD ? [UNREAD] : containersOf(value, checker, visiting),
+    );
+    sources.push(...entriesOf(containers, key === null ? null : [key], checker, visiting));
   }
   return sources.length === 0 ? null : sources;
+}
+
+/**
+ * Whether a declaration's value is provably what is written to it (v3.11, P1 QA14): a `const`
+ * (or a name destructured from one) whose every use keeps the value, a parameter whose every
+ * use keeps it (its readings then include its type unless it is an array callback's element), a
+ * `readonly` class field kept the same way, an entry of an object literal (kept through the
+ * binding that holds the literal) or an enum member. Everything else (a `let` or `var`, a
+ * `useState` value, a field that is not `readonly`, a binding any use can change) is not.
+ */
+function provable(declaration, checker) {
+  if (ts.isPropertyAssignment(declaration) || ts.isShorthandPropertyAssignment(declaration))
+    return true;
+  if (ts.isEnumMember(declaration)) return true;
+  const symbol = ts.isBindingPattern(declaration.name)
+    ? undefined
+    : checker.getSymbolAtLocation(declaration.name);
+  if (symbol === undefined) return false;
+  if (ts.isVariableDeclaration(declaration))
+    return isConst(declaration) && isSealed(symbol, checker);
+  if (ts.isBindingElement(declaration)) {
+    const root = ts.walkUpBindingElementsAndPatterns(declaration);
+    if (ts.isParameter(root)) return isSealed(symbol, checker);
+    return (
+      ts.isVariableDeclaration(root) &&
+      isConst(root) &&
+      !isStateHook(root.initializer) &&
+      isSealed(symbol, checker)
+    );
+  }
+  if (ts.isParameter(declaration)) return isSealed(symbol, checker);
+  if (ts.isPropertyDeclaration(declaration))
+    return (
+      (ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Readonly) !== 0 &&
+      isSealed(symbol, checker)
+    );
+  return false;
+}
+
+const isConst = (declaration) => (ts.getCombinedNodeFlags(declaration) & ts.NodeFlags.Const) !== 0;
+
+/** `useState(…)`: its value changes through the setter, wherever the setter is passed. */
+function isStateHook(initializer) {
+  if (initializer === undefined || !ts.isCallExpression(initializer)) return false;
+  const callee = ts.isPropertyAccessExpression(initializer.expression)
+    ? initializer.expression.name
+    : initializer.expression;
+  return ts.isIdentifier(callee) && STATE_HOOKS.has(callee.text);
 }
 
 /**
@@ -1071,6 +1486,8 @@ function containersOf(expression, checker, visiting) {
   if (expression === UNREAD) return [UNREAD];
   const node = strip(expression);
   if (ts.isObjectLiteralExpression(node) || ts.isArrayLiteralExpression(node)) return [node];
+  // `undefined`, `null` or `false` writes no style at all.
+  if (writesNothing(checker.getTypeAtLocation(node))) return [];
   if (visiting.has(node)) return [UNREAD];
   visiting.add(node);
   try {
@@ -1097,7 +1514,9 @@ function containersOf(expression, checker, visiting) {
       // what it returns.
       if (IDENTITY_CALLS.has(node.expression.getText()) && node.arguments.length === 1)
         return containersOf(node.arguments[0], checker, visiting);
-      const returned = calledFunctions(node, checker).map((fn) => returnedExpressions(fn));
+      const returned = calledFunctions(node, checker, visiting).map((fn) =>
+        fn === UNREAD ? null : returnedExpressions(fn),
+      );
       if (returned.length === 0 || returned.some((list) => list === null || list.length === 0))
         return [UNREAD];
       return returned.flat().flatMap((value) => containersOf(value, checker, visiting));
@@ -1159,11 +1578,8 @@ function entriesOf(containers, keys, checker, visiting) {
         continue;
       }
       if (keys !== null && !keys.includes(name)) continue;
-      if (ts.isPropertyAssignment(property)) {
-        found.push(property.initializer);
-        // An entry written after the literal (`S.box.padding = 23`, P1 QA10 S1).
-        found.push(...(memberWrites(checker).get(property) ?? []));
-      } else if (ts.isShorthandPropertyAssignment(property)) found.push(property.name);
+      if (ts.isPropertyAssignment(property)) found.push(property.initializer);
+      else if (ts.isShorthandPropertyAssignment(property)) found.push(property.name);
       else unread();
     }
   }
@@ -1189,6 +1605,8 @@ const inlineStyleKeys = {
       keyframes:
         'Keyframes passed to `animate` are checked where they are written: pass an array or object literal (UI gate E4).',
       name: 'This DOM style write names a property the checker cannot enumerate (UI gate E4).',
+      indirect:
+        'This DOM method writes a style value; call it directly so its value is checked (UI gate E4).',
     },
   },
   create(context) {
@@ -1248,8 +1666,7 @@ const inlineStyleKeys = {
     // properties, which give one runtime object reading that `verdict` rejects (P1 QA13: no branch passes a value by not reading it).
     const checkStyleObject = (use, tsNode) => {
       const containers = new Set(containersOf(tsNode, checker, new Set()));
-      if (containers.has(UNREAD))
-        checkStyleType(use, checker.getTypeAtLocation(tsNode), tsNode, containers);
+      if (containers.has(UNREAD)) checkStyleType(use, checker.getTypeAtLocation(tsNode), tsNode);
       for (const container of containers) {
         if (container === UNREAD) continue;
         if (ts.isArrayLiteralExpression(container)) {
@@ -1294,27 +1711,15 @@ const inlineStyleKeys = {
           continue;
         }
         const value = ts.isPropertyAssignment(property) ? property.initializer : property.name;
-        judge(
-          use,
-          cssName(key),
-          [
-            ...literalValues(value, checker, unitFor(key)),
-            ...(memberWrites(checker).get(property) ?? []).flatMap((write) =>
-              literalValues(write, checker, unitFor(key)),
-            ),
-          ],
-          property,
-        );
+        judge(use, cssName(key), literalValues(value, checker, unitFor(key)), property);
       }
     };
-    // `read`: the literals already read beside the unread part; a union member that is one of
-    // their types is not read again from its type.
-    const checkStyleType = (use, type, at, read) => {
+    // Every member of the type is read, one whose declaration is a literal read beside it too:
+    // a value of the same type need not be that literal (P1 QA14 F2).
+    const checkStyleType = (use, type, at) => {
       for (const part of type.isUnion() ? type.types : [type]) {
         if (part.flags & (ts.TypeFlags.Nullable | ts.TypeFlags.Void | ts.TypeFlags.BooleanLike))
           continue;
-        const declaration = part.getSymbol()?.valueDeclaration;
-        if (declaration !== undefined && read.has(declaration)) continue;
         if (isOpaque(part, checker)) {
           context.report({ node: use, messageId: 'indexed' });
           continue;
@@ -1392,11 +1797,6 @@ const inlineStyleKeys = {
       literalValues(services.esTreeNodeToTSNodeMap.get(node), checker, String);
     const memberName = (member) =>
       member.computed ? possibleStrings(member.property, services) : [member.property.name];
-    const declaringInterface = (callee) => {
-      const symbol = checker.getSymbolAtLocation(services.esTreeNodeToTSNodeMap.get(callee).name);
-      const parent = symbol?.declarations?.[0]?.parent;
-      return parent !== undefined && ts.isInterfaceDeclaration(parent) ? parent.name.text : null;
-    };
     const checkKeyframe = (object) => {
       for (const property of object.properties) {
         if (property.type === 'SpreadElement') {
@@ -1455,6 +1855,59 @@ const inlineStyleKeys = {
         }
       }
     };
+    // A member or binding key that resolves to a DOM method writing a style value: its
+    // `DOM_VALUE_WRITERS` entry, else undefined.
+    const valueWriter = (symbol) => {
+      for (const declaration of symbol?.declarations ?? []) {
+        const parent = declaration.parent;
+        if (!ts.isInterfaceDeclaration(parent)) continue;
+        const writer = DOM_VALUE_WRITERS.get(`${parent.name.text}.${symbol.getName()}`);
+        if (writer !== undefined) return writer;
+      }
+      return undefined;
+    };
+    const checkWrite = (writer, call, callee) => {
+      const args = call.arguments;
+      if (writer === 'setProperty') {
+        const [name, value] = args;
+        const names = possibleStrings(name, services);
+        const prefixes = names ?? possiblePrefixes(name, services);
+        if (prefixes === null) return context.report({ node: call, messageId: 'name' });
+        const publisher = fileKey(context, context.filename) === TOKEN_PUBLISHER;
+        for (const prop of prefixes)
+          judge(
+            value,
+            prop,
+            publisher ? [{ registered: TOKEN_PUBLISHER, origins: [] }] : literal(value),
+          );
+        return;
+      }
+      if (writer === 'setAttribute' || writer === 'setAttributeNS') {
+        const [name, value] = writer === 'setAttribute' ? args : args.slice(1);
+        const names = possibleStrings(name, services);
+        // An attribute name the gate cannot enumerate could be a presentation attribute.
+        if (names === null) return context.report({ node: call, messageId: 'name' });
+        // Presentation attributes take the inline check, as their JSX form does.
+        for (const attribute of names) {
+          const prop = SVG_ATTRIBUTES.get(
+            attribute.replace(/-([a-z])/g, (_, c) => c.toUpperCase()),
+          );
+          if (prop !== undefined) judge(value, prop, literal(value));
+        }
+        return;
+      }
+      if (writer !== 'animate') throw new Error(`UI gate E4: unknown DOM value writer ${writer}`);
+      const [keyframes, timing] = args;
+      if (timing !== undefined) checkTiming(timing);
+      if (keyframes === undefined) return context.report({ node: callee, messageId: 'keyframes' });
+      if (keyframes.type === 'ArrayExpression') {
+        for (const element of keyframes.elements) {
+          if (element?.type === 'ObjectExpression') checkKeyframe(element);
+          else context.report({ node: element ?? keyframes, messageId: 'keyframes' });
+        }
+      } else if (keyframes.type === 'ObjectExpression') checkKeyframe(keyframes);
+      else context.report({ node: keyframes, messageId: 'keyframes' });
+    };
     const isStyleObject = (node) => isCssProperties(services.getTypeAtLocation(node));
     // A value that becomes a `CSSProperties` without being an object literal (`const s:
     // CSSProperties = o`, `return o`, `f(o)`, `<Avatar style={o} />`): its own type is judged,
@@ -1506,7 +1959,7 @@ const inlineStyleKeys = {
           node.callee.object.name === 'Object' &&
           node.callee.property.name === 'assign' &&
           target !== undefined &&
-          isStyleObject(target)
+          (isStyleObject(target) || isStyleDeclaration(target))
         )
           for (const source of rest)
             if (source.type === 'SpreadElement')
@@ -1532,49 +1985,30 @@ const inlineStyleKeys = {
           return;
         intoStyle(node.expression);
       },
-      CallExpression(node) {
-        const callee = node.callee;
-        if (callee.type !== 'MemberExpression' || callee.computed) return;
-        const method = callee.property.name;
-        if (method === 'setProperty' && isStyleDeclaration(callee.object)) {
-          const [name, value] = node.arguments;
-          const names = possibleStrings(name, services);
-          const prefixes = names ?? possiblePrefixes(name, services);
-          if (prefixes === null) return context.report({ node, messageId: 'name' });
-          const writer = fileKey(context, context.filename);
-          for (const prop of prefixes)
-            judge(
-              value,
-              prop,
-              writer === TOKEN_PUBLISHER ? [{ registered: writer, origins: [] }] : literal(value),
-            );
-          return;
-        }
-        if (method === 'setAttribute' && declaringInterface(callee) === 'Element') {
-          const [name, value] = node.arguments;
-          const names = possibleStrings(name, services);
-          // An attribute name the gate cannot enumerate could be a presentation attribute.
-          if (names === null) return context.report({ node, messageId: 'name' });
-          // Presentation attributes take the inline check, as their JSX form does.
-          for (const attribute of names) {
-            const prop = SVG_ATTRIBUTES.get(
-              attribute.replace(/-([a-z])/g, (_, c) => c.toUpperCase()),
-            );
-            if (prop !== undefined) judge(value, prop, literal(value));
-          }
-          return;
-        }
-        if (method === 'animate' && declaringInterface(callee) === 'Animatable') {
-          const [keyframes, timing] = node.arguments;
-          if (timing !== undefined) checkTiming(timing);
-          if (keyframes.type === 'ArrayExpression') {
-            for (const element of keyframes.elements) {
-              if (element?.type === 'ObjectExpression') checkKeyframe(element);
-              else context.report({ node: element ?? keyframes, messageId: 'keyframes' });
-            }
-          } else if (keyframes.type === 'ObjectExpression') checkKeyframe(keyframes);
-          else context.report({ node: keyframes, messageId: 'keyframes' });
-        }
+      // The DOM methods that write a style value are found by the member they resolve to, however
+      // the member is spelled (`el.animate`, `el['animate']`); each is judged where it is called
+      // directly, and any other reference to one (`.call`, `.bind`, a variable, destructuring)
+      // hands it on unjudged and is reported (P1 QA14 F4).
+      MemberExpression(node) {
+        const access = services.esTreeNodeToTSNodeMap.get(node);
+        const writer = valueWriter(
+          checker.getSymbolAtLocation(
+            ts.isPropertyAccessExpression(access) ? access.name : access.argumentExpression,
+          ),
+        );
+        if (writer === undefined) return;
+        if (node.parent.type === 'CallExpression' && node.parent.callee === node)
+          return checkWrite(writer, node.parent, node);
+        context.report({ node, messageId: 'indirect' });
+      },
+      'ObjectPattern > Property'(node) {
+        const binding = services.esTreeNodeToTSNodeMap.get(node);
+        const key = binding.propertyName ?? binding.name;
+        const names = ts.isIdentifier(key) || ts.isStringLiteral(key) ? [key.text] : null;
+        // A computed key could name any member; `ui/dom-allowlist` judges which it may.
+        if (names === null) return;
+        const member = checker.getTypeAtLocation(binding.parent).getProperty(names[0]);
+        if (valueWriter(member) !== undefined) context.report({ node, messageId: 'indirect' });
       },
       ObjectExpression(node) {
         if (isCssPropertiesLiteral(services.esTreeNodeToTSNodeMap.get(node))) checkObject(node);

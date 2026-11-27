@@ -25,7 +25,7 @@ export const BUILD_ENTRIES = Object.freeze(['packages/web/src/boot/bootSplash.ts
 export const VITE_PLUGINS = Object.freeze({
   react: 'transforms JSX and Fast Refresh; adds no modules',
   babel: 'React Compiler transform; adds no modules',
-  Icons: 'serves the `~icons/*` virtual modules (VIRTUAL_MODULE_PREFIXES)',
+  Icons: 'serves the `~icons/*` virtual modules (VIRTUAL_MODULES)',
   bootSplash: 'adds the boot splash entry (BUILD_ENTRIES)',
 });
 
@@ -106,8 +106,24 @@ export const ASSET_EXTENSIONS = Object.freeze(
   new Set(['png', 'webp', 'svg', 'json', 'mp3', 'm4a']),
 );
 export const ASSET_QUERIES = Object.freeze(new Set(['', '?url']));
-/** Virtual modules a Vite plugin serves. */
-export const VIRTUAL_MODULE_PREFIXES = Object.freeze(['~icons/']);
+/**
+ * The virtual modules a Vite plugin serves, by specifier prefix, each with the package that
+ * holds them and its manifest field. Icons serves `~icons/<collection>/<name>` from that
+ * collection's package and inlines its SVG past the value check, so only a collection drawn in
+ * `currentColor` is registered (P1 QA14 F7): any other `~icons/` collection, and any icon
+ * collection package in the web manifest that is not registered here, is a graph problem.
+ */
+export const VIRTUAL_MODULES = Object.freeze({
+  '~icons/ion/': {
+    package: '@iconify-json/ion',
+    field: 'devDependencies',
+    why: 'Ionicons, single-colour outline glyphs drawn in currentColor',
+  },
+});
+/** Specifiers the Icons plugin answers, registered or not. */
+export const VIRTUAL_MODULE_FAMILY = '~icons/';
+/** Manifest packages that are icon collections the Icons plugin can serve. */
+export const ICON_COLLECTION_PACKAGE = /^@iconify-json\/|^@iconify\/json$/;
 
 /**
  * Third-party packages the bundle may import (by script entry; package stylesheets never), each
@@ -805,6 +821,90 @@ export const ELEMENTS = Object.freeze(
   ]),
 );
 
+/**
+ * The attributes a native element may carry besides the ones whose value `ui/inline-style-keys`
+ * judges (`style`, `SVG_ATTRIBUTES`, and `SIZE_ATTRIBUTES` on `SIZED_ELEMENTS`) and the open
+ * families `aria-*`, `data-*` and React's `on*` handlers: attribute → the elements that take it
+ * (`*`: every element). Their values are content, behaviour, or an SVG element's geometry in its
+ * own user units, never a style value. Any other attribute, written or spread, is reported, so a
+ * presentational hint (`bgcolor`, `cellPadding`, a `width` on a table) is not written past the
+ * value check (P1 QA14 F5, F6).
+ */
+export const ATTRIBUTES = Object.freeze(
+  new Map(
+    Object.entries({
+      // Global: identity, behaviour and accessibility.
+      children: ['*'],
+      className: ['*'],
+      hidden: ['*'],
+      id: ['*'],
+      inert: ['*'],
+      key: ['*'],
+      ref: ['*'],
+      role: ['*'],
+      tabIndex: ['*'],
+      title: ['*'],
+      draggable: ['*'],
+      // Form controls, links to them, and their content.
+      accept: ['input'],
+      autoComplete: ['input'],
+      autoCorrect: ['input'],
+      autoFocus: ['input'],
+      checked: ['input'],
+      defaultValue: ['input', 'textarea'],
+      disabled: ['button', 'fieldset', 'input', 'option', 'select', 'textarea'],
+      enterKeyHint: ['input'],
+      form: ['button'],
+      htmlFor: ['label'],
+      inputMode: ['input'],
+      list: ['input'],
+      max: ['input', 'progress'],
+      maxLength: ['input', 'textarea'],
+      min: ['input'],
+      name: ['input', 'select', 'textarea'],
+      placeholder: ['input', 'textarea'],
+      readOnly: ['input', 'textarea'],
+      required: ['input', 'textarea'],
+      rows: ['textarea'],
+      step: ['input'],
+      type: ['button', 'input'],
+      value: ['input', 'option', 'progress', 'select', 'textarea'],
+      // Disclosure, tables, time and images (content, not presentation).
+      open: ['details'],
+      colSpan: ['td'],
+      scope: ['th'],
+      dateTime: ['time'],
+      alt: ['img'],
+      crossOrigin: ['img'],
+      decoding: ['img'],
+      src: ['iframe', 'img'],
+      // SVG geometry and coordinate systems, in the element's own user units.
+      cx: ['circle', 'radialGradient'],
+      cy: ['circle', 'radialGradient'],
+      r: ['circle', 'radialGradient'],
+      d: ['path'],
+      x: ['filter', 'rect'],
+      y: ['filter', 'rect'],
+      width: ['filter', 'rect'],
+      height: ['filter', 'rect'],
+      x1: ['line', 'linearGradient'],
+      x2: ['line', 'linearGradient'],
+      y1: ['line', 'linearGradient'],
+      y2: ['line', 'linearGradient'],
+      offset: ['stop'],
+      pathLength: ['circle', 'path'],
+      viewBox: ['svg'],
+      preserveAspectRatio: ['svg'],
+      gradientUnits: ['linearGradient', 'radialGradient'],
+      filterUnits: ['filter'],
+      // The blur's standard deviation, in the filter's user units.
+      stdDeviation: ['feGaussianBlur'],
+    }).map(([name, elements]) => [name, Object.freeze(new Set(elements))]),
+  ),
+);
+/** Attribute families any native element may carry: ARIA, data, and React's event handlers. */
+export const OPEN_ATTRIBUTES = Object.freeze([/^aria-/, /^data-/, /^on[A-Z]/]);
+
 // ---------------------------------------------------------------------------------------------
 // Inline styles and SVG presentation attributes (§2 E4)
 // ---------------------------------------------------------------------------------------------
@@ -911,6 +1011,20 @@ export const SVG_ATTRIBUTES = Object.freeze(
     ['visibility', 'visibility'],
     ['wordSpacing', 'word-spacing'],
     ['writingMode', 'writing-mode'],
+  ]),
+);
+
+/**
+ * The DOM methods that write a style value, by `Interface.member` as the default library declares
+ * them: `ui/inline-style-keys` judges each call's value (E4), and any reference to one that is not
+ * a direct call is reported (P1 QA14 F4). Which files may call them at all is `DOM_WRITERS`'.
+ */
+export const DOM_VALUE_WRITERS = Object.freeze(
+  new Map([
+    ['Animatable.animate', 'animate'],
+    ['CSSStyleDeclarationBase.setProperty', 'setProperty'],
+    ['Element.setAttribute', 'setAttribute'],
+    ['Element.setAttributeNS', 'setAttributeNS'],
   ]),
 );
 

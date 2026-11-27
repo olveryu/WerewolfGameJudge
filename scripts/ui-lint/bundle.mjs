@@ -36,7 +36,9 @@ import {
   PALETTE,
   PAGE_LINK_RELS,
   SCRIPT_FILE,
-  VIRTUAL_MODULE_PREFIXES,
+  ICON_COLLECTION_PACKAGE,
+  VIRTUAL_MODULE_FAMILY,
+  VIRTUAL_MODULES,
   WORKER_CONSTRUCTORS,
   WEB_ROOT,
 } from './registry.mjs';
@@ -87,6 +89,17 @@ function webPackages(root, packages, problems) {
       problems.push(`registry: package \`${name}\` is not in the web ${field}`);
     else allowed.add(name);
   }
+  // Icon collections inline their SVG through a virtual module: each is registered.
+  const collections = new Set(Object.values(VIRTUAL_MODULES).map((module) => module.package));
+  for (const field of ['dependencies', 'devDependencies'])
+    for (const name of Object.keys(manifest[field] ?? {}))
+      if (ICON_COLLECTION_PACKAGE.test(name) && !collections.has(name))
+        problems.push(`${WEB_ROOT}/package.json: icon collection \`${name}\` is not registered`);
+  for (const [prefix, module] of Object.entries(VIRTUAL_MODULES))
+    if (manifest[module.field]?.[module.package] === undefined)
+      problems.push(
+        `registry: \`${module.package}\` (serving \`${prefix}\`) is not in the web ${module.field}`,
+      );
   return allowed;
 }
 
@@ -458,7 +471,11 @@ export function bundleGraph(root = REPO_ROOT, { packages = PACKAGES } = {}) {
         else for (const match of matches) leaf(match + query, specifier, at);
         continue;
       }
-      if (VIRTUAL_MODULE_PREFIXES.some((prefix) => specifier.startsWith(prefix))) continue;
+      if (specifier.startsWith(VIRTUAL_MODULE_FAMILY)) {
+        if (!Object.keys(VIRTUAL_MODULES).some((prefix) => specifier.startsWith(prefix)))
+          problems.push(`${at}: \`${specifier}\` is not a registered virtual module`);
+        continue;
+      }
       if (/^[a-z][a-z0-9+.-]*:/i.test(specifier)) {
         problems.push(`${at}: \`${specifier}\` is a URL`);
         continue;
