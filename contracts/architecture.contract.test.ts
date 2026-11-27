@@ -278,7 +278,8 @@ function isGameTestingSpecifier(specifier: string): boolean {
 
 // ─── Paths ──────────────────────────────────────────────────────────────────
 
-const srcDir = path.join(process.cwd(), 'packages', 'web', 'src');
+const webDir = path.join(process.cwd(), 'packages', 'web');
+const srcDir = path.join(webDir, 'src');
 const routesDir = path.join(srcDir, 'routes');
 const productComponentsDir = path.join(srcDir, 'components');
 const sharedRoomDir = path.join(srcDir, 'features', 'room');
@@ -1187,7 +1188,23 @@ function viteGlobPatterns(filePath: string): string[] {
   const patterns: string[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node) && node.expression.getText(sourceFile) === 'import.meta.glob') {
-      const [pattern] = node.arguments;
+      const [pattern, options] = node.arguments;
+      // `base` re-roots the patterns, `exhaustive` searches node_modules and `caseSensitive`
+      // would let `NODE_MODULES` through; only options that cannot move the search are allowed.
+      const GLOB_OPTIONS = ['eager', 'import', 'query'];
+      if (
+        options !== undefined &&
+        (!ts.isObjectLiteralExpression(options) ||
+          options.properties.some(
+            (property) =>
+              !ts.isPropertyAssignment(property) ||
+              !GLOB_OPTIONS.includes(property.name.getText(sourceFile)),
+          ))
+      ) {
+        throw new Error(
+          `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob options may only set ${GLOB_OPTIONS.join(', ')}`,
+        );
+      }
       const literals =
         pattern !== undefined && ts.isArrayLiteralExpression(pattern)
           ? pattern.elements
@@ -1198,11 +1215,13 @@ function viteGlobPatterns(filePath: string): string[] {
             `[FAIL-FAST] ${repoPath(filePath)}: import.meta.glob needs literal patterns`,
           );
         }
-        // Only the file-name segment may be a wildcard, and never under node_modules: a wildcard
-        // directory (`**`, `@ark-*`, `{a,b}`) could reach a package the gate cannot name.
+        // Only the file-name segment may be a wildcard, never `**`, and never under node_modules:
+        // a wildcard directory (`**`, `@ark-*`, `{a,b}`) could reach a package the gate cannot name.
         const segments = literal.text.split('/');
         if (
-          segments.includes('node_modules') ||
+          segments.some(
+            (segment) => segment.toLowerCase() === 'node_modules' || segment === '**',
+          ) ||
           segments.slice(0, -1).some((segment) => /[*?{}[\]]/.test(segment))
         ) {
           throw new Error(
@@ -1237,17 +1256,20 @@ describe('Client dialogs: one Ark dialog root', () => {
   };
 
   it('imports Ark and zag only through their shared owners or parts that open no layer', () => {
-    // Every other web directory TypeScript compiles (`packages/web/tsconfig.json` include).
-    const otherWebFiles = ['preview', 'build-plugins'].flatMap((dir) =>
-      getAllProductionFiles(path.join(process.cwd(), 'packages', 'web', dir)),
-    );
-    const offenders = [...srcFiles, ...otherWebFiles].flatMap((filePath) =>
+    // Every script under packages/web, tests and stories included: a file the production walker
+    // skips can still be imported by production code.
+    const webFiles = fs
+      .readdirSync(webDir, { recursive: true, encoding: 'utf-8' })
+      .filter((file) => !/(?:^|\/)(?:node_modules|dist)\//.test(file))
+      .filter((file) => /\.(?:[cm]?[jt]sx?)$/.test(file) && !file.endsWith('.d.ts'))
+      .map((file) => path.join(webDir, file));
+    const offenders = webFiles.flatMap((filePath) =>
       [
         ...getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')),
         ...viteGlobPatterns(filePath),
       ]
         // A bare package name or a path into the installed package (`…/node_modules/@ark-ui/…`).
-        .filter((specifier) => /(?:^|\/)@(?:ark-ui|zag-js)\//.test(specifier))
+        .filter((specifier) => /(?:^|\/)@(?:ark-ui|zag-js)\//i.test(specifier))
         .filter(
           (specifier) =>
             !LAYERLESS_ARK_PARTS.includes(specifier) &&
@@ -1257,6 +1279,12 @@ describe('Client dialogs: one Ark dialog root', () => {
     );
 
     expect(offenders).toEqual([]);
+    // An inline module script in an HTML entry imports modules too.
+    expect(
+      ['index.html', 'preview/index.html'].filter((file) =>
+        /@(?:ark-ui|zag-js)\//i.test(fs.readFileSync(path.join(webDir, file), 'utf-8')),
+      ),
+    ).toEqual([]);
   });
 
   it('reaches zag only through Ark, which only the web package depends on by its own name', () => {
@@ -1277,7 +1305,7 @@ describe('Client dialogs: one Ark dialog root', () => {
         snapshots: z.record(z.string(), dependencyGroups),
       })
       .parse(parse(fs.readFileSync(path.join(process.cwd(), 'pnpm-lock.yaml'), 'utf-8')));
-    const ARK_OR_ZAG = /(?:^|[/:])@(?:ark-ui|zag-js)\//;
+    const ARK_OR_ZAG = /(?:^|[/:])@(?:ark-ui|zag-js)\//i;
     const packageName = (key: string): string => key.slice(0, key.indexOf('@', 1));
     // `dependent -> name: resolution` for every edge whose name or resolution is Ark or zag.
     const edges = (
