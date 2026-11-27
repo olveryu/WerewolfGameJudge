@@ -302,6 +302,12 @@ exports[`UI gate registry > pins ATTRIBUTES exactly 1`] = `
 }
 `;
 
+exports[`UI gate registry > pins BITMAP_ELEMENTS exactly 1`] = `
+[
+  "HTMLCanvasElement",
+]
+`;
+
 exports[`UI gate registry > pins BREAKPOINTS exactly 1`] = `[]`;
 
 exports[`UI gate registry > pins BUILD_ENTRIES exactly 1`] = `
@@ -418,9 +424,11 @@ exports[`UI gate registry > pins DOM_ALLOW exactly 1`] = `
 exports[`UI gate registry > pins DOM_VALUE_WRITERS exactly 1`] = `
 {
   "Animatable.animate": "animate",
+  "AnimationEffect.updateTiming": "updateTiming",
   "CSSStyleDeclarationBase.setProperty": "setProperty",
   "Element.setAttribute": "setAttribute",
   "Element.setAttributeNS": "setAttributeNS",
+  "KeyframeEffect.setKeyframes": "setKeyframes",
 }
 `;
 
@@ -1667,7 +1675,6 @@ exports[`UI gate registry > pins SIZE_ATTRIBUTES exactly 1`] = `
 
 exports[`UI gate registry > pins SIZED_ELEMENTS exactly 1`] = `
 [
-  "canvas",
   "iframe",
   "img",
   "svg",
@@ -1709,6 +1716,16 @@ exports[`UI gate registry > pins STYLE_INTERFACES exactly 1`] = `
   "KeyframeEffect",
   "AnimationEffect",
   "CSS",
+]
+`;
+
+exports[`UI gate registry > pins STYLE_TYPE_WRAPPERS exactly 1`] = `
+[
+  "Omit",
+  "Partial",
+  "Pick",
+  "Readonly",
+  "Required",
 ]
 `;
 

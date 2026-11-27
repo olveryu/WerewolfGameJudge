@@ -235,6 +235,11 @@ export const ANIMATION_OPTIONS = Object.freeze(
   ]),
 );
 
+/** Type aliases that keep the keys of the style type they wrap (`Partial<CSSProperties>`). */
+export const STYLE_TYPE_WRAPPERS = Object.freeze(
+  new Set(['Partial', 'Required', 'Readonly', 'Pick', 'Omit']),
+);
+
 /** Style declaration interfaces whose members and `setProperty` write CSS properties. */
 export const STYLE_DECLARATIONS = Object.freeze(
   new Set(['CSSStyleDeclaration', 'CSSStyleProperties']),
@@ -926,7 +931,11 @@ export const OPEN_ATTRIBUTES = Object.freeze([/^aria-/, /^data-/, /^on[A-Z]/]);
 // Inline styles and SVG presentation attributes (§2 E4)
 // ---------------------------------------------------------------------------------------------
 
-/** Style keys React writes as plain numbers; any other number gets `px` (React's own list). */
+/**
+ * Style keys React writes as plain numbers; any other number gets `px`. The subset of React's
+ * unitless list that the registry's domains use: a key missing here gets `px` and is reported
+ * as a length, never passed.
+ */
 export const REACT_UNITLESS = Object.freeze(
   new Set([
     'animationIterationCount',
@@ -1042,11 +1051,20 @@ export const DOM_VALUE_WRITERS = Object.freeze(
     ['CSSStyleDeclarationBase.setProperty', 'setProperty'],
     ['Element.setAttribute', 'setAttribute'],
     ['Element.setAttributeNS', 'setAttributeNS'],
+    ['KeyframeEffect.setKeyframes', 'setKeyframes'],
+    ['AnimationEffect.updateTiming', 'updateTiming'],
   ]),
 );
 
-/** Elements whose `width`/`height` attributes size their box, judged in the size domain. */
-export const SIZED_ELEMENTS = Object.freeze(new Set(['canvas', 'iframe', 'img', 'svg']));
+/**
+ * Elements whose `width`/`height` attributes size their box, judged in the size domain. A
+ * canvas is not one: its `width`/`height` are the bitmap's resolution in pixels, not a box size
+ * (CSS sizes its box), so they are not style values (P1 QA16 F2).
+ */
+export const SIZED_ELEMENTS = Object.freeze(new Set(['iframe', 'img', 'svg']));
+
+/** Element interfaces whose `width`/`height` set a bitmap's resolution, not a box (P1 QA16 F2). */
+export const BITMAP_ELEMENTS = Object.freeze(new Set(['HTMLCanvasElement']));
 
 // ---------------------------------------------------------------------------------------------
 // DOM write entry points (§2 E5)

@@ -56,7 +56,9 @@ export default tseslint.config(
       '**/*.config.js',
       '**/*.config.mjs',
       'miniapp/',
-      'scripts/',
+      'scripts/*',
+      // The UI gate's own code is linted like the rest (P1 QA16 S1: a duplicate key went unseen).
+      '!scripts/ui-lint/',
       'functions/',
       '**/worker-configuration.d.ts',
     ],
@@ -226,6 +228,14 @@ export default tseslint.config(
   {
     files: ['**/*.{js,mjs,mts,cjs}'],
     ...tseslint.configs.disableTypeChecked,
+  },
+
+  // The UI gate (scripts/ui-lint) runs on Node.
+  {
+    files: ['scripts/ui-lint/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+    },
   },
 
   // Standalone browser prototypes are not covered by the TypeScript web config.

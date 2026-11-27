@@ -302,8 +302,16 @@ tester.run('ui/element-allowlist', uiLint.rules['element-allowlist'], {
         'export const a = <td height={13} />;',
         'export const a = <div width={13} />;',
         'export const a = <input src="/x" />;',
+        // A tag held in a variable is the same native element (P1 QA16 F3).
+        'const Tag = \'td\' as const; export const a = <Tag bgcolor="#f00" />;',
       ],
       'attribute',
+    ),
+    ...red(
+      [
+        "const Tag = 'div' as const; declare const p: { title: string }; export const a = <Tag {...p} />;",
+      ],
+      'spread',
     ),
   ],
 });
@@ -325,6 +333,14 @@ tester.run('ui/inline-style-keys', uiLint.rules['inline-style-keys'], {
     `${REACT}const s: CSSProperties = { color: 'var(--a)' }; void s;`,
     'export const a = <svg><rect rx={0} fill="currentColor" stroke="url(#g)" opacity={1} /></svg>;',
     'export const a = <svg width="100%" height="100%" />;',
+    // A canvas's width and height are its bitmap's resolution, not a box size (P1 QA16 F2).
+    'export const a = <canvas width={480} height={320} />;',
+    "declare const c: HTMLCanvasElement; c.setAttribute('width', '480');",
+    'declare const fx: KeyframeEffect; fx.setKeyframes(null);',
+    // A style declaration handed on as one stays a style declaration.
+    "declare const el: HTMLElement; Object.assign(el.style, { opacity: '1' });",
+    'declare const el: HTMLElement; declare function f(s: CSSStyleDeclaration): void; f(el.style);',
+    'declare const el: HTMLElement; const s = el.style; export { s };',
     // What is not a style position is not read.
     "import { goodCard } from './styles'; const Box = (_: { data: object }) => null; export const a = <Box data={goodCard} />;",
     'const Box = (_: { style: Record<string, string> }) => null; declare const r: Record<string, string>; export const a = <Box style={r} />;',

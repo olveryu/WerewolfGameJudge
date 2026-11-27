@@ -43,6 +43,8 @@ import {
   SAFE_PRODUCTS,
   SIZE_ATTRIBUTES,
   SIZED_ELEMENTS,
+  BITMAP_ELEMENTS,
+  STYLE_TYPE_WRAPPERS,
   ANIMATION_OPTIONS,
   KEYFRAME_META,
   STYLE_DECLARATIONS,
@@ -53,7 +55,7 @@ import {
   UNMANAGED,
 } from './registry.mjs';
 import { verdict } from './values.mjs';
-import { strip, writtenKey, writtenName, writtenValue } from './written.mjs';
+import { strip, writeOf, writtenKey, writtenName, writtenValue } from './written.mjs';
 
 function typedServices(context) {
   const services = context.sourceCode.parserServices;
@@ -223,30 +225,6 @@ function possiblePrefixes(node, services) {
   return parts.map((part) => (part.isStringLiteral() ? part.value : part.texts[0]));
 }
 
-function isWriteTarget(node) {
-  const parent = node.parent;
-  switch (parent.type) {
-    case 'AssignmentExpression':
-      return parent.left === node;
-    case 'UpdateExpression':
-      return true;
-    case 'UnaryExpression':
-      return parent.operator === 'delete';
-    case 'ForInStatement':
-    case 'ForOfStatement':
-      return parent.left === node;
-    case 'ArrayPattern':
-    case 'RestElement':
-      return true;
-    case 'AssignmentPattern':
-      return parent.left === node;
-    case 'Property':
-      return parent.value === node && parent.parent.type === 'ObjectPattern';
-    default:
-      return false;
-  }
-}
-
 const domAllowlist = {
   meta: {
     type: 'problem',
@@ -325,7 +303,7 @@ const domAllowlist = {
       if (!owner) return;
       const info = { ...declared, owner };
       const member = symbol.getName();
-      const write = node.type === 'MemberExpression' && isWriteTarget(node);
+      const write = node.type === 'MemberExpression' && writeOf(node) !== null;
       if (!info.isMethod && !info.isStatic && !write) return;
       if (
         info.isMethod &&
@@ -362,7 +340,7 @@ const domAllowlist = {
         if (!isManagedType(services.getTypeAtLocation(node.object), managed, program)) return;
         const names = possibleStrings(node.property, services);
         if (names === null) {
-          if (isCall || isWriteTarget(node)) context.report({ node, messageId: 'computed' });
+          if (isCall || writeOf(node) !== null) context.report({ node, messageId: 'computed' });
           return;
         }
         const objectType = services.getTypeAtLocation(node.object);
@@ -461,6 +439,19 @@ function tagNames(node, services) {
   return strings.map((part) => part.value);
 }
 
+/**
+ * The native tags a JSX element name denotes: the one definition both `ui/element-allowlist`
+ * and `ui/inline-style-keys` use (P1 QA16 F3: each had its own lower-case test, so
+ * `const Tag = 'rect' as const; <Tag fill="#f00" />` reached a native element unjudged). A
+ * lower-case name is an intrinsic element by JSX semantics; any other name is judged by its type
+ * (`tagNames`): undefined for a component, null when a string part cannot be enumerated.
+ */
+function nativeTags(name, services) {
+  if (name.type === 'JSXIdentifier' && /^[a-z]/.test(name.name)) return [name.name];
+  if (name.type === 'JSXNamespacedName') return [`${name.namespace.name}:${name.name.name}`];
+  return tagNames(name, services);
+}
+
 /** A JSX attribute's name as written (`xlink:href` for a namespaced one). */
 const attributeName = (name) =>
   name.type === 'JSXNamespacedName' ? `${name.namespace.name}:${name.name.name}` : name.name;
@@ -548,41 +539,34 @@ const elementAllowlist = {
             context.report({ node: property, messageId: 'props', data: { name: key, tag } });
       }
     };
-    const isNative = (name) => name.type === 'JSXIdentifier' && /^[a-z]/.test(name.name);
     return {
       JSXOpeningElement(node) {
-        const { name } = node;
+        const tags = nativeTags(node.name, services);
+        check(node, tags);
+        // A tag that cannot be enumerated (reported above) takes only the global attributes.
+        const native = tags === null ? ['*'] : tags;
         for (const attribute of node.attributes) {
           if (attribute.type === 'JSXSpreadAttribute') {
             // Spread props are never written out here, whatever their type lists (P1 QA15 F2).
-            if (isNative(name))
-              context.report({ node: attribute, messageId: 'spread', data: { tag: name.name } });
-          } else if (
-            isNative(name) &&
-            (ELEMENTS.has(name.name) || own.has(name.name)) &&
-            !isAttribute(attributeName(attribute.name), name.name)
-          ) {
-            context.report({
-              node: attribute,
-              messageId: 'attribute',
-              data: { name: attributeName(attribute.name), tag: name.name },
-            });
-          } else if (
-            attribute.name.type === 'JSXIdentifier' &&
-            HTML_KEYS.has(attribute.name.name)
-          ) {
-            context.report({
-              node: attribute,
-              messageId: 'html',
-              data: { name: attribute.name.name },
-            });
+            if (native !== undefined)
+              context.report({
+                node: attribute,
+                messageId: 'spread',
+                data: { tag: native.join('|') },
+              });
+            continue;
           }
+          const name = attributeName(attribute.name);
+          const tag = native?.find(
+            (candidate) =>
+              (candidate === '*' || ELEMENTS.has(candidate) || own.has(candidate)) &&
+              !isAttribute(name, candidate),
+          );
+          if (tag !== undefined)
+            context.report({ node: attribute, messageId: 'attribute', data: { name, tag } });
+          else if (attribute.name.type === 'JSXIdentifier' && HTML_KEYS.has(attribute.name.name))
+            context.report({ node: attribute, messageId: 'html', data: { name } });
         }
-        // A lower-case JSX name is an intrinsic element by JSX semantics; others are judged by type.
-        if (isNative(name)) return check(node, [name.name]);
-        if (name.type === 'JSXNamespacedName')
-          return check(node, [`${name.namespace.name}:${name.name.name}`]);
-        return check(node, tagNames(name, services));
       },
       // { dangerouslySetInnerHTML: … }, { __html: … }, however the object reaches React.
       Property(node) {
@@ -618,10 +602,18 @@ const elementAllowlist = {
   },
 };
 
+/**
+ * Whether a type is React's `CSSProperties`, alone, in a union or intersection, or under a
+ * wrapper that keeps its keys (`STYLE_TYPE_WRAPPERS`: `Partial<CSSProperties>`,
+ * `Omit<CSSProperties, …>`; P1 QA16 S3).
+ */
 function isCssProperties(type) {
   const parts = type.isUnionOrIntersection() ? type.types : [type];
-  return parts.some((part) =>
-    [part.aliasSymbol?.getName(), part.getSymbol()?.getName()].includes('CSSProperties'),
+  return parts.some(
+    (part) =>
+      [part.aliasSymbol?.getName(), part.getSymbol()?.getName()].includes('CSSProperties') ||
+      (STYLE_TYPE_WRAPPERS.has(part.aliasSymbol?.getName()) &&
+        isCssProperties(part.aliasTypeArguments[0])),
   );
 }
 
@@ -653,6 +645,10 @@ const inlineStyleKeys = {
       name: 'This DOM style write names its property through an expression, so which property it writes is not shown: write the name as a string literal here, or a `--x-${…}` template with a literal custom property prefix (UI gate E4).',
       indirect:
         'This DOM method writes a style value; call it directly so its value is checked (UI gate E4).',
+      alias:
+        'A style declaration is handed to a position not typed as one, where the properties written through it are not shown as style writes: write them on the declaration itself (UI gate E4).',
+      styleText:
+        'A `style` attribute is written as CSS text, whose declarations are not shown as properties: write each property through `style` instead (UI gate E4).',
     },
   },
   create(context) {
@@ -745,18 +741,30 @@ const inlineStyleKeys = {
       if (node === null || node === undefined) return;
       if (['ObjectExpression', 'SpreadElement', 'JSXEmptyExpression'].includes(strip(node).type))
         return;
+      // A live style declaration handed to a position not typed as one: its members are then
+      // written under a type the gate does not read as a style (P1 QA16 S2). Judged here, at the
+      // hand-over, by the two types alone; the value is not followed.
+      if (isStyleDeclaration(node)) {
+        const contextual = checker.getContextualType(toTs(node));
+        if (contextual !== undefined && !STYLE_DECLARATIONS.has(checker.typeToString(contextual)))
+          context.report({ node, messageId: 'alias' });
+        return;
+      }
       if (isCssPropertiesLiteral(node)) wholeObject(node);
     };
-    // `x.k = v`, `x.k += v`, `x.k++` on a style declaration or a `CSSProperties` object.
-    const checkMemberWrite = (member, value, operator) => {
+    // Any write to a member of a style declaration or a `CSSProperties` object (`writeOf`: `=`,
+    // a compound operator, `++`, a destructuring or `for…of` target).
+    const checkMemberWrite = (member, { value, operator }) => {
+      if (operator === 'delete') return;
       const declaration = isStyleDeclaration(member.object);
       if (!declaration && !isStyleObject(member.object)) return;
       const key = writtenKey(member.property, member.computed);
       if (key === null)
         return context.report({ node: member, messageId: declaration ? 'name' : 'computed' });
       const unit = declaration ? String : unitFor(key);
-      // Anything but a plain `=` computes the value it writes from the one it held.
-      if (operator === '=') return judge(value, cssName(key), read(value, unit));
+      // Only a plain `=` shows the value it writes; any other write computes it or receives it
+      // from elsewhere.
+      if (value !== null) return judge(value, cssName(key), read(value, unit));
       judge(member, cssName(key), [{ runtime: 'expression' }]);
     };
     const checkKeyframe = (object) => {
@@ -785,6 +793,19 @@ const inlineStyleKeys = {
         if (meta === undefined) judge(property.value, cssName(key), values);
         else judge(property.value, key, values, { domain: meta });
       }
+    };
+    // The keyframes an animation writes (`animate`, `setKeyframes`, `new KeyframeEffect`): an
+    // array or object literal written here; `null` clears them.
+    const checkKeyframes = (keyframes, at) => {
+      if (keyframes === undefined) return context.report({ node: at, messageId: 'keyframes' });
+      if (keyframes.type === 'Literal' && keyframes.value === null) return;
+      if (keyframes.type === 'ArrayExpression') {
+        for (const element of keyframes.elements) {
+          if (element?.type === 'ObjectExpression') checkKeyframe(element);
+          else context.report({ node: element ?? keyframes, messageId: 'keyframes' });
+        }
+      } else if (keyframes.type === 'ObjectExpression') checkKeyframe(keyframes);
+      else context.report({ node: keyframes, messageId: 'keyframes' });
     };
     // The timing of `animate` (a duration in ms, or an options object): each value takes the
     // domain of the animation property it stands for; a key not registered is reported.
@@ -840,29 +861,34 @@ const inlineStyleKeys = {
         // An attribute name not written out could be a presentation attribute.
         if (written === null || written.name === undefined || value === undefined)
           return context.report({ node: call, messageId: 'name' });
-        // Presentation attributes take the inline check, as their JSX form does.
-        const prop = SVG_ATTRIBUTES.get(
-          written.name.replace(/-([a-z])/g, (_, c) => c.toUpperCase()),
-        );
+        // A `style` attribute is CSS text: its declarations are not written as properties here.
+        if (written.name.toLowerCase() === 'style')
+          return context.report({ node: call, messageId: 'styleText' });
+        // Presentation attributes take the inline check, as their JSX form does; so do the
+        // `width`/`height` that size a box (any element but a canvas, whose are its bitmap).
+        const prop =
+          SVG_ATTRIBUTES.get(written.name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())) ??
+          (SIZE_ATTRIBUTES.has(written.name) &&
+          !BITMAP_ELEMENTS.has(checker.typeToString(services.getTypeAtLocation(callee.object)))
+            ? written.name
+            : undefined);
         if (prop !== undefined) judge(value, prop, read(value, String));
         return;
       }
-      if (writer !== 'animate') throw new Error(`UI gate E4: unknown DOM value writer ${writer}`);
-      const [keyframes, timing] = args;
-      if (timing !== undefined) checkTiming(timing);
-      if (keyframes === undefined) return context.report({ node: callee, messageId: 'keyframes' });
-      if (keyframes.type === 'ArrayExpression') {
-        for (const element of keyframes.elements) {
-          if (element?.type === 'ObjectExpression') checkKeyframe(element);
-          else context.report({ node: element ?? keyframes, messageId: 'keyframes' });
-        }
-      } else if (keyframes.type === 'ObjectExpression') checkKeyframe(keyframes);
-      else context.report({ node: keyframes, messageId: 'keyframes' });
+      if (writer === 'animate') {
+        const [keyframes, timing] = args;
+        if (timing !== undefined) checkTiming(timing);
+        return checkKeyframes(keyframes, callee);
+      }
+      if (writer === 'setKeyframes') return checkKeyframes(args[0], callee);
+      if (writer === 'updateTiming') {
+        if (args[0] !== undefined) checkTiming(args[0]);
+        return;
+      }
+      throw new Error(`UI gate E4: unknown DOM value writer ${writer}`);
     };
     return {
       AssignmentExpression(node) {
-        if (node.left.type === 'MemberExpression')
-          checkMemberWrite(node.left, node.right, node.operator);
         intoStyle(node.right);
       },
       VariableDeclarator(node) {
@@ -876,6 +902,19 @@ const inlineStyleKeys = {
       },
       NewExpression(node) {
         for (const argument of node.arguments) intoStyle(argument);
+        // `new KeyframeEffect(target, keyframes, timing)` writes keyframes as `animate` does.
+        const constructor = checker.getSymbolAtLocation(toTs(node.callee));
+        if (
+          constructor?.getName() === 'KeyframeEffect' &&
+          constructor.declarations?.some((declaration) =>
+            isDomLibrary(declaration.getSourceFile()),
+          ) &&
+          node.arguments.length > 1
+        ) {
+          const [, keyframes, timing] = node.arguments;
+          checkKeyframes(keyframes, node);
+          if (timing !== undefined) checkTiming(timing);
+        }
       },
       Property(node) {
         if (node.parent.type === 'ObjectExpression') intoStyle(node.value);
@@ -885,10 +924,6 @@ const inlineStyleKeys = {
       },
       JSXExpressionContainer(node) {
         intoStyle(node.expression);
-      },
-      UpdateExpression(node) {
-        if (node.argument.type === 'MemberExpression')
-          checkMemberWrite(node.argument, node, node.operator);
       },
       CallExpression(node) {
         const [target, ...sources] = node.arguments;
@@ -910,6 +945,8 @@ const inlineStyleKeys = {
       // directly, and any other reference to one (`.call`, `.bind`, a variable, destructuring)
       // hands it on unjudged and is reported (P1 QA14 F4).
       MemberExpression(node) {
+        const write = writeOf(node);
+        if (write !== null) checkMemberWrite(node, write);
         const access = toTs(node);
         const writer = valueWriter(
           checker.getSymbolAtLocation(
@@ -937,8 +974,8 @@ const inlineStyleKeys = {
       },
       JSXAttribute(node) {
         if (node.name.type !== 'JSXIdentifier') return;
-        if (!(node.parent.name.type === 'JSXIdentifier' && /^[a-z]/.test(node.parent.name.name)))
-          return;
+        const tags = nativeTags(node.parent.name, services);
+        if (tags === undefined) return;
         const value = node.value;
         if (value === null) return;
         const expression =
@@ -953,7 +990,9 @@ const inlineStyleKeys = {
         // the width and height of the elements whose box they size.
         const prop =
           SVG_ATTRIBUTES.get(node.name.name) ??
-          (SIZED_ELEMENTS.has(node.parent.name.name) && SIZE_ATTRIBUTES.has(node.name.name)
+          // A tag that cannot be enumerated could be any sized element.
+          ((tags === null || tags.some((tag) => SIZED_ELEMENTS.has(tag))) &&
+          SIZE_ATTRIBUTES.has(node.name.name)
             ? node.name.name
             : undefined);
         if (prop !== undefined) judge(expression, prop, read(expression, String));

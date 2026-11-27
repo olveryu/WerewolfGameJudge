@@ -238,6 +238,30 @@ const ENTRIES = [
   'export const a = <div style={{ color: String.raw`${u}` }} />;',
   'export const a = <div style={{ color: new String(u) as string }} />;',
   'export const a = <div style={{ color: `${u}` }} />;',
+  // Every way a member is written is a write site (P1 QA16 F1).
+  '[el.style.height] = [u as string];',
+  '({ h: el.style.height } = { h: u as string });',
+  '[el.style.height = u as string] = [];',
+  'for (el.style.height of [u as string]);',
+  'el.style.height! = u as string;',
+  // A tag held in a variable is the same native element (P1 QA16 F3).
+  "const Tag = 'rect' as const; export const a = <svg><Tag fill={u as string} /></svg>;",
+  "const Tag = 'div' as const; export const a = <Tag style={{ color: u }} />;",
+  "const Tag = 'img' as const; export const a = <Tag width={u as number} />;",
+  // Box sizes and CSS text written as attributes; keyframes and timing written by an effect
+  // (P1 QA16 S4).
+  "el.setAttribute('width', u as string);",
+  "el.setAttribute('style', u as string);",
+  'export const fx = new KeyframeEffect(el, [{ color: u as string }]);',
+  'export const fx = new KeyframeEffect(el, [], { duration: u as number });',
+  'declare const fx: KeyframeEffect; fx.setKeyframes([{ color: u as string }]);',
+  'declare const fx: KeyframeEffect; fx.updateTiming({ duration: u as number });',
+  // A style declaration aliased under another type; style types under a key-keeping wrapper
+  // (P1 QA16 S2, S3).
+  'const s: { opacity: string } = el.style; s.opacity = u as string;',
+  'declare function g(x: object): void; g(el.style);',
+  'export const s: Partial<CSSProperties> = { color: u as string };',
+  "export const s: Omit<CSSProperties, 'width'> = { color: u as string };",
   ...[...SVG_ATTRIBUTES.keys()].map(
     (name) => `export const a = <svg><g ${name}={u as string} /></svg>;`,
   ),

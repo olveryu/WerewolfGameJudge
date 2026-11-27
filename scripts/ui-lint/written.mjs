@@ -112,3 +112,41 @@ export function writtenName(node) {
   }
   return null;
 }
+
+/**
+ * How a member is written, or null when it is only read: the one definition of a write site that
+ * both `ui/dom-allowlist` and `ui/inline-style-keys` use (P1 QA16 F1: the value rule knew only
+ * `=` and `++`, so a destructuring write wrote a value no rule judged). `value` is the node
+ * written for a plain `=`; every other write (a compound operator, `++`, a destructuring target,
+ * a default, a `for…of` target) computes or receives its value elsewhere, so `value` is null.
+ * `delete` removes a member and writes no value.
+ */
+export function writeOf(node) {
+  let target = node;
+  while (TRANSPARENT.has(target.parent.type) && target.parent.expression === target)
+    target = target.parent;
+  const parent = target.parent;
+  switch (parent.type) {
+    case 'AssignmentExpression':
+      if (parent.left !== target) return null;
+      return { operator: parent.operator, value: parent.operator === '=' ? parent.right : null };
+    case 'UpdateExpression':
+      return { operator: parent.operator, value: null };
+    case 'UnaryExpression':
+      return parent.operator === 'delete' ? { operator: 'delete', value: null } : null;
+    case 'ForInStatement':
+    case 'ForOfStatement':
+      return parent.left === target ? { operator: 'for', value: null } : null;
+    case 'ArrayPattern':
+    case 'RestElement':
+      return { operator: 'pattern', value: null };
+    case 'AssignmentPattern':
+      return parent.left === target ? { operator: 'pattern', value: null } : null;
+    case 'Property':
+      return parent.value === target && parent.parent.type === 'ObjectPattern'
+        ? { operator: 'pattern', value: null }
+        : null;
+    default:
+      return null;
+  }
+}

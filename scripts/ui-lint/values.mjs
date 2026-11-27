@@ -41,7 +41,7 @@ export const valueMessages = {
     `\`${word}\` in an \`@${rule}\` condition is not a registered breakpoint (UI gate S1).`,
   runtime: (prop, kind) =>
     `This \`${prop}\` value is ${kind === 'expression' ? 'an expression (a binding, member, call, operator, branch or template with substitutions)' : `a runtime ${kind}`}: only its write site is read, and an expression there is not shown to be a token. Write a token here (\`var(--token)\`, a registered token constant), or write the computed value into a custom property through a registered runtime source (\`style={{ '--x': runtimeStyle(v) }}\`) and read it in a stylesheet with \`var(--x)\` (UI gate E4, D15 ②).`,
-  token: (prop, name) =>
+  tokenConstant: (prop, name) =>
     `\`${name}\` is not a member of a token constant registered for the domain of \`${prop}\` (scripts/ui-lint/registry.mjs TOKEN_CONSTANTS): write \`var(--token)\` here or register the constant (UI gate E4, D15 ②).`,
   wrapped: (prop, name) =>
     `\`${name}\` is not a registered runtime source for \`${prop}\`: a runtime value is written only into a custom property, only through a source registered in scripts/ui-lint/registry.mjs RUNTIME_SOURCES (\`style={{ '--x': runtimeStyle(v) }}\`, read by \`var(--x)\` in a stylesheet) (UI gate E4, D15 ②).`,
@@ -227,7 +227,7 @@ export function verdict(
     // A whole style object (`prop` null) is only ever a runtime object reading: rejected.
     if (readings.some((reading) => reading.runtime !== 'object'))
       throw new Error('UI gate E4: a style object reading must be a runtime object');
-    return readings.map((reading) => ({
+    return readings.map(() => ({
       messageId: 'untracked',
       message: valueMessages.styleObject(),
     }));
@@ -255,7 +255,7 @@ export function verdict(
       if (tokenDomain !== undefined && (domain === 'custom' || domain === tokenDomain)) continue;
       rejected.push({
         messageId: 'untracked',
-        message: valueMessages.token(prop, `${reading.token}.${reading.path.join('.')}`),
+        message: valueMessages.tokenConstant(prop, `${reading.token}.${reading.path.join('.')}`),
       });
       continue;
     }

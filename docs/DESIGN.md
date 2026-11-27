@@ -298,7 +298,8 @@ over every avatar site its census finds; the frame geometry tests
   member of a token constant registered in `TOKEN_CONSTANTS`, or a call to a runtime source
   registered in `RUNTIME_SOURCES` written into a custom property; any other expression, a style
   object passed by name and a spread are `untracked`, since the gate traces no data flow; the
-  `width`/`height` of `svg`, `img`, `canvas` and `iframe` are sizes), and DOM members that write markup, styles, attributes or
+  `width`/`height` of `svg`, `img` and `iframe` are sizes, while a canvas's are its bitmap
+  resolution), and DOM members that write markup, styles, attributes or
   nodes only where `DOM_WRITERS` in `scripts/ui-lint/registry.mjs` registers them for that file
   (`ui/dom-allowlist`). What the gate covers is the web build's bundle graph
   (`scripts/ui-lint/bundle.mjs`): a package import passes only if `PACKAGES` in the registry
