@@ -24,11 +24,11 @@ import {
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
-import { containsIgnoringAsciiCase } from '../../platform/storage/substringSearch';
 import type { Env } from '../../env';
 import { FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS } from '../../games/fibking/wordPublication';
 import { createFibWordSearchQuery } from '../../games/fibking/wordSearchPlan';
 import { readModelBudgetByOperation } from '../../platform/ai/editorialBudget';
+import { containsIgnoringAsciiCase } from '../../platform/storage/substringSearch';
 import { isWordSupplyAvailable } from '../../platform/wordSupply/automaticSupply';
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import type { WordSupplyParams } from '../../platform/wordSupply/wordSupplyWorkflow';
@@ -529,7 +529,7 @@ export async function listLibraryItems(
   if (searchTerm !== undefined && searchTerm !== '') {
     const title = containsIgnoringAsciiCase('item.title', searchTerm);
     where += ` AND ${title.sql}`;
-    binds.push(...title.bindings);
+    binds.push(...title.params);
   }
   if (cursor !== undefined) {
     where += ' AND (batch.created_at, item.id) > (?, ?)';

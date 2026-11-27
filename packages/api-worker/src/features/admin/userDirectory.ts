@@ -115,7 +115,7 @@ export async function queryUserDirectory(db: D1Database, input: Record<string, s
     } else {
       const nickname = containsIgnoringAsciiCase('u.display_name', query.q);
       conditions.push(nickname.sql);
-      bindings.push(...nickname.bindings);
+      bindings.push(...nickname.params);
     }
   }
   if (cursor !== null) {

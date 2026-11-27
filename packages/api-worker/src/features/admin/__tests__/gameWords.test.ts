@@ -605,7 +605,8 @@ describe('GET /admin/words/:game/library-items', () => {
     expect(await titlesFor('a_b')).toEqual(['a_b']);
     expect(await titlesFor('a\\b')).toEqual(['a\\b']);
     expect(await titlesFor('mixed CASE')).toEqual(['Mixed Case']);
-    // LIKE folds ASCII letters only; the search keeps that rule.
+    // Pins parity with the LIKE it replaced (ASCII-only folding without ICU), not a ban on
+    // folding: if D1's lower() ever folds É, update this line rather than the search.
     expect(await titlesFor('élan')).toEqual([]);
   });
 

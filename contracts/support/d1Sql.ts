@@ -5,7 +5,8 @@
  */
 
 export interface SqlToken {
-  readonly kind: 'space' | 'comment' | 'string' | 'quoted' | 'word' | 'other';
+  /** `unterminated` is a string literal whose closing quote never comes. */
+  readonly kind: 'space' | 'comment' | 'string' | 'unterminated' | 'quoted' | 'word' | 'other';
   readonly text: string;
 }
 
@@ -15,7 +16,7 @@ export interface SqlToken {
  * the repository: migration rules and the worker runtime SQL rule both read SQL through it.
  */
 const SQL_LEXEME =
-  /(\s+)|(--[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^']|'')*'?)|("(?:[^"]|"")*"?|\x60(?:[^\x60]|\x60\x60)*\x60?|\[[^\]]*\]?)|([A-Za-z_][A-Za-z0-9_$]*)|([\s\S])/g;
+  /(\s+)|(--[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^']|'')*')|('(?:[^']|'')*)|("(?:[^"]|"")*"?|\x60(?:[^\x60]|\x60\x60)*\x60?|\[[^\]]*\]?)|([A-Za-z_][A-Za-z0-9_$]*)|([\s\S])/g;
 
 export function sqlTokens(sql: string): SqlToken[] {
   return Array.from(sql.matchAll(SQL_LEXEME), (match): SqlToken => {
@@ -23,8 +24,9 @@ export function sqlTokens(sql: string): SqlToken[] {
     if (match[1] !== undefined) return { kind: 'space', text };
     if (match[2] !== undefined) return { kind: 'comment', text };
     if (match[3] !== undefined) return { kind: 'string', text };
-    if (match[4] !== undefined) return { kind: 'quoted', text };
-    if (match[5] !== undefined) return { kind: 'word', text };
+    if (match[4] !== undefined) return { kind: 'unterminated', text };
+    if (match[5] !== undefined) return { kind: 'quoted', text };
+    if (match[6] !== undefined) return { kind: 'word', text };
     return { kind: 'other', text };
   });
 }
@@ -68,11 +70,19 @@ export function identifierName(token: SqlToken | undefined): string | undefined 
  * built at run time cannot be measured here, so every pattern must be a literal.
  */
 const D1_PATTERN_MAX_BYTES = 50;
+
+/**
+ * Stands in for a value known only at run time when SQL is assembled from source code (a `${…}`
+ * substitution or a `+` operand). A pattern that holds it is computed, whether it lands inside a
+ * string literal (`LIKE '%${term}%'`) or outside one (`LIKE ${pattern}`).
+ */
+export const RUNTIME_VALUE = '__runtime_value__';
 const PATTERN_KEYWORDS = new Set(['GLOB', 'LIKE']);
 
 /**
  * Judges the token after every unquoted GLOB/LIKE keyword: `glob(…)`, `like(…)` and `GLOB (…)`
- * hide their pattern, an operand other than one string literal is computed, and a literal must fit.
+ * hide their pattern; an operand other than one closed string literal free of `RUNTIME_VALUE` is
+ * computed; and a literal must fit.
  */
 export function patternProblems(sql: string): string[] {
   const tokens = sqlTokens(sql).filter(
@@ -91,7 +101,7 @@ export function patternProblems(sql: string): string[] {
       return;
     }
     const concatenated = tokens[index + 2]?.text === '|' && tokens[index + 3]?.text === '|';
-    if (operand.kind !== 'string' || concatenated) {
+    if (operand.kind !== 'string' || operand.text.includes(RUNTIME_VALUE) || concatenated) {
       problems.push(
         `${token.text} ${operand.text}${concatenated ? ' || …' : ''} is not a literal pattern`,
       );

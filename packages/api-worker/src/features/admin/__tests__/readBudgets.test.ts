@@ -185,7 +185,8 @@ describe('admin indexed read budgets', () => {
     expect(await namesFor('a_b')).toEqual(['a_b']);
     expect(await namesFor('a\\b')).toEqual(['a\\b']);
     expect(await namesFor('mixed CASE')).toEqual(['Mixed Case']);
-    // LIKE folds ASCII letters only; the search keeps that rule.
+    // Pins parity with the LIKE it replaced (ASCII-only folding without ICU), not a ban on
+    // folding: if D1's lower() ever folds É, update this line rather than the search.
     expect(await namesFor('élan')).toEqual([]);
   });
 

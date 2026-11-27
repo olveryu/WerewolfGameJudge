@@ -509,7 +509,16 @@ function deferForeignKeysResets(sql: string): string[] {
     .filter((statement) => {
       const scratch = new DatabaseSync(':memory:');
       try {
-        scratch.exec(`BEGIN; PRAGMA defer_foreign_keys = ON; ${statement};`);
+        try {
+          scratch.exec(`BEGIN; PRAGMA defer_foreign_keys = ON; ${statement};`);
+        } catch (error) {
+          throw new Error(
+            `SQLite rejected "${statement}" while reading its defer_foreign_keys value`,
+            {
+              cause: error,
+            },
+          );
+        }
         const row = scratch.prepare('PRAGMA defer_foreign_keys').get();
         if (row === undefined) throw new Error('PRAGMA defer_foreign_keys returned no row');
         return row.defer_foreign_keys === 0;
