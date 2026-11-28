@@ -278,7 +278,7 @@ the avatar, its hosts and stages, and the boxes, and off every keyframe
 its publisher, `Avatar.css` and the concentric rule; ESLint keeps avatar URLs and art inside
 `components/avatar`. A seat entrance moves the avatar through custom properties that
 `scene/seatEntrance.css` applies. The screenshot gate (`e2e/visual`) pins the rendered shape and
-its render probe (`e2e/visual/avatarShapeProbe.ts`) measures every avatar on the captured pages;
+its render probe (`e2e/visual/avatarShapeProbe.ts`) measures every resting avatar on the captured pages;
 `avatarShape.contract.test.ts` pins the values; the frame geometry tests
 (`packages/web/src/scene/frames/__tests__/frameBox.test.ts`) pin the frames to the same corner.
 

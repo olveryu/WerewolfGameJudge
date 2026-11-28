@@ -9,6 +9,10 @@ import { expect, type Page } from '@playwright/test';
  * - its own corner radius is `--avatar-corner-ratio` × its side;
  * - no ancestor clips it with `clip-path` or a mask, and no ancestor's rounded overflow clip cuts
  *   into its corners (a box concentric with the avatar, as `avatar-concentric` draws, cuts nothing).
+ * Radii are the used values: `calc()` and percentages resolved against the box, the CSS overlap
+ * scaling applied, and an overflow clip measured on the padding box with its inner radius.
+ * An avatar inside a seat entrance is measured once the entrance rests (identity transform, no
+ * wipe, full opacity); mid-motion frames are the scene's, not the shape's.
  *
  * Avatars are hidden in app-page screenshots (random ids), but the probe reads computed geometry,
  * which hiding by `visibility` leaves in place.
@@ -16,6 +20,9 @@ import { expect, type Page } from '@playwright/test';
 
 /** Sub-pixel rounding allowed between the expected and the rendered geometry, in CSS pixels. */
 const TOLERANCE_PX = 0.5;
+
+/** How long the probe waits for the page's avatars to render and settle. */
+const AVATAR_SETTLE_TIMEOUT_MS = 10_000;
 
 interface AvatarShapeViolation {
   readonly avatar: string;
@@ -52,21 +59,48 @@ async function measureAvatarShapes(page: Page): Promise<AvatarShapeReport> {
       return parts.join(' > ');
     };
     const px = (value: string): number => Number.parseFloat(value) || 0;
-    /** Corner radius in px (horizontal radius of the top-left corner; avatars are square). */
-    const cornerOf = (style: CSSStyleDeclaration, width: number): number => {
-      const value = style.borderTopLeftRadius.split(' ')[0] ?? '0';
-      return value.endsWith('%') ? (px(value) / 100) * width : px(value);
+    /** Resolves a computed length (px, %, or calc() of both) against a reference length. */
+    const resolve = (value: string, reference: number): number => {
+      if (/^-?[\d.]+px$/.test(value)) return px(value);
+      const meter = document.createElement('div');
+      meter.style.cssText = `position:absolute;visibility:hidden;width:${reference}px;height:0`;
+      const inner = document.createElement('div');
+      inner.style.width = value;
+      meter.append(inner);
+      document.body.append(meter);
+      const used = inner.getBoundingClientRect().width;
+      meter.remove();
+      return used;
+    };
+    /**
+     * Used corner radius in px of a box (horizontal radius of the top-left corner; the boxes are
+     * square or round all four corners alike), with the CSS overlap scaling: radii never exceed
+     * half the box's side.
+     */
+    const cornerOf = (style: CSSStyleDeclaration, width: number, height: number): number => {
+      const value = style.borderTopLeftRadius.split(' ')[0] ?? '0px';
+      return Math.min(resolve(value, width), width / 2, height / 2);
+    };
+    const atRest = (element: Element): boolean => {
+      const pose = element.closest('[data-entrance-pose]');
+      if (pose === null) return true;
+      const poseStyle = getComputedStyle(pose);
+      return (
+        poseStyle.transform === 'none' &&
+        poseStyle.clipPath === 'none' &&
+        Number(poseStyle.opacity) === 1
+      );
     };
     const violations: { avatar: string; problem: string }[] = [];
     const avatars = [...document.querySelectorAll('.avatar')].filter((element) => {
       const box = element.getBoundingClientRect();
-      return box.width > 0 && box.height > 0 && element.closest('[data-entrance-pose]') === null;
+      return box.width > 0 && box.height > 0 && atRest(element);
     });
     for (const avatar of avatars) {
       const name = path(avatar);
       const box = avatar.getBoundingClientRect();
       const style = getComputedStyle(avatar);
-      const radius = cornerOf(style, box.width);
+      const radius = cornerOf(style, box.width, box.height);
       const expected = ratio * box.width;
       if (Math.abs(radius - expected) > tolerance) {
         violations.push({
@@ -97,8 +131,23 @@ async function measureAvatarShapes(page: Page): Promise<AvatarShapeReport> {
         }
         const clips = nodeStyle.overflowX !== 'visible' || nodeStyle.overflowY !== 'visible';
         if (!clips) continue;
-        const frame = node.getBoundingClientRect();
-        const frameRadius = cornerOf(nodeStyle, frame.width);
+        // An overflow clip cuts along the padding box, whose corners are the border radius less
+        // the border width.
+        const outer = node.getBoundingClientRect();
+        const borderTop = px(nodeStyle.borderTopWidth);
+        const borderRight = px(nodeStyle.borderRightWidth);
+        const borderBottom = px(nodeStyle.borderBottomWidth);
+        const borderLeft = px(nodeStyle.borderLeftWidth);
+        const frame = {
+          left: outer.left + borderLeft,
+          right: outer.right - borderRight,
+          top: outer.top + borderTop,
+          bottom: outer.bottom - borderBottom,
+        };
+        const frameRadius = Math.max(
+          0,
+          cornerOf(nodeStyle, outer.width, outer.height) - Math.max(borderLeft, borderTop),
+        );
         if (frameRadius <= tolerance) continue;
         const cut = corners.some(({ x, y, sx, sy }) => {
           const cx = sx === 1 ? frame.left + frameRadius : frame.right - frameRadius;
@@ -123,11 +172,15 @@ async function measureAvatarShapes(page: Page): Promise<AvatarShapeReport> {
  * should show avatars but rendered none, so the probe cannot pass by measuring nothing.
  */
 export async function expectAvatarShapes(page: Page, expectAvatars: boolean): Promise<void> {
-  const report = await measureAvatarShapes(page);
-  if (expectAvatars) {
-    expect(report.count, 'avatars rendered on the page').toBeGreaterThan(0);
-  }
-  expect(report.violations, `avatar shape violations (${report.count} avatars measured)`).toEqual(
-    [],
-  );
+  // Like the screenshot assertion that follows, wait for the page to settle: avatars render
+  // after their data arrives, so a single early measurement could see none or a moving frame.
+  await expect(async () => {
+    const report = await measureAvatarShapes(page);
+    if (expectAvatars) {
+      expect(report.count, 'avatars rendered on the page').toBeGreaterThan(0);
+    }
+    expect(report.violations, `avatar shape violations (${report.count} avatars measured)`).toEqual(
+      [],
+    );
+  }).toPass({ timeout: AVATAR_SETTLE_TIMEOUT_MS });
 }

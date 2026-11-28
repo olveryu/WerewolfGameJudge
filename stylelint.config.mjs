@@ -268,7 +268,7 @@ export default {
       },
       {
         message:
-          'The avatar shape has one source: Avatar sets its corners, hosts cut nothing, boxes add the avatar-concentric class.',
+          'The avatar shape has one source: Avatar sets its corners, hosts cut nothing, boxes add the avatar-concentric class, and no keyframe animates corners, clip-path or masks (an animation outranks every declaration).',
       },
     ],
     'selector-disallowed-list': sharedComponentRule([]),
