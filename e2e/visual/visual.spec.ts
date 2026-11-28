@@ -48,14 +48,14 @@ const GALLERY_BLOCKS = [
   'interaction',
   'icon-button',
   'switch',
-  'text-field',
-  'check-radio',
   'choice-card',
   'faction-chip',
   'seat-dot',
   'avatar',
   'progress',
   'num-pad',
+  'text-field',
+  'check-radio',
 ] as const;
 
 /**
