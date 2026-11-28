@@ -1,9 +1,19 @@
+/*
+ * The one avatar shape (config/avatarShape.ts): a rounded square whose corners are
+ * `--avatar-corner-ratio` of its side. Only this sheet and avatarConcentric.css read the ratio.
+ * `--avatar-size` is the pixel size `Avatar` was given; `fill` avatars take the parent's box.
+ */
 .avatar {
+  --avatar-size: auto;
+
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
   overflow: hidden;
+  border-radius: calc(var(--avatar-corner-ratio) * 100%);
   object-fit: cover;
   background: var(--color-border);
 }
@@ -17,15 +27,20 @@
   background: transparent;
 }
 
-/* stylelint-disable rule-selector-property-disallowed-list -- the fallback glyph is drawn through a mask; it does not shape the avatar */
+/* The wolf paw, drawn through a mask in the user's tint; it does not shape the avatar. */
 .avatar-fallback-mark {
+  --avatar-tint: transparent;
+  --avatar-mask: none;
+
   width: 70%;
   height: 70%;
+  background-color: var(--avatar-tint);
+  mask-image: var(--avatar-mask);
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
+  -webkit-mask-image: var(--avatar-mask);
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
 }
-/* stylelint-enable rule-selector-property-disallowed-list */

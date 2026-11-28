@@ -1,3 +1,5 @@
+import './seatEntrance.css';
+
 import { type RefObject, use, useEffect, useRef, useState } from 'react';
 
 import { resolveCssLength } from '@/scene/cssLength';
@@ -51,7 +53,7 @@ function measureCoverage(
   }
   const mark = picture.querySelector<HTMLElement>('.avatar-fallback-mark');
   if (mark) {
-    const url = /url\(["']?(.*?)["']?\)/.exec(mark.style.maskImage || mark.style.webkitMaskImage);
+    const url = /url\(["']?(.*?)["']?\)/.exec(mark.style.getPropertyValue('--avatar-mask'));
     if (!url?.[1]) {
       throw new Error('Seat avatar mark has no mask image');
     }
@@ -90,19 +92,27 @@ function cssTransform(pose: AvatarPose): string {
   return `translate(${pose.translateX}px, ${pose.translateY}px) rotate(${pose.rotateDeg}deg) scale(${pose.scale})${turn}`;
 }
 
+/**
+ * The pose reaches seatEntrance.css as custom properties; `data-entrance-pose` marks the element
+ * as posed (seatEntrance.css applies them only then).
+ */
 function applyPose(element: HTMLElement, pose: AvatarPose): void {
-  element.style.opacity = String(Math.min(1, Math.max(0, pose.opacity)));
-  element.style.transform = cssTransform(pose);
-  element.style.clipPath =
+  element.dataset.entrancePose = '';
+  element.style.setProperty('--entrance-opacity', String(Math.min(1, Math.max(0, pose.opacity))));
+  element.style.setProperty('--entrance-transform', cssTransform(pose));
+  element.style.setProperty(
+    '--entrance-clip',
     pose.clipTop === 0 && pose.clipRight === 0
-      ? ''
-      : `inset(${pose.clipTop * 100}% ${pose.clipRight * 100}% 0 0)`;
+      ? 'none'
+      : `inset(${pose.clipTop * 100}% ${pose.clipRight * 100}% 0 0)`,
+  );
 }
 
 function clearPose(element: HTMLElement): void {
-  element.style.removeProperty('opacity');
-  element.style.removeProperty('transform');
-  element.style.removeProperty('clip-path');
+  delete element.dataset.entrancePose;
+  element.style.removeProperty('--entrance-opacity');
+  element.style.removeProperty('--entrance-transform');
+  element.style.removeProperty('--entrance-clip');
 }
 
 /**

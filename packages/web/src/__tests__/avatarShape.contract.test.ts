@@ -1,11 +1,12 @@
 /**
  * Contract test: one avatar shape.
  *
- * `Avatar` owns its corners (`AVATAR_CORNER_RATIO`, at every size; `Avatar.test.tsx` pins the
- * value), and a square box around an avatar takes concentric corners from the one shared rule.
+ * `Avatar` owns its corners (`AVATAR_CORNER_RATIO`, at every size, from Avatar.css), and a square
+ * box around an avatar takes concentric corners from the one shared rule.
  * Who may shape an avatar, its hosts and boxes, and who may name the ratio, is checked by
  * Stylelint and ESLint (`stylelint.config.mjs`, `eslint.config.mjs`, UI drift lock plan §3 P9);
- * the rendered result by the screenshot gate (`e2e/visual`). This file pins the values.
+ * the rendered result by the screenshot gate and its render probe (`e2e/visual`). This file pins
+ * the values.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -35,6 +36,14 @@ describe('Avatar shape', () => {
     expect(readFileSync(join(SRC_DIR, 'main.tsx'), 'utf8')).toMatch(
       /applyAvatarShapeTokens\(document\.documentElement\)/,
     );
+  });
+
+  it('gives the avatar its corners from the published ratio alone', () => {
+    const sheet = readFileSync(join(SRC_DIR, 'components/avatar/Avatar.css'), 'utf8');
+    const radii = [...sheet.matchAll(/border-radius\s*:([^;]*);/g)].map((match) =>
+      match[1]?.trim(),
+    );
+    expect(radii).toEqual([`calc(var(${AVATAR_CORNER_RATIO_PROPERTY}) * 100%)`]);
   });
 
   it('gives concentric boxes corners derived from the published ratio alone', () => {

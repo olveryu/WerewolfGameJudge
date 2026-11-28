@@ -267,16 +267,19 @@ badges and progress tracks. Stylelint (`scale-unlimited/declaration-strict-value
 only as a token (`var(--radius-*)`) or a keyword; tokens are defined in
 `packages/web/src/theme/tokens.css`.
 
-Avatars are rounded squares at every size: `Avatar` alone sets their corners from
-`AVATAR_CORNER_RATIO` in `packages/web/src/config/avatarShape.ts`, the scene draws avatar frames
-along the same corner, and `applyAvatarShapeTokens` publishes the ratio as `--avatar-corner-ratio`.
+Avatars are rounded squares at every size: `Avatar.css` alone sets their corners from
+`AVATAR_CORNER_RATIO` in `packages/web/src/config/avatarShape.ts`, which `applyAvatarShapeTokens`
+publishes as `--avatar-corner-ratio`; the scene draws avatar frames along the same corner.
 A square box hugging an avatar (a tile, a seat, a mat, a placeholder standing where an avatar
 would) is concentric with it through the shared `avatar-concentric` rule and its `--avatar-inset`;
 no stylesheet repeats the ratio or gives such a box a fixed radius. Stylelint keeps corners and cuts off
-the avatar, its hosts and stages, and the boxes (`rule-selector-property-disallowed-list` in
-`stylelint.config.mjs`), and keeps the ratio's name to its publisher and the concentric rule;
-ESLint keeps avatar URLs and art inside `components/avatar`. The screenshot gate (`e2e/visual`)
-pins the rendered shape, `avatarShape.contract.test.ts` the values; the frame geometry tests
+the avatar, its hosts and stages, and the boxes, and off every keyframe
+(`rule-selector-property-disallowed-list` in `stylelint.config.mjs`), and keeps the ratio's name to
+its publisher, `Avatar.css` and the concentric rule; ESLint keeps avatar URLs and art inside
+`components/avatar`. A seat entrance moves the avatar through custom properties that
+`scene/seatEntrance.css` applies. The screenshot gate (`e2e/visual`) pins the rendered shape and
+its render probe (`e2e/visual/avatarShapeProbe.ts`) measures every avatar on the captured pages;
+`avatarShape.contract.test.ts` pins the values; the frame geometry tests
 (`packages/web/src/scene/frames/__tests__/frameBox.test.ts`) pin the frames to the same corner.
 
 ## Components

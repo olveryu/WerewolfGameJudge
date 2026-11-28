@@ -74,14 +74,6 @@
       "count": 1
     }
   },
-  "packages/web/src/components/avatar/Avatar.tsx": {
-    "@typescript-eslint/no-restricted-types": {
-      "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 6
-    }
-  },
   "packages/web/src/components/nameStyles/NameStyleText.tsx": {
     "@typescript-eslint/no-restricted-types": {
       "count": 4
@@ -690,11 +682,6 @@
   "packages/web/src/routes/unlocks/UnlocksPage.tsx": {
     "no-restricted-syntax": {
       "count": 4
-    }
-  },
-  "packages/web/src/scene/SeatEntrance.tsx": {
-    "no-restricted-syntax": {
-      "count": 3
     }
   },
   "packages/web/src/scene/art.ts": {

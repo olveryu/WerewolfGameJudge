@@ -1,0 +1,15 @@
+/*
+ * A seat entrance's pose (SeatEntrance.tsx): the stage moves the DOM avatar and its ghost copies
+ * frame by frame and wipes them in. The script writes only the custom properties (the defaults
+ * below are the resting pose); this rule is the one place their opacity, transform and wipe are declared. The wipe clips a moving copy, not the
+ * avatar's shape (Avatar owns its corners).
+ */
+[data-entrance-pose] {
+  --entrance-opacity: 1;
+  --entrance-transform: none;
+  --entrance-clip: none;
+
+  opacity: var(--entrance-opacity);
+  transform: var(--entrance-transform);
+  clip-path: var(--entrance-clip);
+}

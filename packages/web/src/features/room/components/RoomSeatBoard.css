@@ -219,8 +219,11 @@
 }
 
 .seat-avatar-stage[data-entrance='true'] .seat-avatar {
-  opacity: 0;
   animation: none;
+}
+
+.seat-avatar-stage[data-entrance='true'] .seat-avatar:not([data-entrance-pose]) {
+  opacity: 0;
 }
 
 .seat-avatar {
