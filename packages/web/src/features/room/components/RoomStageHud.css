@@ -169,6 +169,12 @@
   color: var(--color-text-secondary);
 }
 
+.room-stage-entry-chip .room-stage-entry-icon {
+  width: var(--font-caption);
+  height: var(--font-caption);
+  color: inherit;
+}
+
 .room-stage-entry-chip[data-urgent] {
   color: var(--color-error);
 }

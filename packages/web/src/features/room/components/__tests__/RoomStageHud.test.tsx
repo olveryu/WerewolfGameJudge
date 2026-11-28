@@ -108,6 +108,26 @@ describe('RoomStageHud', () => {
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
+  it('draws an entry icon only when the entry asks for one, with the roster entry unchanged', () => {
+    const { unmount } = renderHud({
+      action: { label: '总排名', icon: 'trophy-outline', isOpen: false, onOpen: vi.fn() },
+    });
+    const entry = screen.getByRole('button', { name: '总排名' });
+    const roster = screen.getByTestId(TESTIDS.roomStageRosterChip);
+    const icon = entry.querySelector('.room-stage-entry-icon');
+    expect(icon).not.toBeNull();
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(entry.firstElementChild).toBe(icon);
+    expect(entry.className).toBe(roster.className);
+    expect(roster.querySelector('.room-stage-entry-icon')).toBeNull();
+
+    unmount();
+    renderHud({ action: { label: '总排名', isOpen: false, onOpen: vi.fn() } });
+    const plain = screen.getByRole('button', { name: '总排名' });
+    expect(plain.querySelector('.room-stage-entry-icon')).toBeNull();
+    expect(plain.querySelectorAll('svg')).toHaveLength(1);
+  });
+
   it('formats the countdown, turns red at ten seconds and draws the remaining share', () => {
     const { rerender } = renderHud({
       hud: { timer: { label: '作答', remainingSeconds: 76, totalSeconds: 152 } },

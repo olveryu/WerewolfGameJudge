@@ -172,6 +172,7 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
                 hud: screen.stageHud,
                 hudAction: {
                   label: '总排名',
+                  icon: 'trophy-outline',
                   isOpen: isRankingOpen,
                   onOpen: () => setIsRankingOpen(true),
                 },

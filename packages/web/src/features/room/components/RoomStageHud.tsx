@@ -9,6 +9,7 @@ import { type ReactElement, type ReactNode, useState } from 'react';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
+import { IonIcon, type IoniconName } from '@/components/icons/IonIcon';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import type { RoomCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
@@ -42,6 +43,8 @@ export interface RoomStageHudEntry {
   readonly label: string;
   readonly isOpen: boolean;
   readonly onOpen: () => void;
+  /** Optional leading glyph, drawn by the chip at caption size in the text colour. */
+  readonly icon?: IoniconName;
 }
 
 /** The one look for tappable HUD entries: caption text with a trailing chevron. */
@@ -53,6 +56,7 @@ function StageEntryChip({
   ariaLabel,
   testId,
   leading = null,
+  icon,
 }: {
   readonly label: string;
   readonly isOpen: boolean;
@@ -61,6 +65,7 @@ function StageEntryChip({
   readonly ariaLabel?: string;
   readonly testId?: string;
   readonly leading?: ReactNode;
+  readonly icon?: IoniconName;
 }) {
   return (
     <button
@@ -74,6 +79,7 @@ function StageEntryChip({
       data-testid={testId}
     >
       {leading}
+      {icon !== undefined && <IonIcon name={icon} className="room-stage-entry-icon" />}
       {label}
       <IconChevronForward aria-hidden />
     </button>
@@ -340,6 +346,7 @@ export function RoomStageHud({
                     label={action.label}
                     isOpen={action.isOpen}
                     onOpen={action.onOpen}
+                    icon={action.icon}
                   />
                 )}
               </div>
