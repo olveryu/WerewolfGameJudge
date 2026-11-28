@@ -29,11 +29,6 @@
   line-height: var(--line-secondary);
 }
 
-.pictionary-task-frame .room-task-frame-footer {
-  padding-top: var(--space-small);
-  border-top: var(--border-width) solid var(--color-border);
-}
-
 /* Fits a canonical 4:3 child into the remaining body height without cropping. */
 .pictionary-task-media {
   display: flex;
@@ -119,10 +114,6 @@
 
 .pictionary-answer-input::placeholder {
   color: var(--color-text-muted);
-}
-
-.pictionary-answer-row > .button {
-  flex: 0 0 auto;
 }
 
 /* The text to draw: one compact card so the canvas keeps the remaining height. */
@@ -303,12 +294,11 @@
   object-fit: contain;
 }
 
-.pictionary-fullscreen .pictionary-fullscreen-close {
+.pictionary-fullscreen-close {
   position: absolute;
   top: max(var(--space-medium), env(safe-area-inset-top));
   right: var(--space-medium);
-  background: var(--color-overlay);
-  color: var(--color-text-inverse);
+  display: flex;
 }
 
 /* Gallery entries. */

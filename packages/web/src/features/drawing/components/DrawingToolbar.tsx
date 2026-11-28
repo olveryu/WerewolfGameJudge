@@ -194,7 +194,7 @@ function ColorPickerPanel({
 function colorPanelStyle(placement: ColorPanelPlacement): CSSProperties | undefined {
   if (placement.kind === 'sheet') return undefined;
   return {
-    left: `clamp(var(--space-small), ${placement.anchorLeft}px, calc(100vw - var(--drawing-color-popover-width) - var(--space-small)))`,
+    left: `clamp(var(--space-small), ${placement.anchorLeft}px, calc(100vw - var(--size-drawing-color-popover) - var(--space-small)))`,
     bottom: `calc(${window.innerHeight - placement.anchorTop}px + var(--space-small))`,
     maxHeight: `calc(${placement.anchorTop}px - env(safe-area-inset-top) - var(--space-medium))`,
   };

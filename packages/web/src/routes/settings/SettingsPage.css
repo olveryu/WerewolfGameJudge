@@ -52,7 +52,7 @@
 }
 
 .settings-avatar[data-framed='true'] {
-  --avatar-inset: 0px;
+  --avatar-inset: initial;
 }
 
 /* Above the scene layer, so the frame never covers the badge. */
@@ -115,7 +115,7 @@
 
 /* Stands where an avatar would: the avatar's own outline. */
 .settings-teaser-lock {
-  --avatar-inset: 0px;
+  --avatar-inset: initial;
 
   display: flex;
   align-items: center;

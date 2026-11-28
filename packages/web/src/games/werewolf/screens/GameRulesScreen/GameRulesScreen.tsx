@@ -107,7 +107,7 @@ export function GameRulesScreen({ session, params, onRulesChange, dialog }: Game
       <p className="game-settings-summary">板子 {params.roles.length} 人</p>
       <Button
         size="lg"
-        className="game-config-submit"
+        fullWidth
         onClick={submit}
         loading={isSubmitting}
         disabled={!isEditAvailable}

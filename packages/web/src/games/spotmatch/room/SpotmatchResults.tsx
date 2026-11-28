@@ -39,10 +39,12 @@ export function SpotmatchResults({
     });
   return (
     <section className="spotmatch-result" data-testid={TESTIDS.spotmatchResult}>
-      <RoomStagePanel className="spotmatch-result-winner">
-        <IconTrophyOutline className="spotmatch-result-trophy" aria-hidden />
-        <h2>{winner.displayName} 率先出完</h2>
-        <p>本局结束</p>
+      <RoomStagePanel>
+        <div className="spotmatch-result-winner">
+          <IconTrophyOutline className="spotmatch-result-trophy" aria-hidden />
+          <h2>{winner.displayName} 率先出完</h2>
+          <p>本局结束</p>
+        </div>
       </RoomStagePanel>
       <RoomRanking title="最终排名" rows={rows} />
       <p className="spotmatch-result-note">

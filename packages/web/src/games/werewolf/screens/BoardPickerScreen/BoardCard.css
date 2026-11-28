@@ -91,17 +91,15 @@
 }
 
 .board-card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   gap: var(--space-small);
   margin-top: var(--space-medium);
 }
 
+/* A single action (the guide link alone) stays at its own width in the middle. */
 .board-card-actions[data-centered='true'] {
+  display: flex;
   justify-content: center;
-}
-
-.board-card-select {
-  flex: 1;
 }

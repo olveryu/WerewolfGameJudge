@@ -191,8 +191,6 @@
 
 /* Colour panel: docked sheet below 600px, otherwise a popover above the colour button. */
 .drawing-color-panel {
-  --drawing-color-popover-width: 320px;
-
   position: absolute;
   display: flex;
   flex-direction: column;
@@ -205,7 +203,7 @@
 }
 
 .drawing-color-panel[data-placement='popover'] {
-  width: var(--drawing-color-popover-width);
+  width: var(--size-drawing-color-popover);
 }
 
 .drawing-color-panel[data-placement='sheet'] {

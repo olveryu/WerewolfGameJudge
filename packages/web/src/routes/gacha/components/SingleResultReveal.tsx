@@ -109,12 +109,9 @@ export function SingleResultReveal({
             }}
           >
             <ResidentSceneLayer hostRef={sceneHostRef} />
-            <IconButton
-              label="关闭"
-              icon={<IconClose aria-hidden />}
-              className="single-reveal-close"
-              onClick={onDismiss}
-            />
+            <span className="single-reveal-close">
+              <IconButton label="关闭" icon={<IconClose aria-hidden />} onClick={onDismiss} />
+            </span>
             <div ref={scrollRootRef} className="single-reveal-body">
               <span className="single-reveal-badge" data-top-tier={isTopTier}>
                 {visual.label}
@@ -146,9 +143,11 @@ export function SingleResultReveal({
               )}
             </div>
             {onGoEquip && (
-              <Button className="gacha-equip-button" onClick={onGoEquip}>
-                去装扮
-              </Button>
+              <div className="gacha-equip-action">
+                <Button fullWidth onClick={onGoEquip}>
+                  去装扮
+                </Button>
+              </div>
             )}
           </AppDialog.Content>
         </AppDialog.Positioner>

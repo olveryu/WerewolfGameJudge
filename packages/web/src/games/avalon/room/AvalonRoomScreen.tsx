@@ -2,8 +2,6 @@
  * 阿瓦隆房间：按权威阶段渲染大厅（座位表）、晚上、组队、投票、出牌、湖仙、刺杀与终局。
  */
 
-import './AvalonRoomScreen.css';
-
 import {
   type AvalonState,
   getAvalonOccupiedSeatCount,
@@ -319,8 +317,7 @@ function AvalonRoomContent(
       leadingExtraActions={
         screen.isHost && isNight ? (
           <IconButton
-            className="avalon-bgm-toggle"
-            data-playing={screen.bgm.isBgmPlaying}
+            active={screen.bgm.isBgmPlaying}
             label={screen.bgm.isBgmPlaying ? '暂停音乐' : '播放音乐'}
             icon={
               screen.bgm.isBgmPlaying ? <IconPause aria-hidden /> : <IconMusicalNotes aria-hidden />

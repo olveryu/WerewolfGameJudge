@@ -208,13 +208,3 @@
   content: '•';
   color: var(--color-text-muted);
 }
-
-.role-card-confirm {
-  width: 100%;
-}
-
-.button.role-card-confirm[data-alignment]:not(:disabled, [aria-disabled='true']) {
-  --tabletop-key-edge: var(--faction-color);
-
-  background: var(--faction-color);
-}

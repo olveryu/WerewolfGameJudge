@@ -143,7 +143,7 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
     <PageSwitcherContext.Provider value={switcher}>
       <div className="admin-workspace" ref={workspace}>
         <div className="admin-workspace-header" ref={header}>
-          <ScreenHeader title="管理后台" onBack={onBack}>
+          <ScreenHeader title="管理后台" onBack={onBack} tone="admin">
             <button
               type="button"
               className="admin-icon-button"

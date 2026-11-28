@@ -116,7 +116,6 @@ export function BoardCard({
               <Button
                 variant="primary"
                 size="sm"
-                className="board-card-select"
                 data-testid={TESTIDS.boardCardSelectButton(template.name)}
                 onClick={() => onSelect(template.name)}
               >

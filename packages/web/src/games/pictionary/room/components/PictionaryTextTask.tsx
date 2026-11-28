@@ -147,7 +147,6 @@ export function PictionaryTextTask({
       header={null}
       maxWidth={PICTIONARY_STAGE_MAX_WIDTH}
       testId={TESTIDS.pictionaryStageFrame}
-      className="pictionary-task-frame"
       footer={
         <form
           className="pictionary-answer-row"

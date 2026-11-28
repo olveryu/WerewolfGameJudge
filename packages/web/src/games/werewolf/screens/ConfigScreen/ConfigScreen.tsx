@@ -199,7 +199,7 @@ export function ConfigScreen({
       <p className="game-settings-summary">已选 {state.totalCount} 人</p>
       <Button
         size="lg"
-        className="game-config-submit"
+        fullWidth
         onClick={state.handleContinue}
         loading={state.isSubmitting}
         disabled={

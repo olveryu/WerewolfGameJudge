@@ -161,11 +161,8 @@
 }
 
 .mvp-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-small);
-}
-
-.mvp-confirm {
-  flex: 1;
 }

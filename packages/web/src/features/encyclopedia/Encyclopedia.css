@@ -76,11 +76,6 @@
   gap: var(--space-small);
 }
 
-.encyclopedia-header-button[data-active='true'] {
-  background: var(--color-primary-a15);
-  color: var(--color-primary);
-}
-
 .encyclopedia-tabs {
   display: flex;
   flex: 1;
@@ -515,9 +510,4 @@
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-semibold);
-}
-
-.button.encyclopedia-detail-confirm[data-variant] {
-  flex-shrink: 0;
-  background: var(--key-color);
 }

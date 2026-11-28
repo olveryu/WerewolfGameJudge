@@ -9,14 +9,26 @@ import IconClose from '~icons/ion/close';
 
 interface CenterDialogProps {
   open: boolean;
-  /** Called when the user dismisses with Escape or the backdrop. */
-  onClose: () => void;
-  title: string;
+  /**
+   * Called when the user dismisses with Escape or the backdrop. `null`: the app closes the dialog
+   * itself (a settlement panel that advances on its own), so the user cannot dismiss it.
+   */
+  onClose: (() => void) | null;
+  /** Dialog heading; also its accessible name. */
+  title: ReactNode;
+  /** Keeps the heading for assistive technology only (the content shows its own name). */
+  titleHidden?: boolean;
+  /** Shown above the heading (a banner image, an eyebrow line). */
+  beforeTitle?: ReactNode;
+  /**
+   * `regular`: padded content. `compact`: tighter gaps. `flush`: a card that draws to the
+   * dialog's edges itself (no padding or gaps, profile-card width).
+   */
+  density?: 'regular' | 'compact' | 'flush';
   subtitle?: string;
   testId?: string;
   titleTestId?: string;
   closeButtonLabel?: string;
-  className?: string;
   children: ReactNode;
   requireConfirmation?: boolean;
 }
@@ -30,17 +42,20 @@ export function CenterDialog({
   testId,
   titleTestId,
   closeButtonLabel,
-  className,
+  titleHidden = false,
+  beforeTitle,
+  density = 'regular',
   children,
   requireConfirmation = false,
 }: CenterDialogProps) {
+  const isDismissible = onClose !== null && !requireConfirmation;
   return (
     <AppDialog.Root
       open={open}
-      closeOnEscape={!requireConfirmation}
-      closeOnInteractOutside={!requireConfirmation}
+      closeOnEscape={isDismissible}
+      closeOnInteractOutside={isDismissible}
       onOpenChange={(details) => {
-        if (!details.open && !requireConfirmation) onClose();
+        if (!details.open && isDismissible) onClose();
       }}
       lazyMount
       unmountOnExit
@@ -49,19 +64,27 @@ export function CenterDialog({
         <AppDialog.Backdrop className="center-dialog-backdrop" />
         <AppDialog.Positioner className="center-dialog-positioner">
           <AppDialog.Content
-            className={['center-dialog', className].filter(Boolean).join(' ')}
-            data-has-close-button={closeButtonLabel !== undefined}
+            className="center-dialog"
+            data-density={density}
+            data-has-close-button={closeButtonLabel !== undefined && onClose !== null}
             data-testid={testId}
           >
-            {closeButtonLabel !== undefined && (
-              <IconButton
-                className="center-dialog-close"
-                label={closeButtonLabel}
-                icon={<IconClose aria-hidden />}
-                onClick={onClose}
-              />
+            {closeButtonLabel !== undefined && onClose !== null && (
+              <span className="center-dialog-close">
+                <IconButton
+                  label={closeButtonLabel}
+                  icon={<IconClose aria-hidden />}
+                  onClick={onClose}
+                />
+              </span>
             )}
-            <AppDialog.Title className="center-dialog-title" data-testid={titleTestId}>
+            {beforeTitle}
+            <AppDialog.Title
+              className={
+                titleHidden ? 'center-dialog-title visually-hidden' : 'center-dialog-title'
+              }
+              data-testid={titleTestId}
+            >
               {title}
             </AppDialog.Title>
             {subtitle && (

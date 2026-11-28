@@ -24,8 +24,8 @@ interface RoomTaskFrameProps {
   /** Width cap (px) declared by the game. */
   readonly maxWidth: number;
   readonly testId?: string;
-  /** Geometry-only class for the task column (for example a wider horizontal padding). */
-  readonly className?: string;
+  /** `wide`: a wider side inset for text-first tasks (long typed passages). */
+  readonly inset?: 'regular' | 'wide';
 }
 
 /** Returns the height (px) of `element` hidden below the visual viewport, 0 when none. */
@@ -62,7 +62,7 @@ export function RoomTaskFrame({
   footer,
   maxWidth,
   testId,
-  className,
+  inset = 'regular',
 }: RoomTaskFrameProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const keyboardInset = useKeyboardInset(viewportRef);
@@ -70,8 +70,9 @@ export function RoomTaskFrame({
     <div ref={viewportRef} className="room-task-viewport">
       <div className="room-task-viewport-inner" style={{ paddingBottom: keyboardInset }}>
         <div
-          className={['room-task-frame', className].filter(Boolean).join(' ')}
+          className="room-task-frame"
           style={{ maxWidth }}
+          data-inset={inset}
           data-testid={testId}
         >
           {header}

@@ -54,25 +54,27 @@ function TeamMember({
         )}
       </div>
       {screen.isHost && (
-        <IconButton
-          className="decrypto-team-move"
-          label={`将 ${player.displayName} 移到另一队`}
-          icon={<IconSwapHorizontal aria-hidden />}
-          disabled={screen.isSubmitting}
-          aria-disabled={!canMove || undefined}
-          aria-describedby={!canMove ? moveNoticeId : undefined}
-          onClick={() => {
-            if (!canMove) {
-              setShowMoveNotice(true);
-            } else {
-              void screen.submit(
-                '切换队伍',
-                { type: 'decrypto.teams.move', seat: player.seat },
-                { actionKey: `team:${player.seat}` },
-              );
-            }
-          }}
-        />
+        <span className="decrypto-team-move">
+          <IconButton
+            variant="plain"
+            label={`将 ${player.displayName} 移到另一队`}
+            icon={<IconSwapHorizontal aria-hidden />}
+            disabled={screen.isSubmitting}
+            aria-disabled={!canMove || undefined}
+            aria-describedby={!canMove ? moveNoticeId : undefined}
+            onClick={() => {
+              if (!canMove) {
+                setShowMoveNotice(true);
+              } else {
+                void screen.submit(
+                  '切换队伍',
+                  { type: 'decrypto.teams.move', seat: player.seat },
+                  { actionKey: `team:${player.seat}` },
+                );
+              }
+            }}
+          />
+        </span>
       )}
       {!player.isBot && (
         <p className="decrypto-full-name" id={nameId} hidden={!expanded}>

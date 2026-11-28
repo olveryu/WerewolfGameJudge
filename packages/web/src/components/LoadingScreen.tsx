@@ -30,7 +30,9 @@ export function LoadingScreen({
           <p className="loading-screen-message" role="status">
             {message}
           </p>
-          <IndeterminateProgressBar className="loading-screen-progress" />
+          <div className="loading-screen-progress">
+            <IndeterminateProgressBar />
+          </div>
         </>
       ) : (
         <>

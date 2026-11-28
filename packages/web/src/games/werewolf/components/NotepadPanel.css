@@ -198,10 +198,3 @@ button.notepad-hand-tag:active {
     transform: translateY(calc(-1 * var(--space-micro)));
   }
 }
-
-.icon-button.notepad-role-clear {
-  border-radius: var(--radius-control);
-  background: var(--color-background);
-  color: var(--color-error);
-  font-size: var(--font-body);
-}

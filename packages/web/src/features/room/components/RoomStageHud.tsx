@@ -260,41 +260,44 @@ export function RoomStageHud({
       </button>
     );
   return (
-    <RoomStagePanel
+    <div
       className="room-stage-hud"
-      tone={tone}
       data-expanded={hasSecondaryRow || undefined}
       data-roster-placement={hud.rosterPlacement}
       data-embedded={embedded || undefined}
       data-inline-context={context !== null || undefined}
       data-testid={TESTIDS.roomStageHud}
     >
-      <div className="room-stage-hud-row">
-        {hud.chips.slice(0, 1).map((chip) => (
-          <StageChip key={chip.key} chip={chip} />
-        ))}
-        <div className="room-stage-hud-context">
-          {context}
-          {hud.chips.slice(1).map((chip) => (
-            <StageChip key={chip.key} chip={chip} />
-          ))}
-        </div>
-        {(!hasSecondaryRow || hud.rosterPlacement === 'primary') && rosterButton}
-        {hud.timer !== null && <TimerChip timer={hud.timer} />}
-      </div>
-      <TimerBar timer={hud.timer} />
-      {hasSecondaryRow && (
-        <div className="room-stage-hud-details">
-          {hud.rosterPlacement !== 'primary' && rosterButton}
-          {controlledSeat !== null && <ControlledSeatChip model={controlledSeat} />}
-          <div className="room-stage-hud-summary">
-            {hud.secondaryChips.map((chip) => (
+      <RoomStagePanel tone={tone} density="compact">
+        <div className="room-stage-hud-body">
+          <div className="room-stage-hud-row">
+            {hud.chips.slice(0, 1).map((chip) => (
               <StageChip key={chip.key} chip={chip} />
             ))}
-            {action}
+            <div className="room-stage-hud-context">
+              {context}
+              {hud.chips.slice(1).map((chip) => (
+                <StageChip key={chip.key} chip={chip} />
+              ))}
+            </div>
+            {(!hasSecondaryRow || hud.rosterPlacement === 'primary') && rosterButton}
+            {hud.timer !== null && <TimerChip timer={hud.timer} />}
           </div>
+          <TimerBar timer={hud.timer} />
+          {hasSecondaryRow && (
+            <div className="room-stage-hud-details">
+              {hud.rosterPlacement !== 'primary' && rosterButton}
+              {controlledSeat !== null && <ControlledSeatChip model={controlledSeat} />}
+              <div className="room-stage-hud-summary">
+                {hud.secondaryChips.map((chip) => (
+                  <StageChip key={chip.key} chip={chip} />
+                ))}
+                {action}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </RoomStagePanel>
       {isRosterOpen && roster !== null && (
         <RosterSheet
           roster={roster}
@@ -304,6 +307,6 @@ export function RoomStageHud({
           onClose={() => setIsRosterOpen(false)}
         />
       )}
-    </RoomStagePanel>
+    </div>
   );
 }

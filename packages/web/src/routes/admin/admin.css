@@ -44,14 +44,14 @@
 .admin-console a:hover {
   text-decoration: underline;
 }
-.admin-console button:where(:not(.maintenance-moon, .screen-header-back)),
+.admin-console button:where(:not(.maintenance-moon, .icon-button)),
 .admin-console input,
 .admin-console select,
 .admin-console textarea {
   font: inherit;
   color: inherit;
 }
-.admin-console button:where(:not(.maintenance-moon, .screen-header-back)),
+.admin-console button:where(:not(.maintenance-moon, .icon-button)),
 .admin-console select,
 .admin-console input,
 .admin-console textarea {
@@ -60,7 +60,7 @@
   background: var(--admin-panel);
   padding: var(--space-small) var(--space-medium);
 }
-.admin-console button:where(:not(.maintenance-moon, .screen-header-back)) {
+.admin-console button:where(:not(.maintenance-moon, .icon-button)) {
   min-width: 0;
   max-width: 100%;
   white-space: normal;
@@ -77,7 +77,7 @@
 .admin-console
   button:not(
     .maintenance-moon,
-    .screen-header-back,
+    .icon-button,
     .admin-section-tab,
     .admin-sort-button,
     .admin-stat-value,
@@ -86,7 +86,7 @@
   ) {
   background-image: var(--surface-button-texture);
 }
-.admin-console button:hover:not(:disabled, .screen-header-back) {
+.admin-console button:hover:not(:disabled, .icon-button) {
   background: var(--admin-subtle);
   border-color: var(--admin-muted);
 }
@@ -100,7 +100,7 @@
   button:not(
     :disabled,
     .maintenance-moon,
-    .screen-header-back,
+    .icon-button,
     .admin-section-tab,
     .admin-sort-button,
     .admin-stat-value,
@@ -114,7 +114,7 @@
   button:not(
     :disabled,
     .maintenance-moon,
-    .screen-header-back,
+    .icon-button,
     .admin-section-tab,
     .admin-sort-button,
     .admin-stat-value,
@@ -136,15 +136,6 @@
 .admin-console [role='menuitem']:focus-visible {
   outline: var(--border-width-thick) solid var(--admin-accent);
   outline-offset: 3px;
-}
-.admin-console .screen-header {
-  z-index: var(--layer-sticky-bar);
-  background: var(--color-surface);
-}
-.admin-console .screen-header-title {
-  font-size: var(--font-title);
-  line-height: var(--line-title);
-  color: var(--color-text);
 }
 .admin-console input,
 .admin-console select {
@@ -964,7 +955,7 @@
   font-size: var(--font-caption-small);
 }
 .admin-avatar {
-  --avatar-inset: 0px;
+  --avatar-inset: initial;
 
   display: grid;
   place-items: center;

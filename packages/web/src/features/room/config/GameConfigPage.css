@@ -20,7 +20,3 @@
   border-top: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
 }
-
-.game-config-submit {
-  width: 100%;
-}

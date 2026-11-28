@@ -8,18 +8,9 @@ import type { InputHTMLAttributes } from 'react';
  */
 export function Switch({
   tone = 'primary',
-  className,
   ...rest
-}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'role'> & {
+}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'role' | 'className' | 'style'> & {
   tone?: 'primary' | 'warning';
 }) {
-  return (
-    <input
-      {...rest}
-      type="checkbox"
-      role="switch"
-      className={['switch', className].filter(Boolean).join(' ')}
-      data-tone={tone}
-    />
-  );
+  return <input {...rest} type="checkbox" role="switch" className="switch" data-tone={tone} />;
 }

@@ -111,7 +111,7 @@ function createGameConfigScreen<
         {summaryText !== null && <p className="game-settings-summary">{summaryText}</p>}
         <Button
           size="lg"
-          className="game-config-submit"
+          fullWidth
           disabled={!state.canSubmit}
           loading={state.isSubmitting}
           onClick={state.submit}

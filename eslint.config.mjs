@@ -150,23 +150,35 @@ function restrictedImports({ adapted = null, avatarModule = false } = {}) {
           message: 'Only createRoot: React DOM resource APIs insert <link>/<script> into the page.',
         },
       ],
-      patterns: avatarModule
-        ? []
-        : [
-            {
-              group: ['**/assets/avatars/**'],
-              message: 'Avatars reach the page only through <Avatar>.',
-            },
-            {
-              group: ['**/avatar/avatarSources'],
-              importNames: [
-                'getHandDrawnPortraitUrl',
-                'resolveAvatarSource',
-                'HAND_DRAWN_PORTRAITS',
-              ],
-              message: 'Avatars reach the page only through <Avatar>.',
-            },
+      patterns: [
+        {
+          // A shared component's sheet belongs to that component: render the component instead of
+          // borrowing its skin. The two surface sheets have no component; they are the skin.
+          group: [
+            '@/components/*.css',
+            '!@/components/PaperboardPanel.css',
+            '!@/components/HeaderSurface.css',
           ],
+          message: "A component's stylesheet is styled through that component; render it instead.",
+        },
+        ...(avatarModule
+          ? []
+          : [
+              {
+                group: ['**/assets/avatars/**'],
+                message: 'Avatars reach the page only through <Avatar>.',
+              },
+              {
+                group: ['**/avatar/avatarSources'],
+                importNames: [
+                  'getHandDrawnPortraitUrl',
+                  'resolveAvatarSource',
+                  'HAND_DRAWN_PORTRAITS',
+                ],
+                message: 'Avatars reach the page only through <Avatar>.',
+              },
+            ]),
+      ],
     },
   ];
 }

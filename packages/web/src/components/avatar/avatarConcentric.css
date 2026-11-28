@@ -3,10 +3,17 @@
  * how far inside the box's border edge the avatar starts (border plus padding; 0 when the box is
  * the avatar's own outline). For a box of side S the avatar's side is S - 2i, so its corner is
  * r(S - 2i); adding the inset back gives r * 100% + (1 - 2r) * i.
+ *
+ * Registered as a length so `--avatar-inset: initial` is the box that is the avatar's own outline.
  */
+@property --avatar-inset {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
 .avatar-concentric {
   border-radius: calc(
-    var(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) *
-      var(--avatar-inset, 0px)
+    var(--avatar-corner-ratio) * 100% + (1 - 2 * var(--avatar-corner-ratio)) * var(--avatar-inset)
   );
 }

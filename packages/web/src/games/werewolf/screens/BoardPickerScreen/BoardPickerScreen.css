@@ -10,10 +10,6 @@
   display: inline-flex;
 }
 
-.board-picker-filter-button .icon-button[data-active='true'] {
-  color: var(--color-primary);
-}
-
 .board-picker-filter-badge {
   position: absolute;
   top: var(--space-tight);

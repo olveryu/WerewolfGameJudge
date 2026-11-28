@@ -109,14 +109,12 @@ export function WerewolfEncyclopedia({
       <IconButton
         label="标签筛选"
         icon={<IconFilter aria-hidden />}
-        className="encyclopedia-header-button"
-        data-active={boardsTagFilter !== null}
+        active={boardsTagFilter !== null}
         onClick={() => setBoardsTagFilterVisible(true)}
       />
       <IconButton
         label="搜索板子"
         icon={boardsSearchVisible ? <IconClose aria-hidden /> : <IconSearch aria-hidden />}
-        className="encyclopedia-header-button"
         onClick={toggleBoardsSearch}
       />
     </>

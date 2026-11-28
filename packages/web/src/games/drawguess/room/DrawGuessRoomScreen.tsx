@@ -396,7 +396,6 @@ function DrawGuessDrawingView({
 
   return (
     <RoomTaskFrame
-      className="drawguess-task-frame"
       maxWidth={isWideLayout ? DRAWGUESS_WIDE_STAGE_MAX_WIDTH : DRAWGUESS_STAGE_MAX_WIDTH}
       header={<DrawGuessSettleRescue screen={screen} />}
       footer={

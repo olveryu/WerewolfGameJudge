@@ -1,9 +1,10 @@
 .indeterminate-progress {
   display: block;
+  width: 100%;
   height: var(--space-micro);
   overflow: hidden;
   border-radius: var(--radius-pill);
-  background: var(--progress-track, var(--color-border));
+  background: var(--color-border);
 }
 
 .indeterminate-progress-bar {
@@ -11,7 +12,15 @@
   width: 30%;
   height: 100%;
   border-radius: inherit;
-  background: var(--progress-bar, var(--color-primary));
+  background: var(--color-primary);
+}
+
+.indeterminate-progress[data-tone='error'] {
+  background: transparent;
+}
+
+.indeterminate-progress[data-tone='error'] > .indeterminate-progress-bar {
+  background: var(--color-error-a50);
 }
 
 @media (prefers-reduced-motion: no-preference) {

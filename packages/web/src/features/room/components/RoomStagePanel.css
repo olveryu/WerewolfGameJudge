@@ -10,3 +10,14 @@
   background-color: var(--color-error-a12);
   color: var(--color-error);
 }
+.room-stage-panel[data-tone='primary'] {
+  background-color: var(--color-primary-a8);
+  color: var(--color-primary);
+}
+.room-stage-panel[data-tone='host'] {
+  background-color: var(--color-hand-host-paper);
+  color: var(--color-hand-host-ink);
+}
+.room-stage-panel[data-density='compact'] {
+  padding: 0 var(--space-small);
+}

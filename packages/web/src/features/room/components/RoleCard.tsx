@@ -179,8 +179,8 @@ export function RoleCardDialog({
             </div>
             {footer}
             <Button
-              className="role-card-confirm"
-              data-alignment={role.alignment}
+              tone={role.alignment}
+              fullWidth
               onClick={onClose}
               loading={confirmLoading}
               disabled={confirmDisabled}

@@ -12,7 +12,3 @@
   font-weight: var(--weight-semibold);
   cursor: pointer;
 }
-
-.werewolf-bgm-toggle[data-playing='true'] {
-  color: var(--color-primary);
-}

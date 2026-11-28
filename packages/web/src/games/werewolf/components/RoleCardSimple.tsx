@@ -99,8 +99,8 @@ export function RoleCardSimple({
           )}
           {onBoardAction !== undefined && (
             <Button
-              className="role-card-confirm"
-              data-alignment={role.alignment}
+              tone={role.alignment}
+              fullWidth
               onClick={onBoardAction}
               data-testid={TESTIDS.configRoleBoardAction}
             >

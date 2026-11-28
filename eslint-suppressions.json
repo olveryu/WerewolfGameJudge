@@ -179,7 +179,7 @@
   },
   "packages/web/src/features/room/components/RoleCard.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/features/room/components/RoleRevealEffects/RevealEffectStage.tsx": {
@@ -380,12 +380,12 @@
   },
   "packages/web/src/features/room/components/RoomAudioResumeDialog.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/features/room/components/RoomDialog.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     },
     "no-restricted-syntax": {
       "count": 1
@@ -443,7 +443,7 @@
   },
   "packages/web/src/features/room/review/components/RoomReviewProgressModal.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/features/room/review/useRoomReviewExport.ts": {
@@ -458,16 +458,11 @@
   },
   "packages/web/src/games/avalon/room/components/AvalonAlertDialog.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/games/avalon/room/components/AvalonRecordProposal.tsx": {
     "no-restricted-syntax": {
-      "count": 1
-    }
-  },
-  "packages/web/src/games/avalon/room/components/AvalonResultDialog.tsx": {
-    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -477,6 +472,11 @@
     }
   },
   "packages/web/src/games/decrypto/room/DecryptoStage.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/drawguess/screens/DrawGuessConfigEstimate.tsx": {
     "no-restricted-imports": {
       "count": 1
     }
@@ -531,17 +531,17 @@
   },
   "packages/web/src/games/werewolf/room/components/BoardNominationList.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/games/werewolf/room/components/MvpSelectionModal.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/games/werewolf/room/components/ShareReviewModal.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/games/werewolf/room/components/SheriffElectionReadOnly.tsx": {
@@ -551,12 +551,12 @@
   },
   "packages/web/src/games/werewolf/room/components/WerewolfRoleCardModal.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/games/werewolf/screens/ConfigScreen/ConfigScreen.tsx": {
     "no-restricted-imports": {
-      "count": 1
+      "count": 2
     }
   },
   "packages/web/src/games/werewolf/screens/ConfigScreen/components/FactionTabs.tsx": {
@@ -565,6 +565,11 @@
     }
   },
   "packages/web/src/games/werewolf/screens/ConfigScreen/useConfigScreenState.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "packages/web/src/games/werewolf/screens/GameRulesScreen/GameRulesScreen.tsx": {
     "no-restricted-imports": {
       "count": 1
     }
@@ -666,7 +671,7 @@
   },
   "packages/web/src/routes/home/AnnouncementModal.tsx": {
     "no-restricted-imports": {
-      "count": 2
+      "count": 3
     }
   },
   "packages/web/src/routes/settings/SettingsPage.tsx": {

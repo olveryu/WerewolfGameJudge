@@ -47,8 +47,10 @@ function levelTier(level: number): string {
 }
 
 function SeatActions({ model }: { readonly model: RoomProfileCardModel }) {
+  const hasAction = model.isSelf ? model.onLeaveSeat !== null : model.onKick !== null;
+  if (!hasAction) return null;
   return (
-    <>
+    <div className="profile-seat-actions">
       {model.isSelf && model.onLeaveSeat !== null && (
         <Button
           variant="soft"
@@ -67,7 +69,7 @@ function SeatActions({ model }: { readonly model: RoomProfileCardModel }) {
           移出座位
         </Button>
       )}
-    </>
+    </div>
   );
 }
 
@@ -238,8 +240,9 @@ export function PlayerProfileCard({
       open
       onClose={model.onClose}
       title={profileName}
+      titleHidden
+      density="flush"
       closeButtonLabel="关闭玩家资料"
-      className="player-profile-dialog"
       testId={TESTIDS.playerProfileCard}
     >
       <div className="profile-card">{body}</div>

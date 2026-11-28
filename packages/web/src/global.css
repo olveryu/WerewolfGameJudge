@@ -91,22 +91,6 @@ button {
   white-space: nowrap;
 }
 
-.spinner {
-  display: inline-block;
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  border: var(--border-width-thick) solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: var(--radius-round);
-  animation: spinner-turn 800ms linear infinite;
-}
-
-@keyframes spinner-turn {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

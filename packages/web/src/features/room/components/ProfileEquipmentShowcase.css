@@ -29,7 +29,7 @@
  * shared concentric rule like the avatar; an empty slot dashes it.
  */
 .profile-equip-preview {
-  --avatar-inset: 0px;
+  --avatar-inset: initial;
 
   display: flex;
   align-items: center;

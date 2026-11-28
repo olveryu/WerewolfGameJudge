@@ -284,37 +284,39 @@ export function DecryptoRoundBoard({
   const waitingForPrivateAction =
     screen.isTakeoverLoading && (game.step === 'encrypt' || game.step === 'guess');
   return (
-    <RoomStagePanel className="decrypto-current">
-      <h3>{team === 'blue' ? '蓝队' : '紫队'}本轮线索</h3>
-      {waitingForPrivateAction && <p>正在读取接管席位的游戏信息…</p>}
-      <fieldset
-        className="decrypto-action-fields"
-        hidden={waitingForPrivateAction}
-        disabled={screen.isTakeoverLoading}
-      >
-        {game.step === 'encrypt' ? (
-          <ClueEntry screen={screen} game={game} team={team} />
-        ) : game.step === 'guess' ? (
-          <GuessEntry screen={screen} game={game} team={team} />
-        ) : (
-          <RevealedAnswers game={game} team={team} />
-        )}
-      </fieldset>
-      {game.step === 'continue' && game.outcome === null && game.round < 8 && screen.isHost && (
-        <Button
-          data-testid={TESTIDS.decryptoContinue}
-          disabled={screen.isSubmitting}
-          onClick={() =>
-            void screen.submit(
-              '进入下一轮',
-              { type: 'decrypto.reveal.continue', gameSequence: screen.state.gameSequence },
-              { actionKey: 'round-continue' },
-            )
-          }
+    <RoomStagePanel>
+      <div className="decrypto-current">
+        <h3>{team === 'blue' ? '蓝队' : '紫队'}本轮线索</h3>
+        {waitingForPrivateAction && <p>正在读取接管席位的游戏信息…</p>}
+        <fieldset
+          className="decrypto-action-fields"
+          hidden={waitingForPrivateAction}
+          disabled={screen.isTakeoverLoading}
         >
-          进入下一轮
-        </Button>
-      )}
+          {game.step === 'encrypt' ? (
+            <ClueEntry screen={screen} game={game} team={team} />
+          ) : game.step === 'guess' ? (
+            <GuessEntry screen={screen} game={game} team={team} />
+          ) : (
+            <RevealedAnswers game={game} team={team} />
+          )}
+        </fieldset>
+        {game.step === 'continue' && game.outcome === null && game.round < 8 && screen.isHost && (
+          <Button
+            data-testid={TESTIDS.decryptoContinue}
+            disabled={screen.isSubmitting}
+            onClick={() =>
+              void screen.submit(
+                '进入下一轮',
+                { type: 'decrypto.reveal.continue', gameSequence: screen.state.gameSequence },
+                { actionKey: 'round-continue' },
+              )
+            }
+          >
+            进入下一轮
+          </Button>
+        )}
+      </div>
     </RoomStagePanel>
   );
 }

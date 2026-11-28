@@ -191,7 +191,8 @@ export function UiGallery() {
           <Spinner label="加载中" />
           <Spinner label="加载中" size="lg" />
         </div>
-        <IndeterminateProgressBar className="ui-gallery-progress" />
+        <IndeterminateProgressBar />
+        <IndeterminateProgressBar tone="error" />
       </section>
 
       <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('num-pad')}>

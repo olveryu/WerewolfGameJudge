@@ -112,20 +112,10 @@
   font-weight: var(--weight-bold);
 }
 .decrypto-private-code {
-  --password-accent: var(--color-primary);
-  --password-tint: var(--color-primary-a8);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-medium);
-  padding: var(--space-small) var(--space-medium);
-  border-inline-start: var(--border-width-highlight) solid var(--password-accent);
-  background-color: var(--password-tint);
-  color: var(--password-accent);
-}
-.decrypto-private-code[data-team='purple'] {
-  --password-accent: var(--color-hand-host-ink);
-  --password-tint: var(--color-hand-host-paper);
 }
 .decrypto-private-code h3 {
   font-size: var(--font-title);
@@ -494,7 +484,9 @@
   font-weight: var(--weight-bold);
 }
 .decrypto-preparing {
-  margin: var(--space-medium);
+  padding: var(--space-medium);
+}
+.decrypto-preparing-body {
   display: grid;
   gap: var(--space-medium);
 }
@@ -667,20 +659,9 @@ button.decrypto-player-name {
   font-size: var(--font-secondary);
   font-weight: var(--weight-bold);
 }
-.decrypto-player-row .decrypto-team-move {
-  border: 0;
-  border-radius: var(--radius-inset);
-  background: transparent;
+.decrypto-team-move {
+  display: flex;
   color: var(--team-accent);
-  box-shadow: none;
-}
-.decrypto-player-row .decrypto-team-move:is([aria-disabled='true'], :disabled) {
-  color: var(--color-text-muted);
-  opacity: var(--opacity-disabled);
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-  cursor: default;
 }
 .decrypto-notice {
   margin: 0;

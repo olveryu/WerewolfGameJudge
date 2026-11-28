@@ -109,7 +109,6 @@ export function WerewolfNotepad({
       <IconButton
         label="清除笔记"
         icon={<IconTrashOutline aria-hidden />}
-        className="notepad-header-button"
         onClick={notepad.clearAll}
       />
     </>

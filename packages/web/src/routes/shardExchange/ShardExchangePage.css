@@ -130,14 +130,6 @@
   line-height: var(--line-caption-small);
 }
 
-.shard-cell-exchange {
-  width: 100%;
-  min-height: var(--size-min-touch-target);
-  padding-inline: var(--space-tight);
-  font-size: var(--font-caption-small);
-  line-height: var(--line-caption-small);
-}
-
 .shard-cell-exchange-icon {
   color: var(--color-warning);
 }

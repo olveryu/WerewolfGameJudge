@@ -98,7 +98,7 @@ export function AdminPage() {
         <AdminShell onBack={goBack} />
       ) : (
         <>
-          <ScreenHeader title="管理后台" onBack={goBack} />
+          <ScreenHeader title="管理后台" onBack={goBack} tone="admin" />
           <main className="admin-login" data-testid={TESTIDS.adminLoginScreen}>
             <form className="admin-login-panel" onSubmit={(event) => void submit(event)}>
               <div className="admin-brand-mark">

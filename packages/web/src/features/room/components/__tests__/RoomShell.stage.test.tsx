@@ -627,8 +627,9 @@ describe('RoomShell stage content', () => {
     const panel = screen.getByRole('region', { name: '信息与反馈' });
     expect(screen.getAllByTestId(TESTIDS.roomStageHud)).toHaveLength(1);
     expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-embedded');
-    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveClass('room-stage-panel');
-    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-tone', 'success');
+    const hudSurface = within(panel).getByTestId(TESTIDS.roomStageHud).firstElementChild;
+    expect(hudSurface).toHaveClass('room-stage-panel');
+    expect(hudSurface).toHaveAttribute('data-tone', 'success');
     expect(panel.querySelectorAll('.room-stage-panel')).toHaveLength(1);
     await user.click(within(panel).getByTestId(TESTIDS.roomStageRosterChip));
     expect(screen.getByTestId(TESTIDS.roomStageRosterSheet)).toBeInTheDocument();

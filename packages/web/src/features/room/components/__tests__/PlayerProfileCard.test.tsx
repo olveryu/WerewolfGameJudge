@@ -124,7 +124,7 @@ it('shows a close button and keeps it available on a bounded dialog', async () =
   renderCard(onClose);
 
   const dialog = screen.getByTestId(TESTIDS.playerProfileCard);
-  expect(dialog).toHaveClass('player-profile-dialog');
+  expect(dialog).toHaveAttribute('data-density', 'flush');
   expect(screen.getByRole('button', { name: '关闭玩家资料' })).toBeInTheDocument();
 
   await userEvent.click(screen.getByRole('button', { name: '关闭玩家资料' }));

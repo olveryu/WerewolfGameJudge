@@ -133,7 +133,7 @@ function RolePickerDialog({
         <IconButton
           label="清除角色"
           icon={<IconCloseCircleOutline aria-hidden />}
-          className="notepad-role-clear"
+          size="sm"
           onClick={() => onSelect(seat, null)}
         />
       </div>

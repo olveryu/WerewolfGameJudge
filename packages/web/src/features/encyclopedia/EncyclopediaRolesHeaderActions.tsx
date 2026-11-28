@@ -26,15 +26,13 @@ export function EncyclopediaRolesHeaderActions({
         <IconButton
           label="能力筛选"
           icon={<IconFilter aria-hidden />}
-          className="encyclopedia-header-button"
-          data-active={state.activeTag !== null}
+          active={state.activeTag !== null}
           onClick={() => state.setTagDropdownVisible(true)}
         />
       )}
       <IconButton
         label="搜索"
         icon={state.searchVisible ? <IconClose aria-hidden /> : <IconSearch aria-hidden />}
-        className="encyclopedia-header-button"
         onClick={state.toggleSearch}
       />
     </>

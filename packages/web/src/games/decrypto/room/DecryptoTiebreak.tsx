@@ -157,20 +157,22 @@ export function DecryptoTiebreak({
   readonly game: DecryptoGame;
 }) {
   return (
-    <RoomStagePanel className="decrypto-current">
-      <h2>{game.step === 'tiebreakSubmit' ? '加赛：猜出对方四个词' : '加赛判定'}</h2>
-      {screen.isTakeoverLoading && <p>正在读取接管席位的游戏信息…</p>}
-      <fieldset
-        className="decrypto-action-fields"
-        hidden={screen.isTakeoverLoading}
-        disabled={screen.isTakeoverLoading}
-      >
-        {game.step === 'tiebreakSubmit' ? (
-          <TiebreakSubmit screen={screen} game={game} />
-        ) : (
-          <TiebreakJudge screen={screen} game={game} />
-        )}
-      </fieldset>
+    <RoomStagePanel>
+      <div className="decrypto-current">
+        <h2>{game.step === 'tiebreakSubmit' ? '加赛：猜出对方四个词' : '加赛判定'}</h2>
+        {screen.isTakeoverLoading && <p>正在读取接管席位的游戏信息…</p>}
+        <fieldset
+          className="decrypto-action-fields"
+          hidden={screen.isTakeoverLoading}
+          disabled={screen.isTakeoverLoading}
+        >
+          {game.step === 'tiebreakSubmit' ? (
+            <TiebreakSubmit screen={screen} game={game} />
+          ) : (
+            <TiebreakJudge screen={screen} game={game} />
+          )}
+        </fieldset>
+      </div>
     </RoomStagePanel>
   );
 }

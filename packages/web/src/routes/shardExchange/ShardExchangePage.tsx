@@ -139,7 +139,7 @@ function ExchangeCell({
         <Button
           type="button"
           variant="secondary"
-          className="shard-cell-exchange"
+          fullWidth
           aria-label={`用 ${item.cost} 碎片兑换「${displayName}」`}
           disabled={!canAfford || isExchanging}
           onClick={() => onExchange(item, displayName)}

@@ -314,7 +314,7 @@ export function RoomShell({
               onClick={isStageMenuBusy ? undefined : navigation.openMenu}
               data-testid={TESTIDS.roomStageMenuButton}
             >
-              {isStageMenuBusy && <Spinner label="提交中" />}
+              {isStageMenuBusy && <Spinner size="sm" label="提交中" />}
               菜单
             </button>
           )}

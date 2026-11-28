@@ -116,7 +116,6 @@ export function PictionaryDrawingTask({
       header={null}
       maxWidth={PICTIONARY_STAGE_MAX_WIDTH}
       testId={TESTIDS.pictionaryStageFrame}
-      className="pictionary-task-frame"
       footer={
         <>
           <DrawingToolbar

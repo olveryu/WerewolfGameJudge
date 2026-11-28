@@ -42,7 +42,3 @@
   padding: var(--space-tight);
   border: var(--border-width) solid var(--color-border);
 }
-
-.ui-gallery-progress {
-  inline-size: 100%;
-}

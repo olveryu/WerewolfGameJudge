@@ -17,7 +17,7 @@ export function DrawGuessRanking({ rows }: { readonly rows: readonly DrawGuessSc
       <Button
         type="button"
         variant="soft"
-        className="drawguess-ranking-button"
+        size="md"
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         onClick={() => setIsOpen(true)}
