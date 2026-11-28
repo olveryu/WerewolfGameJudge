@@ -43,7 +43,7 @@ export function AvalonTeamPickModal({
     <RoomPlayerPickModal
       title={title}
       hint={hint}
-      requiredSize={requiredSize}
+      mode={{ kind: 'exact', size: requiredSize }}
       initialSelection={kind === 'final' ? preselected : []}
       players={viewModel.seats.map(({ seat }) => ({
         seat,

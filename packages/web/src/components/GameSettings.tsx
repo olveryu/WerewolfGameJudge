@@ -1,72 +1,43 @@
 /** Shared game-settings controls; callers own the displayed values, editing and validation. */
 import './GameSettings.css';
 
-import { type KeyboardEvent, useId } from 'react';
+import { type KeyboardEvent, type ReactNode, useId } from 'react';
 
-import { IconButton } from '@/components/IconButton';
 import { Switch } from '@/components/Switch';
-import IconAdd from '~icons/ion/add';
-import IconRemove from '~icons/ion/remove';
 
-/** A labelled count with −/+ buttons and a numeric text field. */
-export function GameSettingsStepper({
-  label,
-  value,
-  onChangeText,
+/** A settings block (a field and its hint/issue lines), divided from the next by a rule. */
+export function GameSettingsSection({ children }: { readonly children: ReactNode }) {
+  return <div className="game-settings-section">{children}</div>;
+}
+
+/** The title of a settings block that has no control of its own. */
+export function GameSettingsLabel({ children }: { readonly children: ReactNode }) {
+  return <span className="game-settings-label">{children}</span>;
+}
+
+/** A secondary explanation line under a setting. */
+export function GameSettingsHint({ children }: { readonly children: ReactNode }) {
+  return <p className="game-settings-hint">{children}</p>;
+}
+
+/** A validation message of a setting, announced when it appears. */
+export function GameSettingsIssue({
   testId,
-  decrementTestId,
-  incrementTestId,
-  onDecrement,
-  onIncrement,
-  isDecrementDisabled,
-  isIncrementDisabled,
-  decrementLabel = '减少人数',
-  incrementLabel = '增加人数',
+  children,
 }: {
-  readonly label: string;
-  readonly value: string;
-  readonly onChangeText: (value: string) => void;
   readonly testId: string;
-  readonly decrementTestId: string;
-  readonly incrementTestId: string;
-  readonly onDecrement: () => void;
-  readonly onIncrement: () => void;
-  readonly isDecrementDisabled: boolean;
-  readonly isIncrementDisabled: boolean;
-  /** Accessible names of the step buttons; player-count fields keep the defaults. */
-  readonly decrementLabel?: string;
-  readonly incrementLabel?: string;
+  readonly children: ReactNode;
 }) {
   return (
-    <div className="game-settings-row">
-      <span className="game-settings-label">{label}</span>
-      <span className="game-settings-stepper">
-        <IconButton
-          label={decrementLabel}
-          icon={<IconRemove aria-hidden />}
-          disabled={isDecrementDisabled}
-          onClick={onDecrement}
-          data-testid={decrementTestId}
-        />
-        <input
-          className="game-settings-count"
-          inputMode="numeric"
-          value={value}
-          aria-label={label}
-          data-testid={testId}
-          onFocus={(event) => event.currentTarget.select()}
-          onChange={(event) => onChangeText(event.currentTarget.value)}
-        />
-        <IconButton
-          label={incrementLabel}
-          icon={<IconAdd aria-hidden />}
-          disabled={isIncrementDisabled}
-          onClick={onIncrement}
-          data-testid={incrementTestId}
-        />
-      </span>
-    </div>
+    <p className="game-settings-issue" aria-live="polite" data-testid={testId}>
+      {children}
+    </p>
   );
+}
+
+/** The centered summary line above a settings page's submit button (e.g. 「已选 12 人」). */
+export function GameSettingsSummary({ children }: { readonly children: ReactNode }) {
+  return <p className="game-settings-summary">{children}</p>;
 }
 
 /** A labelled boolean row; callers render any hint below it inside their own section. */

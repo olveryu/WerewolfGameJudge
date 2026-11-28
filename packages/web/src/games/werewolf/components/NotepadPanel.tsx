@@ -10,6 +10,7 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useState } from 'react';
 
 import { CenterDialog } from '@/components/CenterDialog';
+import { Chip } from '@/components/Chip';
 import { FACTION_COLOR_MAP } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import type {
   NotepadSheriffCandidateStatus,
@@ -76,16 +77,13 @@ function NotepadCard({
             {statusLabel}
           </span>
         ) : (
-          <button
-            type="button"
-            className="notepad-hand-tag"
-            data-active={isRegistered}
-            aria-pressed={isRegistered}
+          <Chip
+            pressed={isRegistered}
             aria-label={`${seat}号上警`}
             onClick={() => onToggleHand(seat)}
           >
             {statusLabel}
-          </button>
+          </Chip>
         )}
       </div>
       <div className="notepad-note" data-value={noteText}>

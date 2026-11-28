@@ -111,7 +111,7 @@
 2. **提升**：用户确认 mock 后，正式实现直接移动或复用这些组件及交互结构，包括
    手牌打开弹窗、弹窗标题和按钮名称。任何偏离先向用户说明并获得确认。
 3. **共享名称与 builder**：清空座位、重新开始、开始等房主操作使用共享 builder；
-   数量调整用 `GameSettingsStepper`；公开信息用 `RoomGameSummary`、
+   数量调整用 `Stepper`；公开信息用 `RoomGameSummary`、
    `BoardInfoContent`、`RoleCardDialog`。不为单个游戏另起名称或自制按钮。
 4. **预览真实页面**：实现后，预览通过 `createPreviewRoomLink` 接真实引擎和服务端的
    按用户投影，场景由引擎命令生成，渲染真实配置页和房间；删除 mock 副本，交付前

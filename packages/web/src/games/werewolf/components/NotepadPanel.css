@@ -94,10 +94,6 @@
   line-height: var(--line-caption);
 }
 
-button.notepad-hand-tag {
-  cursor: pointer;
-}
-
 .notepad-hand-tag[data-active='true'] {
   border-color: var(--color-primary-light);
   background: var(--color-primary-a15);
@@ -105,12 +101,7 @@ button.notepad-hand-tag {
   font-weight: var(--weight-semibold);
 }
 
-button.notepad-hand-tag:active {
-  opacity: var(--opacity-pressed);
-}
-
 @media (hover: hover) {
-  button.notepad-hand-tag:hover,
   .notepad-seat-button:hover {
     text-decoration: underline;
   }

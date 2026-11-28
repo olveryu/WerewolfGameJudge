@@ -8,6 +8,7 @@ import type {
 import { useState } from 'react';
 
 import { SeatDot } from '@/components/SeatDot';
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
 import { RoomTracks } from '@/features/room/components/RoomTracks';
 import IconCheckmark from '~icons/ion/checkmark';
@@ -30,6 +31,12 @@ const SECTIONS: readonly { readonly key: RecordSection; readonly label: string }
   { key: 'policies', label: '政策记录' },
   { key: 'actions', label: '总统行动' },
 ];
+
+function parseRecordSection(value: string): RecordSection {
+  const item = SECTIONS.find((candidate) => candidate.key === value);
+  if (item === undefined) throw new Error(`[FAIL-FAST] Unknown record section: ${value}`);
+  return item.key;
+}
 
 function GovernmentRecord({
   record,
@@ -179,70 +186,66 @@ export function SecrethitlerMatchDetails({
         </p>
       )}
       <h2 className="secrethitler-record-section-title">公开对局记录</h2>
-      <div className="room-record-tabs" role="group" aria-label="记录分类">
-        {SECTIONS.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            className="room-record-tab"
-            aria-pressed={section === item.key}
-            onClick={() => setSection(item.key)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <div className="secrethitler-record-list">
-        {section === 'governments' &&
-          (view.history.governments.length === 0 ? (
-            <p className="room-record-empty">暂无政府投票记录。</p>
-          ) : (
-            view.history.governments.map((record, index) => (
-              <GovernmentRecord
-                key={index}
-                record={record}
-                index={index}
-                state={state}
-                view={view}
-              />
-            ))
-          ))}
-        {section === 'policies' &&
-          (view.history.policies.length === 0 ? (
-            <p className="room-record-empty">暂无政策记录。</p>
-          ) : (
-            view.history.policies.map((record, index) => (
-              <article
-                key={index}
-                className="room-record-card secrethitler-record-card"
-                data-outcome={record.policy === 'liberal' ? 'passed' : 'rejected'}
-              >
-                <h3>
-                  第 {index + 1} 张 · {record.policy === 'liberal' ? '自由派' : '法西斯'}政策
-                </h3>
-                <p>{record.source === 'chaos' ? '三次失败自动施行' : '政府施行'}</p>
-              </article>
-            ))
-          ))}
-        {section === 'actions' &&
-          (view.history.actions.length === 0 ? (
-            <p className="room-record-empty">暂无总统行动记录。</p>
-          ) : (
-            view.history.actions.map((record, index) => (
-              <article
-                key={index}
-                className="room-record-card secrethitler-record-card"
-                data-outcome="pending"
-              >
-                <h3>{SECRETHITLER_POWER_COPY[record.action]}</h3>
-                <p>
-                  总统 {record.presidentSeat + 1} 号
-                  {record.targetSeat === null ? '' : ` · 目标 ${record.targetSeat + 1} 号`}
-                </p>
-              </article>
-            ))
-          ))}
-      </div>
+      <Tabs value={section} onValueChange={(value) => setSection(parseRecordSection(value))}>
+        <TabList
+          label="记录分类"
+          variant="segmented"
+          items={SECTIONS.map((item) => ({ value: item.key, label: item.label }))}
+        />
+        <TabPanel value={section}>
+          <div className="secrethitler-record-list">
+            {section === 'governments' &&
+              (view.history.governments.length === 0 ? (
+                <p className="room-record-empty">暂无政府投票记录。</p>
+              ) : (
+                view.history.governments.map((record, index) => (
+                  <GovernmentRecord
+                    key={index}
+                    record={record}
+                    index={index}
+                    state={state}
+                    view={view}
+                  />
+                ))
+              ))}
+            {section === 'policies' &&
+              (view.history.policies.length === 0 ? (
+                <p className="room-record-empty">暂无政策记录。</p>
+              ) : (
+                view.history.policies.map((record, index) => (
+                  <article
+                    key={index}
+                    className="room-record-card secrethitler-record-card"
+                    data-outcome={record.policy === 'liberal' ? 'passed' : 'rejected'}
+                  >
+                    <h3>
+                      第 {index + 1} 张 · {record.policy === 'liberal' ? '自由派' : '法西斯'}政策
+                    </h3>
+                    <p>{record.source === 'chaos' ? '三次失败自动施行' : '政府施行'}</p>
+                  </article>
+                ))
+              ))}
+            {section === 'actions' &&
+              (view.history.actions.length === 0 ? (
+                <p className="room-record-empty">暂无总统行动记录。</p>
+              ) : (
+                view.history.actions.map((record, index) => (
+                  <article
+                    key={index}
+                    className="room-record-card secrethitler-record-card"
+                    data-outcome="pending"
+                  >
+                    <h3>{SECRETHITLER_POWER_COPY[record.action]}</h3>
+                    <p>
+                      总统 {record.presidentSeat + 1} 号
+                      {record.targetSeat === null ? '' : ` · 目标 ${record.targetSeat + 1} 号`}
+                    </p>
+                  </article>
+                ))
+              ))}
+          </div>
+        </TabPanel>
+      </Tabs>
     </div>
   );
 }

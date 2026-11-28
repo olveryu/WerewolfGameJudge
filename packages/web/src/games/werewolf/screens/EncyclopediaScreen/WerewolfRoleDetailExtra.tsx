@@ -6,6 +6,7 @@ import './WerewolfRoleDetailExtra.css';
 
 import { isValidRoleId } from '@game-judge/game-engine/games/werewolf/public';
 
+import { Chip } from '@/components/Chip';
 import type { EncyclopediaRoleEntry } from '@/features/encyclopedia/encyclopediaSource';
 import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
@@ -25,13 +26,11 @@ export function WerewolfRoleDetailExtra({
   if (!isAIChatAvailable) return null;
 
   return (
-    <button
-      type="button"
-      className="encyclopedia-ai-pill"
-      onClick={() => askAIAboutRole(roleId, onClose)}
-    >
-      <IconSparklesOutline aria-hidden />
-      AI 攻略
-    </button>
+    <span className="encyclopedia-ai-anchor">
+      <Chip tone={entry.factionColorKey} onClick={() => askAIAboutRole(roleId, onClose)}>
+        <IconSparklesOutline aria-hidden />
+        AI 攻略
+      </Chip>
+    </span>
   );
 }

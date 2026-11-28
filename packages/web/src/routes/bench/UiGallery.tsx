@@ -7,7 +7,9 @@ import rejectImage from '@/assets/avalon-vote/reject.webp';
 import { Avatar } from '@/components/avatar/Avatar';
 import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { makeBuiltinAvatarUrl, pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
+import { Badge, type BadgeTone } from '@/components/Badge';
 import { Button, type ButtonTone } from '@/components/Button';
+import { Chip, type ChipTone } from '@/components/Chip';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { FactionChip } from '@/components/FactionChip';
 import { IconButton } from '@/components/IconButton';
@@ -16,7 +18,9 @@ import { NumPad } from '@/components/NumPad';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SeatDot } from '@/components/SeatDot';
 import { Spinner } from '@/components/Spinner';
+import { Stepper } from '@/components/Stepper';
 import { Switch } from '@/components/Switch';
+import { TabList, Tabs } from '@/components/Tabs';
 import { TESTIDS } from '@/testids';
 import IconAdd from '~icons/ion/add';
 import IconSettings from '~icons/ion/settings-outline';
@@ -24,6 +28,8 @@ import IconSettings from '~icons/ion/settings-outline';
 const BUTTON_VARIANTS = ['primary', 'secondary', 'danger', 'ghost', 'outline', 'soft'] as const;
 const BUTTON_SIZES = ['xs', 'sm', 'md', 'lg'] as const;
 const BUTTON_TONES: readonly ButtonTone[] = ['wolf', 'god', 'villager', 'third', 'neutral'];
+const BADGE_TONES: readonly BadgeTone[] = ['wolf', 'god', 'villager', 'third', 'muted'];
+const CHIP_TONES: readonly ChipTone[] = ['wolf', 'god', 'villager', 'third', 'neutral', 'success'];
 /** Fixed user ids, so every fallback avatar draws the same tint on every run. */
 const AVATAR_SEEDS = ['gallery-a', 'gallery-b', 'gallery-c'] as const;
 /** One avatar of every source: fallback (no avatar), generated (common, rare), hand-drawn portrait. */
@@ -148,17 +154,90 @@ export function UiGallery() {
         </div>
       </section>
 
-      <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('faction-chip')}>
+      <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('badge')}>
         <div className="ui-gallery-row">
-          <FactionChip label="狼人×3" color="var(--color-wolf)" />
-          <FactionChip label="预言家" color="var(--color-god)" size="md" />
-          <FactionChip
-            label="平民×4"
-            color="var(--color-villager)"
-            onPress={() => {}}
-            showChevron
-          />
+          {BADGE_TONES.map((tone) => (
+            <Badge key={tone} tone={tone}>
+              {tone}
+            </Badge>
+          ))}
         </div>
+        <div className="ui-gallery-row">
+          <FactionChip label="预言家" tone="god" size="md" />
+          <FactionChip label="平民×4" tone="villager" onPress={() => {}} showChevron />
+        </div>
+      </section>
+
+      <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('chip')}>
+        <div className="ui-gallery-row">
+          <Chip pressed onClick={() => {}}>
+            全部
+          </Chip>
+          <Chip pressed={false} onClick={() => {}}>
+            经典
+          </Chip>
+          <Chip pressed={false} disabled onClick={() => {}}>
+            禁用
+          </Chip>
+          <Chip onClick={() => {}}>动作</Chip>
+        </div>
+        <div className="ui-gallery-row">
+          {CHIP_TONES.map((tone) => (
+            <Chip key={tone} tone={tone} pressed={tone === 'wolf'} onClick={() => {}}>
+              {tone}
+            </Chip>
+          ))}
+        </div>
+      </section>
+
+      <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('tabs')}>
+        <Tabs value="wolf" onValueChange={() => {}}>
+          <TabList
+            label="分段页签"
+            variant="segmented"
+            items={[
+              { value: 'wolf', label: '角色' },
+              { value: 'god', label: '板子' },
+            ]}
+          />
+        </Tabs>
+        <Tabs value="god" onValueChange={() => {}}>
+          <TabList
+            label="下划线页签"
+            variant="underline"
+            items={[
+              { value: 'wolf', label: '狼人', tone: 'wolf' },
+              { value: 'god', label: '神职', tone: 'god' },
+              { value: 'villager', label: '平民', tone: 'villager' },
+              { value: 'third', label: '第三方', tone: 'third' },
+            ]}
+          />
+        </Tabs>
+      </section>
+
+      <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('stepper')}>
+        <Stepper
+          label="人数"
+          entry={{ kind: 'text', value: '8', onChangeText: () => {} }}
+          onDecrement={() => {}}
+          onIncrement={() => {}}
+          isDecrementDisabled={false}
+          isIncrementDisabled={false}
+          testId="gallery-stepper-text"
+          decrementTestId="gallery-stepper-text-dec"
+          incrementTestId="gallery-stepper-text-inc"
+        />
+        <Stepper
+          label="平民"
+          entry={{ kind: 'readonly', value: 0 }}
+          onDecrement={() => {}}
+          onIncrement={() => {}}
+          isDecrementDisabled
+          isIncrementDisabled={false}
+          testId="gallery-stepper-readonly"
+          decrementTestId="gallery-stepper-readonly-dec"
+          incrementTestId="gallery-stepper-readonly-inc"
+        />
       </section>
 
       <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('seat-dot')}>

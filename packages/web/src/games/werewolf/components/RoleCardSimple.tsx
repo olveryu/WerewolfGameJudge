@@ -11,6 +11,7 @@ import './faction.css';
 import { getRoleCard, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { Button } from '@/components/Button';
+import { Chip } from '@/components/Chip';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
@@ -70,30 +71,25 @@ export function RoleCardSimple({
       footer={
         <>
           {handleAskAI !== undefined && (
-            <button
-              type="button"
-              className="role-ai-pill"
-              data-alignment={role.alignment}
-              data-faction={role.alignment}
-              onClick={() => handleAskAI(role.displayId)}
-            >
-              <IconSparklesOutline aria-hidden />
-              AI 攻略
-            </button>
+            <span className="role-ai-anchor">
+              <Chip tone={role.alignment} onClick={() => handleAskAI(role.displayId)}>
+                <IconSparklesOutline aria-hidden />
+                AI 攻略
+              </Chip>
+            </span>
           )}
           {showVariantBar && (
-            <div className="role-variant-bar" data-alignment={role.alignment}>
+            <div className="role-variant-bar">
               {variantIds.map((id) => (
-                <button
+                <Chip
                   key={id}
-                  type="button"
-                  className="role-variant-pill"
-                  aria-pressed={id === activeVariant}
+                  tone={role.alignment}
+                  pressed={id === activeVariant}
                   data-testid={TESTIDS.configVariantOption(id)}
                   onClick={() => onVariantSelect(id)}
                 >
                   {getRoleCard(id).displayName}
-                </button>
+                </Chip>
               ))}
             </div>
           )}

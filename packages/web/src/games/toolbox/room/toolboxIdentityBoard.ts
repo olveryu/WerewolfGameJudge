@@ -20,7 +20,7 @@ export function createToolboxIdentityBoardSections(
         displayName: definition.name,
         count: definition.count,
       })),
-      color: 'var(--color-text-muted)',
+      tone: 'muted',
     },
   ];
 }

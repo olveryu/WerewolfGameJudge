@@ -46,7 +46,7 @@ export function SecrethitlerActionSheet({
       <RoomPlayerPickModal
         title={isFinal ? '最终提名' : '预选总理'}
         hint={isFinal ? '确认后进入投票，无法再更改。' : '确认后预选将公开，最终提名仍可更改。'}
-        requiredSize={1}
+        mode={{ kind: 'exact', size: 1 }}
         initialSelection={
           phase.preselectedChancellorSeat === null ? [] : [phase.preselectedChancellorSeat]
         }

@@ -120,35 +120,6 @@
   gap: var(--space-small);
 }
 
-.feedback-filter-pill {
-  padding: var(--space-tight) var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text-secondary);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  box-shadow: var(--surface-button-shadow-light);
-  cursor: pointer;
-  transition:
-    background-color 100ms ease-out,
-    box-shadow 100ms ease-out,
-    transform 100ms ease-out;
-}
-
-.feedback-filter-pill[aria-pressed='true'] {
-  border-color: var(--color-primary);
-  background-color: var(--color-primary-a10);
-  color: var(--color-primary);
-  font-weight: var(--weight-semibold);
-}
-
-.feedback-filter-pill:active {
-  box-shadow: var(--surface-button-shadow-pressed);
-  transform: translateY(var(--space-micro));
-}
-
 .feedback-history {
   display: flex;
   flex-direction: column;
@@ -247,40 +218,8 @@
   line-height: var(--line-caption);
 }
 
-.feedback-status-chip {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  gap: var(--space-tight);
-  padding: var(--space-tight) var(--space-small);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-  box-shadow: var(--surface-button-shadow-light);
-  cursor: pointer;
-  transition:
-    box-shadow 100ms ease-out,
-    transform 100ms ease-out;
-}
-
-.feedback-status-chip[data-resolved='true'] {
-  border-color: var(--color-success);
-  color: var(--color-success);
-}
-
-.feedback-status-chip:disabled {
-  background: var(--color-surface-hover);
-  color: var(--color-text-secondary);
-  box-shadow: none;
-  cursor: default;
-}
-
-.feedback-status-chip:active:not(:disabled) {
-  box-shadow: var(--surface-button-shadow-pressed);
-  transform: translateY(var(--space-micro));
+.feedback-status-row {
+  display: flex;
 }
 
 .feedback-chat {
@@ -431,9 +370,7 @@
   .feedback-submit:hover:not(:disabled),
   .feedback-new-button:hover:not(:disabled),
   .feedback-reply-send:hover:not(:disabled),
-  .feedback-history-item:hover,
-  .feedback-status-chip:hover:not(:disabled),
-  .feedback-filter-pill:hover {
+  .feedback-history-item:hover {
     transform: translateY(calc(-1 * var(--space-micro)));
   }
 

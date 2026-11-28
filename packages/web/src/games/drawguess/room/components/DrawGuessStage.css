@@ -79,43 +79,7 @@
   gap: var(--space-small);
 }
 
-.drawguess-reaction-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-tight);
-  min-width: 0;
-  min-height: var(--size-min-touch-target);
-  padding: var(--space-tight);
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text-secondary);
-  box-shadow: var(--surface-button-shadow-light);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-  cursor: pointer;
-  transition:
-    transform 100ms ease-out,
-    box-shadow 100ms ease-out;
-}
-
-.drawguess-reaction-button:disabled {
-  background: var(--color-surface-hover);
-  cursor: default;
-  box-shadow: none;
-}
-
-.drawguess-reaction-button:active:not(:disabled) {
-  box-shadow: var(--surface-button-shadow-pressed);
-  transform: translateY(var(--space-micro));
-}
-
-.drawguess-reaction-button svg {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  flex: 0 0 auto;
+.drawguess-reaction-controls svg {
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -123,23 +87,21 @@
   stroke-width: 1.5;
 }
 
-.drawguess-reaction-button:nth-child(1) svg {
+.drawguess-reaction-controls > :nth-child(1) svg {
   color: var(--color-success);
 }
 
-.drawguess-reaction-button:nth-child(2) svg {
+.drawguess-reaction-controls > :nth-child(2) svg {
   color: var(--color-warning);
 }
 
-.drawguess-reaction-button:nth-child(3) svg {
+.drawguess-reaction-controls > :nth-child(3) svg {
   color: var(--color-error);
 }
 
-.drawguess-reaction-button[aria-pressed='true'] {
-  border-color: var(--color-primary);
-  background: var(--color-primary-a6);
-  color: var(--color-primary);
-  font-weight: var(--weight-semibold);
+/* A sent reaction fills with the accent; its icon follows the inverse label colour. */
+.drawguess-reaction-controls > [aria-pressed='true'] svg {
+  color: inherit;
 }
 
 .drawguess-reaction-hint {
@@ -168,29 +130,6 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   clip-path: inset(50%);
-}
-
-.drawguess-ranking-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-small);
-  padding: var(--space-small) var(--space-medium) var(--space-small) var(--space-large);
-}
-
-.drawguess-ranking-header h2 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: var(--font-subtitle);
-  font-weight: var(--weight-semibold);
-  line-height: var(--line-subtitle);
-}
-
-.drawguess-ranking-header p {
-  margin: var(--space-micro) 0 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
 }
 
 .drawguess-ranking-body {

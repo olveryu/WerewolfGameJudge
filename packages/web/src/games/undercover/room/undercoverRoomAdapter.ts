@@ -171,19 +171,19 @@ export function createUndercoverBoardInfoSections(
     {
       title: '卧底',
       items: [{ roleId: 'undercover', displayName: '卧底', count: roleCounts.undercover }],
-      color: 'var(--color-wolf)',
+      tone: 'wolf',
     },
     {
       title: '平民',
       items: [{ roleId: 'civilian', displayName: '平民', count: roleCounts.civilian }],
-      color: 'var(--color-villager)',
+      tone: 'villager',
     },
   ];
   if (input.hasBlank) {
     sections.push({
       title: '白板',
       items: [{ roleId: 'blank', displayName: '白板', count: roleCounts.blank }],
-      color: 'var(--color-text-muted)',
+      tone: 'muted',
     });
   }
   return sections;

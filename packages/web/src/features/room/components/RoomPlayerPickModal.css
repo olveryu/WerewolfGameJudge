@@ -125,10 +125,23 @@
 
 .room-player-pick-footer {
   display: flex;
+  flex-direction: column;
   gap: var(--space-small);
   margin-top: var(--space-small);
 }
 
-.room-player-pick-footer > * {
+.room-player-pick-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.room-player-pick-actions {
+  display: flex;
+  gap: var(--space-small);
+}
+
+.room-player-pick-actions > * {
   flex: 1;
 }

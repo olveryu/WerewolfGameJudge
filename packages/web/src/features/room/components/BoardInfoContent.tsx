@@ -30,7 +30,7 @@ export function BoardInfoContent({
                   <FactionChip
                     key={item.roleId}
                     label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-                    color={section.color}
+                    tone={section.tone}
                     size="md"
                     onPress={() => onRolePress(item.roleId)}
                     showChevron

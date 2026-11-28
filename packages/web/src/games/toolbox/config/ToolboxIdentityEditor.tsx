@@ -4,15 +4,15 @@
  */
 import './ToolboxIdentityEditor.css';
 
-import { Tabs } from '@ark-ui/react/tabs';
 import {
   TOOLBOX_IDENTITY_LIMITS,
   type ToolboxIdentityConfig,
 } from '@game-judge/game-engine/games/toolbox/public';
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
-import { GameSettingsStepper } from '@/components/GameSettings';
+import { Stepper } from '@/components/Stepper';
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { confirmAction } from '@/features/room/confirm';
 import { TESTIDS } from '@/testids';
@@ -136,21 +136,6 @@ function IdentityRoleEditor({
   );
 }
 
-/** 选中的身份标签滚动到可见区域。 */
-function useActiveTabInView(activeRoleId: string) {
-  const tabsRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const list = tabsRef.current;
-    const tab = list?.querySelector('[role="tab"][aria-selected="true"]');
-    if (list === null || list === undefined || tab === null || tab === undefined) return;
-    const listBounds = list.getBoundingClientRect();
-    const tabBounds = tab.getBoundingClientRect();
-    if (tabBounds.left < listBounds.left) list.scrollLeft += tabBounds.left - listBounds.left;
-    if (tabBounds.right > listBounds.right) list.scrollLeft += tabBounds.right - listBounds.right;
-  }, [activeRoleId]);
-  return tabsRef;
-}
-
 /** 编辑区主体：方案折叠区、每种身份一个标签与「添加身份」。 */
 function ToolboxIdentitySetup({
   setup,
@@ -162,24 +147,24 @@ function ToolboxIdentitySetup({
   readonly isDisabled: boolean;
 }) {
   const { draft } = setup;
-  const tabsRef = useActiveTabInView(setup.activeRoleId);
   const isFull = draft.roles.length >= TOOLBOX_IDENTITY_LIMITS.maxIdentityTypes;
   return (
     <div className="toolbox-identity-setup">
       <ToolboxPresetSection setup={setup} isAnonymous={isAnonymous} isDisabled={isDisabled} />
-      <Tabs.Root
-        value={setup.activeRoleId}
-        onValueChange={(details) => setup.selectRole(details.value)}
-      >
-        <Tabs.List ref={tabsRef} className="toolbox-identity-tabs" aria-label="身份">
-          {draft.roles.map((role, index) => (
-            <Tabs.Trigger key={role.id} value={String(role.id)} className="toolbox-identity-tab">
-              {role.name.trim() || `身份 ${index + 1}`}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
+      <Tabs value={setup.activeRoleId} onValueChange={setup.selectRole}>
+        <div className="toolbox-identity-tabs">
+          <TabList
+            label="身份"
+            variant="underline"
+            layout="scroll"
+            items={draft.roles.map((role, index) => ({
+              value: String(role.id),
+              label: role.name.trim() || `身份 ${index + 1}`,
+            }))}
+          />
+        </div>
         {draft.roles.map((role, index) => (
-          <Tabs.Content key={role.id} value={String(role.id)}>
+          <TabPanel key={role.id} value={String(role.id)}>
             <IdentityRoleEditor
               role={role}
               index={index}
@@ -200,9 +185,9 @@ function ToolboxIdentitySetup({
                 setup.selectRole(String(neighbour.id));
               }}
             />
-          </Tabs.Content>
+          </TabPanel>
         ))}
-      </Tabs.Root>
+      </Tabs>
       <Button
         variant="outline"
         disabled={isDisabled || isFull}
@@ -244,10 +229,13 @@ function ToolboxIdentitySetupFooter({
     setup.update({ ...draft, cardsPerPlayer: String((isPerPlayerValid ? perPlayer : 1) + delta) });
   return (
     <div className="toolbox-identity-footer">
-      <GameSettingsStepper
+      <Stepper
         label="每人抽牌数量"
-        value={draft.cardsPerPlayer}
-        onChangeText={(cardsPerPlayer) => setup.update({ ...draft, cardsPerPlayer })}
+        entry={{
+          kind: 'text',
+          value: draft.cardsPerPlayer,
+          onChangeText: (cardsPerPlayer) => setup.update({ ...draft, cardsPerPlayer }),
+        }}
         onDecrement={() => step(-1)}
         onIncrement={() => step(1)}
         isDecrementDisabled={isDisabled || !isPerPlayerValid || perPlayer <= 1}

@@ -50,8 +50,9 @@ component owns the complete geometry, including the value area, not just its out
   category list filtered by the live word inventory) or an `Extra` block below the form (e.g.
   the Avalon board preview); `useSubmitGate` blocks submission on asynchronous preconditions.
   None of these may bypass schema validation.
-- `GameSettingsStepper` accepts `value`, `onChangeText`, `testID`, `onDecrement`, `onIncrement`,
-  `isDecrementDisabled` and `isIncrementDisabled`. `GameSettingsChoice` is the radio-pill group
+- `Stepper` (`components/Stepper.tsx`) takes `label`, an `entry` (`{ kind: 'text', value,
+onChangeText }` for a typed count, `{ kind: 'readonly', value }` for a derived one), the three
+  test ids, `onDecrement`, `onIncrement`, `isDecrementDisabled` and `isIncrementDisabled`. `GameSettingsChoice` is the radio-pill group
   for choice and duration fields; options are announced by their bare label.
 - Werewolf keeps its role-selection `ConfigScreen` and `BoardPickerScreen`; its rules step renders
   `WEREWOLF_RULES_SCHEMA` through the same `GameConfigForm`.

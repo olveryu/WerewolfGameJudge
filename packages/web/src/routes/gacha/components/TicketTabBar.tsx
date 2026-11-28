@@ -1,89 +1,60 @@
 import './TicketTabBar.css';
 
-import type { KeyboardEvent } from 'react';
-
+import { TabList } from '@/components/Tabs';
 import IconStar from '~icons/ion/star';
 import IconTicketOutline from '~icons/ion/ticket-outline';
 
 export type TicketTab = 'normal' | 'golden';
 
-const TICKET_TABS: readonly TicketTab[] = ['normal', 'golden'];
-
-/** The id of a ticket tab, for the panel's `aria-labelledby`. */
-export function ticketTabId(tab: TicketTab): string {
-  return `gacha-ticket-tab-${tab}`;
+/** The ticket type a tab value names; tab values only ever come from `TicketTabList`. */
+export function parseTicketTab(value: string): TicketTab {
+  if (value === 'normal' || value === 'golden') return value;
+  throw new Error(`[FAIL-FAST] Unknown ticket tab: ${value}`);
 }
 
-interface TicketTabBarProps {
-  activeTab: TicketTab;
-  normalCount: number;
-  goldenCount: number;
-  onSwitch: (tab: TicketTab) => void;
-  /** The id of the tab panel the tabs control. */
-  panelId: string;
-  reducedMotion: boolean;
+function TicketCount({ tab, count }: { readonly tab: TicketTab; readonly count: number }) {
+  return (
+    <span className="ticket-tab-count" data-tab={tab}>
+      {count}
+      <span className="visually-hidden"> 张</span>
+    </span>
+  );
 }
 
-/** Normal and golden ticket tabs with their counts and a sliding highlight. */
-export function TicketTabBar({
-  activeTab,
+/** Normal and golden ticket tabs with their counts; render inside a `Tabs` valued by `TicketTab`. */
+export function TicketTabList({
   normalCount,
   goldenCount,
-  onSwitch,
-  panelId,
-  reducedMotion,
-}: TicketTabBarProps) {
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    event.preventDefault();
-    const target =
-      event.key === 'Home'
-        ? 'normal'
-        : event.key === 'End'
-          ? 'golden'
-          : activeTab === 'normal'
-            ? 'golden'
-            : 'normal';
-    onSwitch(target);
-    document.getElementById(ticketTabId(target))?.focus();
-  };
-
+}: {
+  readonly normalCount: number;
+  readonly goldenCount: number;
+}) {
   return (
-    <div
-      className="ticket-tabs"
-      role="tablist"
-      aria-label="抽奖券类型"
-      data-active={activeTab}
-      data-reduced-motion={reducedMotion}
-      onKeyDown={handleKeyDown}
-    >
-      <span className="ticket-tabs-slider" />
-      {TICKET_TABS.map((tab) => {
-        const isActive = tab === activeTab;
-        const count = tab === 'normal' ? normalCount : goldenCount;
-        const Icon = tab === 'normal' ? IconTicketOutline : IconStar;
-        return (
-          <button
-            key={tab}
-            id={ticketTabId(tab)}
-            type="button"
-            role="tab"
-            className="ticket-tab"
-            data-tab={tab}
-            aria-selected={isActive}
-            aria-controls={panelId}
-            aria-label={`${tab === 'normal' ? '普通券' : '黄金券'} ${count} 张`}
-            tabIndex={isActive ? 0 : -1}
-            onClick={() => onSwitch(tab)}
-          >
-            <span className="ticket-tab-icon">
-              <Icon aria-hidden />
+    <TabList
+      label="抽奖券类型"
+      variant="segmented"
+      items={[
+        {
+          value: 'normal',
+          label: '普通',
+          icon: (
+            <span className="ticket-tab-icon" data-tab="normal">
+              <IconTicketOutline aria-hidden />
             </span>
-            <span className="ticket-tab-label">{tab === 'normal' ? '普通' : '黄金'}</span>
-            <span className="ticket-tab-count">{count}</span>
-          </button>
-        );
-      })}
-    </div>
+          ),
+          trailing: <TicketCount tab="normal" count={normalCount} />,
+        },
+        {
+          value: 'golden',
+          label: '黄金',
+          icon: (
+            <span className="ticket-tab-icon" data-tab="golden">
+              <IconStar aria-hidden />
+            </span>
+          ),
+          trailing: <TicketCount tab="golden" count={goldenCount} />,
+        },
+      ]}
+    />
   );
 }

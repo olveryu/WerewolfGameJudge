@@ -1,88 +1,18 @@
-.ticket-tabs {
-  position: relative;
-  display: flex;
-  padding: var(--space-micro);
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-card-nested);
-  background: var(--color-surface-hover);
-  box-shadow: var(--surface-inset-shadow);
-}
-
-.ticket-tabs-slider {
-  position: absolute;
-  inset-block: var(--space-micro);
-  left: var(--space-micro);
-  width: 49%;
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-control);
-  background: var(--gacha-normal-tint-a12);
-  box-shadow: var(--surface-button-shadow-light);
-  transition:
-    transform 300ms ease-out,
-    background-color 300ms ease-out;
-}
-
-.ticket-tabs[data-active='golden'] .ticket-tabs-slider {
-  background: var(--gacha-gold-deep-a10);
-  transform: translateX(100%);
-}
-
-.ticket-tabs[data-reduced-motion='true'] .ticket-tabs-slider {
-  transition: none;
-}
-
-.ticket-tab {
-  position: relative;
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-tight);
-  min-height: var(--size-min-touch-target);
-  padding: var(--space-small);
-  border: none;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition:
-    color 100ms ease-out,
-    transform 100ms ease-out;
-}
-
-.ticket-tab[aria-selected='true'] {
-  color: var(--color-text);
-}
-
-.ticket-tab:active {
-  transform: translateY(var(--space-micro));
-}
-
-.ticket-tab:focus-visible {
-  outline: var(--border-width-thick) solid var(--color-primary-light);
-}
-
 .ticket-tab-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--size-badge-md);
+  height: var(--size-badge-md);
   border-radius: var(--radius-round);
   background: var(--gacha-normal-tint-a20);
   color: var(--gacha-normal-tint);
   font-size: var(--font-caption);
 }
 
-.ticket-tab[data-tab='golden'] .ticket-tab-icon {
+.ticket-tab-icon[data-tab='golden'] {
   background: var(--gacha-gold-a15);
   color: var(--gacha-gold);
-}
-
-.ticket-tab-label {
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  font-weight: var(--weight-semibold);
 }
 
 .ticket-tab-count {
@@ -93,16 +23,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.ticket-tab[data-tab='golden'] .ticket-tab-count {
+.ticket-tab-count[data-tab='golden'] {
   color: var(--gacha-gold-deep);
-}
-
-.ticket-tab[aria-selected='false'] .ticket-tab-count {
-  color: var(--color-text-secondary);
-}
-
-@media (hover: hover) {
-  .ticket-tab:hover {
-    color: var(--color-text);
-  }
 }

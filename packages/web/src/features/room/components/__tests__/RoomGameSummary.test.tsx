@@ -20,7 +20,7 @@ describe('RoomGameSummary', () => {
           sections={[
             {
               title: '角色',
-              color: 'var(--color-god)',
+              tone: 'god',
               items: [{ roleId: 'seer', displayName: '预言家', count: 1 }],
             },
           ]}
@@ -56,7 +56,7 @@ describe('RoomGameSummary', () => {
           sections={[
             {
               title: '神职',
-              color: 'var(--color-god)',
+              tone: 'god',
               items: [{ roleId: 'seer', displayName: '预言家', count: 1 }],
             },
           ]}

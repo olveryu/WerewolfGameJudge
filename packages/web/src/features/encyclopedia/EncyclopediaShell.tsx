@@ -6,10 +6,10 @@
  */
 import './Encyclopedia.css';
 
-import { Tabs } from '@ark-ui/react/tabs';
 import { type ReactNode, useState } from 'react';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 
 export interface EncyclopediaSegment {
   readonly key: string;
@@ -50,25 +50,23 @@ export function EncyclopediaShell({
           <div className="encyclopedia-header-actions">{segmentHeaderActions?.[activeTab]}</div>
         </ScreenHeader>
       )}
-      <Tabs.Root
-        className="encyclopedia-tabs"
-        value={activeTab}
-        onValueChange={(details) => setActiveTab(details.value)}
-      >
-        <Tabs.List className="encyclopedia-segments" aria-label={title}>
-          {segments.map((segment) => (
-            <Tabs.Trigger key={segment.key} value={segment.key} className="encyclopedia-segment">
-              {segment.label}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
-        {parentPath === null && segmentHeaderActions?.[activeTab] !== undefined && (
-          <div className="encyclopedia-header-actions">{segmentHeaderActions[activeTab]}</div>
-        )}
-        <Tabs.Content value={activeTab} className="encyclopedia-content">
-          {renderSegment(activeTab)}
-        </Tabs.Content>
-      </Tabs.Root>
+      <div className="encyclopedia-tabs">
+        <Tabs value={activeTab} onValueChange={setActiveTab} fill>
+          <div className="encyclopedia-segments">
+            <TabList
+              label={title}
+              variant="segmented"
+              items={segments.map((segment) => ({ value: segment.key, label: segment.label }))}
+            />
+          </div>
+          {parentPath === null && segmentHeaderActions?.[activeTab] !== undefined && (
+            <div className="encyclopedia-header-actions">{segmentHeaderActions[activeTab]}</div>
+          )}
+          <TabPanel value={activeTab} fill>
+            {renderSegment(activeTab)}
+          </TabPanel>
+        </Tabs>
+      </div>
     </div>
   );
 }

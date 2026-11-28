@@ -14,6 +14,7 @@ import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
+import { TabPanel, Tabs } from '@/components/Tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { GUEST_GROWTH_NOTICE } from '@/features/auth/guestPolicy';
@@ -38,11 +39,10 @@ import { PityProgressBar } from './components/PityProgressBar';
 import { RateDisclosureModal } from './components/RateDisclosureModal';
 import { SingleResultReveal } from './components/SingleResultReveal';
 import { TenResultOverlay } from './components/TenResultOverlay';
-import { type TicketTab, TicketTabBar, ticketTabId } from './components/TicketTabBar';
+import { parseTicketTab, type TicketTab, TicketTabList } from './components/TicketTabBar';
 import { GACHA_PALETTE_VARS } from './gachaPalette';
 import { useDrawPresentation } from './useDrawPresentation';
 
-const TICKET_PANEL_ID = 'gacha-ticket-panel';
 const MAX_MULTI_DRAW = 10;
 
 function withRoomCode(path: string, roomCode: string | undefined): string {
@@ -273,69 +273,67 @@ function GachaSession() {
             恢复待确认操作
           </Button>
         )}
-        <TicketTabBar
-          activeTab={activeTab}
-          normalCount={normalDraws}
-          goldenCount={goldenDraws}
-          onSwitch={(tab) => {
-            if (!busy) setActiveTab(tab);
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            if (!busy) setActiveTab(parseTicketTab(value));
           }}
-          panelId={TICKET_PANEL_ID}
-          reducedMotion={reducedMotion}
-        />
-
-        <div
-          className="gacha-card"
-          id={TICKET_PANEL_ID}
-          role="tabpanel"
-          aria-labelledby={ticketTabId(activeTab)}
         >
-          <div className="gacha-stats-row">
-            <p className="gacha-count" data-golden={isGoldenTab} data-zero={activeDraws === 0}>
-              <span className="gacha-count-value">{activeDraws}</span>
-              <span className="gacha-count-unit">张</span>
-            </p>
-            <div className="gacha-pity">
-              <span className="gacha-pity-label">距离保底</span>
-              <PityProgressBar
-                pity={activePity}
-                threshold={PITY_THRESHOLD}
+          <TicketTabList normalCount={normalDraws} goldenCount={goldenDraws} />
+          <TabPanel value={activeTab}>
+            <div className="gacha-card">
+              <div className="gacha-stats-row">
+                <p className="gacha-count" data-golden={isGoldenTab} data-zero={activeDraws === 0}>
+                  <span className="gacha-count-value">{activeDraws}</span>
+                  <span className="gacha-count-unit">张</span>
+                </p>
+                <div className="gacha-pity">
+                  <span className="gacha-pity-label">距离保底</span>
+                  <PityProgressBar
+                    pity={activePity}
+                    threshold={PITY_THRESHOLD}
+                    golden={isGoldenTab}
+                    reducedMotion={reducedMotion}
+                    isAnimationActive={isAmbientAnimationActive}
+                  />
+                </div>
+              </div>
+
+              <Link className="gacha-shard-row" to={shardExchangePath} aria-label="碎片兑换">
+                <span className="gacha-shard-info">
+                  <IconDiamondOutline aria-hidden className="gacha-shard-icon" />
+                  <span className="gacha-shard-count">{shards.toLocaleString()}</span>
+                  <span className="gacha-shard-label">碎片</span>
+                </span>
+                <span className="gacha-shard-hint">
+                  兑换
+                  <IconChevronForward aria-hidden />
+                </span>
+              </Link>
+
+              <DrawButton
+                label={`抽 ×${multiCount}`}
+                disabled={activeDraws < 1 || busy}
+                onPress={() => handleDraw(activeTab, multiCount)}
                 golden={isGoldenTab}
+                multiPullCount={activeDraws}
                 reducedMotion={reducedMotion}
                 isAnimationActive={isAmbientAnimationActive}
               />
+
+              <div className="gacha-meta">
+                <span className="gacha-meta-hint">每局+1~5普通 · 每日+1~5普通 · 升级+1~5黄金</span>
+                <button
+                  type="button"
+                  className="gacha-rate-link"
+                  onClick={() => setShowRates(true)}
+                >
+                  概率公示
+                </button>
+              </div>
             </div>
-          </div>
-
-          <Link className="gacha-shard-row" to={shardExchangePath} aria-label="碎片兑换">
-            <span className="gacha-shard-info">
-              <IconDiamondOutline aria-hidden className="gacha-shard-icon" />
-              <span className="gacha-shard-count">{shards.toLocaleString()}</span>
-              <span className="gacha-shard-label">碎片</span>
-            </span>
-            <span className="gacha-shard-hint">
-              兑换
-              <IconChevronForward aria-hidden />
-            </span>
-          </Link>
-
-          <DrawButton
-            label={`抽 ×${multiCount}`}
-            disabled={activeDraws < 1 || busy}
-            onPress={() => handleDraw(activeTab, multiCount)}
-            golden={isGoldenTab}
-            multiPullCount={activeDraws}
-            reducedMotion={reducedMotion}
-            isAnimationActive={isAmbientAnimationActive}
-          />
-
-          <div className="gacha-meta">
-            <span className="gacha-meta-hint">每局+1~5普通 · 每日+1~5普通 · 升级+1~5黄金</span>
-            <button type="button" className="gacha-rate-link" onClick={() => setShowRates(true)}>
-              概率公示
-            </button>
-          </div>
-        </div>
+          </TabPanel>
+        </Tabs>
       </div>
 
       {showingResults && (

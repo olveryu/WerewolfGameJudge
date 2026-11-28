@@ -112,7 +112,7 @@ describe('BoardsGuideContent', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
     expect(screen.getAllByRole('article')).toHaveLength(taggedClassics);
-    fireEvent.click(screen.getByRole('button', { name: '清除标签筛选' }));
+    fireEvent.click(screen.getByRole('button', { name: `清除标签筛选：${tag}` }));
     expect(screen.getAllByRole('article')).toHaveLength(classicCount);
   });
 });

@@ -365,12 +365,12 @@ export function createAvalonBoardInfoSections(
     {
       title: '坏人',
       items: toItems(board.filter((roleId) => getAvalonRoleMeta(roleId).isEvil)),
-      color: 'var(--color-wolf)',
+      tone: 'wolf',
     },
     {
       title: '好人',
       items: toItems(board.filter((roleId) => !getAvalonRoleMeta(roleId).isEvil)),
-      color: 'var(--color-god)',
+      tone: 'god',
     },
   ];
 }

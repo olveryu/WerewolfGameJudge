@@ -3,6 +3,7 @@ import {
   type DrawGuessReaction,
 } from '@game-judge/game-engine/games/drawguess/public';
 
+import { Chip } from '@/components/Chip';
 import { GameStatsReactionIcon } from '@/components/GameStatsPanel';
 
 import type { DrawGuessRoomScreenState } from '../hooks/useDrawGuessRoomState';
@@ -65,17 +66,15 @@ export function DrawGuessReactionPicker({
     <section className="drawguess-reactions" aria-label="本轮互动">
       <div className="drawguess-reaction-controls">
         {REACTIONS.map(({ kind, label }) => (
-          <button
+          <Chip
             key={kind}
-            className="drawguess-reaction-button"
-            type="button"
-            aria-pressed={myReaction === kind}
+            pressed={myReaction === kind}
             disabled={!canSend || isSubmitting}
             onClick={() => sendReaction(kind, label)}
           >
             <GameStatsReactionIcon kind={kind} />
             <span>{myReaction === kind ? `已送${label}` : `送${label}`}</span>
-          </button>
+          </Chip>
         ))}
       </div>
       <p className="drawguess-reaction-hint">{actionHint}</p>

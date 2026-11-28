@@ -12,7 +12,13 @@ import type {
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import { GameSettingsChoice } from '@/components/GameSettings';
+import {
+  GameSettingsChoice,
+  GameSettingsHint,
+  GameSettingsIssue,
+  GameSettingsLabel,
+  GameSettingsSection,
+} from '@/components/GameSettings';
 import type {
   ConfigFieldRendererProps,
   ConfigSubmitGate,
@@ -61,15 +67,15 @@ export function UndercoverCategoryField({
   return (
     <div data-testid={testId}>
       {inventory.isPending ? (
-        <div className="game-settings-section">
-          <span className="game-settings-label">{spec.label}</span>
-          <p className="game-settings-hint">正在读取分类</p>
-        </div>
+        <GameSettingsSection>
+          <GameSettingsLabel>{spec.label}</GameSettingsLabel>
+          <GameSettingsHint>正在读取分类</GameSettingsHint>
+        </GameSettingsSection>
       ) : inventory.isSuccess && !inventory.data.hasAnyWords ? (
-        <div className="game-settings-section">
-          <span className="game-settings-label">{spec.label}</span>
-          <p className="game-settings-hint">暂无可用词语</p>
-        </div>
+        <GameSettingsSection>
+          <GameSettingsLabel>{spec.label}</GameSettingsLabel>
+          <GameSettingsHint>暂无可用词语</GameSettingsHint>
+        </GameSettingsSection>
       ) : (
         <GameSettingsChoice<string | null>
           title={spec.label}
@@ -83,13 +89,9 @@ export function UndercoverCategoryField({
         />
       )}
       {issueMessage !== null && (
-        <p
-          className="game-settings-issue"
-          aria-live="polite"
-          data-testid={TESTIDS.gameConfigFieldIssue('undercover', 'category')}
-        >
+        <GameSettingsIssue testId={TESTIDS.gameConfigFieldIssue('undercover', 'category')}>
           {issueMessage}
-        </p>
+        </GameSettingsIssue>
       )}
     </div>
   );

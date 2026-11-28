@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
+import { TabPanel, Tabs } from '@/components/Tabs';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import {
@@ -26,8 +27,8 @@ import {
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import {
   type CosmeticTab,
-  CosmeticTabBar,
-  cosmeticTabId,
+  CosmeticTabList,
+  parseCosmeticTab,
   type RarityFilter,
   RarityFilterBar,
 } from '@/features/product/components/CosmeticTabs';
@@ -42,8 +43,6 @@ import IconDiamondOutline from '~icons/ion/diamond-outline';
 
 import { getRewardDisplayName, RewardPreview } from '../gacha/components/RewardPreview';
 
-const TAB_ID_PREFIX = 'shard-exchange';
-const PANEL_ID = 'shard-exchange-panel';
 const PREVIEW_SIZE = 56;
 const REWARD_TYPE_OF_TAB: Readonly<Record<CosmeticTab, RewardType>> = {
   avatar: 'avatar',
@@ -178,32 +177,26 @@ function ExchangeGrid({ shards, unlockedItems, isExchanging, onExchange }: Excha
     <div className="shard-exchange-body">
       <ResidentSceneLayer hostRef={sceneHostRef} />
       <div ref={scrollRootRef} className="shard-exchange-scroll">
-        <CosmeticTabBar
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          idPrefix={TAB_ID_PREFIX}
-          panelId={PANEL_ID}
-        />
-        <RarityFilterBar value={rarityFilter} onChange={setRarityFilter} />
-        <ul
-          id={PANEL_ID}
-          role="tabpanel"
-          aria-labelledby={cosmeticTabId(TAB_ID_PREFIX, activeTab)}
-          className="shard-exchange-grid"
-        >
-          {items.map((item) => (
-            <ExchangeCell
-              key={`${item.type}-${item.id}`}
-              item={item}
-              shards={shards}
-              isExchanging={isExchanging}
-              productUi={productUi}
-              sceneHostRef={sceneHostRef}
-              scrollRootRef={scrollRootRef}
-              onExchange={onExchange}
-            />
-          ))}
-        </ul>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(parseCosmeticTab(value))}>
+          <CosmeticTabList />
+          <RarityFilterBar value={rarityFilter} onChange={setRarityFilter} />
+          <TabPanel value={activeTab}>
+            <ul className="shard-exchange-grid">
+              {items.map((item) => (
+                <ExchangeCell
+                  key={`${item.type}-${item.id}`}
+                  item={item}
+                  shards={shards}
+                  isExchanging={isExchanging}
+                  productUi={productUi}
+                  sceneHostRef={sceneHostRef}
+                  scrollRootRef={scrollRootRef}
+                  onExchange={onExchange}
+                />
+              ))}
+            </ul>
+          </TabPanel>
+        </Tabs>
       </div>
     </div>
   );

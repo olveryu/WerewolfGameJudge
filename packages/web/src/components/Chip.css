@@ -1,0 +1,94 @@
+.chip {
+  --chip-accent: var(--color-primary);
+  --chip-text: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  padding: var(--space-tight) var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  background-image: var(--surface-button-texture);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  box-shadow: var(--surface-button-shadow-light);
+  cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
+}
+
+.chip[data-tone='wolf'] {
+  --chip-accent: var(--color-wolf);
+  --chip-text: var(--color-wolf);
+}
+
+.chip[data-tone='god'] {
+  --chip-accent: var(--color-god);
+  --chip-text: var(--color-god);
+}
+
+.chip[data-tone='villager'] {
+  --chip-accent: var(--color-villager);
+  --chip-text: var(--color-villager-text);
+}
+
+.chip[data-tone='third'] {
+  --chip-accent: var(--color-third);
+  --chip-text: var(--color-third-text);
+}
+
+.chip[data-tone='neutral'] {
+  --chip-accent: var(--color-text-secondary);
+  --chip-text: var(--color-text-secondary);
+}
+
+.chip[data-tone='success'] {
+  --chip-accent: var(--color-success);
+  --chip-text: var(--color-success);
+}
+
+.chip[data-tone] {
+  border-color: var(--chip-accent);
+  color: var(--chip-text);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--chip-accent);
+  background: var(--chip-accent);
+  background-image: var(--surface-button-texture);
+  color: var(--color-text-inverse);
+  box-shadow: var(--surface-button-shadow-soft);
+}
+
+.chip:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--border-width);
+}
+
+.chip:active:not(:disabled) {
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
+}
+
+.chip:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.chip > svg {
+  flex-shrink: 0;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+@media (hover: hover) {
+  .chip:not(:disabled):hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
+}

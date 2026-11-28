@@ -1,8 +1,9 @@
 import './CosmeticTabs.css';
 
 import type { Rarity } from '@game-judge/game-engine/product/rewards';
-import { type KeyboardEvent, useRef } from 'react';
 
+import { Chip } from '@/components/Chip';
+import { TabList } from '@/components/Tabs';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 
 /** A cosmetic category of the appearance and unlocks pages. */
@@ -24,77 +25,25 @@ const RARITY_FILTERS: readonly { readonly key: RarityFilter; readonly label: str
   ...RARITY_ORDER.map((rarity) => ({ key: rarity, label: RARITY_VISUAL[rarity].label })),
 ];
 
-/** The id of a category tab, for the panel's `aria-labelledby`. */
-export function cosmeticTabId(idPrefix: string, tab: CosmeticTab): string {
-  return `${idPrefix}-tab-${tab}`;
+/** The category a tab value names; tab values only ever come from `CosmeticTabList`. */
+export function parseCosmeticTab(value: string): CosmeticTab {
+  const tab = COSMETIC_TABS.find((item) => item.key === value);
+  if (tab === undefined) throw new Error(`[FAIL-FAST] Unknown cosmetic tab: ${value}`);
+  return tab.key;
 }
 
-interface CosmeticTabBarProps {
-  readonly activeTab: CosmeticTab;
-  readonly onChange: (tab: CosmeticTab) => void;
-  /** Prefix of the tab ids, unique per page. */
-  readonly idPrefix: string;
-  /** The id of the tab panel the tabs control. */
-  readonly panelId: string;
-}
-
-/** Category tabs with a roving tab stop (arrow keys, Home and End move between tabs). */
-export function CosmeticTabBar({ activeTab, onChange, idPrefix, panelId }: CosmeticTabBarProps) {
-  const listRef = useRef<HTMLDivElement>(null);
-
-  const focusTab = (index: number) => {
-    const count = COSMETIC_TABS.length;
-    const tab = COSMETIC_TABS[(index + count) % count];
-    if (tab === undefined) throw new Error(`[FAIL-FAST] No cosmetic tab at ${index}`);
-    onChange(tab.key);
-    listRef.current?.querySelector<HTMLElement>(`#${cosmeticTabId(idPrefix, tab.key)}`)?.focus();
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const current = COSMETIC_TABS.findIndex((tab) => tab.key === activeTab);
-    const target: Partial<Record<string, number>> = {
-      ArrowRight: current + 1,
-      ArrowLeft: current - 1,
-      Home: 0,
-      End: COSMETIC_TABS.length - 1,
-    };
-    const index = target[event.key];
-    if (index === undefined) return;
-    event.preventDefault();
-    focusTab(index);
-  };
-
+/** Category tabs; render inside a `Tabs` whose value is the active `CosmeticTab`. */
+export function CosmeticTabList() {
   return (
-    <div
-      ref={listRef}
-      className="cosmetic-tabs"
-      role="tablist"
-      aria-label="外观分类"
-      onKeyDown={handleKeyDown}
-    >
-      {COSMETIC_TABS.map((tab) => {
-        const isActive = tab.key === activeTab;
-        return (
-          <button
-            key={tab.key}
-            id={cosmeticTabId(idPrefix, tab.key)}
-            type="button"
-            role="tab"
-            className="cosmetic-tab"
-            aria-selected={isActive}
-            aria-controls={panelId}
-            tabIndex={isActive ? 0 : -1}
-            onClick={() => onChange(tab.key)}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
+    <TabList
+      label="外观分类"
+      variant="segmented"
+      items={COSMETIC_TABS.map((tab) => ({ value: tab.key, label: tab.label }))}
+    />
   );
 }
 
-/** Rarity chips; the active chip uses the shared selection treatment. */
+/** Rarity chips: they share the row when they fit and scroll sideways when not. */
 export function RarityFilterBar({
   value,
   onChange,
@@ -103,22 +52,17 @@ export function RarityFilterBar({
   readonly onChange: (filter: RarityFilter) => void;
 }) {
   return (
-    <div className="rarity-filters">
-      {RARITY_FILTERS.map((filter) => {
-        const isActive = filter.key === value;
-        return (
-          <button
-            key={filter.key}
-            type="button"
-            className="rarity-filter"
-            aria-pressed={isActive}
-            aria-label={`${filter.label}稀有度`}
-            onClick={() => onChange(filter.key)}
-          >
-            {filter.label}
-          </button>
-        );
-      })}
+    <div className="rarity-filters" role="group" aria-label="稀有度筛选">
+      {RARITY_FILTERS.map((filter) => (
+        <Chip
+          key={filter.key}
+          pressed={filter.key === value}
+          aria-label={`${filter.label}稀有度`}
+          onClick={() => onChange(filter.key)}
+        >
+          {filter.label}
+        </Chip>
+      ))}
     </div>
   );
 }

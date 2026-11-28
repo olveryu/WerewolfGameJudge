@@ -1,95 +1,13 @@
-.cosmetic-tabs {
-  display: flex;
-  gap: var(--space-micro);
-  padding: var(--space-micro);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border-light);
-  box-shadow: var(--surface-panel-shadow);
-}
-
-.cosmetic-tab {
-  flex: 1;
-  min-height: var(--size-button-sm);
-  border: none;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  font-weight: var(--weight-medium);
-  cursor: pointer;
-  transition:
-    background-color 100ms ease-out,
-    box-shadow 100ms ease-out,
-    transform 100ms ease-out;
-}
-
-.cosmetic-tab[aria-selected='true'] {
-  background: var(--color-primary);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text-inverse);
-  font-weight: var(--weight-semibold);
-  box-shadow: var(--surface-button-shadow-soft);
-}
-
-.cosmetic-tab:focus-visible,
-.rarity-filter:focus-visible {
-  outline: var(--border-width-thick) solid var(--color-primary);
-  outline-offset: var(--border-width);
-}
-
-.cosmetic-tab:active,
-.rarity-filter:active {
-  box-shadow: var(--surface-button-shadow-pressed);
-  transform: translateY(var(--space-micro));
-}
-
-.cosmetic-tab[aria-selected='true']:active,
-.rarity-filter[aria-pressed='true']:active {
-  box-shadow: var(--surface-button-shadow-pressed);
-}
-
 .rarity-filters {
-  display: flex;
+  display: grid;
   /* A horizontal scroller has no automatic minimum height: without this a column flex parent
      squeezes the row to nothing. */
   flex-shrink: 0;
+  grid-auto-columns: minmax(max-content, 1fr);
+  grid-auto-flow: column;
   gap: var(--space-tight);
+  /* Room for the chips' raise and shadow inside the scroller. */
+  padding-block: var(--space-micro);
   overflow-x: auto;
   scrollbar-width: none;
-}
-
-.rarity-filter {
-  /* Share the row when the chips fit; scroll sideways when they do not. */
-  flex: 1 0 auto;
-  padding: var(--space-tight) var(--space-small);
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-  font-weight: var(--weight-medium);
-  box-shadow: var(--surface-button-shadow-light);
-  cursor: pointer;
-  transition:
-    background-color 100ms ease-out,
-    box-shadow 100ms ease-out,
-    transform 100ms ease-out;
-}
-
-.rarity-filter[aria-pressed='true'] {
-  background: var(--color-primary);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text-inverse);
-  box-shadow: var(--surface-button-shadow-soft);
-}
-
-@media (hover: hover) {
-  .cosmetic-tab:hover,
-  .rarity-filter:hover {
-    transform: translateY(calc(-1 * var(--space-micro)));
-  }
 }

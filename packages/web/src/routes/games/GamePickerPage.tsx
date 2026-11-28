@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 import { gameConfigCreatePath, gameGuidePath } from '@/features/navigation/model/gamePaths';
 import { type ClientGameModeOption, GAME_MODE_OPTIONS } from '@/games/catalog';
 import type { GameHomeTier, GameModeFamily } from '@/games/model/GameHome';
@@ -14,6 +15,12 @@ const TIER_TABS: readonly { readonly tier: GameHomeTier; readonly label: string 
   { tier: 'main', label: '主游戏' },
   { tier: 'mini', label: '小游戏' },
 ];
+
+function parseTier(value: string): GameHomeTier {
+  const tab = TIER_TABS.find((item) => item.tier === value);
+  if (tab === undefined) throw new Error(`[FAIL-FAST] Unknown game tier tab: ${value}`);
+  return tab.tier;
+}
 
 type PickerPurpose = 'create' | 'guide';
 
@@ -136,56 +143,57 @@ export function GamePickerPage() {
       <ScreenHeader title={copy.title} />
       <div className="picker-body">
         <p className="picker-intro">{copy.subtitle}</p>
-        <div className="picker-tabs" role="group" aria-label="游戏分类">
-          {TIER_TABS.map(({ tier: tabTier, label }) => (
-            <button
-              key={tabTier}
-              type="button"
-              className="picker-tab"
-              aria-pressed={tier === tabTier}
-              data-testid={TESTIDS.gameModePickerTab(tabTier)}
-              onClick={() => setTier(tabTier)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="picker-tab-panel">
-          {blocks.map((block) =>
-            block.kind === 'family' ? (
-              <div
-                className="picker-family"
-                key={block.family.id}
-                data-testid={TESTIDS.gameModePickerFamilyGroup(block.family.id)}
-              >
-                <div className="picker-family-header">
-                  <span className="picker-family-title">{block.family.displayName}</span>
-                  <span className="picker-family-count">{`${block.options.length} 个玩法`}</span>
-                </div>
-                {block.options.map((option) => (
-                  <GameOptionRow
-                    key={option.gameType}
-                    option={option}
-                    onSelect={() => select(option)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div
-                className="picker-option-list"
-                key={block.options.map((option) => option.gameType).join('-')}
-              >
-                {block.options.map((option) => (
-                  <GameOptionRow
-                    key={option.gameType}
-                    option={option}
-                    onSelect={() => select(option)}
-                  />
-                ))}
-              </div>
-            ),
-          )}
-        </div>
+        <Tabs value={tier} onValueChange={(value) => setTier(parseTier(value))}>
+          <div className="picker-tabs">
+            <TabList
+              label="游戏分类"
+              variant="segmented"
+              items={TIER_TABS.map(({ tier: tabTier, label }) => ({
+                value: tabTier,
+                label,
+                testId: TESTIDS.gameModePickerTab(tabTier),
+              }))}
+            />
+          </div>
+          <TabPanel value={tier}>
+            <div className="picker-tab-panel">
+              {blocks.map((block) =>
+                block.kind === 'family' ? (
+                  <div
+                    className="picker-family"
+                    key={block.family.id}
+                    data-testid={TESTIDS.gameModePickerFamilyGroup(block.family.id)}
+                  >
+                    <div className="picker-family-header">
+                      <span className="picker-family-title">{block.family.displayName}</span>
+                      <span className="picker-family-count">{`${block.options.length} 个玩法`}</span>
+                    </div>
+                    {block.options.map((option) => (
+                      <GameOptionRow
+                        key={option.gameType}
+                        option={option}
+                        onSelect={() => select(option)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    className="picker-option-list"
+                    key={block.options.map((option) => option.gameType).join('-')}
+                  >
+                    {block.options.map((option) => (
+                      <GameOptionRow
+                        key={option.gameType}
+                        option={option}
+                        onSelect={() => select(option)}
+                      />
+                    ))}
+                  </div>
+                ),
+              )}
+            </div>
+          </TabPanel>
+        </Tabs>
       </div>
     </main>
   );

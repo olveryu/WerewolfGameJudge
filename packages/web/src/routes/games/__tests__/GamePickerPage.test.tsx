@@ -46,11 +46,11 @@ describe('GamePickerPage', () => {
       expect(screen.getByTestId(TESTIDS.screenHeaderTitle)).toHaveTextContent('创建游戏');
       expect(screen.getByText('选择本局要创建的游戏')).toBeInTheDocument();
       expect(screen.getByTestId(TESTIDS.gameModePickerTab('main'))).toHaveAttribute(
-        'aria-pressed',
+        'aria-selected',
         'true',
       );
       expect(screen.getByTestId(TESTIDS.gameModePickerTab('mini'))).toHaveAttribute(
-        'aria-pressed',
+        'aria-selected',
         'false',
       );
       expect(screen.getByTestId(TESTIDS.gameModePickerOption('werewolf'))).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('GamePickerPage', () => {
       await openMiniTab();
 
       expect(screen.getByTestId(TESTIDS.gameModePickerTab('mini'))).toHaveAttribute(
-        'aria-pressed',
+        'aria-selected',
         'true',
       );
       expect(screen.getByTestId(TESTIDS.gameModePickerOption('fibking'))).toBeInTheDocument();

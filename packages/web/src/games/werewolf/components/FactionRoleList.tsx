@@ -10,6 +10,7 @@ import './FactionRoleList.css';
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
+import type { BadgeTone } from '@/components/Badge';
 import { FactionChip } from '@/components/FactionChip';
 import {
   computeFactionStats,
@@ -56,11 +57,11 @@ export function FactionRoleList({
   showChevrons = false,
 }: FactionRoleListProps) {
   const { wolfItems, godItems, villagerItems, thirdItems } = groupRolesByFaction(roles);
-  const rows = [
-    { label: '狼人', color: 'var(--color-wolf)', items: wolfItems },
-    { label: '神职', color: 'var(--color-god)', items: godItems },
-    { label: '村民', color: 'var(--color-villager)', items: villagerItems },
-    { label: '特殊', color: 'var(--color-third)', items: thirdItems },
+  const rows: readonly { label: string; tone: BadgeTone; items: typeof wolfItems }[] = [
+    { label: '狼人', tone: 'wolf', items: wolfItems },
+    { label: '神职', tone: 'god', items: godItems },
+    { label: '村民', tone: 'villager', items: villagerItems },
+    { label: '特殊', tone: 'third', items: thirdItems },
   ];
 
   return (
@@ -79,7 +80,7 @@ export function FactionRoleList({
                       label={
                         item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName
                       }
-                      color={row.color}
+                      tone={row.tone}
                       size="sm"
                       onPress={
                         onRolePress === undefined ? undefined : () => onRolePress(item.roleId)

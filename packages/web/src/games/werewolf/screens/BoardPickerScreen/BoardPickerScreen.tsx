@@ -17,6 +17,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { Chip } from '@/components/Chip';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
@@ -112,16 +113,14 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
       ) : (
         <div className="board-picker-tabs" role="group" aria-label="板子分类">
           {CATEGORY_TABS.map((category) => (
-            <button
+            <Chip
               key={category}
-              type="button"
-              className="board-picker-tab"
-              aria-pressed={state.activeCategory === category}
+              pressed={state.activeCategory === category}
               data-testid={TESTIDS.boardPickerCategoryTab(category)}
               onClick={() => state.handleTabPress(category)}
             >
               {TEMPLATE_CATEGORY_LABELS[category]} {state.categoryCounts.get(category) ?? 0}
-            </button>
+            </Chip>
           ))}
         </div>
       )}
@@ -198,15 +197,14 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
                 {isSectionExpanded && (
                   <div className="board-picker-filter-chips">
                     {group.items.map((item) => (
-                      <button
+                      <Chip
                         key={item.roleId}
-                        type="button"
-                        className="board-picker-filter-chip"
-                        aria-pressed={state.selectedRoleIds.has(item.roleId)}
+                        tone={group.faction}
+                        pressed={state.selectedRoleIds.has(item.roleId)}
                         onClick={() => state.handleToggleRole(item.roleId)}
                       >
                         {item.displayName}
-                      </button>
+                      </Chip>
                     ))}
                   </div>
                 )}

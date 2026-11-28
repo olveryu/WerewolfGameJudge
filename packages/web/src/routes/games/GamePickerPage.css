@@ -15,42 +15,7 @@
 }
 
 .picker-tabs {
-  display: flex;
   margin-bottom: var(--space-medium);
-  padding: var(--space-tight);
-  border-radius: var(--radius-card-nested);
-  background: var(--color-surface-hover);
-  box-shadow: var(--surface-inset-shadow);
-}
-
-.picker-tab {
-  flex: 1;
-  min-height: var(--size-min-touch-target);
-  border: none;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-inset);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-  font-weight: var(--weight-semibold);
-  cursor: pointer;
-}
-
-.picker-tab[aria-pressed='true'] {
-  border-color: var(--color-border-light);
-  background: var(--color-surface);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text);
-  box-shadow: var(--surface-button-shadow-light);
-}
-
-.picker-tab:active {
-  transform: translateY(var(--space-micro));
-}
-
-.picker-tab[aria-pressed='true']:active {
-  box-shadow: var(--surface-button-shadow-pressed);
 }
 
 .picker-tab-panel {

@@ -1,10 +1,10 @@
-import { Tabs } from '@ark-ui/react/tabs';
 import {
   DECRYPTO_CODES,
   type DecryptoHistoryEntry,
 } from '@game-judge/game-engine/games/decrypto/public';
 import { useEffect, useRef, useState } from 'react';
 
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 import { TESTIDS } from '@/testids';
 
 function ClueArchive({ entries }: { readonly entries: readonly DecryptoHistoryEntry[] }) {
@@ -114,23 +114,19 @@ export function DecryptoHistory({
   return (
     <section className="decrypto-history">
       <h3>历史</h3>
-      <Tabs.Root value={view} onValueChange={({ value }) => setView(value)}>
-        <Tabs.List className="decrypto-tabs" aria-label="历史查看方式">
-          <Tabs.Trigger className="decrypto-tab" value="clues">
-            历史线索
-          </Tabs.Trigger>
-          <Tabs.Trigger
-            className="decrypto-tab"
-            value="rounds"
-            data-testid={TESTIDS.decryptoHistoryRounds}
-          >
-            往轮记录
-          </Tabs.Trigger>
-        </Tabs.List>
-        <Tabs.Content value="clues" hidden={view !== 'clues'}>
+      <Tabs value={view} onValueChange={setView}>
+        <TabList
+          label="历史查看方式"
+          variant="underline"
+          items={[
+            { value: 'clues', label: '历史线索' },
+            { value: 'rounds', label: '往轮记录', testId: TESTIDS.decryptoHistoryRounds },
+          ]}
+        />
+        <TabPanel value="clues">
           <ClueArchive entries={entries} />
-        </Tabs.Content>
-        <Tabs.Content value="rounds" hidden={view !== 'rounds'}>
+        </TabPanel>
+        <TabPanel value="rounds">
           <div className="decrypto-round-history">
             {activeEntry === undefined ? (
               <p className="decrypto-empty-history">暂无已揭晓记录。</p>
@@ -161,8 +157,8 @@ export function DecryptoHistory({
               </>
             )}
           </div>
-        </Tabs.Content>
-      </Tabs.Root>
+        </TabPanel>
+      </Tabs>
     </section>
   );
 }
