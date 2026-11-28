@@ -1,7 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 
-import { DrawGuessRanking } from '../components/DrawGuessRanking';
+import { RoomStageHud } from '@/features/room/components/RoomStageHud';
+import { seatSource } from '@/test-utils/roomSeat';
+
+import { DrawGuessRankingSheet } from '../components/DrawGuessRanking';
 import type { DrawGuessScoreboardRow } from '../components/DrawGuessScoreboard';
 
 const rows: readonly DrawGuessScoreboardRow[] = [
@@ -34,10 +38,32 @@ const rows: readonly DrawGuessScoreboardRow[] = [
   },
 ];
 
-describe('DrawGuessRanking', () => {
+/** The room wiring: the shared HUD draws the entry, the game owns the sheet it opens. */
+function RankingHarness() {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <>
+      <RoomStageHud
+        hud={{
+          chips: [],
+          roster: null,
+          timer: null,
+          secondaryChips: [{ key: 'score', label: '我 0 分', detail: null, tone: 'neutral' }],
+        }}
+        seats={seatSource([])}
+        canTakeOverBots={{ isAllowed: false, reason: null }}
+        controlledSeat={null}
+        action={{ label: '总排名', isOpen, onOpen: () => setIsOpen(true) }}
+      />
+      {isOpen && <DrawGuessRankingSheet rows={rows} onClose={() => setIsOpen(false)} />}
+    </>
+  );
+}
+
+describe('DrawGuessRankingSheet', () => {
   it('opens the live cumulative leaderboard, preserves ties, and closes on Escape', async () => {
     const user = userEvent.setup();
-    render(<DrawGuessRanking rows={rows} />);
+    render(<RankingHarness />);
 
     const trigger = screen.getByRole('button', { name: '总排名' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');

@@ -34,6 +34,52 @@ import { RoomStagePanel, type RoomStagePanelTone } from './RoomStagePanel';
 /** A game may supply inline feedback without replacing the shared HUD or its frame. */
 export type RoomStageHudRenderer = (context: ReactNode, tone?: RoomStagePanelTone) => ReactElement;
 
+/**
+ * A secondary-row entry that opens a game-owned dialog. The HUD draws it with the same chip as the
+ * roster entry, so every tappable entry in the bar shares one look; the game owns the dialog.
+ */
+export interface RoomStageHudEntry {
+  readonly label: string;
+  readonly isOpen: boolean;
+  readonly onOpen: () => void;
+}
+
+/** The one look for tappable HUD entries: caption text with a trailing chevron. */
+function StageEntryChip({
+  label,
+  isOpen,
+  onOpen,
+  urgent = false,
+  ariaLabel,
+  testId,
+  leading = null,
+}: {
+  readonly label: string;
+  readonly isOpen: boolean;
+  readonly onOpen: () => void;
+  readonly urgent?: boolean;
+  readonly ariaLabel?: string;
+  readonly testId?: string;
+  readonly leading?: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className="room-stage-chip room-stage-entry-chip"
+      aria-haspopup="dialog"
+      aria-expanded={isOpen}
+      aria-label={ariaLabel}
+      data-urgent={urgent || undefined}
+      onClick={onOpen}
+      data-testid={testId}
+    >
+      {leading}
+      {label}
+      <IconChevronForward aria-hidden />
+    </button>
+  );
+}
+
 function StageChip({ chip }: { readonly chip: RoomStageChip }) {
   return (
     <span
@@ -226,8 +272,8 @@ export function RoomStageHud({
   readonly seats: RoomSeatDataSource;
   readonly canTakeOverBots: RoomCapability<readonly [seat: number]>;
   readonly controlledSeat: RoomControlledSeatModel | null;
-  /** Game-owned action; the shared shell does not interpret its label or behavior. */
-  readonly action?: ReactNode;
+  /** Game-owned entry; the HUD draws it, the game owns what it opens. */
+  readonly action?: RoomStageHudEntry | null;
   /** Omit outer margins when the stage positions the shared panel inside its own layout. */
   readonly embedded?: boolean;
   /** Inline task feedback between the leading context chip and roster. */
@@ -240,24 +286,21 @@ export function RoomStageHud({
     hud.secondaryChips.length > 0 || action !== null || controlledSeat !== null;
   const rosterButton =
     roster === null ? null : (
-      <button
-        type="button"
-        className="room-stage-chip room-stage-roster-chip"
-        aria-haspopup="dialog"
-        aria-expanded={isRosterOpen}
-        aria-label={roster.isUrgent ? `${roster.chipLabel}，有机器人等待接管` : undefined}
-        data-urgent={roster.isUrgent || undefined}
-        onClick={() => setIsRosterOpen(true)}
-        data-testid={TESTIDS.roomStageRosterChip}
-      >
-        {roster.isUrgent && (
-          <span className="room-stage-roster-alert" aria-hidden>
-            !
-          </span>
-        )}
-        {roster.chipLabel}
-        <IconChevronForward aria-hidden />
-      </button>
+      <StageEntryChip
+        label={roster.chipLabel}
+        isOpen={isRosterOpen}
+        onOpen={() => setIsRosterOpen(true)}
+        urgent={roster.isUrgent}
+        ariaLabel={roster.isUrgent ? `${roster.chipLabel}，有机器人等待接管` : undefined}
+        testId={TESTIDS.roomStageRosterChip}
+        leading={
+          roster.isUrgent ? (
+            <span className="room-stage-roster-alert" aria-hidden>
+              !
+            </span>
+          ) : null
+        }
+      />
     );
   return (
     <div
@@ -292,7 +335,13 @@ export function RoomStageHud({
                 {hud.secondaryChips.map((chip) => (
                   <StageChip key={chip.key} chip={chip} />
                 ))}
-                {action}
+                {action !== null && (
+                  <StageEntryChip
+                    label={action.label}
+                    isOpen={action.isOpen}
+                    onOpen={action.onOpen}
+                  />
+                )}
               </div>
             </div>
           )}

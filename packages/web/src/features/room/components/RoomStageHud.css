@@ -156,7 +156,7 @@
   color: var(--color-error);
 }
 
-.room-stage-roster-chip {
+.room-stage-entry-chip {
   flex-shrink: 0;
   font-family: inherit;
   font-size: var(--font-caption);
@@ -165,11 +165,11 @@
   cursor: pointer;
 }
 
-.room-stage-roster-chip svg {
+.room-stage-entry-chip svg {
   color: var(--color-text-secondary);
 }
 
-.room-stage-roster-chip[data-urgent] {
+.room-stage-entry-chip[data-urgent] {
   color: var(--color-error);
 }
 
@@ -188,7 +188,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .room-stage-roster-chip[data-urgent] .room-stage-roster-alert {
+  .room-stage-entry-chip[data-urgent] .room-stage-roster-alert {
     animation: room-stage-alert-pulse 600ms ease-in-out infinite alternate;
   }
 }
@@ -216,13 +216,13 @@
 }
 
 @media (hover: hover) {
-  .room-stage-roster-chip:hover:not([data-urgent]),
+  .room-stage-entry-chip:hover:not([data-urgent]),
   .room-stage-controlled-release:hover {
     color: var(--color-primary-dark);
     text-decoration: underline;
   }
 
-  .room-stage-roster-chip[data-urgent]:hover {
+  .room-stage-entry-chip[data-urgent]:hover {
     color: var(--color-error);
     text-decoration: underline;
   }
