@@ -141,7 +141,7 @@ describe('Werewolf room configuration', () => {
     );
     expect(list.getByRole('status')).toHaveTextContent('本局建议已结束');
     expect(list.getByRole('button', { name: '点赞' })).toBeDisabled();
-    await click(list.getByRole('button', { name: '关闭' }));
+    await click(list.getByRole('button', { name: '关闭详情' }));
     expect(view.queryByRole('button', { name: /查看建议/ })).not.toBeInTheDocument();
   });
   it.each([GameStatus.Day, GameStatus.Ended])(

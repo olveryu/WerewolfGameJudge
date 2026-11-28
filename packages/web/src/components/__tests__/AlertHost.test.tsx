@@ -29,6 +29,7 @@ describe('AlertHost', () => {
     render(<AlertHost />);
     act(() => showAlert('确认查验', '查验 1号？', [{ text: '确定' }]));
     const firstContent = await screen.findByTestId(TESTIDS.alertModal);
+    const firstTitle = screen.getByTestId(TESTIDS.alertTitle);
 
     const onAcknowledge = vi.fn();
     act(() =>
@@ -38,6 +39,9 @@ describe('AlertHost', () => {
     // The open dialog registered this node as its pointer-interactive layer; a remounted node
     // would sit under the inert body and swallow no clicks.
     expect(screen.getByTestId(TESTIDS.alertModal)).toBe(firstContent);
+    // The body is per alert: the replaced alert's nodes detach, so a captured title or button
+    // can never act on the newer alert (the e2e alert driver relies on this).
+    expect(firstTitle.isConnected).toBe(false);
     expect(screen.getByTestId(TESTIDS.alertTitle)).toHaveTextContent('查验结果：1号是好人');
     fireEvent.click(screen.getByRole('button', { name: '知道了' }));
     expect(onAcknowledge).toHaveBeenCalledTimes(1);

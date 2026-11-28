@@ -1,6 +1,6 @@
 import './CenterDialog.css';
 
-import type { ReactNode } from 'react';
+import { Fragment, type Key, type ReactNode } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
 import { IconButton } from '@/components/IconButton';
@@ -40,6 +40,11 @@ interface CenterDialogProps {
   closeButtonTestId?: string;
   children: ReactNode;
   requireConfirmation?: boolean;
+  /**
+   * Identity of what the card shows. A new key remounts everything inside the card, so a queue of
+   * messages (`AlertHost`) never reuses one message's nodes or pending state for the next.
+   */
+  contentKey?: Key;
 }
 
 /** Centered modal dialog (Ark UI), with optional explicit-confirmation dismissal. */
@@ -61,6 +66,7 @@ export function CenterDialog({
   role = 'dialog',
   children,
   requireConfirmation = false,
+  contentKey,
 }: CenterDialogProps) {
   const isDismissible = onClose !== null && !requireConfirmation;
   return (
@@ -86,34 +92,36 @@ export function CenterDialog({
             data-has-close-button={closeButtonLabel !== undefined && onClose !== null}
             data-testid={testId}
           >
-            {closeButtonLabel !== undefined && onClose !== null && (
-              <span className="center-dialog-close">
-                <IconButton
-                  label={closeButtonLabel}
-                  icon={<IconClose aria-hidden />}
-                  onClick={onClose}
-                  data-testid={closeButtonTestId}
-                />
-              </span>
-            )}
-            {beforeTitle}
-            <AppDialog.Title
-              className={
-                titleHidden ? 'center-dialog-title visually-hidden' : 'center-dialog-title'
-              }
-              data-testid={titleTestId}
-            >
-              {title}
-            </AppDialog.Title>
-            {subtitle && (
-              <AppDialog.Description
-                className="center-dialog-subtitle"
-                data-testid={subtitleTestId}
+            <Fragment key={contentKey}>
+              {closeButtonLabel !== undefined && onClose !== null && (
+                <span className="center-dialog-close">
+                  <IconButton
+                    label={closeButtonLabel}
+                    icon={<IconClose aria-hidden />}
+                    onClick={onClose}
+                    data-testid={closeButtonTestId}
+                  />
+                </span>
+              )}
+              {beforeTitle}
+              <AppDialog.Title
+                className={
+                  titleHidden ? 'center-dialog-title visually-hidden' : 'center-dialog-title'
+                }
+                data-testid={titleTestId}
               >
-                {subtitle}
-              </AppDialog.Description>
-            )}
-            {children}
+                {title}
+              </AppDialog.Title>
+              {subtitle && (
+                <AppDialog.Description
+                  className="center-dialog-subtitle"
+                  data-testid={subtitleTestId}
+                >
+                  {subtitle}
+                </AppDialog.Description>
+              )}
+              {children}
+            </Fragment>
           </AppDialog.Content>
         </AppDialog.Positioner>
       </AppDialog.Portal>

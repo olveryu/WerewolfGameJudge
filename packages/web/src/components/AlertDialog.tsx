@@ -55,8 +55,9 @@ function orderButtons(buttons: readonly AlertDialogButton[]): readonly AlertDial
  * Escape calls `onDismiss` when one is given. Closing is the caller's job: it unmounts the dialog
  * or clears `open` once an action has done its work.
  *
- * `contentKey` names the alert being shown: when it changes the actions' pending state resets
- * while the dialog surface stays mounted, so one alert can replace another in place.
+ * `contentKey` names the alert being shown: when it changes everything inside the card (title,
+ * message, body, actions and their pending state) remounts while the dialog surface stays
+ * mounted, so one alert replaces another in place without reusing its nodes.
  */
 export function AlertDialog({
   open,
@@ -104,11 +105,10 @@ export function AlertDialog({
       positionerTestId={testIds.positioner}
       titleTestId={testIds.title}
       subtitleTestId={testIds.message}
+      contentKey={contentKey}
     >
       {children}
-      {buttons.length > 0 && (
-        <AlertDialogActions key={contentKey} buttons={buttons} buttonTestId={testIds.button} />
-      )}
+      {buttons.length > 0 && <AlertDialogActions buttons={buttons} buttonTestId={testIds.button} />}
     </CenterDialog>
   );
 }
