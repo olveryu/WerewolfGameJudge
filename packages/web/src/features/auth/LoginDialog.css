@@ -115,25 +115,3 @@
   color: var(--color-error);
   font-size: var(--font-secondary);
 }
-
-.password-field {
-  position: relative;
-  display: block;
-}
-
-.password-field .text-input {
-  padding-right: var(--size-button-md);
-}
-
-.password-toggle {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: var(--size-button-md);
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--size-icon-md);
-  cursor: pointer;
-}

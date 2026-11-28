@@ -29,31 +29,9 @@
   pointer-events: none;
 }
 
-.board-picker-search {
-  display: flex;
+.board-picker-search-slot {
   flex-shrink: 0;
-  align-items: center;
-  gap: var(--space-small);
   margin: var(--space-small) var(--space-screen-h) 0;
-  padding: var(--space-small) var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  box-shadow: var(--surface-inset-shadow);
-}
-
-.board-picker-search-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
 }
 
 .board-picker-tabs {

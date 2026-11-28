@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { Checkbox } from '@/components/Checkbox';
 import { GameSettingsStepper } from '@/components/GameSettings';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
@@ -142,8 +143,7 @@ export function ToolboxDiceDialog({
       <div className="toolbox-dice">
         <div className="toolbox-dice-heading">
           <label className="toolbox-dice-sound">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={dice.isSoundEnabled}
               onChange={(event) => dice.setIsSoundEnabled(event.currentTarget.checked)}
             />

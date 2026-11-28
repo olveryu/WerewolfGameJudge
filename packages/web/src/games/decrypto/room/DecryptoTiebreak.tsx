@@ -6,6 +6,8 @@ import {
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { Checkbox } from '@/components/Checkbox';
+import { TextField } from '@/components/TextField';
 import { RoomStagePanel } from '@/features/room/components/RoomStagePanel';
 import { TESTIDS } from '@/testids';
 
@@ -40,9 +42,8 @@ function TiebreakSubmit({
       {guesses.map((word, index) => (
         <div className="decrypto-clue-field" key={index}>
           <label htmlFor={`${fieldId}-${index}`}>对方 {index + 1} 号词</label>
-          <input
+          <TextField
             id={`${fieldId}-${index}`}
-            className="text-input"
             required
             maxLength={60}
             value={word}
@@ -96,8 +97,7 @@ function TiebreakJudge({
       <div className="decrypto-judgement-list">
         {guesses?.map((guess, index) => (
           <label key={index}>
-            <input
-              type="checkbox"
+            <Checkbox
               checked={correct[index] ?? false}
               data-testid={TESTIDS.decryptoJudgement(index)}
               onChange={(event) => {

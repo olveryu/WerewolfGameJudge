@@ -1,0 +1,164 @@
+/*
+ * The field skin shared by TextField, TextArea and Select: one box (control corners, inset
+ * shadow, primary focus ring). 16px text keeps iOS Safari from zooming into a focused field.
+ */
+.text-field {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--size-button-md);
+  margin: 0;
+  padding: 0 var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  box-shadow: var(--surface-inset-shadow);
+}
+
+.text-field::placeholder {
+  color: var(--color-text-muted);
+}
+
+.text-field:focus {
+  outline: var(--border-width-thick) solid var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.text-field[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.text-field:disabled {
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.text-field:read-only:not(select) {
+  background: var(--color-surface-hover);
+}
+
+.text-field[data-align='center'] {
+  text-align: center;
+}
+
+/* Multi-line: the same box with its text inset from the top and bottom edges too. */
+textarea.text-field {
+  display: block;
+  padding: var(--space-small);
+  resize: vertical;
+}
+
+textarea.text-field[data-height='auto'] {
+  max-block-size: calc(3lh + 2 * var(--space-small) + 2 * var(--border-width));
+  resize: none;
+  field-sizing: content;
+}
+
+textarea.text-field[data-height='fill'] {
+  flex: 1;
+  block-size: 100%;
+  min-height: 0;
+  resize: none;
+}
+
+/* Drop-down: the customizable picker, drawn in the same field skin. */
+select.text-field,
+select.text-field::picker(select) {
+  appearance: base-select;
+}
+
+select.text-field {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+select.text-field::picker-icon {
+  color: var(--color-text-secondary);
+}
+
+select.text-field::picker(select) {
+  max-inline-size: min(var(--size-max-content-width), calc(100vw - var(--space-large)));
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+}
+
+select.text-field option {
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-small);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+select.text-field option::checkmark {
+  color: var(--color-primary);
+}
+
+/* Search: the pill filter frame with its leading icon; the input inside draws nothing. */
+.text-field-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 0;
+  min-height: var(--size-button-md);
+  padding: 0 var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  box-shadow: var(--surface-inset-shadow);
+  cursor: text;
+}
+
+.text-field-search:focus-within {
+  outline: var(--border-width-thick) solid var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.text-field-search > .text-field {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.text-field-search > .text-field:focus {
+  outline: none;
+}
+
+/* Password: a trailing key that shows and hides the value. */
+.text-field-reveal {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.text-field[data-reveal] {
+  padding-right: var(--size-button-md);
+}
+
+.text-field-reveal-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--size-button-md);
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--size-icon-md);
+  cursor: pointer;
+}

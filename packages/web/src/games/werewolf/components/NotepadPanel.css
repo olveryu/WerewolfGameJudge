@@ -116,43 +116,9 @@ button.notepad-hand-tag:active {
   }
 }
 
-/* Auto-growing note: a hidden copy of the text sizes the shared grid cell. */
 .notepad-note {
-  display: grid;
   flex: 1;
   min-width: 0;
-}
-
-.notepad-note::after {
-  content: attr(data-value) ' ';
-  visibility: hidden;
-  white-space: pre-wrap;
-}
-
-.notepad-note > textarea,
-.notepad-note::after {
-  grid-area: 1 / 1 / 2 / 2;
-  margin: 0;
-  padding: 0 var(--space-small);
-  border: none;
-  border-radius: var(--radius-control);
-  font: inherit;
-  /* 16px keeps iOS Safari from zooming into the field. */
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-  overflow-wrap: anywhere;
-}
-
-.notepad-note > textarea {
-  overflow: hidden;
-  resize: none;
-  background: var(--color-background-a85);
-  color: var(--color-text);
-  box-shadow: var(--surface-inset-shadow);
-}
-
-.notepad-note > textarea::placeholder {
-  color: var(--color-text-muted);
 }
 
 .notepad-role-grid {

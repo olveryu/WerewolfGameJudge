@@ -59,17 +59,17 @@
       "count": 2
     }
   },
+  "packages/web/src/components/GameSettings.tsx": {
+    "react/forbid-elements": {
+      "count": 1
+    }
+  },
   "packages/web/src/components/GameStatsPanel.tsx": {
     "no-restricted-syntax": {
       "count": 1
     }
   },
   "packages/web/src/components/IconButton.tsx": {
-    "react/jsx-props-no-spreading": {
-      "count": 1
-    }
-  },
-  "packages/web/src/components/Switch.tsx": {
     "react/jsx-props-no-spreading": {
       "count": 1
     }
@@ -676,6 +676,9 @@
   },
   "packages/web/src/routes/settings/SettingsPage.tsx": {
     "no-restricted-imports": {
+      "count": 1
+    },
+    "react/forbid-elements": {
       "count": 1
     }
   },

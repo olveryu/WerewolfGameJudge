@@ -10,6 +10,8 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Spinner } from '@/components/Spinner';
+import { TextArea } from '@/components/TextArea';
+import { TextField } from '@/components/TextField';
 import { APP_VERSION } from '@/config/version';
 import { useFeedbackHistory } from '@/features/feedback/queries/useFeedbackHistory';
 import {
@@ -116,8 +118,8 @@ function FeedbackCompose({
   return (
     <div className="feedback-area">
       <BackButton onBack={onBack} />
-      <textarea
-        className="feedback-input"
+      <TextArea
+        rows={4}
         aria-label="反馈内容"
         value={text}
         onChange={(event) => onTextChange(event.target.value)}
@@ -256,8 +258,7 @@ function FeedbackDetail({
       </div>
 
       <div className="feedback-reply-bar">
-        <input
-          className="feedback-reply-input"
+        <TextField
           aria-label="追问内容"
           value={replyText}
           onChange={(event) => onReplyTextChange(event.target.value)}

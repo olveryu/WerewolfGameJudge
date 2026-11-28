@@ -267,10 +267,6 @@
   font-size: var(--font-secondary);
   font-weight: var(--weight-semibold);
 }
-.decrypto-clue-field input {
-  width: 100%;
-  min-width: 0;
-}
 .decrypto-current-clues {
   display: grid;
   gap: var(--space-tight);
@@ -555,44 +551,9 @@
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
 }
-.decrypto-encryptor-select {
-  width: 100%;
-  min-width: 0;
-  min-height: var(--size-min-touch-target);
-  padding: var(--space-small) var(--space-tight);
-  border: var(--border-width) solid var(--team-accent);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--team-accent);
-  font: inherit;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.decrypto-encryptor-select:focus-visible,
 button.decrypto-player-name:focus-visible {
   outline: var(--border-width-thick) solid var(--team-accent);
   outline-offset: var(--space-micro);
-}
-@supports (appearance: base-select) {
-  .decrypto-encryptor-select,
-  .decrypto-encryptor-select::picker(select) {
-    appearance: base-select;
-  }
-  .decrypto-encryptor-select::picker(select) {
-    max-inline-size: min(var(--size-max-content-width), calc(100vw - var(--space-large)));
-    border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-control);
-    background: var(--color-surface);
-    color: var(--color-text);
-    box-shadow: var(--shadow-lg);
-  }
-  .decrypto-encryptor-select option {
-    min-height: var(--size-min-touch-target);
-    padding: var(--space-small);
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
 }
 .decrypto-player-row {
   display: grid;

@@ -183,6 +183,18 @@ function restrictedImports({ adapted = null, avatarModule = false } = {}) {
   ];
 }
 
+// Native form fields render only inside their shared components; everyone else uses those.
+const FIELD_COMPONENT_MESSAGE =
+  'Use the shared field component (components/TextField, TextArea, Select, Checkbox, Radio or Switch); it owns the field look.';
+const FORBIDDEN_FIELD_ELEMENTS = [
+  { element: 'input', message: FIELD_COMPONENT_MESSAGE },
+  { element: 'textarea', message: FIELD_COMPONENT_MESSAGE },
+  { element: 'select', message: FIELD_COMPONENT_MESSAGE },
+];
+const FIELD_COMPONENT_FILES = [
+  'packages/web/src/components/{TextField,TextArea,Select,Checkbox,Radio,Switch}.tsx',
+];
+
 const WEB_PRODUCTION = {
   files: ['packages/web/{src,preview}/**/*.{ts,tsx}'],
   ignores: ['**/__tests__/**', '**/*.test.{ts,tsx}'],
@@ -453,6 +465,15 @@ export default tseslint.config(
         { html: 'enforce', custom: 'ignore', explicitSpread: 'ignore' },
       ],
       'no-restricted-imports': restrictedImports(),
+      'react/forbid-elements': ['error', { forbid: FORBIDDEN_FIELD_ELEMENTS }],
+    },
+  },
+  // The field components are the native element's owners: they render it and pass its props on.
+  {
+    files: FIELD_COMPONENT_FILES,
+    rules: {
+      'react/forbid-elements': 'off',
+      'react/jsx-props-no-spreading': 'off',
     },
   },
   ...Object.entries(PACKAGE_ADAPTERS)

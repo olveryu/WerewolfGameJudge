@@ -7,6 +7,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 
+import { TextField } from '@/components/TextField';
 import { TESTIDS } from '@/testids';
 
 const GUESS_THROTTLE_MS = 2000;
@@ -84,8 +85,7 @@ export function DrawGuessGuessComposer({
         data-shaking={isShaking ? '' : undefined}
         onAnimationEnd={() => setIsShaking(false)}
       >
-        <input
-          className="drawguess-composer-input"
+        <TextField
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
           placeholder="请用简体输入"

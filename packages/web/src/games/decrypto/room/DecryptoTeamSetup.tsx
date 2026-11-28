@@ -7,6 +7,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
+import { Select } from '@/components/Select';
 import { TESTIDS } from '@/testids';
 import IconSwapHorizontal from '~icons/ion/swap-horizontal';
 
@@ -118,10 +119,9 @@ function TeamColumn({
       {isFixed && (
         <div className="decrypto-encryptor-slot">
           <label htmlFor={fieldId}>{teamNames[team]}出题人</label>
-          <select
+          <Select
             id={fieldId}
             name={`encryptor-${team}`}
-            className="decrypto-encryptor-select"
             data-testid={TESTIDS.decryptoEncryptorSelect(team)}
             value={phase.encryptors[team] ?? ''}
             disabled={!screen.isHost || screen.isSubmitting}
@@ -146,7 +146,7 @@ function TeamColumn({
                 {player.seat + 1}号 · {player.isBot ? '机器人' : player.displayName}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
       <div className="decrypto-team-members" role="group" aria-label={`${teamNames[team]}成员`}>

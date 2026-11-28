@@ -39,11 +39,6 @@
 .admin-submission-search {
   flex: 1;
 }
-.admin-submission-search input {
-  min-width: var(--size-min-touch-target);
-  width: 0;
-  flex: 1;
-}
 .admin-submission-actions > span {
   flex: 1;
   min-width: 0;
@@ -56,54 +51,6 @@
   min-height: var(--size-min-touch-target);
   min-width: var(--size-min-touch-target);
   cursor: pointer;
-}
-.admin-submission-check input[type='checkbox'] {
-  appearance: none;
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  width: var(--size-icon-md);
-  height: var(--size-icon-md);
-  min-width: var(--size-icon-md);
-  min-height: var(--size-icon-md);
-  margin: 0;
-  padding: 0;
-  border: var(--border-width) solid var(--admin-border-strong);
-  border-radius: var(--radius-tight);
-  background: var(--admin-panel);
-  cursor: pointer;
-  transition:
-    background-color 120ms ease-out,
-    border-color 120ms ease-out;
-}
-.admin-submission-check input[type='checkbox']::after {
-  content: '';
-  width: var(--size-badge-dot);
-  height: var(--size-icon-xs);
-  border-right: var(--border-width-thick) solid var(--admin-accent-ink);
-  border-bottom: var(--border-width-thick) solid var(--admin-accent-ink);
-  transform: rotate(45deg) scale(0);
-  transition: transform 120ms ease-out;
-}
-.admin-submission-check input[type='checkbox']:checked,
-.admin-submission-check input[type='checkbox']:indeterminate {
-  border-color: var(--admin-accent);
-  background: var(--admin-accent);
-}
-.admin-submission-check input[type='checkbox']:checked::after {
-  transform: rotate(45deg) scale(1);
-}
-.admin-submission-check input[type='checkbox']:indeterminate::after {
-  width: var(--size-icon-xs);
-  height: 0;
-  border: 0;
-  border-bottom: var(--border-width-thick) solid var(--admin-accent-ink);
-  transform: none;
-}
-.admin-submission-check input[type='checkbox']:disabled {
-  border-color: var(--admin-border);
-  background: var(--admin-subtle);
-  cursor: not-allowed;
 }
 .admin-submission-empty {
   padding: var(--space-xxlarge) var(--space-large);
@@ -137,15 +84,6 @@
 .admin-submission-form .admin-submission-check {
   display: inline-flex;
   margin-right: var(--space-medium);
-}
-.admin-submission-form input:not([type='checkbox']),
-.admin-submission-form textarea {
-  width: 100%;
-  min-width: 0;
-}
-.admin-submission-form textarea {
-  resize: vertical;
-  min-height: var(--size-min-touch-target);
 }
 .admin-submission-form fieldset {
   min-width: 0;

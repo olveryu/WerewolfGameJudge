@@ -9,6 +9,7 @@ import {
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { TextArea } from '@/components/TextArea';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { TESTIDS } from '@/testids';
@@ -156,8 +157,8 @@ export function StoryRelayTaskEditor({
         <PreviousPassage text={previous.kind === 'text' ? previous.text : '上一段留白'} />
       )}
       <div className="storyrelay-editor-field">
-        <textarea
-          className="storyrelay-editor"
+        <TextArea
+          height="fill"
           data-testid={TESTIDS.storyRelayEditor}
           aria-label={editorCopy.label}
           aria-describedby={countId}

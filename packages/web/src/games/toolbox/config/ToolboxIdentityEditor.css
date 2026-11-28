@@ -23,24 +23,6 @@
   font-weight: var(--weight-medium);
 }
 
-.toolbox-identity-setup input,
-.toolbox-identity-setup textarea,
-.toolbox-identity-setup select {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: var(--size-min-touch-target);
-  padding: var(--space-small);
-  border: var(--border-width) solid var(--color-text-muted);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-}
-
-.toolbox-identity-setup textarea {
-  resize: vertical;
-}
-
 .toolbox-identity-saved {
   padding: var(--space-medium);
   border-radius: var(--radius-card-nested);

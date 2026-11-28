@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
+import { TextField } from '@/components/TextField';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
   ADMIN_SESSION_EXPIRED_EVENT,
@@ -112,7 +113,7 @@ export function AdminPage() {
                 </p>
               )}
               <label htmlFor="admin-password">管理密码</label>
-              <input
+              <TextField
                 id="admin-password"
                 type="password"
                 autoComplete="current-password"

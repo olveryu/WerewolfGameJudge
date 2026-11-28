@@ -31,12 +31,6 @@
   cursor: pointer;
 }
 
-.toolbox-tool-option input {
-  width: var(--size-icon-md);
-  height: var(--size-icon-md);
-  accent-color: var(--color-primary);
-}
-
 .toolbox-tool-option strong,
 .toolbox-tool-option small {
   display: block;

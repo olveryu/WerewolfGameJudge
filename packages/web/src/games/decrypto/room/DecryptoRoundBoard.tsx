@@ -8,6 +8,7 @@ import {
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { TextField } from '@/components/TextField';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomStagePanel } from '@/features/room/components/RoomStagePanel';
 import { TESTIDS } from '@/testids';
@@ -46,10 +47,9 @@ function ClueEntry({
           <label htmlFor={`${inputId}-${index}`}>
             {index + 1} · {number}号 {game.keywords?.[team][number - 1]}
           </label>
-          <input
+          <TextField
             id={`${inputId}-${index}`}
             data-testid={TESTIDS.decryptoClueInput(index)}
-            className="text-input"
             value={clues[index]}
             required
             maxLength={60}

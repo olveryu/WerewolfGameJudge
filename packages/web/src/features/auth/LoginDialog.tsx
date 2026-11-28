@@ -8,6 +8,7 @@ import { Avatar } from '@/components/avatar/Avatar';
 import { pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { TextField } from '@/components/TextField';
 import { useAuthContext } from '@/contexts/AuthContext';
 import {
   useForgotPassword,
@@ -29,8 +30,6 @@ import { showErrorAlert } from '@/utils/alertPresets';
 import { getUserFacingMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
-import IconEyeOffOutline from '~icons/ion/eye-off-outline';
-import IconEyeOutline from '~icons/ion/eye-outline';
 import IconMailOutline from '~icons/ion/mail-outline';
 import IconPersonOutline from '~icons/ion/person-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
@@ -223,43 +222,6 @@ export function LoginOptions({
   );
 }
 
-function PasswordField({
-  value,
-  onChange,
-  placeholder,
-  autoComplete,
-  disabled,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  autoComplete: 'current-password' | 'new-password';
-  disabled: boolean;
-}) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <span className="password-field">
-      <input
-        className="text-input"
-        type={visible ? 'text' : 'password'}
-        value={value}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      <button
-        type="button"
-        className="password-toggle"
-        aria-label={visible ? '隐藏密码' : '显示密码'}
-        onClick={() => setVisible((current) => !current)}
-      >
-        {visible ? <IconEyeOffOutline aria-hidden /> : <IconEyeOutline aria-hidden />}
-      </button>
-    </span>
-  );
-}
-
 function EmailForm({
   request,
   step,
@@ -322,8 +284,7 @@ function EmailForm({
       <h3 className="login-form-title">
         {request.formTitle ?? (isSignUp ? '注册账号' : '邮箱登录')}
       </h3>
-      <input
-        className="text-input"
+      <TextField
         type="email"
         value={email}
         placeholder="邮箱"
@@ -337,16 +298,17 @@ function EmailForm({
           !email.includes('@') &&
           EMAIL_DOMAINS.map((domain) => <option key={domain} value={`${localPart}${domain}`} />)}
       </datalist>
-      <PasswordField
+      <TextField
+        type="password"
+        reveal
         value={password}
-        onChange={setPassword}
+        onChange={(event) => setPassword(event.target.value)}
         placeholder="密码"
         autoComplete={isSignUp ? 'new-password' : 'current-password'}
         disabled={busy}
       />
       {isSignUp && request.hideDisplayName !== true && (
-        <input
-          className="text-input"
+        <TextField
           value={displayName}
           placeholder="昵称（可选）"
           autoComplete="nickname"
@@ -418,8 +380,7 @@ function ForgotPasswordForm({
     <form className="login-form" onSubmit={(event) => void submit(event)}>
       <h3 className="login-form-title">忘记密码</h3>
       <p className="login-form-subtitle">输入注册邮箱，我们将发送验证码</p>
-      <input
-        className="text-input"
+      <TextField
         type="email"
         value={email}
         placeholder="邮箱"
@@ -482,8 +443,7 @@ function ResetPasswordForm({ email, onStep }: { email: string; onStep: (step: St
     <form className="login-form" onSubmit={(event) => void submit(event)}>
       <h3 className="login-form-title">重置密码</h3>
       <p className="login-form-subtitle">{`验证码已发送至 ${email}`}</p>
-      <input
-        className="text-input"
+      <TextField
         value={code}
         placeholder="6位验证码"
         inputMode="numeric"
@@ -492,9 +452,11 @@ function ResetPasswordForm({ email, onStep }: { email: string; onStep: (step: St
         disabled={busy}
         onChange={(event) => setCode(event.target.value)}
       />
-      <PasswordField
+      <TextField
+        type="password"
+        reveal
         value={newPassword}
-        onChange={setNewPassword}
+        onChange={(event) => setNewPassword(event.target.value)}
         placeholder="新密码（至少6位）"
         autoComplete="new-password"
         disabled={busy}

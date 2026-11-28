@@ -15,14 +15,12 @@
   gap: var(--space-tight);
 }
 
-.preview-controls button,
-.preview-controls select,
-.preview-controls input {
+.preview-controls button {
   min-height: var(--size-min-touch-target);
   font: inherit;
 }
 
-.preview-controls input {
+.preview-number {
   width: 5rem;
 }
 

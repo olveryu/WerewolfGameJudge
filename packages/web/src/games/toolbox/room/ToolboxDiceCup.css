@@ -18,10 +18,6 @@
   font-size: var(--font-secondary);
 }
 
-.toolbox-dice-sound input {
-  accent-color: var(--color-primary);
-}
-
 .toolbox-dice-table {
   position: relative;
   display: flex;

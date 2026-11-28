@@ -4,6 +4,7 @@ import './RoomSeatBoard.css';
 import { memo, type ReactNode, Suspense, useRef, useState, useSyncExternalStore } from 'react';
 
 import { IconButton } from '@/components/IconButton';
+import { TextField } from '@/components/TextField';
 import { useSeatDecorationsPreference } from '@/features/product/hooks/useSeatDecorationsPreference';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
@@ -55,18 +56,20 @@ function SeatPagination({
         }}
       >
         <span>第</span>
-        <input
-          className="seat-pagination-input"
-          inputMode="numeric"
-          enterKeyHint="go"
-          maxLength={String(pageCount).length}
-          value={text}
-          aria-invalid={isInvalid}
-          aria-label="座位页码"
-          data-testid={TESTIDS.roomSeatPageInput}
-          onFocus={(event) => event.currentTarget.select()}
-          onChange={(event) => setDraft({ page, text: event.currentTarget.value })}
-        />
+        <span className="seat-pagination-field">
+          <TextField
+            inputMode="numeric"
+            enterKeyHint="go"
+            maxLength={String(pageCount).length}
+            value={text}
+            invalid={isInvalid}
+            align="center"
+            aria-label="座位页码"
+            data-testid={TESTIDS.roomSeatPageInput}
+            onFocus={(event) => event.currentTarget.select()}
+            onChange={(event) => setDraft({ page, text: event.currentTarget.value })}
+          />
+        </span>
         <span>/ {pageCount} 页</span>
       </form>
       <IconButton

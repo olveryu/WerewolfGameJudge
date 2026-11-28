@@ -56,23 +56,6 @@ button {
   outline-offset: var(--space-micro);
 }
 
-.text-input {
-  width: 100%;
-  min-height: var(--size-button-md);
-  padding: 0 var(--space-small);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  box-shadow: var(--surface-inset-shadow);
-}
-
-.text-input:focus {
-  outline: var(--border-width-thick) solid var(--color-primary-light);
-  border-color: var(--color-primary);
-}
-
 .alert-message {
   white-space: pre-line;
   overflow-wrap: anywhere;

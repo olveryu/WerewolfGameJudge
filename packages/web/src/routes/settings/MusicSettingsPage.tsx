@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useParams } from 'react-router';
 
 import { Button } from '@/components/Button';
+import { Radio } from '@/components/Radio';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Switch } from '@/components/Switch';
 import { useServices } from '@/contexts/ServiceContext';
@@ -80,6 +81,7 @@ function VolumeSlider({
       <span className="music-volume-label">音量</span>
       <span className="music-volume-row">
         <IconVolumeLow aria-hidden />
+        {/* eslint-disable-next-line react/forbid-elements -- native range slider primitive */}
         <input
           type="range"
           className="music-volume-input"
@@ -116,13 +118,7 @@ function TrackRow({
   return (
     <div className="music-track" data-selected={isSelected || undefined}>
       <label className="music-track-select" data-testid={TESTIDS.musicBgmTrack(track.id)}>
-        <input
-          type="radio"
-          className="music-radio"
-          name="bgm-track"
-          checked={isSelected}
-          onChange={onSelect}
-        />
+        <Radio name="bgm-track" checked={isSelected} onChange={onSelect} />
         <span className="music-track-info">
           <span className="music-track-label">{track.label}</span>
           <span className="music-track-meta">
@@ -230,9 +226,7 @@ function BgmSection({
             className="music-random"
             data-selected={settings.bgmTrack === 'random' || undefined}
           >
-            <input
-              type="radio"
-              className="music-radio"
+            <Radio
               name="bgm-track"
               checked={settings.bgmTrack === 'random'}
               onChange={() => selectTrack('random')}

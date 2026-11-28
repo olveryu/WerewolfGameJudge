@@ -10,6 +10,7 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useState } from 'react';
 
 import { CenterDialog } from '@/components/CenterDialog';
+import { TextArea } from '@/components/TextArea';
 import { FACTION_COLOR_MAP } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import type {
   NotepadSheriffCandidateStatus,
@@ -88,8 +89,9 @@ function NotepadCard({
           </button>
         )}
       </div>
-      <div className="notepad-note" data-value={noteText}>
-        <textarea
+      <div className="notepad-note">
+        <TextArea
+          height="auto"
           rows={1}
           value={noteText}
           placeholder="发言"

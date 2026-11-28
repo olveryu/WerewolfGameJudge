@@ -358,14 +358,6 @@
   outline-offset: var(--space-micro);
 }
 
-.settings-game-stats-option input {
-  flex: 0 0 auto;
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  margin: 0;
-  accent-color: var(--color-primary);
-}
-
 .settings-game-stats-option span {
   overflow: hidden;
   text-overflow: ellipsis;

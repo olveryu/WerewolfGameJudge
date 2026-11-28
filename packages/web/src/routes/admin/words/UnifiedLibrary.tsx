@@ -16,6 +16,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
+import { TextField } from '@/components/TextField';
 import type {
   GameWordGame,
   GameWordsStats,
@@ -350,14 +351,15 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
               onChange={(value) => change('category', value)}
             />
           </div>
-          <input
-            type="search"
-            name="librarySearch"
-            defaultValue={search}
-            className="admin-input admin-filter"
-            placeholder="搜索投稿词语"
-            aria-label="搜索投稿"
-          />
+          <div className="admin-filter">
+            <TextField
+              type="search"
+              name="librarySearch"
+              defaultValue={search}
+              placeholder="搜索投稿词语"
+              aria-label="搜索投稿"
+            />
+          </div>
           <button type="submit">搜</button>
         </form>
         {library.isPlaceholderData && (

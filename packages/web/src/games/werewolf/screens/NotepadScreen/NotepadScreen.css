@@ -62,26 +62,6 @@
   gap: var(--space-small);
 }
 
-.notepad-public-input {
-  flex: 1;
-  min-width: 0;
-  min-height: calc(var(--size-button-lg) + var(--space-large));
-  max-height: calc((var(--size-button-lg) + var(--space-large)) * 2);
-  padding: var(--space-small);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-  resize: none;
-}
-
-.notepad-public-input::placeholder {
-  color: var(--color-text-muted);
-}
-
 .notepad-legend {
   display: flex;
   flex-shrink: 0;

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { Select } from '@/components/Select';
 import IconAddOutline from '~icons/ion/add-outline';
 
 import { DetailDrawer } from './Overlays';
@@ -70,13 +71,13 @@ function SupplyDialog({
       <p className="admin-muted">触发后生成并入队等待审核，不自动审核发布。完成后请手动刷新。</p>
       <label className="admin-supply-category">
         <span>目标类别</span>
-        <select value={category} onChange={(event) => setCategory(event.currentTarget.value)}>
+        <Select value={category} onChange={(event) => setCategory(event.currentTarget.value)}>
           {categories.map((option) => (
             <option key={option.id} value={option.id}>
               {option.name}（{new Intl.NumberFormat('zh-CN').format(option.active)}）
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <div className="admin-supply-options">
         <span>触发次数</span>
