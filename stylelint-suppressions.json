@@ -44,6 +44,9 @@
   "packages/web/src/routes/admin/admin.css": {
     "scale-unlimited/declaration-strict-value": {
       "count": 1
+    },
+    "selector-disallowed-list": {
+      "count": 22
     }
   },
   "packages/web/src/routes/bench/SceneBench.css": {
@@ -61,6 +64,9 @@
   },
   "packages/web/src/routes/settings/SettingsPage.css": {
     "scale-unlimited/declaration-strict-value": {
+      "count": 1
+    },
+    "selector-disallowed-list": {
       "count": 1
     }
   },
@@ -144,6 +150,31 @@
   "packages/web/src/features/room/components/RoleCard.css": {
     "color-named": {
       "count": 1
+    }
+  },
+  "packages/web/preview/preview.css": {
+    "selector-disallowed-list": {
+      "count": 1
+    }
+  },
+  "packages/web/src/app/RouteErrorPage.css": {
+    "selector-disallowed-list": {
+      "count": 4
+    }
+  },
+  "packages/web/src/routes/home/HomePage.css": {
+    "selector-disallowed-list": {
+      "count": 1
+    }
+  },
+  "packages/web/src/features/room/components/RoomGameSummary.css": {
+    "selector-disallowed-list": {
+      "count": 3
+    }
+  },
+  "packages/web/src/routes/admin/words/wordSubmissions.css": {
+    "selector-disallowed-list": {
+      "count": 7
     }
   }
 }

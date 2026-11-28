@@ -155,7 +155,7 @@ function restrictedImports({ adapted = null, avatarModule = false } = {}) {
           // A shared component's sheet belongs to that component: render the component instead of
           // borrowing its skin. The two surface sheets have no component; they are the skin.
           group: [
-            '@/components/*.css',
+            '@/components/**/*.css',
             '!@/components/PaperboardPanel.css',
             '!@/components/HeaderSurface.css',
           ],

@@ -78,10 +78,22 @@ describe('theme tokens', () => {
     expect(
       await rulesBrokenBy(game, '.probe .icon-button[data-active] { color: red; }\n'),
     ).toContain('selector-disallowed-list');
+    // A `button` element selector reaches a shared <Button> too; a native button names its own class.
+    expect(await rulesBrokenBy(game, '.probe-row > button { flex: 1; }\n')).toEqual([
+      'selector-disallowed-list',
+    ]);
+    expect(await rulesBrokenBy(game, 'button.probe-key { padding: 0; }\n')).toEqual([]);
+    expect(await rulesBrokenBy(game, '.probe .name-style { font-size: 0; }\n')).toEqual([
+      'selector-disallowed-list',
+    ]);
+    expect(await rulesBrokenBy(game, '.probe .room-task-viewport { padding: 0; }\n')).toEqual([
+      'selector-disallowed-list',
+    ]);
+    expect(
+      await rulesBrokenBy('packages/web/src/global.css', 'button { font: inherit; }\n'),
+    ).toEqual([]);
     // Excluding a shared component from a page-wide rule is allowed.
-    expect(await rulesBrokenBy(game, '.probe button:not(.icon-button) { padding: 0; }\n')).toEqual(
-      [],
-    );
+    expect(await rulesBrokenBy(game, '.probe > :not(.icon-button) { padding: 0; }\n')).toEqual([]);
     expect(
       await rulesBrokenBy(
         'packages/web/src/components/Button.css',

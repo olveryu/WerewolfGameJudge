@@ -92,14 +92,16 @@
 
 .board-card-actions {
   display: grid;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
   gap: var(--space-small);
   margin-top: var(--space-medium);
 }
 
-/* A single action (the guide link alone) stays at its own width in the middle. */
-.board-card-actions[data-centered='true'] {
-  display: flex;
+/* The guide at its own width, the primary action filling the rest. */
+.board-card-actions[data-layout='pair'] {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+/* The guide link alone stays at its own width in the middle. */
+.board-card-actions[data-layout='guide'] {
   justify-content: center;
 }

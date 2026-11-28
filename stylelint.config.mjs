@@ -116,6 +116,7 @@ const SHARED_COMPONENT_CLASSES = {
   'packages/web/src/components/BottomSheet.css': ['bottom-sheet[\\w-]*'],
   'packages/web/src/components/Button.css': ['button', 'icon-button'],
   'packages/web/src/components/CenterDialog.css': ['center-dialog[\\w-]*'],
+  'packages/web/src/components/nameStyles/nameStyles.css': ['name-style'],
   'packages/web/src/components/ChoiceCard.css': [
     'choice-card',
     'choice-check',
@@ -137,19 +138,28 @@ const SHARED_COMPONENT_CLASSES = {
   'packages/web/src/components/Spinner.css': ['spinner'],
   'packages/web/src/components/Switch.css': ['switch'],
   'packages/web/src/features/room/components/RoomStagePanel.css': ['room-stage-panel[\\w-]*'],
-  'packages/web/src/features/room/components/RoomTaskFrame.css': ['room-task-frame[\\w-]*'],
+  'packages/web/src/features/room/components/RoomTaskFrame.css': [
+    'room-task-frame[\\w-]*',
+    'room-task-viewport[\\w-]*',
+  ],
 };
 /** A class selector for any of `names`, outside `:not()`. */
 const componentSelector = (names) => `/(?<!:not\\([^)]*)\\.(${names.join('|')})(?![\\w-])/`;
 const SHARED_COMPONENT_MESSAGE =
   'Shared components are styled only by their own sheet: pass a variant, size or tone, and place the component from a wrapper element.';
-const sharedComponentRule = (ownedNames) => [
+/**
+ * The `button` element outside `:not()`: shared `<Button>`/`<IconButton>` render one, so an element selector
+ * restyles them as surely as `.button` does. A native button is styled by its own class (`button.home-card`).
+ */
+const BUTTON_ELEMENT_SELECTOR = '/(?<![\\w\'"=.#-]|:not\\([^)]*)button(?![\\w.-])/';
+const sharedComponentRule = (ownedNames, { buttonReset = false } = {}) => [
   [
     componentSelector(
       Object.values(SHARED_COMPONENT_CLASSES)
         .flat()
         .filter((name) => !ownedNames.includes(name)),
     ),
+    ...(ownedNames.includes('button') || buttonReset ? [] : [BUTTON_ELEMENT_SELECTOR]),
   ],
   { splitList: true, message: SHARED_COMPONENT_MESSAGE },
 ];
@@ -279,6 +289,11 @@ export default {
           { message: VALUE_READ_MESSAGE },
         ],
       },
+    },
+    {
+      // The document reset: every button starts from the same box.
+      files: ['packages/web/src/global.css'],
+      rules: { 'selector-disallowed-list': sharedComponentRule([], { buttonReset: true }) },
     },
     ...Object.entries(SHARED_COMPONENT_CLASSES).map(([file, names]) => ({
       files: [file],
