@@ -97,7 +97,7 @@ describe('RoomDialog', () => {
         内容
       </RoomDialog>,
     );
-    const backdrop = document.querySelector('.center-dialog-backdrop');
+    const backdrop = document.querySelector('.app-dialog-backdrop');
     if (!(backdrop instanceof HTMLElement)) throw new Error('Missing room-dialog backdrop');
 
     fireEvent.click(backdrop);

@@ -262,45 +262,6 @@
   color: var(--color-text-muted);
 }
 
-.pictionary-fullscreen-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--layer-fullscreen-backdrop);
-  background: var(--color-text);
-}
-
-.pictionary-fullscreen-positioner {
-  position: fixed;
-  inset: 0;
-  z-index: var(--layer-fullscreen);
-  display: flex;
-}
-
-.pictionary-fullscreen {
-  position: relative;
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  padding: max(var(--space-medium), env(safe-area-inset-top)) var(--space-medium)
-    max(var(--space-medium), env(safe-area-inset-bottom));
-  outline: none;
-}
-
-.pictionary-fullscreen img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.pictionary-fullscreen-close {
-  position: absolute;
-  top: max(var(--space-medium), env(safe-area-inset-top));
-  right: var(--space-medium);
-  display: flex;
-}
-
 /* Gallery entries. */
 .pictionary-gallery-entry {
   display: flex;

@@ -114,7 +114,7 @@ const AVATAR_DRAWING_SELECTORS = [
 const PACKAGE_ADAPTERS = {
   '@ark-ui/react/color-picker': 'packages/web/src/features/drawing/components/DrawingToolbar.tsx',
   '@ark-ui/react/dialog': 'packages/web/src/components/AppDialog.tsx',
-  '@ark-ui/react/portal': null,
+  '@ark-ui/react/portal': 'packages/web/src/components/AppDialog.tsx',
   '@ark-ui/react/qr-code': 'packages/web/src/features/room/components/RoomShareDialog.tsx',
   '@ark-ui/react/tabs': null,
   '@sentry/react': null,
@@ -125,19 +125,52 @@ const PACKAGE_ADAPTERS = {
   'pixi.js/unsafe-eval': null,
   sonner: null,
 };
+/**
+ * Dialogs are built from the shells (`CenterDialog`, `AlertDialog`, `BottomSheet`, `MediaViewer`,
+ * `RoomDialog`); `AppDialog`'s parts are imported only by the shells and by these registered
+ * primitives, each a surface no shell draws (plan §7 V6-10, V6-13…V6-20).
+ */
+const DIALOG_PRIMITIVES = {
+  'packages/web/src/components/BottomSheet.tsx': 'shell: bottom sheet',
+  'packages/web/src/components/CenterDialog.tsx': 'shell: centered card (AlertDialog builds on it)',
+  'packages/web/src/components/MediaViewer.tsx': 'shell: fullscreen media',
+  'packages/web/src/features/room/components/RoomDialog.tsx':
+    'shell: room dialog with a fixed header and footer, sized from the viewport (V6-17)',
+  'packages/web/src/features/drawing/components/DrawingToolbar.tsx':
+    'the colour panel anchors to its toolbar button; no shell anchors (V6-16)',
+  'packages/web/src/features/room/components/RoleCard.tsx':
+    'the role card face is the dialog surface itself (V6-18)',
+  'packages/web/src/features/room/components/RoleRevealEffects/RoleRevealAnimator.tsx':
+    'role reveal artwork: ends only when the effect completes, translucent stage (V6-19)',
+  'packages/web/src/routes/admin/components/Overlays.tsx':
+    "admin's only side drawer, inside the admin scoped theme (V6-20)",
+  'packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.tsx':
+    'chat window docked above the bubble, follows the on-screen keyboard (V6-10)',
+  'packages/web/src/routes/gacha/components/SingleResultReveal.tsx':
+    'gacha reveal artwork: rarity glow, light pillar and border scale with rarity (V6-13)',
+  'packages/web/src/routes/gacha/components/TenResultOverlay.tsx':
+    'gacha reveal artwork: rarity palette and resident scene layer (V6-14)',
+  'packages/web/src/games/werewolf/room/components/MvpSelectionModal.tsx':
+    'moves onto the shared player-pick dialog in P8 (V6-11); delete this entry then',
+  'packages/web/src/games/werewolf/room/components/ShareReviewModal.tsx':
+    'moves onto the shared player-pick dialog in P8 (V6-12); delete this entry then',
+};
 const AVATAR_MODULES = [
   'packages/web/src/components/avatar/**',
   'packages/web/src/games/*/assets/roleAvatars.ts',
 ];
 
-/** `no-restricted-imports` for a web file, letting through its own adapted package. */
-function restrictedImports({ adapted = null, avatarModule = false } = {}) {
+/**
+ * `no-restricted-imports` for a web file, letting through its own adapted package, avatar sources
+ * in an avatar module and `AppDialog` in a dialog shell or registered primitive.
+ */
+function restrictedImports({ adapted = [], avatarModule = false, dialogPrimitive = false } = {}) {
   return [
     'error',
     {
       paths: [
         ...Object.entries(PACKAGE_ADAPTERS)
-          .filter(([name]) => name !== adapted)
+          .filter(([name]) => !adapted.includes(name))
           .map(([name, adapter]) => ({
             name,
             message: adapter
@@ -161,6 +194,15 @@ function restrictedImports({ adapted = null, avatarModule = false } = {}) {
           ],
           message: "A component's stylesheet is styled through that component; render it instead.",
         },
+        ...(dialogPrimitive
+          ? []
+          : [
+              {
+                group: ['**/components/AppDialog', './AppDialog'],
+                message:
+                  'Build dialogs from CenterDialog, AlertDialog, BottomSheet, MediaViewer or RoomDialog; AppDialog parts are for the shells and DIALOG_PRIMITIVES.',
+              },
+            ]),
         ...(avatarModule
           ? []
           : [
@@ -455,11 +497,24 @@ export default tseslint.config(
       'no-restricted-imports': restrictedImports(),
     },
   },
-  ...Object.entries(PACKAGE_ADAPTERS)
-    .filter(([, adapter]) => adapter !== null)
-    .map(([name, adapter]) => ({
+  ...[...new Set(Object.values(PACKAGE_ADAPTERS).filter((adapter) => adapter !== null))].map(
+    (adapter) => ({
       files: [adapter],
-      rules: { 'no-restricted-imports': restrictedImports({ adapted: name }) },
+      rules: {
+        'no-restricted-imports': restrictedImports({
+          adapted: Object.keys(PACKAGE_ADAPTERS).filter(
+            (name) => PACKAGE_ADAPTERS[name] === adapter,
+          ),
+          dialogPrimitive: adapter in DIALOG_PRIMITIVES,
+        }),
+      },
+    }),
+  ),
+  ...Object.keys(DIALOG_PRIMITIVES)
+    .filter((file) => !Object.values(PACKAGE_ADAPTERS).includes(file))
+    .map((file) => ({
+      files: [file],
+      rules: { 'no-restricted-imports': restrictedImports({ dialogPrimitive: true }) },
     })),
   {
     files: AVATAR_MODULES,

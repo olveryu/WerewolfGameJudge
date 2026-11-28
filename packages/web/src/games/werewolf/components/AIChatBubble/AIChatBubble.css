@@ -67,22 +67,6 @@
 }
 
 /* Chat dialog */
-.ai-chat-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--color-overlay-light);
-}
-
-.ai-chat-backdrop[data-state='open'] {
-  animation: ai-chat-fade 150ms ease-out;
-}
-
-@keyframes ai-chat-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 .ai-chat-positioner {
   position: fixed;
   inset: 0;
@@ -106,6 +90,12 @@
 
 .ai-chat-window[data-state='open'] {
   animation: ai-chat-fade 150ms ease-out;
+}
+
+@keyframes ai-chat-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 .ai-chat-header {

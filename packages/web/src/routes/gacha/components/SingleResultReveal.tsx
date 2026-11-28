@@ -1,7 +1,6 @@
 import './gachaResult.css';
 import './SingleResultReveal.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import type { Rarity, RewardType } from '@game-judge/game-engine/product/rewards';
 import { useRef } from 'react';
 
@@ -83,8 +82,8 @@ export function SingleResultReveal({
       lazyMount
       unmountOnExit
     >
-      <Portal>
-        <AppDialog.Backdrop className="gacha-result-backdrop" />
+      <AppDialog.Portal>
+        <AppDialog.Backdrop tone="scrim" />
         <AppDialog.Positioner
           className="gacha-result-positioner"
           data-rarity={rarity}
@@ -151,7 +150,7 @@ export function SingleResultReveal({
             )}
           </AppDialog.Content>
         </AppDialog.Positioner>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }

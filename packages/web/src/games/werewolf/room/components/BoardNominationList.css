@@ -1,36 +1,3 @@
-.nomination-dialog {
-  display: flex;
-  flex-direction: column;
-  width: 90%;
-  max-width: var(--size-max-content-width);
-  max-height: 80vh;
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  box-shadow: var(--surface-card-shadow);
-}
-
-.nomination-dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-small) var(--space-medium);
-}
-
-.nomination-dialog-title {
-  margin: 0;
-  color: var(--color-text);
-  font-size: var(--font-subtitle);
-  line-height: var(--line-subtitle);
-  font-weight: var(--weight-semibold);
-}
-
-.nomination-dialog-body {
-  flex: 1;
-  min-height: 0;
-  padding: 0 var(--space-medium) var(--space-medium);
-  overflow-y: auto;
-}
-
 .nomination-empty {
   margin: 0;
   padding: var(--space-medium) 0;
@@ -41,7 +8,6 @@
 }
 
 .nomination-card {
-  margin-bottom: var(--space-small);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-card-nested);

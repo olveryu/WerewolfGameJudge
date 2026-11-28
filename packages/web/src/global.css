@@ -73,11 +73,6 @@ button {
   border-color: var(--color-primary);
 }
 
-.alert-message {
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-}
-
 /* The one visually-hidden class: kept in the accessibility tree, drawn nowhere. */
 .visually-hidden {
   position: absolute;

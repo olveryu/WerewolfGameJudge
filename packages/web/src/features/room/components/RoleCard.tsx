@@ -4,10 +4,8 @@
  * and bullets.
  * Game-neutral: games hand in `RevealRoleData`. Reveal animations (P3) wrap this card.
  */
-import '@/components/CenterDialog.css';
 import './RoleCard.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
@@ -162,11 +160,12 @@ export function RoleCardDialog({
         if (!details.open && !requireConfirmation) onClose();
       }}
     >
-      <Portal>
-        <AppDialog.Backdrop className="center-dialog-backdrop" />
-        <AppDialog.Positioner className="center-dialog-positioner">
+      <AppDialog.Portal>
+        <AppDialog.Backdrop tone="scrim" />
+        <AppDialog.Positioner placement="center">
           <AppDialog.Content
             className="role-card-dialog"
+            motion="pop"
             data-testid={testId}
             aria-label={role.name}
           >
@@ -190,7 +189,7 @@ export function RoleCardDialog({
             </Button>
           </AppDialog.Content>
         </AppDialog.Positioner>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }

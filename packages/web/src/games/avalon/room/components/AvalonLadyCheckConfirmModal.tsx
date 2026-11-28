@@ -4,7 +4,7 @@
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
-import { AvalonAlertDialog } from './AvalonAlertDialog';
+import { ALERT_TEST_IDS, AlertDialog } from '@/components/AlertDialog';
 
 /** 查验目标二次确认弹窗；目标为空时不渲染。 */
 export function AvalonLadyCheckConfirmModal({
@@ -18,14 +18,15 @@ export function AvalonLadyCheckConfirmModal({
 }) {
   if (targetSeat === null) return null;
   return (
-    <AvalonAlertDialog
+    <AlertDialog
+      open
       title={`查验${formatSeat(targetSeat)}？`}
-      message=""
       buttons={[
         { text: '取消', style: 'cancel', onPress: onClose },
         { text: '确定', style: 'default', onPress: onConfirm },
       ]}
-      onClose={onClose}
+      onDismiss={onClose}
+      testIds={ALERT_TEST_IDS}
     />
   );
 }

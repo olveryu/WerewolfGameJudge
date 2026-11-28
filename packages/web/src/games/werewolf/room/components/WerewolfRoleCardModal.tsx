@@ -5,14 +5,11 @@
  * goes through the shared `RevealRoleCardModal`: on the first view it plays the seated reveal
  * effect over the board composition, then shows the static role card with the dual-seer label.
  */
-import '@/components/CenterDialog.css';
-
-import { Portal } from '@ark-ui/react/portal';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import { useEffect } from 'react';
 
-import { AppDialog } from '@/components/AppDialog';
+import { AlertDialog } from '@/components/AlertDialog';
 import { Spinner } from '@/components/Spinner';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { prefetchRoleReveal } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
@@ -53,19 +50,14 @@ export function WerewolfRoleCardModal({
 
   if (isLoading) {
     return (
-      <AppDialog.Root open role="alertdialog" closeOnInteractOutside={false} closeOnEscape={false}>
-        <Portal>
-          <AppDialog.Backdrop className="center-dialog-backdrop" />
-          <AppDialog.Positioner className="center-dialog-positioner">
-            <AppDialog.Content className="center-dialog" aria-label="正在确认身份…">
-              <Spinner label="正在确认身份…" size="lg" />
-              <AppDialog.Description className="center-dialog-subtitle">
-                正在确认身份…
-              </AppDialog.Description>
-            </AppDialog.Content>
-          </AppDialog.Positioner>
-        </Portal>
-      </AppDialog.Root>
+      <AlertDialog
+        open
+        title="正在确认身份…"
+        titleHidden
+        message="正在确认身份…"
+        media={<Spinner label="正在确认身份…" size="lg" />}
+        buttons={[]}
+      />
     );
   }
   const seerLabel = seerLabelMap?.[roleId];

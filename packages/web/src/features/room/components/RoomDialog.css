@@ -1,11 +1,3 @@
-.room-dialog-positioner {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .room-dialog {
   display: flex;
   flex-direction: column;
@@ -15,10 +7,6 @@
   border-radius: var(--radius-card);
   background: var(--color-surface);
   box-shadow: var(--surface-card-shadow);
-}
-
-.room-dialog[data-state='open'] {
-  animation: center-dialog-pop 150ms ease-out;
 }
 
 .room-dialog-header {

@@ -1,7 +1,6 @@
 import './gachaResult.css';
 import './TenResultOverlay.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import type { Rarity } from '@game-judge/game-engine/product/rewards';
 import { type CSSProperties, type RefObject, useRef } from 'react';
 
@@ -126,8 +125,8 @@ export function TenResultOverlay({
       lazyMount
       unmountOnExit
     >
-      <Portal>
-        <AppDialog.Backdrop className="gacha-result-backdrop" />
+      <AppDialog.Portal>
+        <AppDialog.Backdrop tone="scrim" />
         <AppDialog.Positioner className="gacha-result-positioner" style={GACHA_PALETTE_VARS}>
           <AppDialog.Content className="ten-result-card" data-testid="gacha-ten-result">
             <ResidentSceneLayer hostRef={sceneHostRef} />
@@ -190,7 +189,7 @@ export function TenResultOverlay({
             )}
           </AppDialog.Content>
         </AppDialog.Positioner>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }

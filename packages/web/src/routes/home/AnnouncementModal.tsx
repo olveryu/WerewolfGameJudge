@@ -3,14 +3,12 @@
  * the tab bar and is the default page — opening the modal (including the post-update What's New
  * flow) lands on the update log; game-owned tabs and feedback follow it.
  */
-import '@/components/CenterDialog.css';
 import './AnnouncementModal.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import { Tabs } from '@ark-ui/react/tabs';
 import { Suspense, useState } from 'react';
 
-import { AppDialog } from '@/components/AppDialog';
+import { CenterDialog } from '@/components/CenterDialog';
 import { Spinner } from '@/components/Spinner';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -18,7 +16,6 @@ import { FeedbackTab } from '@/features/feedback/components/FeedbackTab';
 import { useUnreadFeedback } from '@/features/feedback/queries/useUnreadFeedback';
 import type { ClientGameAnnouncementTab } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
-import IconClose from '~icons/ion/close';
 import IconMegaphoneOutline from '~icons/ion/megaphone-outline';
 
 const CHANGELOG_TAB = 'changelog';
@@ -61,78 +58,64 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
   const [activeTab, setActiveTab] = useState(CHANGELOG_TAB);
 
   return (
-    <AppDialog.Root
+    <CenterDialog
       open={open}
-      onOpenChange={(details) => {
-        if (!details.open) onClose();
-      }}
-      lazyMount
-      unmountOnExit
+      onClose={onClose}
+      title="公告与反馈"
+      beforeTitle={
+        <span className="announcement-header-icon">
+          <IconMegaphoneOutline aria-hidden />
+        </span>
+      }
+      density="compact"
+      closeButtonLabel="关闭公告"
+      closeButtonTestId={TESTIDS.homeAnnouncementCloseButton}
     >
-      <Portal>
-        <AppDialog.Backdrop className="center-dialog-backdrop" />
-        <AppDialog.Positioner className="center-dialog-positioner">
-          <AppDialog.Content className="center-dialog announcement-modal">
-            <header className="announcement-header">
-              <IconMegaphoneOutline className="announcement-header-icon" aria-hidden />
-              <AppDialog.Title className="announcement-title">公告与反馈</AppDialog.Title>
-              <AppDialog.CloseTrigger
-                className="announcement-close"
-                aria-label="关闭公告"
-                data-testid={TESTIDS.homeAnnouncementCloseButton}
-              >
-                <IconClose aria-hidden />
-              </AppDialog.CloseTrigger>
-            </header>
+      <Tabs.Root
+        value={activeTab}
+        onValueChange={(details) => setActiveTab(details.value)}
+        lazyMount
+        unmountOnExit
+      >
+        <Tabs.List className="announcement-tabs" aria-label="公告与反馈">
+          <Tabs.Trigger value={CHANGELOG_TAB} className="announcement-tab">
+            更新日志
+          </Tabs.Trigger>
+          {gameTabs.map((tab) => (
+            <Tabs.Trigger key={tab.key} value={tab.key} className="announcement-tab">
+              {tab.label}
+            </Tabs.Trigger>
+          ))}
+          <Tabs.Trigger value={FEEDBACK_TAB} className="announcement-tab">
+            意见反馈
+            {hasUnreadFeedback && (
+              <span className="announcement-tab-dot" aria-label="有新回复" role="img" />
+            )}
+          </Tabs.Trigger>
+        </Tabs.List>
 
-            <Tabs.Root
-              value={activeTab}
-              onValueChange={(details) => setActiveTab(details.value)}
-              lazyMount
-              unmountOnExit
-            >
-              <Tabs.List className="announcement-tabs" aria-label="公告与反馈">
-                <Tabs.Trigger value={CHANGELOG_TAB} className="announcement-tab">
-                  更新日志
-                </Tabs.Trigger>
-                {gameTabs.map((tab) => (
-                  <Tabs.Trigger key={tab.key} value={tab.key} className="announcement-tab">
-                    {tab.label}
-                  </Tabs.Trigger>
-                ))}
-                <Tabs.Trigger value={FEEDBACK_TAB} className="announcement-tab">
-                  意见反馈
-                  {hasUnreadFeedback && (
-                    <span className="announcement-tab-dot" aria-label="有新回复" role="img" />
-                  )}
-                </Tabs.Trigger>
-              </Tabs.List>
-
-              <Tabs.Content value={CHANGELOG_TAB}>
-                <ChangelogList />
-              </Tabs.Content>
-              {gameTabs.map((tab) => (
-                <Tabs.Content key={tab.key} value={tab.key}>
-                  <div className="announcement-scroll">
-                    <Suspense fallback={<Spinner label={`加载${tab.label}`} />}>
-                      <tab.Content />
-                    </Suspense>
-                  </div>
-                </Tabs.Content>
-              ))}
-              <Tabs.Content value={FEEDBACK_TAB}>
-                <div className="announcement-scroll">
-                  <FeedbackTab
-                    key={user?.id ?? 'signed-out'}
-                    userId={user?.id ?? null}
-                    onUnreadChange={setUnreadFeedbackCount}
-                  />
-                </div>
-              </Tabs.Content>
-            </Tabs.Root>
-          </AppDialog.Content>
-        </AppDialog.Positioner>
-      </Portal>
-    </AppDialog.Root>
+        <Tabs.Content value={CHANGELOG_TAB}>
+          <ChangelogList />
+        </Tabs.Content>
+        {gameTabs.map((tab) => (
+          <Tabs.Content key={tab.key} value={tab.key}>
+            <div className="announcement-scroll">
+              <Suspense fallback={<Spinner label={`加载${tab.label}`} />}>
+                <tab.Content />
+              </Suspense>
+            </div>
+          </Tabs.Content>
+        ))}
+        <Tabs.Content value={FEEDBACK_TAB}>
+          <div className="announcement-scroll">
+            <FeedbackTab
+              key={user?.id ?? 'signed-out'}
+              userId={user?.id ?? null}
+              onUnreadChange={setUnreadFeedbackCount}
+            />
+          </div>
+        </Tabs.Content>
+      </Tabs.Root>
+    </CenterDialog>
   );
 }

@@ -4,7 +4,7 @@
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
-import { AvalonAlertDialog } from './AvalonAlertDialog';
+import { ALERT_TEST_IDS, AlertDialog } from '@/components/AlertDialog';
 
 export interface AvalonStrikeConfirmation {
   readonly seat: number;
@@ -25,14 +25,16 @@ export function AvalonStrikeConfirmModal({
   const seat = formatSeat(confirmation.seat);
   const isEarlyStrike = confirmation.mode === 'earlyStrike';
   return (
-    <AvalonAlertDialog
+    <AlertDialog
+      open
       title={isEarlyStrike ? `提前刺杀${seat}？` : `指认${seat}为梅林？`}
-      message={isEarlyStrike ? '刺错则好人直接获胜。' : ''}
+      message={isEarlyStrike ? '刺错则好人直接获胜。' : undefined}
       buttons={[
         { text: '取消', style: 'cancel', onPress: onClose },
         { text: '确定', style: 'default', onPress: onConfirm },
       ]}
-      onClose={onClose}
+      onDismiss={onClose}
+      testIds={ALERT_TEST_IDS}
     />
   );
 }

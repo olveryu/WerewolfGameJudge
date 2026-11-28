@@ -5,10 +5,8 @@
  * role chips (FactionRoleList), with upvote, withdraw (own suggestion) and adopt (host) actions.
  * Pressing a role chip opens its skill card. Mounted means open.
  */
-import '@/components/CenterDialog.css';
 import './BoardNominationList.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import {
   type BoardNomination,
   findMatchingPresetName,
@@ -17,15 +15,13 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { useState } from 'react';
 
-import { AppDialog } from '@/components/AppDialog';
-import { IconButton } from '@/components/IconButton';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { FactionRoleList } from '@/games/werewolf/components/FactionRoleList';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { computeFactionStats } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import IconCheckmarkCircleOutline from '~icons/ion/checkmark-circle-outline';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconChevronUp from '~icons/ion/chevron-up';
-import IconClose from '~icons/ion/close';
 import IconCloseCircleOutline from '~icons/ion/close-circle-outline';
 import IconThumbsUp from '~icons/ion/thumbs-up';
 import IconThumbsUpOutline from '~icons/ion/thumbs-up-outline';
@@ -170,53 +166,37 @@ export function BoardNominationModal({
 
   return (
     <>
-      <AppDialog.Root
-        open
-        closeOnInteractOutside={false}
-        onOpenChange={(details) => {
-          if (!details.open) onClose();
-        }}
+      <RoomDialog
+        title={`板子建议（${entries.length}）`}
+        onClose={onClose}
+        dismissOnEscape
+        footer={null}
       >
-        <Portal>
-          <AppDialog.Backdrop className="center-dialog-backdrop" />
-          <AppDialog.Positioner className="center-dialog-positioner">
-            <AppDialog.Content className="nomination-dialog">
-              <header className="nomination-dialog-header">
-                <AppDialog.Title className="nomination-dialog-title">
-                  板子建议（{entries.length}）
-                </AppDialog.Title>
-                <IconButton label="关闭" icon={<IconClose aria-hidden />} onClick={onClose} />
-              </header>
-              <div className="nomination-dialog-body">
-                {isReadOnly && (
-                  <p className="nomination-empty" role="status">
-                    本局建议已结束
-                  </p>
-                )}
-                {entries.length === 0 && !isReadOnly ? (
-                  <p className="nomination-empty">还没有人提建议</p>
-                ) : (
-                  entries.map((nomination) => (
-                    <NominationCard
-                      key={nomination.userId}
-                      nomination={nomination}
-                      myUserId={myUserId}
-                      isHost={isHost}
-                      isReadOnly={isReadOnly}
-                      expanded={activeUserId === nomination.userId}
-                      onToggle={() => toggleCard(nomination.userId)}
-                      onRolePress={setPreviewRoleId}
-                      onUpvote={onUpvote}
-                      onWithdraw={onWithdraw}
-                      onAdopt={(roles) => void handleAdopt(roles)}
-                    />
-                  ))
-                )}
-              </div>
-            </AppDialog.Content>
-          </AppDialog.Positioner>
-        </Portal>
-      </AppDialog.Root>
+        {isReadOnly && (
+          <p className="nomination-empty" role="status">
+            本局建议已结束
+          </p>
+        )}
+        {entries.length === 0 && !isReadOnly ? (
+          <p className="nomination-empty">还没有人提建议</p>
+        ) : (
+          entries.map((nomination) => (
+            <NominationCard
+              key={nomination.userId}
+              nomination={nomination}
+              myUserId={myUserId}
+              isHost={isHost}
+              isReadOnly={isReadOnly}
+              expanded={activeUserId === nomination.userId}
+              onToggle={() => toggleCard(nomination.userId)}
+              onRolePress={setPreviewRoleId}
+              onUpvote={onUpvote}
+              onWithdraw={onWithdraw}
+              onAdopt={(roles) => void handleAdopt(roles)}
+            />
+          ))
+        )}
+      </RoomDialog>
 
       <RoleCardSimple
         visible={previewRoleId !== null}

@@ -1,6 +1,5 @@
 import './BottomSheet.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
@@ -32,15 +31,20 @@ export function BottomSheet({
         if (!details.open && !requireConfirmation) onClose();
       }}
     >
-      <Portal>
-        <AppDialog.Backdrop className="bottom-sheet-backdrop" />
-        <AppDialog.Positioner className="bottom-sheet-positioner">
-          <AppDialog.Content className="bottom-sheet" aria-label={title} data-testid={testId}>
+      <AppDialog.Portal>
+        <AppDialog.Backdrop tone="scrim" />
+        <AppDialog.Positioner placement="bottom">
+          <AppDialog.Content
+            className="bottom-sheet"
+            motion="slide-up"
+            aria-label={title}
+            data-testid={testId}
+          >
             <span className="bottom-sheet-handle" aria-hidden />
             {children}
           </AppDialog.Content>
         </AppDialog.Positioner>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }

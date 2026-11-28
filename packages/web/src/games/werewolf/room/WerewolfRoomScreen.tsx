@@ -8,7 +8,6 @@
  */
 import './WerewolfRoomScreen.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import {
   findClosestPresetName,
   type GameState,
@@ -20,7 +19,7 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { AppDialog } from '@/components/AppDialog';
+import { CenterDialog } from '@/components/CenterDialog';
 import { IconButton } from '@/components/IconButton';
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
@@ -458,31 +457,20 @@ function WerewolfRoomContent(
             </RoomDialog>
           )}
           {state.sheriffElection?.phase === 'result' && sheriffElectionPanel !== null && (
-            <AppDialog.Root
+            <CenterDialog
               open
-              onEscapeKeyDown={(event) => event.preventDefault()}
-              onInteractOutside={(event) => event.preventDefault()}
+              onClose={null}
+              title="警长竞选结果"
+              subtitle={sheriffElectionPanel.view.phaseDescription}
+              testId={TESTIDS.sheriffResultDialog}
             >
-              <Portal>
-                <AppDialog.Backdrop className="center-dialog-backdrop" />
-                <AppDialog.Positioner className="center-dialog-positioner">
-                  <AppDialog.Content
-                    className="center-dialog"
-                    aria-describedby={undefined}
-                    data-testid={TESTIDS.sheriffResultDialog}
-                  >
-                    <AppDialog.Title>警长竞选结果</AppDialog.Title>
-                    <p>{sheriffElectionPanel.view.phaseDescription}</p>
-                    <SheriffElectionPanel model={sheriffElectionPanel} />
-                    <p>
-                      {remainingSeconds === null || remainingSeconds === 0
-                        ? '等待进入下一阶段…'
-                        : `${remainingSeconds} 秒后继续`}
-                    </p>
-                  </AppDialog.Content>
-                </AppDialog.Positioner>
-              </Portal>
-            </AppDialog.Root>
+              <SheriffElectionPanel model={sheriffElectionPanel} />
+              <p className="sheriff-result-countdown">
+                {remainingSeconds === null || remainingSeconds === 0
+                  ? '等待进入下一阶段…'
+                  : `${remainingSeconds} 秒后继续`}
+              </p>
+            </CenterDialog>
           )}
         </>
       }

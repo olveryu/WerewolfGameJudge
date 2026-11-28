@@ -5,13 +5,9 @@
  * capturing phase shows the capture's real count. Cancelling detaches
  * the wait without killing the background capture.
  */
-import '@/components/CenterDialog.css';
 import './review.css';
 
-import { Portal } from '@ark-ui/react/portal';
-
-import { AppDialog } from '@/components/AppDialog';
-import { Button } from '@/components/Button';
+import { AlertDialog } from '@/components/AlertDialog';
 import { Spinner } from '@/components/Spinner';
 import { TESTIDS } from '@/testids';
 
@@ -38,32 +34,20 @@ export function RoomReviewProgressModal({
 }) {
   const status = formatReviewShareRun(run);
   return (
-    <AppDialog.Root
+    <AlertDialog
       open
-      role="alertdialog"
-      onOpenChange={(details) => {
-        if (!details.open) onCancel();
-      }}
+      title="分享战报"
+      titleHidden
+      media={<Spinner label={status} size="lg" />}
+      buttons={[{ text: '取消', style: 'cancel', onPress: onCancel }]}
+      onDismiss={onCancel}
+      size="sm"
+      testIds={{ content: TESTIDS.roomReviewProgress }}
     >
-      <Portal>
-        <AppDialog.Backdrop className="center-dialog-backdrop" />
-        <AppDialog.Positioner className="center-dialog-positioner">
-          <AppDialog.Content
-            className="center-dialog review-progress"
-            data-testid={TESTIDS.roomReviewProgress}
-          >
-            <AppDialog.Title className="visually-hidden">分享战报</AppDialog.Title>
-            <Spinner label={status} size="lg" />
-            <p className="review-progress-status">{status}</p>
-            {run.phase === 'capturing' && run.total > 0 && (
-              <progress className="review-progress-bar" value={run.done} max={run.total} />
-            )}
-            <Button variant="ghost" onClick={onCancel} aria-label="取消分享">
-              取消
-            </Button>
-          </AppDialog.Content>
-        </AppDialog.Positioner>
-      </Portal>
-    </AppDialog.Root>
+      <p className="review-progress-status">{status}</p>
+      {run.phase === 'capturing' && run.total > 0 && (
+        <progress className="review-progress-bar" value={run.done} max={run.total} />
+      )}
+    </AlertDialog>
   );
 }

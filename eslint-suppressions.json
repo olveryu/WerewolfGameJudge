@@ -34,23 +34,8 @@
       "count": 1
     }
   },
-  "packages/web/src/components/AlertHost.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "packages/web/src/components/BottomSheet.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
   "packages/web/src/components/Button.tsx": {
     "react/jsx-props-no-spreading": {
-      "count": 1
-    }
-  },
-  "packages/web/src/components/CenterDialog.tsx": {
-    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -114,9 +99,6 @@
     "@typescript-eslint/no-restricted-types": {
       "count": 1
     },
-    "no-restricted-imports": {
-      "count": 1
-    },
     "no-restricted-syntax": {
       "count": 8
     }
@@ -177,11 +159,6 @@
       "count": 1
     }
   },
-  "packages/web/src/features/room/components/RoleCard.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    }
-  },
   "packages/web/src/features/room/components/RoleRevealEffects/RevealEffectStage.tsx": {
     "@typescript-eslint/no-restricted-types": {
       "count": 1
@@ -191,9 +168,6 @@
     }
   },
   "packages/web/src/features/room/components/RoleRevealEffects/RoleRevealAnimator.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    },
     "no-restricted-syntax": {
       "count": 13
     }
@@ -378,15 +352,7 @@
       "count": 1
     }
   },
-  "packages/web/src/features/room/components/RoomAudioResumeDialog.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    }
-  },
   "packages/web/src/features/room/components/RoomDialog.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    },
     "no-restricted-syntax": {
       "count": 1
     }
@@ -441,11 +407,6 @@
       "count": 1
     }
   },
-  "packages/web/src/features/room/review/components/RoomReviewProgressModal.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    }
-  },
   "packages/web/src/features/room/review/useRoomReviewExport.ts": {
     "no-restricted-imports": {
       "count": 1
@@ -454,11 +415,6 @@
   "packages/web/src/features/room/steps/useStepInteraction.ts": {
     "no-restricted-imports": {
       "count": 1
-    }
-  },
-  "packages/web/src/games/avalon/room/components/AvalonAlertDialog.tsx": {
-    "no-restricted-imports": {
-      "count": 2
     }
   },
   "packages/web/src/games/avalon/room/components/AvalonRecordProposal.tsx": {
@@ -477,11 +433,6 @@
     }
   },
   "packages/web/src/games/drawguess/screens/DrawGuessConfigEstimate.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "packages/web/src/games/pictionary/room/components/PictionaryDrawingImage.tsx": {
     "no-restricted-imports": {
       "count": 1
     }
@@ -512,9 +463,6 @@
     }
   },
   "packages/web/src/games/werewolf/components/AIChatBubble/AIChatBubble.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    },
     "no-restricted-syntax": {
       "count": 3
     }
@@ -524,33 +472,18 @@
       "count": 1
     }
   },
-  "packages/web/src/games/werewolf/room/WerewolfRoomScreen.tsx": {
+  "packages/web/src/games/werewolf/room/components/MvpSelectionModal.tsx": {
     "no-restricted-imports": {
       "count": 1
     }
   },
-  "packages/web/src/games/werewolf/room/components/BoardNominationList.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    }
-  },
-  "packages/web/src/games/werewolf/room/components/MvpSelectionModal.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    }
-  },
   "packages/web/src/games/werewolf/room/components/ShareReviewModal.tsx": {
     "no-restricted-imports": {
-      "count": 2
+      "count": 1
     }
   },
   "packages/web/src/games/werewolf/room/components/SheriffElectionReadOnly.tsx": {
     "no-restricted-syntax": {
-      "count": 2
-    }
-  },
-  "packages/web/src/games/werewolf/room/components/WerewolfRoleCardModal.tsx": {
-    "no-restricted-imports": {
       "count": 2
     }
   },
@@ -641,18 +574,12 @@
     }
   },
   "packages/web/src/routes/gacha/components/SingleResultReveal.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    },
     "no-restricted-syntax": {
       "count": 3
     }
   },
   "packages/web/src/routes/gacha/components/TenResultOverlay.tsx": {
     "@typescript-eslint/no-restricted-types": {
-      "count": 1
-    },
-    "no-restricted-imports": {
       "count": 1
     },
     "no-restricted-syntax": {
@@ -671,7 +598,7 @@
   },
   "packages/web/src/routes/home/AnnouncementModal.tsx": {
     "no-restricted-imports": {
-      "count": 3
+      "count": 1
     }
   },
   "packages/web/src/routes/settings/SettingsPage.tsx": {
