@@ -7,7 +7,7 @@ import rejectImage from '@/assets/avalon-vote/reject.webp';
 import { Avatar } from '@/components/avatar/Avatar';
 import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { makeBuiltinAvatarUrl, pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
-import { Button } from '@/components/Button';
+import { Button, type ButtonTone } from '@/components/Button';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { FactionChip } from '@/components/FactionChip';
 import { IconButton } from '@/components/IconButton';
@@ -23,6 +23,7 @@ import IconSettings from '~icons/ion/settings-outline';
 
 const BUTTON_VARIANTS = ['primary', 'secondary', 'danger', 'ghost', 'outline', 'soft'] as const;
 const BUTTON_SIZES = ['sm', 'md', 'lg'] as const;
+const BUTTON_TONES: readonly ButtonTone[] = ['wolf', 'god', 'villager', 'third', 'neutral'];
 /** Fixed user ids, so every fallback avatar draws the same tint on every run. */
 const AVATAR_SEEDS = ['gallery-a', 'gallery-b', 'gallery-c'] as const;
 /** One avatar of every source: fallback (no avatar), generated (common, rare), hand-drawn portrait. */
@@ -66,6 +67,14 @@ export function UiGallery() {
             disabled
           </Button>
         </div>
+        <div className="ui-gallery-row">
+          {BUTTON_TONES.map((tone) => (
+            <Button key={tone} tone={tone} size="sm">
+              {tone}
+            </Button>
+          ))}
+        </div>
+        <Button fullWidth>fullWidth</Button>
       </section>
 
       <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('interaction')}>
@@ -87,6 +96,17 @@ export function UiGallery() {
           <IconButton label="添加" icon={<IconAdd aria-hidden />} />
           <IconButton label="设置" icon={<IconSettings aria-hidden />} />
           <IconButton label="添加" icon={<IconAdd aria-hidden />} disabled />
+        </div>
+        <div className="ui-gallery-row">
+          <IconButton label="小" size="sm" icon={<IconAdd aria-hidden />} />
+          <IconButton label="大" size="lg" icon={<IconAdd aria-hidden />} />
+          <IconButton label="开启" active icon={<IconSettings aria-hidden />} />
+          <IconButton label="纯图标" variant="plain" icon={<IconSettings aria-hidden />} />
+          <IconButton label="纯图标禁用" variant="plain" disabled icon={<IconAdd aria-hidden />} />
+        </div>
+        <div className="ui-gallery-row ui-gallery-media">
+          <IconButton label="关闭" variant="on-media" icon={<IconAdd aria-hidden />} />
+          <Spinner label="加载中" size="sm" tone="inverse" />
         </div>
       </section>
 
@@ -188,6 +208,7 @@ export function UiGallery() {
 
       <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('progress')}>
         <div className="ui-gallery-row">
+          <Spinner label="加载中" size="sm" />
           <Spinner label="加载中" />
           <Spinner label="加载中" size="lg" />
         </div>

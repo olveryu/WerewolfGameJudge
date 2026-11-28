@@ -23,7 +23,8 @@
 .admin-console p:where(:not(.maintenance-page *)) {
   margin: 0;
 }
-.admin-console h1:where(:not(.maintenance-page *)) {
+/* The console header's title is ScreenHeader's own. */
+.admin-console h1:where(:not(.maintenance-page *, .screen-header-title)) {
   font-size: var(--font-heading);
   line-height: var(--line-heading);
   letter-spacing: var(--letter-tight);
