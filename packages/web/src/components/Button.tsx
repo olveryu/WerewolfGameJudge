@@ -10,7 +10,8 @@ export type ButtonTone = 'wolf' | 'god' | 'villager' | 'third' | 'neutral';
 interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'style'> {
   ref?: Ref<HTMLButtonElement>;
   variant?: ButtonVariant;
-  size?: 'sm' | 'md' | 'lg';
+  /** `xs`: the compact key of dense item grids (caption-small text on the `sm` height). */
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   tone?: ButtonTone;
   /** Fills the width of its container. */
   fullWidth?: boolean;

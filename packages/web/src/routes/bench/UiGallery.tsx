@@ -22,7 +22,7 @@ import IconAdd from '~icons/ion/add';
 import IconSettings from '~icons/ion/settings-outline';
 
 const BUTTON_VARIANTS = ['primary', 'secondary', 'danger', 'ghost', 'outline', 'soft'] as const;
-const BUTTON_SIZES = ['sm', 'md', 'lg'] as const;
+const BUTTON_SIZES = ['xs', 'sm', 'md', 'lg'] as const;
 const BUTTON_TONES: readonly ButtonTone[] = ['wolf', 'god', 'villager', 'third', 'neutral'];
 /** Fixed user ids, so every fallback avatar draws the same tint on every run. */
 const AVATAR_SEEDS = ['gallery-a', 'gallery-b', 'gallery-c'] as const;

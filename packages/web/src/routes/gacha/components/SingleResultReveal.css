@@ -49,7 +49,10 @@
   overscroll-behavior: contain;
 }
 
-.single-reveal-body > *,
+.single-reveal-body > * {
+  flex-shrink: 0;
+}
+
 .single-reveal-card > .gacha-equip-action {
   margin-top: var(--space-medium);
 }

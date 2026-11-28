@@ -138,7 +138,8 @@ function ExchangeCell({
       ) : (
         <Button
           type="button"
-          variant="secondary"
+          variant="soft"
+          size="xs"
           fullWidth
           aria-label={`用 ${item.cost} 碎片兑换「${displayName}」`}
           disabled={!canAfford || isExchanging}

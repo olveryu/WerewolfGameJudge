@@ -27,6 +27,14 @@
   width: 100%;
 }
 
+.button[data-size='xs'] {
+  gap: var(--space-micro);
+  min-height: var(--size-button-sm);
+  padding: 0 var(--space-tight);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+}
+
 .button[data-size='sm'] {
   min-height: var(--size-button-sm);
   padding: 0 var(--space-small);
