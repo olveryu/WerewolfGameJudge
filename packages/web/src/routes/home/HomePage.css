@@ -85,7 +85,7 @@
   gap: var(--space-medium);
   padding: var(--space-large);
   border: var(--border-width) solid var(--color-primary-dark);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-card);
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);

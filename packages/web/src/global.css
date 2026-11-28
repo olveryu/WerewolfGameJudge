@@ -85,6 +85,7 @@ button {
   height: var(--size-hairline);
   margin: calc(-1 * var(--size-hairline));
   padding: 0;
+  border: 0;
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;

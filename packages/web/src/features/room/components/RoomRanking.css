@@ -5,7 +5,7 @@
   min-width: 0;
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   background-image: var(--surface-panel-texture);
   box-shadow: var(--surface-panel-shadow);
