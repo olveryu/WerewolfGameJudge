@@ -53,6 +53,22 @@ export default defineConfig({
         timezoneId: 'Asia/Shanghai',
         colorScheme: 'light',
         reducedMotion: 'reduce',
+        // Deterministic rasterization: with the default multi-threaded, partial
+        // raster, anti-aliased edges (rounded corners, rotated dock cards) came
+        // out with a few pixels different between two runs of the same commit in
+        // the pinned image. Single-threaded full software raster made three
+        // update runs pixel-identical on all baselines (PR #526).
+        launchOptions: {
+          args: [
+            '--disable-gpu',
+            '--disable-gpu-rasterization',
+            '--num-raster-threads=1',
+            '--disable-partial-raster',
+            '--force-color-profile=srgb',
+            '--disable-skia-runtime-opts',
+            '--disable-lcd-text',
+          ],
+        },
       },
     },
   ],
