@@ -1,0 +1,63 @@
+.badge {
+  --badge-color: var(--color-text-muted);
+  --badge-text: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-micro) var(--space-small);
+  border: var(--border-width) solid var(--badge-color);
+  border-radius: var(--radius-inset);
+  background: var(--color-surface-hover);
+  color: var(--badge-text);
+}
+
+.badge[data-tone='wolf'] {
+  --badge-color: var(--color-wolf);
+  --badge-text: var(--color-wolf);
+}
+
+.badge[data-tone='god'] {
+  --badge-color: var(--color-god);
+  --badge-text: var(--color-god);
+}
+
+.badge[data-tone='villager'] {
+  --badge-color: var(--color-villager);
+  --badge-text: var(--color-villager-text);
+}
+
+.badge[data-tone='third'] {
+  --badge-color: var(--color-third);
+  --badge-text: var(--color-third-text);
+}
+
+.badge[data-size='sm'] {
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-medium);
+}
+
+.badge[data-size='md'] {
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+button.badge {
+  background-image: var(--surface-button-texture);
+  box-shadow: var(--surface-panel-shadow);
+  cursor: pointer;
+}
+
+button.badge:active:not(:disabled) {
+  opacity: var(--opacity-pressed);
+}
+
+@media (hover: hover) {
+  button.badge:hover {
+    text-decoration: underline;
+  }
+}
+
+.badge-chevron {
+  margin-left: var(--space-micro);
+  opacity: var(--opacity-disabled);
+}

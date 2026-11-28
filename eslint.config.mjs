@@ -116,7 +116,7 @@ const PACKAGE_ADAPTERS = {
   '@ark-ui/react/dialog': 'packages/web/src/components/AppDialog.tsx',
   '@ark-ui/react/portal': null,
   '@ark-ui/react/qr-code': 'packages/web/src/features/room/components/RoomShareDialog.tsx',
-  '@ark-ui/react/tabs': null,
+  '@ark-ui/react/tabs': 'packages/web/src/components/Tabs.tsx',
   '@sentry/react': null,
   '@sentry/react/react-router': null,
   '@zumer/snapdom': 'packages/web/src/features/room/services/captureElementPng.ts',

@@ -7,6 +7,7 @@
  */
 import { type ReactNode, use, useEffect, useSyncExternalStore } from 'react';
 
+import { Spinner } from '@/components/Spinner';
 import { TESTIDS } from '@/testids';
 
 import { ReviewExportGateContext, useReviewAssetStore } from '../reviewAssetStore';
@@ -38,7 +39,7 @@ export function ReviewImageBlock({
   if (asset === null || asset.status === 'loading') {
     body = (
       <div className="review-image-frame" data-placeholder="true" style={frameStyle}>
-        <span className="review-image-spinner" role="progressbar" aria-label="图片加载中" />
+        <Spinner label="图片加载中" tone="report" />
       </div>
     );
   } else if (asset.status === 'loaded') {

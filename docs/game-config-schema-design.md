@@ -21,7 +21,7 @@
 - `readInitialConfig`：create → `DEFAULT_<GAME>_CONFIG`；edit → 校验 `snapshot.phase === 'ready'`、`roomCode` 匹配、`state.phase === 'lobby'`，否则 throw
 - goBack-or-Home：`navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')`
 - `ScreenHeader title="<游戏名>设置"`（标题文案本身也不一致：`谁是卧底` / `阿瓦隆设置` / `瞎掰王设置` / `你画我猜`）
-- `GameSettingsStepper` + 越界 `showErrorAlert('人数设置有误', ...)`
+- `Stepper` + 越界 `showErrorAlert('人数设置有误', ...)`
 - footer `共 N 人` + 主按钮 `创建房间` / `保存设置`
 - 写法 B 还重复了 `useRoomCreationController` + `useRoomCommandSubmission` + `replaceWithCreatedRoom` / `returnToActiveRoom` 的编排，与 `useRoomConfigSubmission` 等价
 
@@ -39,7 +39,7 @@
 
 ### 1.4 控件层已对齐，差距在页面结构
 
-`src/components/GameSettings.tsx`（`GameSettingsStepper` / `GameSettingsSwitch` / `GameSettingsDurationOptions`）+ `gameSettingsStyles` 正是狼人杀 `GameRulesScreen` 在用的控件。与狼人杀的体验差距不在单个控件，而在：
+`src/components/Stepper.tsx`（`Stepper`）、`src/components/GameSettings.tsx`（`GameSettingsSwitch` / `GameSettingsDurationOptions`）+ `gameSettingsStyles` 正是狼人杀 `GameRulesScreen` 在用的控件。与狼人杀的体验差距不在单个控件，而在：
 
 - 没有 header 右上角重置按钮（狼人杀 `configOverflowReset`）
 - 没有"记住上次配置"（狼人杀 `SettingsService.getRememberedWerewolfRules`）
@@ -245,13 +245,13 @@ export function configSchemaToZod<TConfig extends object>(
 
 ## 6. Layer 2 — 客户端：`src/features/room/config/`
 
-| 文件                            | 职责                                                                                                                                                                                                                                                                             |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GameConfigScreenDefinition.ts` | 游戏提供的契约：`schema`、`parseRouteParams`、`readConfig(state) → TConfig \| null`、`buildUpdateCommand`、`getFailureMessage`、`creationLabel`；可选 `buildCreateConfig`、`summary`、`fieldRenderers`、`Extra`、`useSubmitGate(config)`                                         |
-| `gameConfigFormModel.ts`        | 纯函数：`parseCountDraft`、`withFieldValue`、`readFieldValue`、`resolveConfigIssue`（草稿不可解析 → 字段级 issue，否则 `validateConfig`）、`toConfigRecord`、`describeDefaultSummary`                                                                                            |
-| `useGameConfigScreenState.ts`   | 状态编排：create 初始 = `schema.defaults` ⊕ `SettingsService.getRememberedGameConfig`；edit 初始 = `session.getSnapshot()` → 校验 roomCode → `readConfig`，null 即 `[FAIL-FAST]`；`setFieldValue` 对 `isRemembered` 字段写回偏好；提交走 `useRoomConfigSubmission`               |
-| `GameConfigForm.tsx`            | 纯渲染：按 `fields` 声明顺序，count → `GameSettingsStepper`（可输入，min/max 处禁用 +/−）、toggle → `GameSettingsSwitch`（`tone: 'warning'` 取 `colors.warning`，`confirmOnEnable` 走 `showConfirmAlert`）、choice / duration → `GameSettingsChoice`；issue 内联显示在对应字段下 |
-| `createGameConfigScreen.tsx`    | 组装 `ScreenHeader(${displayName}设置, 重置)` + `GameScreenContent(form + Extra)` + `GameScreenFooter(summary + 创建房间/保存设置)`；`GameConfigDefiner` 供 `defineClientGameModule` 注入 gameType / displayName                                                                 |
+| 文件                            | 职责                                                                                                                                                                                                                                                                 |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GameConfigScreenDefinition.ts` | 游戏提供的契约：`schema`、`parseRouteParams`、`readConfig(state) → TConfig \| null`、`buildUpdateCommand`、`getFailureMessage`、`creationLabel`；可选 `buildCreateConfig`、`summary`、`fieldRenderers`、`Extra`、`useSubmitGate(config)`                             |
+| `gameConfigFormModel.ts`        | 纯函数：`parseCountDraft`、`withFieldValue`、`readFieldValue`、`resolveConfigIssue`（草稿不可解析 → 字段级 issue，否则 `validateConfig`）、`toConfigRecord`、`describeDefaultSummary`                                                                                |
+| `useGameConfigScreenState.ts`   | 状态编排：create 初始 = `schema.defaults` ⊕ `SettingsService.getRememberedGameConfig`；edit 初始 = `session.getSnapshot()` → 校验 roomCode → `readConfig`，null 即 `[FAIL-FAST]`；`setFieldValue` 对 `isRemembered` 字段写回偏好；提交走 `useRoomConfigSubmission`   |
+| `GameConfigForm.tsx`            | 纯渲染：按 `fields` 声明顺序，count → `Stepper`（可输入，min/max 处禁用 +/−）、toggle → `GameSettingsSwitch`（`tone: 'warning'` 取 `colors.warning`，`confirmOnEnable` 走 `showConfirmAlert`）、choice / duration → `GameSettingsChoice`；issue 内联显示在对应字段下 |
+| `createGameConfigScreen.tsx`    | 组装 `ScreenHeader(${displayName}设置, 重置)` + `GameScreenContent(form + Extra)` + `GameScreenFooter(summary + 创建房间/保存设置)`；`GameConfigDefiner` 供 `defineClientGameModule` 注入 gameType / displayName                                                     |
 
 游戏侧注册（[defineClientGameModule](../src/games/model/defineClientGameModule.ts)）：
 

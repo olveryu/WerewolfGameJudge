@@ -1,8 +1,8 @@
 /** Account-level D1 usage and sampled query insights. */
-import { Tabs } from '@ark-ui/react/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 import type {
   AdminD1Insights,
   AdminD1Range,
@@ -102,64 +102,64 @@ export function D1UsagePage() {
         description="账号级读写用量与高消耗查询。数据来自 Cloudflare，可能延迟。"
         query={view === 'quota' ? usage : insights}
       />
-      <Tabs.Root
-        value={view}
-        activationMode="manual"
-        onValueChange={({ value }) => update('view', value)}
-        lazyMount
-        unmountOnExit
-      >
-        <Tabs.List className="admin-section-tabs" aria-label="D1 用量视图">
-          <Tabs.Trigger className="admin-section-tab" value="quota">
-            今日额度
-          </Tabs.Trigger>
-          <Tabs.Trigger className="admin-section-tab" value="analysis">
-            用量分析
-          </Tabs.Trigger>
-        </Tabs.List>
-        <Tabs.Content value="quota" className="admin-content admin-grid">
-          <AsyncBoundary query={usage}>{(data) => <DailyQuota data={data} />}</AsyncBoundary>
-        </Tabs.Content>
-        <Tabs.Content value="analysis" className="admin-content admin-grid">
-          <div className="admin-report-range admin-span-12">
-            <div className="admin-segmented" role="group" aria-label="分析时间范围">
-              {ranges.map((item) => (
-                <button
-                  type="button"
-                  key={item.value}
-                  aria-pressed={range === item.value}
-                  onClick={() => update('range', item.value)}
-                >
-                  {item.label}
+      <Tabs value={view} onValueChange={(value) => update('view', value)} lazy manualActivation>
+        <div className="admin-section-tabs">
+          <TabList
+            label="D1 用量视图"
+            variant="underline"
+            items={[
+              { value: 'quota', label: '今日额度' },
+              { value: 'analysis', label: '用量分析' },
+            ]}
+          />
+        </div>
+        <TabPanel value="quota">
+          <div className="admin-content admin-grid">
+            <AsyncBoundary query={usage}>{(data) => <DailyQuota data={data} />}</AsyncBoundary>
+          </div>
+        </TabPanel>
+        <TabPanel value="analysis">
+          <div className="admin-content admin-grid">
+            <div className="admin-report-range admin-span-12">
+              <div className="admin-segmented" role="group" aria-label="分析时间范围">
+                {ranges.map((item) => (
+                  <button
+                    type="button"
+                    key={item.value}
+                    aria-pressed={range === item.value}
+                    onClick={() => update('range', item.value)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <span className="admin-range-timezone">UTC 时间</span>
+              {bucket !== null && (
+                <button type="button" onClick={clearBucket}>
+                  查看完整时间范围
                 </button>
-              ))}
+              )}
             </div>
-            <span className="admin-range-timezone">UTC 时间</span>
-            {bucket !== null && (
-              <button type="button" onClick={clearBucket}>
-                查看完整时间范围
-              </button>
+            {!valid ? (
+              <p role="alert" className="admin-error">
+                无效的时间范围或排序方式。
+              </p>
+            ) : (
+              <AsyncBoundary query={insights}>
+                {(data) => (
+                  <D1Analysis
+                    data={data}
+                    range={range}
+                    sort={sort}
+                    bucket={bucket}
+                    onUpdate={update}
+                  />
+                )}
+              </AsyncBoundary>
             )}
           </div>
-          {!valid ? (
-            <p role="alert" className="admin-error">
-              无效的时间范围或排序方式。
-            </p>
-          ) : (
-            <AsyncBoundary query={insights}>
-              {(data) => (
-                <D1Analysis
-                  data={data}
-                  range={range}
-                  sort={sort}
-                  bucket={bucket}
-                  onUpdate={update}
-                />
-              )}
-            </AsyncBoundary>
-          )}
-        </Tabs.Content>
-      </Tabs.Root>
+        </TabPanel>
+      </Tabs>
     </>
   );
 }

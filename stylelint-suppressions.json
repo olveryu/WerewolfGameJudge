@@ -15,11 +15,6 @@
       "count": 1
     }
   },
-  "packages/web/src/components/FactionChip.css": {
-    "csstools/value-no-unknown-custom-properties": {
-      "count": 2
-    }
-  },
   "packages/web/src/components/GameGuide.css": {
     "scale-unlimited/declaration-strict-value": {
       "count": 4
@@ -137,9 +132,6 @@
   "packages/web/src/games/werewolf/screens/ConfigScreen/ConfigScreen.css": {
     "scale-unlimited/declaration-strict-value": {
       "count": 2
-    },
-    "csstools/value-no-unknown-custom-properties": {
-      "count": 1
     }
   },
   "packages/web/src/boot/WechatBrowserGuide.css": {

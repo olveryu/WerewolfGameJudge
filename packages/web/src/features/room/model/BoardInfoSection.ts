@@ -3,6 +3,8 @@
  * and `BoardInfoCard` renders them.
  */
 
+import type { BadgeTone } from '@/components/Badge';
+
 /** One role entry of a board section. */
 export interface RoleDisplayItem {
   readonly roleId: string;
@@ -10,9 +12,9 @@ export interface RoleDisplayItem {
   readonly count: number;
 }
 
-/** One faction group of the board (e.g. 狼人); `color` is a CSS color value. */
+/** One faction group of the board (e.g. 狼人), drawn in its badge tone. */
 export interface BoardInfoSection {
   readonly title: string;
   readonly items: readonly RoleDisplayItem[];
-  readonly color: string;
+  readonly tone: BadgeTone;
 }

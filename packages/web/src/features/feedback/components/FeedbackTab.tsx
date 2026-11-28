@@ -9,6 +9,7 @@ import './FeedbackTab.css';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { Chip } from '@/components/Chip';
 import { Spinner } from '@/components/Spinner';
 import { APP_VERSION } from '@/config/version';
 import { useFeedbackHistory } from '@/features/feedback/queries/useFeedbackHistory';
@@ -180,25 +181,25 @@ function FeedbackDetail({
   return (
     <div className="feedback-area">
       <BackButton onBack={onBack} testId={TESTIDS.feedbackBackButton} />
-      <button
-        type="button"
-        className="feedback-status-chip"
-        data-resolved={isResolved}
-        onClick={() => onResolve(isResolved ? 'reopen' : 'resolve')}
-        disabled={!isSynced || isSubmitting}
-        data-testid={TESTIDS.feedbackResolveButton}
-      >
-        {isResolved ? (
-          <IconCheckmarkCircle aria-hidden />
-        ) : (
-          <IconEllipsisHorizontalCircle aria-hidden />
-        )}
-        {!isSynced
-          ? '反馈已保存，远端待确认'
-          : isResolved
-            ? '已解决 · 点击重新打开'
-            : '进行中 · 点击标记解决'}
-      </button>
+      <div className="feedback-status-row">
+        <Chip
+          tone={isResolved ? 'success' : undefined}
+          onClick={() => onResolve(isResolved ? 'reopen' : 'resolve')}
+          disabled={!isSynced || isSubmitting}
+          data-testid={TESTIDS.feedbackResolveButton}
+        >
+          {isResolved ? (
+            <IconCheckmarkCircle aria-hidden />
+          ) : (
+            <IconEllipsisHorizontalCircle aria-hidden />
+          )}
+          {!isSynced
+            ? '反馈已保存，远端待确认'
+            : isResolved
+              ? '已解决 · 点击重新打开'
+              : '进行中 · 点击标记解决'}
+        </Chip>
+      </div>
 
       <div ref={chatRef} className="feedback-chat">
         <div className="feedback-bubble-row" data-side="user">
@@ -313,15 +314,9 @@ function FeedbackList({
             ['all', '全部'],
           ] as const
         ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            className="feedback-filter-pill"
-            aria-pressed={filter === value}
-            onClick={() => onFilterChange(value)}
-          >
+          <Chip key={value} pressed={filter === value} onClick={() => onFilterChange(value)}>
             {label}
-          </button>
+          </Chip>
         ))}
       </div>
 

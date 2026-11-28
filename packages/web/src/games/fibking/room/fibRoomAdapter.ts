@@ -580,17 +580,17 @@ export function createFibBoardInfoSections(playerCount: number): readonly BoardI
     {
       title: getFibRoleName('guesser'),
       items: [{ roleId: 'guesser', displayName: getFibRoleName('guesser'), count: 1 }],
-      color: 'var(--color-god)',
+      tone: 'god',
     },
     {
       title: getFibRoleName('honest'),
       items: [{ roleId: 'honest', displayName: getFibRoleName('honest'), count: 1 }],
-      color: 'var(--color-villager)',
+      tone: 'villager',
     },
     {
       title: getFibRoleName('fibber'),
       items: [{ roleId: 'fibber', displayName: getFibRoleName('fibber'), count: playerCount - 2 }],
-      color: 'var(--color-wolf)',
+      tone: 'wolf',
     },
   ];
 }

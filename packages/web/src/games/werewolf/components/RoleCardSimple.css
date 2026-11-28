@@ -1,20 +1,8 @@
 /* Overlaid on the card, below its faction badge. */
-.role-ai-pill {
+.role-ai-anchor {
   position: absolute;
   top: var(--space-xlarge);
   right: var(--space-small);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-tight);
-  padding: var(--space-tight) var(--space-small);
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--faction-a15);
-  color: var(--faction-color);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-  font-weight: var(--weight-semibold);
-  cursor: pointer;
 }
 
 .role-variant-bar {
@@ -23,26 +11,4 @@
   justify-content: center;
   gap: var(--space-small);
   margin-bottom: var(--space-small);
-}
-
-.role-variant-pill {
-  padding: var(--space-small) var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text-secondary);
-  box-shadow: var(--surface-button-shadow-light);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  font-weight: var(--weight-medium);
-  cursor: pointer;
-}
-
-.role-variant-pill[aria-pressed='true'] {
-  border-color: var(--faction-color);
-  color: var(--faction-color);
-  box-shadow:
-    0 0 0 var(--border-width) var(--faction-color),
-    var(--surface-button-shadow-light);
 }

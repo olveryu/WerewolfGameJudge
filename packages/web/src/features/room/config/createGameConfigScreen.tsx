@@ -11,6 +11,7 @@ import type { ComponentType } from 'react';
 import { useParams } from 'react-router';
 
 import { Button } from '@/components/Button';
+import { GameSettingsSection, GameSettingsSummary } from '@/components/GameSettings';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
@@ -97,9 +98,9 @@ function createGameConfigScreen<
           onStepCount={state.stepCount}
         />
         {Extra !== undefined && (
-          <div className="game-settings-section">
+          <GameSettingsSection>
             <Extra config={state.config} />
-          </div>
+          </GameSettingsSection>
         )}
       </>
     );
@@ -108,7 +109,7 @@ function createGameConfigScreen<
         {dialog !== undefined && !state.isEditAvailable && (
           <p role="status">房间状态或权限已变化，不能保存设置。</p>
         )}
-        {summaryText !== null && <p className="game-settings-summary">{summaryText}</p>}
+        {summaryText !== null && <GameSettingsSummary>{summaryText}</GameSettingsSummary>}
         <Button
           size="lg"
           fullWidth

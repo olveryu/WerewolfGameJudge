@@ -82,34 +82,7 @@
 }
 
 .toolbox-identity-tabs {
-  display: flex;
-  overflow-x: auto;
   margin-bottom: var(--space-small);
-}
-
-.toolbox-identity-tab {
-  position: relative;
-  flex: none;
-  min-height: var(--size-min-touch-target);
-  max-width: 12rem;
-  padding: var(--space-small) var(--space-medium);
-  overflow: hidden;
-  border: 0;
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.toolbox-identity-tab[aria-selected='true']::after {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  border-bottom: var(--border-width-highlight) solid var(--color-primary);
-  content: '';
 }
 
 .toolbox-identity-footer {

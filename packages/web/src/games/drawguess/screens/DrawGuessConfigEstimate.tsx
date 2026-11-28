@@ -1,7 +1,5 @@
 /** Round count and estimated duration derived from the fixed DrawGuess timings. */
 
-import '@/components/GameSettings.css';
-
 import {
   DRAWGUESS_DRAWING_DURATION_SECONDS,
   DRAWGUESS_ROUND_END_SECONDS,
@@ -9,6 +7,8 @@ import {
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessConfig,
 } from '@game-judge/game-engine/games/drawguess/public';
+
+import { GameSettingsHint, GameSettingsLabel } from '@/components/GameSettings';
 
 const SECONDS_PER_MINUTE = 60;
 
@@ -27,16 +27,16 @@ function estimateTotalMinutes(numberOfPlayers: number): number {
 export function DrawGuessConfigEstimate({ config }: { readonly config: DrawGuessConfig }) {
   return (
     <>
-      <p className="game-settings-hint">
+      <GameSettingsHint>
         每人画 {DRAWGUESS_ROUNDS_PER_DRAWER} 轮 · 共{' '}
         {config.numberOfPlayers * DRAWGUESS_ROUNDS_PER_DRAWER} 轮
-      </p>
-      <span className="game-settings-label">预计时长</span>
-      <p className="game-settings-hint">
+      </GameSettingsHint>
+      <GameSettingsLabel>预计时长</GameSettingsLabel>
+      <GameSettingsHint>
         约 {estimateTotalMinutes(config.numberOfPlayers)} 分钟（选词 {DRAWGUESS_WORD_SELECT_SECONDS}{' '}
         秒 + 作画 {DRAWGUESS_DRAWING_DURATION_SECONDS} 秒 + 结算 {DRAWGUESS_ROUND_END_SECONDS}{' '}
         秒）。提前选词会缩短选词等待；作画按倒计时结束。
-      </p>
+      </GameSettingsHint>
     </>
   );
 }

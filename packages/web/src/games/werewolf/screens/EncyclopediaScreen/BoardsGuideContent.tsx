@@ -16,6 +16,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { Chip } from '@/components/Chip';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardStrategyData';
 import { BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy/BoardStrategyModal';
@@ -125,31 +126,26 @@ export function BoardsGuideContent({
 
       <div className="encyclopedia-filter-bar" role="group" aria-label="板子分类">
         {CATEGORY_TABS.map((tab) => (
-          <button
+          <Chip
             key={tab.key}
-            type="button"
-            className="encyclopedia-filter-chip"
-            aria-pressed={activeCategory === tab.key}
+            pressed={activeCategory === tab.key}
             onClick={() => setActiveCategory((previous) => (previous === tab.key ? null : tab.key))}
           >
             {tab.label}
-          </button>
+          </Chip>
         ))}
       </div>
 
       {tagFilter !== null && (
         <div className="boards-guide-active-filter">
-          <span className="boards-guide-active-filter-badge">
+          <Chip
+            pressed
+            aria-label={`清除标签筛选：${tagFilter}`}
+            onClick={() => setTagFilter(null)}
+          >
             {tagFilter}
-            <button
-              type="button"
-              className="boards-guide-active-filter-clear"
-              aria-label="清除标签筛选"
-              onClick={() => setTagFilter(null)}
-            >
-              <IconCloseCircle aria-hidden />
-            </button>
-          </span>
+            <IconCloseCircle aria-hidden />
+          </Chip>
         </div>
       )}
 

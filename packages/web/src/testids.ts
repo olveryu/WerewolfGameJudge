@@ -213,6 +213,7 @@ export const TESTIDS = {
 
   // Werewolf MVP selection (host, ended)
   mvpSelectionModal: 'mvp-selection-modal',
+  mvpSelectionCandidate: (seat: number) => `mvp-selection-candidate-${seat}`,
 
   // Werewolf night step buttons, keyed by the button spec key (skip, wolfEmpty, confirm, ...)
   werewolfNightButton: (key: string) => `werewolf-night-button-${key}`,

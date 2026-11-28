@@ -217,32 +217,6 @@
     transform: perspective(var(--size-hand-card-width)) rotateX(0) translateY(0);
   }
 }
-.decrypto-tabs {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  border-bottom: var(--border-width) solid var(--color-border);
-}
-.decrypto-tab {
-  position: relative;
-  flex: 1;
-  min-height: var(--size-min-touch-target);
-  border: 0;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font: inherit;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.decrypto-tab[aria-selected='true'] {
-  color: var(--color-primary);
-}
-.decrypto-tab[aria-selected='true']::after {
-  position: absolute;
-  inset: auto var(--space-small) 0;
-  border-bottom: var(--border-width-highlight) solid var(--color-primary);
-  content: '';
-}
 .decrypto-board {
   display: grid;
   gap: var(--space-medium);

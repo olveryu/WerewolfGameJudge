@@ -10,13 +10,14 @@ import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { ScreenHeader, useScreenBack } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
+import { TabPanel, Tabs } from '@/components/Tabs';
 import { rarityStarLabel } from '@/config/rarityVisual';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
 import { useUpdateProfile, useUploadAvatar } from '@/features/account/accountMutations';
 import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import {
-  CosmeticTabBar,
-  cosmeticTabId,
+  CosmeticTabList,
+  parseCosmeticTab,
   RarityFilterBar,
 } from '@/features/product/components/CosmeticTabs';
 import { ResidentSceneLayer } from '@/features/product/components/ResidentPreview';
@@ -31,8 +32,6 @@ import { useAppearanceSave } from './useAppearanceSave';
 import { type AppearanceState, useAppearanceState } from './useAppearanceState';
 
 const AVATAR_ACCEPT = 'image/jpeg,image/png,image/webp';
-const TAB_ID_PREFIX = 'appearance';
-const PANEL_ID = 'appearance-picker-panel';
 /** The previous client's preview overlay size. */
 const AVATAR_PREVIEW_SIZE = 200;
 /** Signed-out viewers still see the wolf-paw default, keyed like the previous client. */
@@ -117,50 +116,47 @@ function AppearanceEditor({ user, unlockedIds, isRefreshError, retry }: Appearan
     <div className="appearance-body">
       <ResidentSceneLayer hostRef={sceneHostRef} />
       <div ref={scrollRootRef} className="appearance-scroll">
-        <div className="appearance-top">
-          {isRefreshError && <Button onClick={retry}>藏品刷新失败，重试</Button>}
-          {state.activeTab === 'effect' ? (
-            <EffectHeroPreview
-              state={state}
-              userId={userId}
-              sceneHostRef={sceneHostRef}
-              scrollRootRef={scrollRootRef}
-              saving={save.saving}
-              onEquip={() => void save.handleEquipEffect()}
-              onEquipUnavailable={save.handleEquipEffectUnavailable}
-            />
-          ) : (
-            <HeroPreview
-              state={state}
-              userId={userId}
-              displayName={user?.displayName ?? '玩家'}
-              sceneHostRef={sceneHostRef}
-              scrollRootRef={scrollRootRef}
-            />
-          )}
-          <CosmeticTabBar
-            activeTab={state.activeTab}
-            onChange={state.handleChangeTab}
-            idPrefix={TAB_ID_PREFIX}
-            panelId={PANEL_ID}
-          />
-          <RarityFilterBar value={state.rarityFilter} onChange={state.setRarityFilter} />
-        </div>
-        <div
-          id={PANEL_ID}
-          role="tabpanel"
-          aria-labelledby={cosmeticTabId(TAB_ID_PREFIX, state.activeTab)}
-          className="appearance-panel"
+        <Tabs
+          value={state.activeTab}
+          onValueChange={(value) => state.handleChangeTab(parseCosmeticTab(value))}
         >
-          <AppearancePickerGrid
-            state={state}
-            productUi={productUi}
-            userId={userId}
-            sceneHostRef={sceneHostRef}
-            scrollRootRef={scrollRootRef}
-            onUpload={() => fileInputRef.current?.click()}
-          />
-        </div>
+          <div className="appearance-top">
+            {isRefreshError && <Button onClick={retry}>藏品刷新失败，重试</Button>}
+            {state.activeTab === 'effect' ? (
+              <EffectHeroPreview
+                state={state}
+                userId={userId}
+                sceneHostRef={sceneHostRef}
+                scrollRootRef={scrollRootRef}
+                saving={save.saving}
+                onEquip={() => void save.handleEquipEffect()}
+                onEquipUnavailable={save.handleEquipEffectUnavailable}
+              />
+            ) : (
+              <HeroPreview
+                state={state}
+                userId={userId}
+                displayName={user?.displayName ?? '玩家'}
+                sceneHostRef={sceneHostRef}
+                scrollRootRef={scrollRootRef}
+              />
+            )}
+            <CosmeticTabList />
+            <RarityFilterBar value={state.rarityFilter} onChange={state.setRarityFilter} />
+          </div>
+          <TabPanel value={state.activeTab} fill>
+            <div className="appearance-panel">
+              <AppearancePickerGrid
+                state={state}
+                productUi={productUi}
+                userId={userId}
+                sceneHostRef={sceneHostRef}
+                scrollRootRef={scrollRootRef}
+                onUpload={() => fileInputRef.current?.click()}
+              />
+            </div>
+          </TabPanel>
+        </Tabs>
       </div>
       <footer className="appearance-footer">
         <div className="appearance-footer-content">

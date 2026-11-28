@@ -9,7 +9,8 @@ import {
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/Button';
-import { GameSettingsStepper } from '@/components/GameSettings';
+import { GameSettingsHint, GameSettingsSection } from '@/components/GameSettings';
+import { Stepper } from '@/components/Stepper';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 import { TESTIDS } from '@/testids';
@@ -207,11 +208,14 @@ export function ToolboxDiceDialog({
         {presentation === 'open' && (
           <p className="toolbox-dice-hint">点击骰子固定点数，再摇时保留</p>
         )}
-        <div className="game-settings-section">
-          <GameSettingsStepper
+        <GameSettingsSection>
+          <Stepper
             label="骰子数量"
-            value={countDraft ?? String(cup.targetCount)}
-            onChangeText={changeCountText}
+            entry={{
+              kind: 'text',
+              value: countDraft ?? String(cup.targetCount),
+              onChangeText: changeCountText,
+            }}
             onDecrement={() => void onSetCount(cup.targetCount - 1)}
             onIncrement={() => void onSetCount(cup.targetCount + 1)}
             isDecrementDisabled={isBusy || cup.targetCount <= minimumCount}
@@ -222,13 +226,13 @@ export function ToolboxDiceDialog({
             decrementTestId={TESTIDS.toolboxDiceCountDecrement}
             incrementTestId={TESTIDS.toolboxDiceCountIncrement}
           />
-          <p className="game-settings-hint">
+          <GameSettingsHint>
             下次摇骰生效{heldCount > 0 ? ` · 已固定 ${heldCount} 颗` : ''}
-          </p>
+          </GameSettingsHint>
           {heldCount > 0 && cup.targetCount === heldCount && (
-            <p className="game-settings-hint">取消固定后可继续减少数量</p>
+            <GameSettingsHint>取消固定后可继续减少数量</GameSettingsHint>
           )}
-        </div>
+        </GameSettingsSection>
       </div>
     </RoomDialog>
   );

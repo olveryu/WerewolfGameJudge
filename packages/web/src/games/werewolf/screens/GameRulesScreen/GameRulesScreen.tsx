@@ -5,7 +5,6 @@
  * remembered persist as soon as they are toggled; plague mode never is. Every edit is reported
  * to the flow, so going back to ConfigScreen keeps the edited rules.
  */
-import '@/components/GameSettings.css';
 import '@/features/room/config/GameConfigPage.css';
 
 import {
@@ -17,6 +16,7 @@ import type { ConfigFieldValue } from '@game-judge/game-engine/platform/config/c
 import { useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { GameSettingsSummary } from '@/components/GameSettings';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { GameConfigForm } from '@/features/room/config/GameConfigForm';
@@ -104,7 +104,7 @@ export function GameRulesScreen({ session, params, onRulesChange, dialog }: Game
       {dialog !== undefined && !isEditAvailable && (
         <p role="status">房间状态或权限已变化，不能保存设置。</p>
       )}
-      <p className="game-settings-summary">板子 {params.roles.length} 人</p>
+      <GameSettingsSummary>板子 {params.roles.length} 人</GameSettingsSummary>
       <Button
         size="lg"
         fullWidth

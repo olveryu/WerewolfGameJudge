@@ -4,45 +4,11 @@
   gap: var(--space-small);
 }
 
-.config-template-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-tight);
-  padding: var(--space-tight) var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-background);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text);
-  box-shadow: var(--surface-button-shadow-light);
-  font-size: var(--font-subtitle);
-  line-height: var(--line-subtitle);
-  font-weight: var(--weight-semibold);
-  cursor: pointer;
-}
-
-.config-template-pill:active {
-  box-shadow: var(--surface-button-shadow-pressed);
-  transform: translateY(var(--space-micro));
-}
-
-.config-template-pill svg {
-  color: var(--color-text-secondary);
-  font-size: var(--size-icon-xs);
-}
-
 .config-player-count {
   color: var(--color-text-secondary);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
   font-weight: var(--weight-medium);
-}
-
-.config-tabs-root {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
 }
 
 .config-card-tabs {
@@ -85,33 +51,6 @@
   color: var(--color-text-inverse);
   font-size: var(--font-caption);
   line-height: 1;
-  font-weight: var(--weight-bold);
-}
-
-.config-faction-tabs {
-  display: flex;
-  gap: 0;
-  padding: 0;
-}
-
-.config-faction-tab {
-  flex: 1;
-  min-height: var(--size-min-touch-target);
-  padding: var(--space-small) var(--space-tight);
-  border: none;
-  border-bottom: var(--border-width-thick) solid transparent;
-  border-radius: 0;
-  background: none;
-  color: var(--faction-color);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  font-weight: var(--weight-medium);
-  cursor: pointer;
-}
-
-.config-faction-tab[aria-selected='true'] {
-  border-bottom-color: var(--faction-color);
-  background: var(--faction-a8);
   font-weight: var(--weight-bold);
 }
 
@@ -232,79 +171,9 @@
 }
 
 .config-stepper-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(var(--space-small) + var(--space-tight)) var(--space-medium);
+  padding: var(--space-tight) var(--space-medium);
 }
 
-.config-stepper-label {
-  color: var(--color-text);
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-  font-weight: var(--weight-semibold);
-}
-
-.config-stepper-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-micro);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-background);
-  box-shadow: var(--surface-inset-shadow);
-}
-
-.config-stepper-pill[data-active='true'] {
-  border-color: var(--faction-a25);
-}
-
-.config-stepper-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-min-touch-target);
-  height: var(--size-min-touch-target);
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-round);
-  background: var(--color-surface);
-  background-image: var(--surface-button-texture);
-  color: var(--faction-color);
-  box-shadow: var(--surface-button-shadow-light);
-  font-size: var(--font-subtitle);
-  line-height: var(--line-subtitle);
-  font-weight: var(--weight-semibold);
-  cursor: pointer;
-}
-
-.config-stepper-button:active:not(:disabled) {
-  box-shadow: var(--surface-button-pressed-offset) var(--faction-color);
-  transform: translateY(var(--space-micro));
-}
-
-.config-stepper-button:disabled {
-  color: var(--color-text-muted);
-  background: var(--color-surface-hover);
-  box-shadow: none;
-  cursor: default;
-}
-
-.config-stepper-count {
-  min-width: var(--space-large);
-  padding: 0 var(--space-tight);
-  border-radius: var(--radius-inset);
-  background: var(--color-primary-a8);
-  color: var(--color-primary);
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-  font-weight: var(--weight-bold);
-  text-align: center;
-}
-
-.config-stepper-pill[data-active='true'] .config-stepper-count {
-  color: var(--faction-color);
-}
 .config-dialog-tools {
   display: flex;
   justify-content: space-between;

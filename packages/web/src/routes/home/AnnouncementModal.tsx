@@ -7,11 +7,11 @@ import '@/components/CenterDialog.css';
 import './AnnouncementModal.css';
 
 import { Portal } from '@ark-ui/react/portal';
-import { Tabs } from '@ark-ui/react/tabs';
 import { Suspense, useState } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
 import { Spinner } from '@/components/Spinner';
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { FeedbackTab } from '@/features/feedback/components/FeedbackTab';
@@ -85,42 +85,39 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
               </AppDialog.CloseTrigger>
             </header>
 
-            <Tabs.Root
-              value={activeTab}
-              onValueChange={(details) => setActiveTab(details.value)}
-              lazyMount
-              unmountOnExit
-            >
-              <Tabs.List className="announcement-tabs" aria-label="公告与反馈">
-                <Tabs.Trigger value={CHANGELOG_TAB} className="announcement-tab">
-                  更新日志
-                </Tabs.Trigger>
-                {gameTabs.map((tab) => (
-                  <Tabs.Trigger key={tab.key} value={tab.key} className="announcement-tab">
-                    {tab.label}
-                  </Tabs.Trigger>
-                ))}
-                <Tabs.Trigger value={FEEDBACK_TAB} className="announcement-tab">
-                  意见反馈
-                  {hasUnreadFeedback && (
-                    <span className="announcement-tab-dot" aria-label="有新回复" role="img" />
-                  )}
-                </Tabs.Trigger>
-              </Tabs.List>
+            <Tabs value={activeTab} onValueChange={setActiveTab} lazy>
+              <div className="announcement-tabs">
+                <TabList
+                  label="公告与反馈"
+                  variant="underline"
+                  layout="scroll"
+                  items={[
+                    { value: CHANGELOG_TAB, label: '更新日志' },
+                    ...gameTabs.map((tab) => ({ value: tab.key, label: tab.label })),
+                    {
+                      value: FEEDBACK_TAB,
+                      label: '意见反馈',
+                      trailing: hasUnreadFeedback ? (
+                        <span className="announcement-tab-dot" aria-label="有新回复" role="img" />
+                      ) : undefined,
+                    },
+                  ]}
+                />
+              </div>
 
-              <Tabs.Content value={CHANGELOG_TAB}>
+              <TabPanel value={CHANGELOG_TAB}>
                 <ChangelogList />
-              </Tabs.Content>
+              </TabPanel>
               {gameTabs.map((tab) => (
-                <Tabs.Content key={tab.key} value={tab.key}>
+                <TabPanel key={tab.key} value={tab.key}>
                   <div className="announcement-scroll">
                     <Suspense fallback={<Spinner label={`加载${tab.label}`} />}>
                       <tab.Content />
                     </Suspense>
                   </div>
-                </Tabs.Content>
+                </TabPanel>
               ))}
-              <Tabs.Content value={FEEDBACK_TAB}>
+              <TabPanel value={FEEDBACK_TAB}>
                 <div className="announcement-scroll">
                   <FeedbackTab
                     key={user?.id ?? 'signed-out'}
@@ -128,8 +125,8 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
                     onUnreadChange={setUnreadFeedbackCount}
                   />
                 </div>
-              </Tabs.Content>
-            </Tabs.Root>
+              </TabPanel>
+            </Tabs>
           </AppDialog.Content>
         </AppDialog.Positioner>
       </Portal>

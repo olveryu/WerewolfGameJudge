@@ -113,9 +113,11 @@ const SHAPING = ['/radius$/', 'corner-shape', 'clip-path', '/^mask/', 'all'];
  * exclude these classes inside `:not()`.
  */
 const SHARED_COMPONENT_CLASSES = {
+  'packages/web/src/components/Badge.css': ['badge[\\w-]*'],
   'packages/web/src/components/BottomSheet.css': ['bottom-sheet[\\w-]*'],
   'packages/web/src/components/Button.css': ['button', 'icon-button'],
   'packages/web/src/components/CenterDialog.css': ['center-dialog[\\w-]*'],
+  'packages/web/src/components/Chip.css': ['chip'],
   'packages/web/src/components/nameStyles/nameStyles.css': ['name-style'],
   'packages/web/src/components/ChoiceCard.css': [
     'choice-card',
@@ -124,7 +126,6 @@ const SHARED_COMPONENT_CLASSES = {
     'choice-label',
     'choice-row',
   ],
-  'packages/web/src/components/FactionChip.css': ['faction-chip[\\w-]*'],
   'packages/web/src/components/GameGuide.css': ['game-guide[\\w-]*'],
   'packages/web/src/components/GameSettings.css': ['game-settings[\\w-]*'],
   'packages/web/src/components/GameStatsPanel.css': ['game-stats[\\w-]*'],
@@ -136,7 +137,9 @@ const SHARED_COMPONENT_CLASSES = {
   'packages/web/src/components/ScreenHeader.css': ['screen-header[\\w-]*'],
   'packages/web/src/components/SeatDot.css': ['seat-dot[\\w-]*'],
   'packages/web/src/components/Spinner.css': ['spinner'],
+  'packages/web/src/components/Stepper.css': ['stepper[\\w-]*'],
   'packages/web/src/components/Switch.css': ['switch'],
+  'packages/web/src/components/Tabs.css': ['tab', 'tab-label', 'tab-list', 'tab-panel', 'tabs'],
   'packages/web/src/features/room/components/RoomStagePanel.css': ['room-stage-panel[\\w-]*'],
   'packages/web/src/features/room/components/RoomTaskFrame.css': [
     'room-task-frame[\\w-]*',

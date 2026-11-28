@@ -24,30 +24,6 @@
   font-weight: var(--weight-semibold);
 }
 
-.game-settings-stepper {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  padding: var(--space-micro);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-background);
-  box-shadow: var(--surface-inset-shadow);
-}
-
-.game-settings-count {
-  width: var(--size-button-lg);
-  height: var(--size-button-md);
-  padding: 0 var(--space-tight);
-  border: none;
-  border-radius: var(--radius-control);
-  background: var(--color-primary-a8);
-  color: var(--color-primary);
-  font-size: var(--font-body);
-  font-weight: var(--weight-semibold);
-  text-align: center;
-}
-
 .game-settings-hint,
 .game-settings-issue,
 .game-settings-summary {

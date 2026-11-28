@@ -18,6 +18,7 @@ import {
 import { useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { TESTIDS } from '@/testids';
 
@@ -90,45 +91,44 @@ export function AvalonHistoryOverlay({
           activeRound={active?.round}
           ended={ended}
         />
-        {rounds.length > 0 && (
-          <div className="room-record-tabs" role="tablist" aria-label="轮次">
-            {rounds.map((record) => {
-              const isActive = active !== undefined && record.round === active.round;
-              return (
-                <button
-                  key={record.round}
-                  type="button"
-                  role="tab"
-                  className="room-record-tab"
-                  aria-selected={isActive}
-                  data-testid={TESTIDS.avalonHistoryTab(record.round)}
-                  onClick={() => setSelectedRound(record.round)}
-                >
-                  {formatAvalonQuestLabel(record.round)}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div className="avalon-history-scroll" role={rounds.length > 0 ? 'tabpanel' : undefined}>
-          {active === undefined ? (
+        {active === undefined ? (
+          <div className="avalon-history-scroll">
             <p className="room-record-empty">暂无对局记录。</p>
-          ) : (
-            <AvalonRecordRound
-              key={active.round}
-              record={active}
-              completedLadyCheck={
-                viewModel.ladyHistory.find((record) => record.afterRound === active.round) ?? null
-              }
-              inProgressLadyHolderSeat={
-                viewModel.lady !== null && latestSettledRound === active.round
-                  ? viewModel.lady.holderSeat
-                  : null
-              }
-              ended={ended}
+          </div>
+        ) : (
+          <Tabs
+            value={String(active.round)}
+            onValueChange={(value) => setSelectedRound(Number(value))}
+          >
+            <TabList
+              label="轮次"
+              variant="segmented"
+              items={rounds.map((record) => ({
+                value: String(record.round),
+                label: formatAvalonQuestLabel(record.round),
+                testId: TESTIDS.avalonHistoryTab(record.round),
+              }))}
             />
-          )}
-        </div>
+            <TabPanel value={String(active.round)} fill>
+              <div className="avalon-history-scroll">
+                <AvalonRecordRound
+                  key={active.round}
+                  record={active}
+                  completedLadyCheck={
+                    viewModel.ladyHistory.find((record) => record.afterRound === active.round) ??
+                    null
+                  }
+                  inProgressLadyHolderSeat={
+                    viewModel.lady !== null && latestSettledRound === active.round
+                      ? viewModel.lady.holderSeat
+                      : null
+                  }
+                  ended={ended}
+                />
+              </div>
+            </TabPanel>
+          </Tabs>
+        )}
       </div>
     </RoomDialog>
   );

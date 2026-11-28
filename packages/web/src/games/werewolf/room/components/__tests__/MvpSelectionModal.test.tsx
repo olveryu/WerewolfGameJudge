@@ -21,7 +21,7 @@ describe('MvpSelectionModal', () => {
     const view = render(<MvpSelectionModal {...props} />);
     const confirm = () => screen.getByRole('button', { name: '确认 MVP' });
 
-    expect(screen.getByRole('button', { name: '关闭 MVP 评选' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '暂不评选' })).toBeEnabled();
     expect(confirm()).toBeDisabled();
     fireEvent.click(screen.getAllByRole('radio')[0]!);
     expect(onSelect).not.toHaveBeenCalled();
@@ -34,7 +34,7 @@ describe('MvpSelectionModal', () => {
 
     view.rerender(<MvpSelectionModal {...props} isSubmitting />);
     expect(confirm()).toBeDisabled();
-    expect(screen.getByRole('button', { name: '关闭 MVP 评选' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '暂不评选' })).toBeDisabled();
     fireEvent.click(confirm());
     expect(onSelect).toHaveBeenCalledTimes(1);
   });

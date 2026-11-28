@@ -396,12 +396,12 @@ export function SecrethitlerBoardInfo({
       sections={[
         {
           title: '自由派',
-          color: 'var(--color-villager)',
+          tone: 'villager',
           items: [{ roleId: 'liberal', displayName: '自由派', count: counts.liberal }],
         },
         {
           title: '法西斯阵营',
-          color: 'var(--color-wolf)',
+          tone: 'wolf',
           items: [
             { roleId: 'fascist', displayName: '法西斯', count: counts.fascist },
             { roleId: 'hitler', displayName: '希特勒', count: counts.hitler },

@@ -54,11 +54,6 @@
       "count": 1
     }
   },
-  "packages/web/src/components/FactionChip.tsx": {
-    "no-restricted-syntax": {
-      "count": 2
-    }
-  },
   "packages/web/src/components/GameStatsPanel.tsx": {
     "no-restricted-syntax": {
       "count": 1
@@ -119,11 +114,6 @@
     },
     "no-restricted-syntax": {
       "count": 8
-    }
-  },
-  "packages/web/src/features/encyclopedia/EncyclopediaShell.tsx": {
-    "no-restricted-imports": {
-      "count": 1
     }
   },
   "packages/web/src/features/feedback/components/FeedbackTab.tsx": {
@@ -466,21 +456,6 @@
       "count": 1
     }
   },
-  "packages/web/src/games/decrypto/room/DecryptoHistory.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "packages/web/src/games/decrypto/room/DecryptoStage.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "packages/web/src/games/drawguess/screens/DrawGuessConfigEstimate.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
   "packages/web/src/games/pictionary/room/components/PictionaryDrawingImage.tsx": {
     "no-restricted-imports": {
       "count": 1
@@ -498,11 +473,6 @@
   },
   "packages/web/src/games/spotmatch/room/hooks/useSpotmatchCardFlight.ts": {
     "no-restricted-syntax": {
-      "count": 1
-    }
-  },
-  "packages/web/src/games/toolbox/config/ToolboxIdentityEditor.tsx": {
-    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -534,16 +504,6 @@
       "count": 2
     }
   },
-  "packages/web/src/games/werewolf/room/components/MvpSelectionModal.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    }
-  },
-  "packages/web/src/games/werewolf/room/components/ShareReviewModal.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    }
-  },
   "packages/web/src/games/werewolf/room/components/SheriffElectionReadOnly.tsx": {
     "no-restricted-syntax": {
       "count": 2
@@ -554,22 +514,7 @@
       "count": 2
     }
   },
-  "packages/web/src/games/werewolf/screens/ConfigScreen/ConfigScreen.tsx": {
-    "no-restricted-imports": {
-      "count": 2
-    }
-  },
-  "packages/web/src/games/werewolf/screens/ConfigScreen/components/FactionTabs.tsx": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
   "packages/web/src/games/werewolf/screens/ConfigScreen/useConfigScreenState.ts": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "packages/web/src/games/werewolf/screens/GameRulesScreen/GameRulesScreen.tsx": {
     "no-restricted-imports": {
       "count": 1
     }
@@ -585,11 +530,6 @@
     }
   },
   "packages/web/src/platform/realtime/RoomLinkFactory.ts": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "packages/web/src/routes/admin/pages/D1UsagePage.tsx": {
     "no-restricted-imports": {
       "count": 1
     }
@@ -671,7 +611,7 @@
   },
   "packages/web/src/routes/home/AnnouncementModal.tsx": {
     "no-restricted-imports": {
-      "count": 3
+      "count": 2
     }
   },
   "packages/web/src/routes/settings/SettingsPage.tsx": {

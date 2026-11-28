@@ -9,6 +9,7 @@ import {
   type AvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
 import { fireEvent, render, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { AvalonHistoryOverlay } from '../AvalonHistoryOverlay';
 
@@ -127,7 +128,7 @@ function voteCountText(text: string) {
 }
 
 describe('AvalonHistoryOverlay', () => {
-  it('defaults to the latest round and switches rounds by tab', () => {
+  it('defaults to the latest round and switches rounds by tab', async () => {
     const { getByTestId, queryByTestId } = renderOverlay([settledRound, openRound]);
     expect(getByTestId('avalon-history-round-2')).toBeTruthy();
     expect(queryByTestId('avalon-history-round-1')).toBeNull();
@@ -143,7 +144,7 @@ describe('AvalonHistoryOverlay', () => {
       'aria-label',
       '任务五，未开始',
     );
-    fireEvent.click(getByTestId('avalon-history-tab-1'));
+    await userEvent.click(getByTestId('avalon-history-tab-1'));
     expect(getByTestId('avalon-history-round-1')).toBeTruthy();
     expect(queryByTestId('avalon-history-round-2')).toBeNull();
   });

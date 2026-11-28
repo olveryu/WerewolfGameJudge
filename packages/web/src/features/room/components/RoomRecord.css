@@ -5,53 +5,6 @@
   min-height: 0;
 }
 
-.room-record-tabs {
-  display: flex;
-  gap: var(--space-tight);
-  padding: var(--space-tight);
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-hover);
-  box-shadow: var(--surface-inset-shadow);
-}
-
-.room-record-tab {
-  flex: 1;
-  padding: var(--space-tight) var(--space-small);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-pill);
-  background: none;
-  color: var(--color-text-secondary);
-  font: inherit;
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  cursor: pointer;
-  transition:
-    box-shadow 100ms ease-out,
-    transform 100ms ease-out;
-}
-
-.room-record-tab[aria-selected='true'],
-.room-record-tab[aria-pressed='true'] {
-  border-color: var(--color-border-light);
-  background: var(--color-surface);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text);
-  font-weight: var(--weight-semibold);
-  box-shadow: var(--surface-button-shadow-light);
-}
-
-.room-record-tab:active {
-  box-shadow: var(--surface-button-shadow-pressed);
-  transform: translateY(var(--space-micro));
-}
-
-@media (hover: hover) {
-  .room-record-tab:hover {
-    transform: translateY(calc(-1 * var(--space-micro)));
-  }
-}
-
 .room-record-card {
   display: flex;
   flex-direction: column;

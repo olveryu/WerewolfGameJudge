@@ -1,5 +1,6 @@
 import { getSecrethitlerViewModel } from '@game-judge/game-engine/games/secrethitler/public';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { BoardStatusPreview } from '@/test-utils/boardStatus';
 import {
@@ -124,7 +125,7 @@ it('shows only submission progress during an active vote, never the viewer’s o
   expect(screen.queryByRole('list', { name: '逐人投票' })).not.toBeInTheDocument();
 });
 
-it('switches between policy and president records without mixing their order', () => {
+it('switches between policy and president records without mixing their order', async () => {
   const state = states.get('election');
   if (state === undefined) throw new Error('Missing election');
   const view = getSecrethitlerViewModel(state, null);
@@ -140,18 +141,18 @@ it('switches between policy and president records without mixing their order', (
     },
   } as const;
   render(<SecrethitlerMatchDetails state={state} view={withRecords} mySeat={null} />);
-  fireEvent.click(screen.getByRole('button', { name: '政策记录' }));
-  expect(screen.getByRole('button', { name: '政策记录' })).toHaveAttribute('aria-pressed', 'true');
+  await userEvent.click(screen.getByRole('tab', { name: '政策记录' }));
+  expect(screen.getByRole('tab', { name: '政策记录' })).toHaveAttribute('aria-selected', 'true');
   expect(screen.getByText('第 1 张 · 自由派政策')).toBeInTheDocument();
   expect(screen.getByText('第 2 张 · 法西斯政策')).toBeInTheDocument();
   expect(screen.getByText('三次失败自动施行')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: '总统行动' }));
+  await userEvent.click(screen.getByRole('tab', { name: '总统行动' }));
   expect(screen.getByRole('heading', { name: '调查' })).toBeInTheDocument();
   expect(screen.getByText('总统 1 号 · 目标 2 号')).toBeInTheDocument();
   expect(screen.queryByText('第 1 张 · 自由派政策')).not.toBeInTheDocument();
 });
 
-it('shows an empty state for each record category before any government is formed', () => {
+it('shows an empty state for each record category before any government is formed', async () => {
   const state = states.get('election');
   if (state === undefined) throw new Error('Missing election');
   render(
@@ -162,8 +163,8 @@ it('shows an empty state for each record category before any government is forme
     />,
   );
   expect(screen.getByText('暂无政府投票记录。')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: '政策记录' }));
+  await userEvent.click(screen.getByRole('tab', { name: '政策记录' }));
   expect(screen.getByText('暂无政策记录。')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: '总统行动' }));
+  await userEvent.click(screen.getByRole('tab', { name: '总统行动' }));
   expect(screen.getByText('暂无总统行动记录。')).toBeInTheDocument();
 });

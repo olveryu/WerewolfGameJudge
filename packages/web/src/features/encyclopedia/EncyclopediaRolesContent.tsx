@@ -7,6 +7,7 @@ import './Encyclopedia.css';
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { Chip } from '@/components/Chip';
 import { TESTIDS } from '@/testids';
 import IconCheckmark from '~icons/ion/checkmark';
 import IconSearch from '~icons/ion/search';
@@ -60,16 +61,14 @@ export function EncyclopediaRolesContent({
 
       <div className="encyclopedia-filter-bar" role="group" aria-label="阵营筛选">
         {source.factionGroups.map((group) => (
-          <button
+          <Chip
             key={group.key}
-            type="button"
-            className="encyclopedia-filter-chip"
-            aria-pressed={state.activeFilter === group.key}
+            pressed={state.activeFilter === group.key}
             data-testid={TESTIDS.encyclopediaFactionTab(group.key)}
             onClick={() => state.handleFactionChange(group.key)}
           >
             {group.label} · {state.getTabCount(group.key)}
-          </button>
+          </Chip>
         ))}
       </div>
 

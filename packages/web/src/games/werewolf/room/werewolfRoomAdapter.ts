@@ -470,9 +470,9 @@ export function createWerewolfBoardInfoSections(
 ): readonly BoardInfoSection[] {
   const items = groupRoleItems(roles);
   return [
-    { title: '狼人', items: items.wolf, color: 'var(--color-wolf)' },
-    { title: '神职', items: items.god, color: 'var(--color-god)' },
-    { title: '特殊', items: items.special, color: 'var(--color-third)' },
+    { title: '狼人', items: items.wolf, tone: 'wolf' },
+    { title: '神职', items: items.god, tone: 'god' },
+    { title: '特殊', items: items.special, tone: 'third' },
     {
       title: '村民',
       items:
@@ -482,7 +482,7 @@ export function createWerewolfBoardInfoSections(
               ...items.villager,
             ]
           : items.villager,
-      color: 'var(--color-villager)',
+      tone: 'villager',
     },
   ];
 }

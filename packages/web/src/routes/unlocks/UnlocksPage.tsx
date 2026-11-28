@@ -12,14 +12,15 @@ import { IonIcon, type IoniconName } from '@/components/icons/IonIcon';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
+import { TabPanel, Tabs } from '@/components/Tabs';
 import { getRarityCellStyle } from '@/config/rarityVisual';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { userUnlocksOptions } from '@/features/account/queries/accountQueryOptions';
 import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import {
   type CosmeticTab,
-  CosmeticTabBar,
-  cosmeticTabId,
+  CosmeticTabList,
+  parseCosmeticTab,
   type RarityFilter,
   RarityFilterBar,
 } from '@/features/product/components/CosmeticTabs';
@@ -48,8 +49,6 @@ import {
   type UnlockItem,
 } from './unlockItems';
 
-const TAB_ID_PREFIX = 'unlocks';
-const PANEL_ID = 'unlocks-panel';
 /** The previous client dimmed a locked cell to 0.5 and its thumbnail to 0.4 within it. */
 const LOCKED_THUMB_OPACITY = 0.2;
 /** Built-in previews wear the wolf-paw default, keyed like the previous client. */
@@ -238,31 +237,25 @@ function UnlocksContent({ unlockedItems, isViewer }: UnlocksContentProps) {
     <div className="unlocks-body">
       <ResidentSceneLayer hostRef={sceneHostRef} />
       <div ref={scrollRootRef} className="unlocks-scroll">
-        <SummaryCard items={items} isViewer={isViewer} />
-        <CosmeticTabBar
-          activeTab={activeTab}
-          onChange={changeTab}
-          idPrefix={TAB_ID_PREFIX}
-          panelId={PANEL_ID}
-        />
-        <RarityFilterBar value={rarityFilter} onChange={setRarityFilter} />
-        <ul
-          id={PANEL_ID}
-          role="tabpanel"
-          aria-labelledby={cosmeticTabId(TAB_ID_PREFIX, activeTab)}
-          className="unlocks-grid"
-        >
-          {filterUnlockItems(items, rarityFilter).map((item) => (
-            <UnlockCell
-              key={item.id}
-              item={item}
-              tab={activeTab}
-              productUi={productUi}
-              sceneHostRef={sceneHostRef}
-              scrollRootRef={scrollRootRef}
-            />
-          ))}
-        </ul>
+        <Tabs value={activeTab} onValueChange={(value) => changeTab(parseCosmeticTab(value))}>
+          <SummaryCard items={items} isViewer={isViewer} />
+          <CosmeticTabList />
+          <RarityFilterBar value={rarityFilter} onChange={setRarityFilter} />
+          <TabPanel value={activeTab}>
+            <ul className="unlocks-grid">
+              {filterUnlockItems(items, rarityFilter).map((item) => (
+                <UnlockCell
+                  key={item.id}
+                  item={item}
+                  tab={activeTab}
+                  productUi={productUi}
+                  sceneHostRef={sceneHostRef}
+                  scrollRootRef={scrollRootRef}
+                />
+              ))}
+            </ul>
+          </TabPanel>
+        </Tabs>
       </div>
     </div>
   );

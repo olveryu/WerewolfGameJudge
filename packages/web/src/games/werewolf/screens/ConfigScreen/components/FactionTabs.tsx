@@ -1,12 +1,10 @@
 /**
- * FactionTabs — faction segmented tab list (Ark UI tabs).
- *
- * Each tab shows the faction title + selected count in its faction color; the selected tab gets
- * a faction tint. Must render inside the screen's `Tabs.Root`.
+ * FactionTabs — the config screen's faction tabs: each shows the faction title + selected count
+ * in its faction color. Must render inside the screen's `Tabs`.
  */
-import { Tabs } from '@ark-ui/react/tabs';
 import type { Faction } from '@game-judge/game-engine/games/werewolf/public';
 
+import { TabList } from '@/components/Tabs';
 import type { FactionColorKey } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import { TESTIDS } from '@/testids';
 
@@ -19,18 +17,15 @@ export interface FactionTabItem {
 
 export function FactionTabs({ tabs }: { readonly tabs: readonly FactionTabItem[] }) {
   return (
-    <Tabs.List className="config-faction-tabs" aria-label="阵营">
-      {tabs.map((tab) => (
-        <Tabs.Trigger
-          key={tab.key}
-          value={tab.key}
-          className="config-faction-tab"
-          data-faction={tab.faction}
-          data-testid={TESTIDS.configFactionTab(tab.key)}
-        >
-          {tab.title} · {tab.count}
-        </Tabs.Trigger>
-      ))}
-    </Tabs.List>
+    <TabList
+      label="阵营"
+      variant="underline"
+      items={tabs.map((tab) => ({
+        value: tab.key,
+        label: `${tab.title} · ${tab.count}`,
+        tone: tab.faction,
+        testId: TESTIDS.configFactionTab(tab.key),
+      }))}
+    />
   );
 }

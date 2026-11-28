@@ -19,6 +19,11 @@
   border-top-color: var(--color-text-inverse);
 }
 
+.spinner[data-tone='report'] {
+  border-color: var(--report-divider);
+  border-top-color: var(--report-text-muted);
+}
+
 .spinner[data-size='lg'] {
   width: var(--size-icon-xl);
   height: var(--size-icon-xl);

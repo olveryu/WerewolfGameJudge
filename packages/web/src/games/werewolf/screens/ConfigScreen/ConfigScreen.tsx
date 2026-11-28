@@ -5,18 +5,24 @@
  * The role list is data-driven from FACTION_GROUPS + the role catalog; all state and callbacks come
  * from useConfigScreenState.
  */
-import '@/components/GameSettings.css';
 import '@/features/room/config/GameConfigPage.css';
 import '@/games/werewolf/components/faction.css';
 import './ConfigScreen.css';
 
-import { Tabs } from '@ark-ui/react/tabs';
-import { type Faction, getRoleCard } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  type Faction,
+  getRoleCard,
+  type RoleId,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { Fragment, type ReactNode, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { Chip } from '@/components/Chip';
+import { GameSettingsSummary } from '@/components/GameSettings';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { Stepper } from '@/components/Stepper';
+import { TabPanel, Tabs } from '@/components/Tabs';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { confirmAction } from '@/features/room/confirm';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
@@ -30,11 +36,42 @@ import IconTrashOutline from '~icons/ion/trash-outline';
 
 import { FactionTabs } from './components/FactionTabs';
 import { RoleChip } from './components/RoleChip';
-import { RoleStepper } from './components/RoleStepper';
 import { Section } from './components/Section';
 import { FACTION_GROUPS } from './configData';
 import { expandSlotToChipEntries, FACTION_COLOR_MAP } from './configHelpers';
 import { useConfigScreenState } from './useConfigScreenState';
+
+/** A bulk role (plain wolf / villager) counted with the shared stepper. */
+function BulkRoleStepper({
+  roleId,
+  count,
+  maxCount,
+  onCountChange,
+}: {
+  readonly roleId: RoleId;
+  readonly count: number;
+  readonly maxCount: number;
+  readonly onCountChange: (roleId: RoleId, newCount: number) => void;
+}) {
+  const label = getRoleCard(roleId).displayName;
+  return (
+    <div className="config-stepper-row">
+      <Stepper
+        label={label}
+        entry={{ kind: 'readonly', value: count }}
+        onDecrement={() => onCountChange(roleId, count - 1)}
+        onIncrement={() => onCountChange(roleId, count + 1)}
+        isDecrementDisabled={count <= 0}
+        isIncrementDisabled={count >= maxCount}
+        decrementLabel={`减少${label}`}
+        incrementLabel={`增加${label}`}
+        testId={TESTIDS.configStepperCount(roleId)}
+        decrementTestId={TESTIDS.configStepperDec(roleId)}
+        incrementTestId={TESTIDS.configStepperInc(roleId)}
+      />
+    </div>
+  );
+}
 
 const FACTION_TABS: ReadonlyMap<string, Faction> = new Map(
   FACTION_GROUPS.map((group) => [group.faction, group.faction]),
@@ -90,16 +127,14 @@ export function ConfigScreen({
 
   const templateControl = (
     <span className="config-header-center">
-      <button
-        type="button"
-        className="config-template-pill"
+      <Chip
         onClick={state.handleTemplatePillPress}
         data-testid={TESTIDS.configTemplatePill}
         aria-label={`选择板子：${state.selectedTemplateLabel}`}
       >
         {state.selectedTemplateLabel}
         <IconChevronDown aria-hidden />
-      </button>
+      </Chip>
       <span className="config-player-count">{state.totalCount}人</span>
     </span>
   );
@@ -114,10 +149,10 @@ export function ConfigScreen({
 
   const fields = (
     <>
-      <Tabs.Root
-        className="config-tabs-root"
+      <Tabs
         value={state.activeTab}
-        onValueChange={(details) => state.handleTabPress(parseFactionTab(details.value))}
+        onValueChange={(value) => state.handleTabPress(parseFactionTab(value))}
+        fill
       >
         <div className="config-card-tabs">
           <FactionTabs tabs={state.tabItems} />
@@ -128,47 +163,47 @@ export function ConfigScreen({
           </span>
           点按选角色 · 长按看介绍 · 变体在卡里换
         </p>
-        <Tabs.Content value={state.activeTab} className="config-scroll">
-          <div className="config-card-roles">
-            {activeGroup.sections.map((section, index) => {
-              const faction = FACTION_COLOR_MAP[section.faction ?? activeGroup.faction];
-              const bulkSlot = section.roles.find((slot) => slot.isBulk === true);
-              return (
-                <Fragment key={section.title}>
-                  {index > 0 && <hr className="config-card-divider" />}
-                  {bulkSlot !== undefined ? (
-                    <RoleStepper
-                      roleId={bulkSlot.roleId}
-                      label={getRoleCard(bulkSlot.roleId).displayName}
-                      count={state.getBulkCount(bulkSlot.roleId, bulkSlot.count ?? 1)}
-                      maxCount={bulkSlot.count ?? 1}
-                      onCountChange={state.handleBulkCountChange}
-                      faction={faction}
-                    />
-                  ) : (
-                    <Section title={section.title}>
-                      {section.roles
-                        .flatMap((slot) => expandSlotToChipEntries(slot, state.variantOverrides))
-                        .map((entry) => (
-                          <RoleChip
-                            key={entry.key}
-                            id={entry.key}
-                            label={entry.label}
-                            selected={state.selection[entry.key] === true}
-                            onToggle={state.toggleRole}
-                            faction={faction}
-                            hasVariants={entry.hasVariants}
-                            onInfoPress={state.handleChipInfoPress}
-                          />
-                        ))}
-                    </Section>
-                  )}
-                </Fragment>
-              );
-            })}
+        <TabPanel value={state.activeTab} fill>
+          <div className="config-scroll">
+            <div className="config-card-roles">
+              {activeGroup.sections.map((section, index) => {
+                const faction = FACTION_COLOR_MAP[section.faction ?? activeGroup.faction];
+                const bulkSlot = section.roles.find((slot) => slot.isBulk === true);
+                return (
+                  <Fragment key={section.title}>
+                    {index > 0 && <hr className="config-card-divider" />}
+                    {bulkSlot !== undefined ? (
+                      <BulkRoleStepper
+                        roleId={bulkSlot.roleId}
+                        count={state.getBulkCount(bulkSlot.roleId, bulkSlot.count ?? 1)}
+                        maxCount={bulkSlot.count ?? 1}
+                        onCountChange={state.handleBulkCountChange}
+                      />
+                    ) : (
+                      <Section title={section.title}>
+                        {section.roles
+                          .flatMap((slot) => expandSlotToChipEntries(slot, state.variantOverrides))
+                          .map((entry) => (
+                            <RoleChip
+                              key={entry.key}
+                              id={entry.key}
+                              label={entry.label}
+                              selected={state.selection[entry.key] === true}
+                              onToggle={state.toggleRole}
+                              faction={faction}
+                              hasVariants={entry.hasVariants}
+                              onInfoPress={state.handleChipInfoPress}
+                            />
+                          ))}
+                      </Section>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
           </div>
-        </Tabs.Content>
-      </Tabs.Root>
+        </TabPanel>
+      </Tabs>
 
       <RoleCardSimple
         visible={state.roleInfoId !== null}
@@ -196,7 +231,7 @@ export function ConfigScreen({
       {settingsDialog !== undefined && !state.canEdit && (
         <p role="status">房间状态或权限已变化，不能保存设置。</p>
       )}
-      <p className="game-settings-summary">已选 {state.totalCount} 人</p>
+      <GameSettingsSummary>已选 {state.totalCount} 人</GameSettingsSummary>
       <Button
         size="lg"
         fullWidth

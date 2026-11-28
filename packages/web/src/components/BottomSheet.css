@@ -42,6 +42,34 @@
   background: var(--color-border);
 }
 
+/* Heading row moved from the draw-guess ranking sheet, its first user. */
+.bottom-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-small);
+  padding: var(--space-small) var(--space-medium) var(--space-small) var(--space-large);
+}
+
+.bottom-sheet-heading {
+  min-width: 0;
+}
+
+.bottom-sheet-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
+.bottom-sheet-description {
+  margin: var(--space-micro) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
 @keyframes bottom-sheet-fade {
   from {
     opacity: 0;

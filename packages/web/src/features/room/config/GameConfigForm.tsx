@@ -15,9 +15,12 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 import {
   formatDurationOption,
   GameSettingsChoice,
-  GameSettingsStepper,
+  GameSettingsHint,
+  GameSettingsIssue,
+  GameSettingsSection,
   GameSettingsSwitch,
 } from '@/components/GameSettings';
+import { Stepper } from '@/components/Stepper';
 import { confirmAction } from '@/features/room/confirm';
 import { TESTIDS } from '@/testids';
 
@@ -47,13 +50,9 @@ function IssueText({
 }) {
   if (message === null) return null;
   return (
-    <p
-      className="game-settings-issue"
-      aria-live="polite"
-      data-testid={TESTIDS.gameConfigFieldIssue(gameType, fieldKey)}
-    >
+    <GameSettingsIssue testId={TESTIDS.gameConfigFieldIssue(gameType, fieldKey)}>
       {message}
-    </p>
+    </GameSettingsIssue>
   );
 }
 
@@ -89,11 +88,10 @@ function FieldView({
       }
       const range = describeCountRange(spec);
       return (
-        <div className="game-settings-section">
-          <GameSettingsStepper
+        <GameSettingsSection>
+          <Stepper
             label={spec.label}
-            value={draft ?? String(value)}
-            onChangeText={onDraftChange}
+            entry={{ kind: 'text', value: draft ?? String(value), onChangeText: onDraftChange }}
             onDecrement={() => onStep(-1)}
             onIncrement={() => onStep(1)}
             isDecrementDisabled={value <= spec.min}
@@ -102,11 +100,11 @@ function FieldView({
             decrementTestId={TESTIDS.gameConfigFieldDecrement(gameType, fieldKey)}
             incrementTestId={TESTIDS.gameConfigFieldIncrement(gameType, fieldKey)}
           />
-          <p className="game-settings-hint">
+          <GameSettingsHint>
             {spec.hint === undefined ? range : `${range}，${spec.hint}`}
-          </p>
+          </GameSettingsHint>
           {issue}
-        </div>
+        </GameSettingsSection>
       );
     }
     case 'toggle': {
@@ -127,7 +125,7 @@ function FieldView({
         onChange(next);
       };
       return (
-        <div className="game-settings-section">
+        <GameSettingsSection>
           <GameSettingsSwitch
             label={spec.label}
             value={value}
@@ -135,9 +133,9 @@ function FieldView({
             tone={spec.tone === 'warning' ? 'warning' : 'primary'}
             testId={testId}
           />
-          {spec.hint !== undefined && <p className="game-settings-hint">{spec.hint}</p>}
+          {spec.hint !== undefined && <GameSettingsHint>{spec.hint}</GameSettingsHint>}
           {issue}
-        </div>
+        </GameSettingsSection>
       );
     }
     case 'choice':
@@ -242,12 +240,9 @@ export function GameConfigForm<TConfig extends object>({
         );
       })}
       {issue !== null && issue.field === null && (
-        <p
-          className="game-settings-issue"
-          data-testid={TESTIDS.gameConfigFieldIssue(gameType, 'config')}
-        >
+        <GameSettingsIssue testId={TESTIDS.gameConfigFieldIssue(gameType, 'config')}>
           {issue.message}
-        </p>
+        </GameSettingsIssue>
       )}
     </>
   );

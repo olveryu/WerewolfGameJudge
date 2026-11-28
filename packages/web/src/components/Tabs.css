@@ -1,0 +1,143 @@
+/* A root without `fill` draws no box: the list and panels lay out in the caller's container. */
+.tabs[data-fill='false'] {
+  display: contents;
+}
+
+.tabs[data-fill='true'],
+.tab-panel[data-fill='true'] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tab-list {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.tab {
+  --tab-accent: var(--color-primary);
+  --tab-text: var(--color-primary);
+  --tab-tint: var(--color-primary-a8);
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
+}
+
+.tab:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: calc(-1 * var(--border-width-thick));
+}
+
+.tab-label {
+  min-width: 0;
+}
+
+.tab > svg {
+  flex-shrink: 0;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+/* Scroll: the tabs share the row when they fit and keep their width (scrolling sideways) when not. */
+.tab-list[data-layout='scroll'] {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-list[data-layout='scroll'] .tab {
+  flex: 1 0 auto;
+  max-width: var(--size-tab-max-width);
+}
+
+.tab-list[data-layout='scroll'] .tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Segmented: the selected tab is a raised key on an inset track. */
+.tab-list[data-variant='segmented'] {
+  gap: var(--space-micro);
+  padding: var(--space-micro);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-card-nested);
+  background: var(--color-surface);
+  box-shadow: var(--surface-inset-shadow);
+}
+
+.tab-list[data-variant='segmented'] .tab {
+  padding: var(--space-small) var(--space-tight);
+  border-radius: var(--radius-inset);
+}
+
+.tab-list[data-variant='segmented'] .tab[aria-selected='true'] {
+  background: var(--color-primary-a15);
+  background-image: var(--surface-button-texture);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--surface-button-shadow-light);
+}
+
+.tab-list[data-variant='segmented'] .tab:active {
+  transform: translateY(var(--space-micro));
+}
+
+/* Underline: the selected tab is tinted and carries a bar in its accent. */
+.tab-list[data-variant='underline'] .tab {
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-small) var(--space-tight);
+  border-bottom: var(--border-width-thick) solid transparent;
+  color: var(--tab-text);
+}
+
+.tab-list[data-variant='underline'] .tab[aria-selected='true'] {
+  border-bottom-color: var(--tab-accent);
+  background: var(--tab-tint);
+  font-weight: var(--weight-bold);
+}
+
+.tab[data-tone='wolf'] {
+  --tab-accent: var(--color-wolf);
+  --tab-text: var(--color-wolf);
+  --tab-tint: var(--color-wolf-a6);
+}
+
+.tab[data-tone='god'] {
+  --tab-accent: var(--color-god);
+  --tab-text: var(--color-god);
+  --tab-tint: var(--color-god-a6);
+}
+
+.tab[data-tone='villager'] {
+  --tab-accent: var(--color-villager);
+  --tab-text: var(--color-villager-text);
+  --tab-tint: var(--color-villager-a6);
+}
+
+.tab[data-tone='third'] {
+  --tab-accent: var(--color-third);
+  --tab-text: var(--color-third-text);
+  --tab-tint: var(--color-third-a6);
+}
+
+@media (hover: hover) {
+  .tab-list[data-variant='segmented'] .tab:hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
+}

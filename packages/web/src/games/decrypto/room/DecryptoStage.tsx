@@ -1,4 +1,3 @@
-import { Tabs } from '@ark-ui/react/tabs';
 import {
   DECRYPTO_TEAMS,
   type DecryptoGame,
@@ -7,6 +6,7 @@ import {
 import { useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { TabList, TabPanel, Tabs } from '@/components/Tabs';
 import { RoomStagePanel } from '@/features/room/components/RoomStagePanel';
 import { confirmAction } from '@/features/room/confirm';
 import { TESTIDS } from '@/testids';
@@ -200,32 +200,24 @@ function GameStage({
           )}
           <KeywordCards screen={screen} game={game} />
           {isTiebreak && <DecryptoTiebreak screen={screen} game={game} />}
-          <Tabs.Root
+          <Tabs
             value={selectedTeam}
-            onValueChange={({ value }) => {
+            onValueChange={(value) => {
               if (value === 'blue' || value === 'purple')
                 setSelection({ context: selectionContext, team: value });
             }}
           >
-            <Tabs.List className="decrypto-tabs" aria-label="队伍记录">
-              {DECRYPTO_TEAMS.map((team) => (
-                <Tabs.Trigger
-                  key={team}
-                  value={team}
-                  className="decrypto-tab"
-                  data-testid={TESTIDS.decryptoHistoryTeam(team)}
-                >
-                  {teamNames[team]}记录{screen.viewModel.myTeam === team ? '（我方）' : ''}
-                </Tabs.Trigger>
-              ))}
-            </Tabs.List>
+            <TabList
+              label="队伍记录"
+              variant="underline"
+              items={DECRYPTO_TEAMS.map((team) => ({
+                value: team,
+                label: `${teamNames[team]}记录${screen.viewModel.myTeam === team ? '（我方）' : ''}`,
+                testId: TESTIDS.decryptoHistoryTeam(team),
+              }))}
+            />
             {DECRYPTO_TEAMS.map((team) => (
-              <Tabs.Content
-                key={team}
-                value={team}
-                hidden={selectedTeam !== team}
-                data-testid={TESTIDS.decryptoTeamPanel(team)}
-              >
+              <TabPanel key={team} value={team} testId={TESTIDS.decryptoTeamPanel(team)}>
                 <div className="decrypto-board">
                   {!isTiebreak && !isEnded && (
                     <DecryptoRoundBoard screen={screen} game={game} team={team} />
@@ -235,9 +227,9 @@ function GameStage({
                     isOwnTeam={screen.viewModel.myTeam === team}
                   />
                 </div>
-              </Tabs.Content>
+              </TabPanel>
             ))}
-          </Tabs.Root>
+          </Tabs>
         </>
       )}
       {isEnded && screen.isHost && (

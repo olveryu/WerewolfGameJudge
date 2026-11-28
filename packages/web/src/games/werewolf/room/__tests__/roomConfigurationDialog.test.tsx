@@ -117,7 +117,7 @@ describe('Werewolf room configuration', () => {
       reactive.simulateStateUpdate({ gameStateOverrides: { status: GameStatus.Assigned } }),
     );
     expect(editor.getByText('已选 0 人')).toBeVisible();
-    expect(editor.getByRole('status')).toHaveTextContent('本局建议已结束');
+    expect(editor.getByText(/本局建议已结束/)).toHaveAttribute('role', 'status');
     expect(editor.getByRole('button', { name: '提交建议' })).toBeDisabled();
     expect(reactive.mock.dispatch).not.toHaveBeenCalled();
   });
@@ -139,7 +139,7 @@ describe('Werewolf room configuration', () => {
         gameStateOverrides: { status: GameStatus.Assigned, boardNominations },
       }),
     );
-    expect(list.getByRole('status')).toHaveTextContent('本局建议已结束');
+    expect(list.getByText(/本局建议已结束/)).toHaveAttribute('role', 'status');
     expect(list.getByRole('button', { name: '点赞' })).toBeDisabled();
     await click(list.getByRole('button', { name: '关闭' }));
     expect(view.queryByRole('button', { name: /查看建议/ })).not.toBeInTheDocument();

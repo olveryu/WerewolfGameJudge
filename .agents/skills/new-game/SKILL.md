@@ -101,7 +101,7 @@ When the user requests a UI mock, follow the mock-to-production flow in
 3. **Shared names and builders.** Use the shared room builders and wording
    rather than game-specific copies: `buildClearSeatsAction` (清空座位),
    `buildResetToLobbyAction` (重新开始), `buildStartGameAction`,
-   `GameSettingsStepper`, `RoomDialog` opened from the action hand,
+   `Stepper`, `RoomDialog` opened from the action hand,
    `RoomGameSummary` / `BoardInfoContent` / `RoleCardDialog` for public info.
 4. **Preview the real game.** The generator scaffolds
    `packages/web/preview/<camel>Preview.tsx` and registers it in
