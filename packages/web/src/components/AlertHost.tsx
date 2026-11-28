@@ -5,6 +5,7 @@ import { useState, useSyncExternalStore } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
+import { TextField } from '@/components/TextField';
 import { TESTIDS } from '@/testids';
 import { type AlertButton, type AlertConfig, alertStore, dismissAlert } from '@/utils/alert';
 import { log } from '@/utils/logger';
@@ -93,8 +94,7 @@ function AlertBody({ alert }: { alert: AlertConfig }) {
         </AppDialog.Description>
       )}
       {alert.input && (
-        <input
-          className="text-input"
+        <TextField
           value={inputValue}
           placeholder={alert.input.placeholder}
           onChange={(event) => setInputValue(event.target.value)}

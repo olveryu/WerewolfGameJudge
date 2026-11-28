@@ -10,6 +10,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { Select } from '@/components/Select';
+import { TextField } from '@/components/TextField';
 import { confirmAction } from '@/features/room/confirm';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
@@ -202,7 +204,7 @@ export function ToolboxPresetSection({
         saved.length > 0 && (
           <>
             <label htmlFor={choiceId}>使用已保存的方案</label>
-            <select
+            <Select
               id={choiceId}
               value={selectedId}
               disabled={isBusy}
@@ -221,12 +223,12 @@ export function ToolboxPresetSection({
                   {preset.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </>
         )
       )}
       <label htmlFor={nameId}>方案名称</label>
-      <input
+      <TextField
         id={nameId}
         value={name}
         maxLength={TOOLBOX_IDENTITY_LIMITS.nameMaxLength}

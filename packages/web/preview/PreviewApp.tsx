@@ -2,6 +2,9 @@ import './preview.css';
 
 import { useState } from 'react';
 
+import { Select } from '@/components/Select';
+import { TextField } from '@/components/TextField';
+
 import {
   defaultPreviewPopulation,
   getPreviewGame,
@@ -70,7 +73,7 @@ export function PreviewApp() {
         <strong>离线预览</strong>
         <label htmlFor="preview-game">
           游戏
-          <select
+          <Select
             id="preview-game"
             value={gameId}
             onChange={(event) => changeGame(event.target.value)}
@@ -80,7 +83,7 @@ export function PreviewApp() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <button type="button" onClick={() => setPage('home')}>
           首页
@@ -93,7 +96,7 @@ export function PreviewApp() {
         </button>
         <label htmlFor="preview-phase">
           阶段
-          <select
+          <Select
             id="preview-phase"
             value={phase}
             onChange={(event) => changePhase(event.target.value)}
@@ -103,11 +106,11 @@ export function PreviewApp() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label htmlFor="preview-viewer">
           视角
-          <select
+          <Select
             id="preview-viewer"
             value={viewer}
             onChange={(event) => setViewer(event.target.value)}
@@ -117,29 +120,33 @@ export function PreviewApp() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         {game.supportsPopulation && (
           <>
             <label htmlFor="preview-others">
               其他在场人数
-              <input
-                id="preview-others"
-                type="number"
-                min="0"
-                value={otherPlayers}
-                onChange={(event) => setOtherPlayers(event.currentTarget.value)}
-              />
+              <span className="preview-number">
+                <TextField
+                  id="preview-others"
+                  type="number"
+                  min="0"
+                  value={otherPlayers}
+                  onChange={(event) => setOtherPlayers(event.currentTarget.value)}
+                />
+              </span>
             </label>
             <label htmlFor="preview-seated">
               其他入座人数
-              <input
-                id="preview-seated"
-                type="number"
-                min="0"
-                value={seatedOthers}
-                onChange={(event) => setSeatedOthers(event.currentTarget.value)}
-              />
+              <span className="preview-number">
+                <TextField
+                  id="preview-seated"
+                  type="number"
+                  min="0"
+                  value={seatedOthers}
+                  onChange={(event) => setSeatedOthers(event.currentTarget.value)}
+                />
+              </span>
             </label>
             <button type="button" onClick={applyPopulation}>
               应用模拟人数

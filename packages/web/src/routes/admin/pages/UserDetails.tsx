@@ -1,6 +1,8 @@
 /** Recipient-scoped details and idempotent reward operations. */
 import { useId } from 'react';
 
+import { TextArea } from '@/components/TextArea';
+import { TextField } from '@/components/TextField';
 import type { AdminUser } from '@/features/admin/model/adminContracts';
 import { useAdminRewardGrant } from '@/features/admin/queries/useAdminRewardGrant';
 import { handleError } from '@/utils/errorPipeline';
@@ -123,15 +125,16 @@ function RewardForm({ model }: { model: ReturnType<typeof useAdminRewardGrant> }
             ))}
           </div>
           <label htmlFor={`${id}-count`}>奖励数量</label>
-          <input
+          <TextField
             id={`${id}-count`}
             inputMode="numeric"
             value={model.count}
             onChange={(event) => model.setCount(event.target.value)}
           />
           <label htmlFor={`${id}-reason`}>发放备注</label>
-          <textarea
+          <TextArea
             id={`${id}-reason`}
+            rows={3}
             maxLength={200}
             value={model.reason}
             onChange={(event) => model.setReason(event.target.value)}

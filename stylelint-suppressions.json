@@ -67,7 +67,7 @@
       "count": 1
     },
     "selector-disallowed-list": {
-      "count": 1
+      "count": 4
     }
   },
   "packages/web/src/features/gacha/machine/CapsuleMachine.css": {

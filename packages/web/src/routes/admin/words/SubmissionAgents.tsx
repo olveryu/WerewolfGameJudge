@@ -16,6 +16,9 @@ import { useId, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import type { z } from 'zod';
 
+import { Checkbox } from '@/components/Checkbox';
+import { TextArea } from '@/components/TextArea';
+import { TextField } from '@/components/TextField';
 import { API_BASE_URL } from '@/config/api';
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
@@ -371,7 +374,7 @@ function AuthorizationFields({
     <>
       <label>
         名称
-        <input
+        <TextField
           name="name"
           required
           maxLength={80}
@@ -382,7 +385,7 @@ function AuthorizationFields({
       </label>
       <label>
         用途说明
-        <textarea
+        <TextArea
           name="description"
           maxLength={300}
           rows={2}
@@ -393,8 +396,7 @@ function AuthorizationFields({
         <legend>允许投稿的游戏</legend>
         {GAME_WORD_GAMES.map((item) => (
           <label className="admin-submission-check" key={item}>
-            <input
-              type="checkbox"
+            <Checkbox
               checked={games.includes(item)}
               onChange={(event) =>
                 onGamesChange(
@@ -408,7 +410,7 @@ function AuthorizationFields({
       </fieldset>
       <label>
         每日投稿上限
-        <input
+        <TextField
           name="dailyQuota"
           type="number"
           min={1}
@@ -420,7 +422,7 @@ function AuthorizationFields({
       </label>
       <label>
         未处理候选上限
-        <input
+        <TextField
           name="pendingQuota"
           type="number"
           min={Math.max(1, agent?.pending ?? 0)}
@@ -587,7 +589,7 @@ function OneTimeCredential({ issued, onClose }: { issued: IssuedCredential; onCl
       <p>{issued.agent.name} 的完整 Token 只显示这一次，关闭后无法找回；丢失时请更换凭证。</p>
       <label className="admin-submission-form">
         完整投稿凭证
-        <textarea readOnly rows={3} value={issued.token} />
+        <TextArea readOnly rows={3} value={issued.token} />
       </label>
       <p className="admin-submission-note">只交给对应 Agent。不要放进公开仓库、截图或共享聊天。</p>
       <p role="status">{feedback}</p>

@@ -16,6 +16,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { TextField } from '@/components/TextField';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardStrategyData';
 import { BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy/BoardStrategyModal';
@@ -25,7 +26,6 @@ import { useBoardRolePreview } from '@/games/werewolf/screens/useBoardRolePrevie
 import IconAlbumsOutline from '~icons/ion/albums-outline';
 import IconCheckmark from '~icons/ion/checkmark';
 import IconCloseCircle from '~icons/ion/close-circle';
-import IconSearch from '~icons/ion/search';
 
 const CATEGORIES: readonly TemplateCategory[] = [
   TemplateCategory.Classic,
@@ -108,11 +108,9 @@ export function BoardsGuideContent({
   return (
     <div className="encyclopedia-segment-body">
       {searchVisible && (
-        <label className="encyclopedia-search">
-          <IconSearch aria-hidden />
-          <input
+        <div className="encyclopedia-search-slot">
+          <TextField
             type="search"
-            className="encyclopedia-search-input"
             placeholder="搜索板子名/角色名"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.currentTarget.value)}
@@ -120,7 +118,7 @@ export function BoardsGuideContent({
             autoCorrect="off"
             enterKeyHint="search"
           />
-        </label>
+        </div>
       )}
 
       <div className="encyclopedia-filter-bar" role="group" aria-label="板子分类">

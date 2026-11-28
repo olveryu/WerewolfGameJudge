@@ -181,6 +181,7 @@ function AppearanceEditor({ user, unlockedIds, isRefreshError, retry }: Appearan
         </div>
       </footer>
       {!state.readOnly && (
+        // eslint-disable-next-line react/forbid-elements -- native file picker primitive, hidden and opened by the upload button
         <input
           ref={fileInputRef}
           type="file"

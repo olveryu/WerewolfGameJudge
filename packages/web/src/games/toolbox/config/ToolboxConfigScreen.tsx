@@ -20,6 +20,7 @@ import { type ComponentType, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import { Button } from '@/components/Button';
+import { Checkbox } from '@/components/Checkbox';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
@@ -82,8 +83,7 @@ function ToolOptions({
       <legend>本次工具</legend>
       {TOOLBOX_TOOLS.map((tool) => (
         <label key={tool} className="toolbox-tool-option">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={tools.includes(tool)}
             onChange={() => onChange(toggleTool(tools, tool))}
             data-testid={TESTIDS.gameConfigField('toolbox', tool)}

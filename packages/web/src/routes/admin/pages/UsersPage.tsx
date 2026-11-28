@@ -4,6 +4,7 @@ import { type FormEvent, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
+import { TextField } from '@/components/TextField';
 import type { AdminUser } from '@/features/admin/model/adminContracts';
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { fetchUsers } from '@/features/admin/services/adminApi';
@@ -94,13 +95,15 @@ function UserDirectory({
       <div className="admin-content">
         <form className="admin-toolbar admin-directory-toolbar" onSubmit={submit}>
           <div className="admin-search">
-            <input
-              type="search"
-              aria-label="搜索用户"
-              placeholder="搜索昵称，或输入完整邮箱"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+            <div className="admin-search-field">
+              <TextField
+                type="search"
+                aria-label="搜索用户"
+                placeholder="搜索昵称，或输入完整邮箱"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
             <button type="submit">搜索</button>
           </div>
           <div className="admin-directory-filters">

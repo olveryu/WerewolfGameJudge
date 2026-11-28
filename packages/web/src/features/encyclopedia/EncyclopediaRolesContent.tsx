@@ -7,6 +7,7 @@ import './Encyclopedia.css';
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { TextField } from '@/components/TextField';
 import { TESTIDS } from '@/testids';
 import IconCheckmark from '~icons/ion/checkmark';
 import IconSearch from '~icons/ion/search';
@@ -43,11 +44,9 @@ export function EncyclopediaRolesContent({
   return (
     <div className="encyclopedia-segment-body">
       {state.searchVisible && (
-        <label className="encyclopedia-search">
-          <IconSearch aria-hidden />
-          <input
+        <div className="encyclopedia-search-slot">
+          <TextField
             type="search"
-            className="encyclopedia-search-input"
             placeholder="搜索角色名/技能"
             value={state.searchQuery}
             onChange={(event) => state.setSearchQuery(event.currentTarget.value)}
@@ -55,7 +54,7 @@ export function EncyclopediaRolesContent({
             autoCorrect="off"
             enterKeyHint="search"
           />
-        </label>
+        </div>
       )}
 
       <div className="encyclopedia-filter-bar" role="group" aria-label="阵营筛选">

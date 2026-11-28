@@ -1,6 +1,7 @@
 /** URL-backed ranges use stable cache keys; moving "now" is resolved only on an actual fetch. */
 import { useSearchParams } from 'react-router';
 
+import { TextField } from '@/components/TextField';
 import type { TimePreset } from '@/features/admin/model/adminContracts';
 import { getTimeRange } from '@/features/admin/services/adminApi';
 
@@ -76,7 +77,7 @@ export function ReportRange({ traffic = false }: { traffic?: boolean }) {
         <div className="admin-custom-range">
           <label>
             开始日期
-            <input
+            <TextField
               type="date"
               value={parameters.get('from') ?? ''}
               onChange={(event) => update('from', event.target.value)}
@@ -84,7 +85,7 @@ export function ReportRange({ traffic = false }: { traffic?: boolean }) {
           </label>
           <label>
             结束日期
-            <input
+            <TextField
               type="date"
               value={parameters.get('to') ?? ''}
               onChange={(event) => update('to', event.target.value)}

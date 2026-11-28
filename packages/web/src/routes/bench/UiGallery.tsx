@@ -8,15 +8,20 @@ import { Avatar } from '@/components/avatar/Avatar';
 import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { makeBuiltinAvatarUrl, pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
 import { Button, type ButtonTone } from '@/components/Button';
+import { Checkbox } from '@/components/Checkbox';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { FactionChip } from '@/components/FactionChip';
 import { IconButton } from '@/components/IconButton';
 import { IndeterminateProgressBar } from '@/components/IndeterminateProgressBar';
 import { NumPad } from '@/components/NumPad';
+import { Radio } from '@/components/Radio';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SeatDot } from '@/components/SeatDot';
+import { Select } from '@/components/Select';
 import { Spinner } from '@/components/Spinner';
 import { Switch } from '@/components/Switch';
+import { TextArea } from '@/components/TextArea';
+import { TextField } from '@/components/TextField';
 import { TESTIDS } from '@/testids';
 import IconAdd from '~icons/ion/add';
 import IconSettings from '~icons/ion/settings-outline';
@@ -218,6 +223,33 @@ export function UiGallery() {
 
       <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('num-pad')}>
         <NumPad value={code} onValueChange={setCode} maxLength={4} />
+      </section>
+
+      <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('text-field')}>
+        <TextField aria-label="文本" placeholder="请输入" />
+        <TextField aria-label="已填" defaultValue="狼人杀" />
+        <TextField aria-label="错误" defaultValue="8" invalid />
+        <TextField aria-label="禁用" defaultValue="禁用" disabled />
+        <TextField aria-label="密码" type="password" defaultValue="secret" reveal />
+        <TextField aria-label="搜索" type="search" placeholder="搜索角色" />
+        <TextArea aria-label="多行" rows={2} defaultValue="多行文本" />
+        <Select aria-label="选择" defaultValue="b">
+          <option value="a">选项一</option>
+          <option value="b">选项二</option>
+        </Select>
+      </section>
+
+      <section className="ui-gallery-block" data-testid={TESTIDS.uiGalleryBlock('check-radio')}>
+        <div className="ui-gallery-row">
+          <Checkbox aria-label="未选" />
+          <Checkbox aria-label="已选" defaultChecked />
+          <Checkbox aria-label="禁用" disabled />
+          <Checkbox aria-label="禁用已选" disabled defaultChecked />
+          <Radio aria-label="未选单选" name="gallery-radio" />
+          <Radio aria-label="已选单选" name="gallery-radio" defaultChecked />
+          <Radio aria-label="小号单选" size="sm" name="gallery-radio-sm" defaultChecked />
+          <Radio aria-label="禁用单选" disabled />
+        </div>
       </section>
     </main>
   );

@@ -87,35 +87,6 @@
   margin: 0;
 }
 
-.pictionary-answer-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: var(--size-min-touch-target);
-  box-sizing: border-box;
-  padding: 0 var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--surface-inset-shadow);
-  font: inherit;
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-}
-
-.pictionary-answer-input:focus-visible {
-  outline: var(--border-width-thick) solid var(--color-primary);
-  outline-offset: calc(-1 * var(--border-width-thick));
-}
-
-.pictionary-answer-input:read-only {
-  color: var(--color-text-secondary);
-}
-
-.pictionary-answer-input::placeholder {
-  color: var(--color-text-muted);
-}
-
 /* The text to draw: one compact card so the canvas keeps the remaining height. */
 .pictionary-prompt-card {
   flex-shrink: 0;

@@ -19,6 +19,7 @@ import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { TextField } from '@/components/TextField';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy/BoardStrategyModal';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
@@ -96,11 +97,9 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
       )}
 
       {state.searchVisible ? (
-        <label className="board-picker-search">
-          <IconSearch aria-hidden />
-          <input
+        <div className="board-picker-search-slot">
+          <TextField
             type="search"
-            className="board-picker-search-input"
             placeholder="搜索模板或角色"
             value={state.searchQuery}
             onChange={(event) => state.setSearchQuery(event.currentTarget.value)}
@@ -108,7 +107,7 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
             autoCorrect="off"
             enterKeyHint="search"
           />
-        </label>
+        </div>
       ) : (
         <div className="board-picker-tabs" role="group" aria-label="板子分类">
           {CATEGORY_TABS.map((category) => (

@@ -4,6 +4,7 @@
  * detail. Inventory never enters the stream. */
 import { useEffect, useRef, useState } from 'react';
 
+import { Checkbox } from '@/components/Checkbox';
 import type {
   GameWordGame,
   WordLibraryItem,
@@ -218,9 +219,8 @@ export function LibraryCards({
             </div>
             <label className="admin-submission-check admin-bulk-select-all">
               <span>全选本页</span>
-              <input
+              <Checkbox
                 ref={allRef}
-                type="checkbox"
                 aria-label="全选本页"
                 checked={
                   actionableItems.length > 0 &&
@@ -358,8 +358,7 @@ function LibraryCard({
   return (
     <article className="admin-library-card" role="listitem">
       <label className="admin-submission-check">
-        <input
-          type="checkbox"
+        <Checkbox
           aria-label={`选择${item.title}`}
           disabled={!actionable}
           checked={actionable && selected}

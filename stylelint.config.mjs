@@ -117,6 +117,7 @@ const SHARED_COMPONENT_CLASSES = {
   'packages/web/src/components/Button.css': ['button', 'icon-button'],
   'packages/web/src/components/CenterDialog.css': ['center-dialog[\\w-]*'],
   'packages/web/src/components/nameStyles/nameStyles.css': ['name-style'],
+  'packages/web/src/components/Checkbox.css': ['checkbox'],
   'packages/web/src/components/ChoiceCard.css': [
     'choice-card',
     'choice-check',
@@ -133,10 +134,12 @@ const SHARED_COMPONENT_CLASSES = {
   'packages/web/src/components/LoadingScreen.css': ['loading-screen[\\w-]*'],
   'packages/web/src/components/NumPad.css': ['numpad[\\w-]*'],
   'packages/web/src/components/PaperboardPanel.css': ['paperboard-panel'],
+  'packages/web/src/components/Radio.css': ['radio'],
   'packages/web/src/components/ScreenHeader.css': ['screen-header[\\w-]*'],
   'packages/web/src/components/SeatDot.css': ['seat-dot[\\w-]*'],
   'packages/web/src/components/Spinner.css': ['spinner'],
   'packages/web/src/components/Switch.css': ['switch'],
+  'packages/web/src/components/TextField.css': ['text-field[\\w-]*'],
   'packages/web/src/features/room/components/RoomStagePanel.css': ['room-stage-panel[\\w-]*'],
   'packages/web/src/features/room/components/RoomTaskFrame.css': [
     'room-task-frame[\\w-]*',
@@ -152,14 +155,26 @@ const SHARED_COMPONENT_MESSAGE =
  * restyles them as surely as `.button` does. A native button is styled by its own class (`button.home-card`).
  */
 const BUTTON_ELEMENT_SELECTOR = '/(?<![\\w\'"=.#-]|:not\\([^)]*)button(?![\\w.-])/';
-const sharedComponentRule = (ownedNames, { buttonReset = false } = {}) => [
+/**
+ * The native field elements outside `:not()`: they render only inside the field components
+ * (TextField, TextArea, Select, Checkbox, Radio, Switch), whose sheets alone style them.
+ */
+const FIELD_ELEMENT_SELECTOR = '/(?<![\\w\'"=.#(-]|:not\\([^)]*)(input|textarea|select)(?![\\w-])/';
+const FIELD_SHEETS = [
+  'packages/web/src/components/Checkbox.css',
+  'packages/web/src/components/Radio.css',
+  'packages/web/src/components/Switch.css',
+  'packages/web/src/components/TextField.css',
+];
+const sharedComponentRule = (ownedNames, { reset = false, fieldOwner = false } = {}) => [
   [
     componentSelector(
       Object.values(SHARED_COMPONENT_CLASSES)
         .flat()
         .filter((name) => !ownedNames.includes(name)),
     ),
-    ...(ownedNames.includes('button') || buttonReset ? [] : [BUTTON_ELEMENT_SELECTOR]),
+    ...(ownedNames.includes('button') || reset ? [] : [BUTTON_ELEMENT_SELECTOR]),
+    ...(fieldOwner || reset ? [] : [FIELD_ELEMENT_SELECTOR]),
   ],
   { splitList: true, message: SHARED_COMPONENT_MESSAGE },
 ];
@@ -291,13 +306,17 @@ export default {
       },
     },
     {
-      // The document reset: every button starts from the same box.
+      // The document reset: every button and field starts from the same box.
       files: ['packages/web/src/global.css'],
-      rules: { 'selector-disallowed-list': sharedComponentRule([], { buttonReset: true }) },
+      rules: { 'selector-disallowed-list': sharedComponentRule([], { reset: true }) },
     },
     ...Object.entries(SHARED_COMPONENT_CLASSES).map(([file, names]) => ({
       files: [file],
-      rules: { 'selector-disallowed-list': sharedComponentRule(names) },
+      rules: {
+        'selector-disallowed-list': sharedComponentRule(names, {
+          fieldOwner: FIELD_SHEETS.includes(file),
+        }),
+      },
     })),
     ...Object.entries(ART_SHEETS).map(([file, prefix]) => ({
       files: [file],

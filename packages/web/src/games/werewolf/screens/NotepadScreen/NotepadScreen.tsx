@@ -11,6 +11,7 @@ import { useParams } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { TextArea } from '@/components/TextArea';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { confirmAction } from '@/features/room/confirm';
 import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
@@ -131,15 +132,15 @@ export function WerewolfNotepad({
           <IconClipboardOutline aria-hidden /> 记录
         </h2>
         <div className="notepad-public-row">
-          <textarea
-            className="notepad-public-input"
+          <TextArea
+            rows={3}
             value={notepad.state.publicNoteLeft}
             onChange={(event) => notepad.setPublicNoteLeft(event.target.value)}
             placeholder="自由记录"
             aria-label="自由记录"
           />
-          <textarea
-            className="notepad-public-input"
+          <TextArea
+            rows={3}
             value={notepad.state.publicNoteRight}
             onChange={(event) => notepad.setPublicNoteRight(event.target.value)}
             placeholder="投票记录"

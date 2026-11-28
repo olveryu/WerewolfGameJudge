@@ -45,17 +45,11 @@
 .admin-console a:hover {
   text-decoration: underline;
 }
-.admin-console button:where(:not(.maintenance-moon, .icon-button)),
-.admin-console input,
-.admin-console select,
-.admin-console textarea {
+.admin-console button:where(:not(.maintenance-moon, .icon-button)) {
   font: inherit;
   color: inherit;
 }
-.admin-console button:where(:not(.maintenance-moon, .icon-button)),
-.admin-console select,
-.admin-console input,
-.admin-console textarea {
+.admin-console button:where(:not(.maintenance-moon, .icon-button)) {
   border: 1px solid var(--admin-border-strong);
   border-radius: var(--radius-control);
   background: var(--admin-panel);
@@ -124,26 +118,11 @@
   ):hover {
   transform: translateY(calc(-1 * var(--space-micro)));
 }
-.admin-console input:not([type='checkbox'], [type='radio']),
-.admin-console select,
-.admin-console textarea {
-  box-shadow: var(--surface-inset-shadow);
-}
 .admin-console button:focus-visible,
 .admin-console a:focus-visible,
-.admin-console input:focus-visible,
-.admin-console select:focus-visible,
-.admin-console textarea:focus-visible,
 .admin-console [role='menuitem']:focus-visible {
   outline: var(--border-width-thick) solid var(--admin-accent);
   outline-offset: 3px;
-}
-.admin-console input,
-.admin-console select {
-  min-width: 0;
-}
-.admin-console input::placeholder {
-  color: var(--admin-muted);
 }
 .admin-console .admin-primary {
   background: var(--admin-accent);
@@ -725,9 +704,9 @@
   gap: var(--space-small);
   min-width: 0;
 }
-.admin-search input {
-  width: 100%;
+.admin-search-field {
   flex: 1;
+  min-width: 0;
 }
 .admin-search button {
   flex-shrink: 0;
@@ -1247,17 +1226,9 @@
   min-height: var(--size-min-touch-target);
   gap: var(--space-small);
 }
-.admin-maintenance-switch input {
-  width: var(--size-icon-sm);
-  min-height: var(--size-icon-sm);
-  accent-color: var(--admin-accent);
-}
 .admin-maintenance-form > p {
   margin: 0;
   color: var(--admin-secondary);
-}
-.admin-maintenance-form textarea {
-  resize: vertical;
 }
 .admin-link-list li {
   display: flex;
@@ -1371,11 +1342,6 @@
   display: grid;
   font-size: var(--font-caption);
   color: var(--admin-secondary);
-}
-.admin-custom-range input {
-  width: 100%;
-  min-width: 0;
-  padding: var(--space-tight);
 }
 .admin-error-box {
   display: flex;
@@ -1568,10 +1534,6 @@
   width: 100%;
   max-width: 100%;
 }
-.admin-reward-form textarea {
-  min-height: 80px;
-  resize: vertical;
-}
 .admin-reward-form small {
   overflow-wrap: anywhere;
 }
@@ -1612,10 +1574,6 @@
   display: grid;
   gap: var(--space-small);
   margin-top: var(--space-medium);
-}
-.admin-supply-category select {
-  width: 100%;
-  min-height: var(--size-min-touch-target);
 }
 .admin-drawer-positioner.admin-overlay-sheet {
   align-items: center;
@@ -1674,33 +1632,6 @@
   margin-top: var(--space-tight);
   font-size: var(--font-caption);
   color: var(--admin-muted);
-}
-.admin-console input.admin-switch {
-  appearance: none;
-  width: var(--size-button-md);
-  height: var(--size-icon-lg);
-  min-height: 0;
-  flex-shrink: 0;
-  border: 0;
-  padding: var(--space-tight);
-  border-radius: var(--radius-pill);
-  background: var(--admin-border-strong);
-  cursor: pointer;
-}
-.admin-switch::before {
-  content: '';
-  display: block;
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  border-radius: var(--radius-round);
-  background: var(--admin-panel);
-  transition: transform 120ms;
-}
-.admin-console input.admin-switch:checked {
-  background: var(--admin-accent);
-}
-.admin-switch:checked::before {
-  transform: translateX(var(--space-screen-h));
 }
 .admin-console .admin-supply-notice {
   padding: var(--space-medium);
@@ -1823,14 +1754,8 @@
     min-height: var(--size-min-touch-target);
   }
   .admin-console button,
-  .admin-console select,
-  .admin-console input:not([type='radio']):not([type='checkbox']),
   .admin-segmented a {
     min-height: var(--size-min-touch-target);
-  }
-  .admin-search input {
-    flex: 1;
-    width: 0;
   }
   .admin-toolbar {
     gap: var(--space-small);

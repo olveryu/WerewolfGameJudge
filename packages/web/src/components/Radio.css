@@ -1,0 +1,56 @@
+.radio {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  flex: none;
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  margin: 0;
+  border: var(--border-width-thick) solid var(--color-border);
+  border-radius: var(--radius-round);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.radio::before {
+  content: '';
+  width: var(--space-small);
+  height: var(--space-small);
+  border-radius: var(--radius-round);
+  background: var(--color-primary);
+  transform: scale(0);
+}
+
+.radio[data-size='sm'] {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.radio[data-size='sm']::before {
+  width: calc(var(--space-tight) + var(--space-micro));
+  height: calc(var(--space-tight) + var(--space-micro));
+}
+
+.radio:checked {
+  border-color: var(--color-primary);
+}
+
+.radio:checked::before {
+  transform: scale(1);
+}
+
+.radio:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary-light);
+}
+
+.radio:disabled {
+  border-color: var(--color-border-light);
+  background: var(--color-surface-hover);
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .radio::before {
+    transition: transform 100ms ease-out;
+  }
+}

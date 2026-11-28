@@ -120,38 +120,17 @@
   overflow-wrap: anywhere;
 }
 
-/* The editor fills the rest of the task body; the count sits in its bottom-right corner. */
+/* The editor fills the rest of the task body; the count sits under its bottom-right corner. */
 .storyrelay-editor-field {
-  position: relative;
   display: flex;
   flex: 1;
+  flex-direction: column;
+  gap: var(--space-tight);
   min-height: 0;
-}
-
-.storyrelay-editor {
-  flex: 1;
-  min-height: 0;
-  box-sizing: border-box;
-  padding: var(--space-medium) var(--space-medium) calc(var(--space-medium) + var(--line-secondary));
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--surface-inset-shadow);
-  font-family: inherit;
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-  resize: none;
-}
-
-.storyrelay-editor::placeholder {
-  color: var(--color-text-muted);
 }
 
 .storyrelay-editor-count {
-  position: absolute;
-  right: var(--space-small);
-  bottom: var(--space-small);
+  align-self: flex-end;
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);

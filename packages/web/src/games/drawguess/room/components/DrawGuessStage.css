@@ -438,27 +438,6 @@
   }
 }
 
-.drawguess-composer-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: var(--size-min-touch-target);
-  box-sizing: border-box;
-  padding: 0 var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--surface-inset-shadow);
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-}
-
-.drawguess-composer-input:disabled {
-  background: var(--color-surface-hover);
-  color: var(--color-text-secondary);
-  box-shadow: none;
-}
-
 .drawguess-composer-send {
   flex: 0 0 auto;
   min-width: var(--size-button-lg);

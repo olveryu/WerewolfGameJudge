@@ -386,23 +386,6 @@
   background: var(--color-background);
 }
 
-.ai-chat-input {
-  flex: 1;
-  min-height: var(--size-button-sm);
-  max-height: 80px;
-  padding: var(--space-tight) var(--space-small);
-  border: none;
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  box-shadow: var(--surface-inset-shadow);
-  color: var(--color-text);
-  /* ≥ 16px: iOS Safari zooms into smaller inputs. */
-  font: inherit;
-  font-size: var(--font-body);
-  resize: none;
-  field-sizing: content;
-}
-
 .ai-chat-send {
   display: flex;
   flex-shrink: 0;

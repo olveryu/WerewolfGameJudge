@@ -19,9 +19,11 @@ import { AVATAR_CONCENTRIC_CLASS } from '@/components/avatar/avatarConcentric';
 import { pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
+import { Radio } from '@/components/Radio';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
 import { Switch } from '@/components/Switch';
+import { TextField } from '@/components/TextField';
 import { ticketBadgeText } from '@/components/ticketBadgeCount';
 import { DEVELOPER_WECHAT_ID } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
@@ -218,24 +220,21 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form className="settings-form" onSubmit={(event) => void submit(event)}>
-      <input
-        className="text-input"
+      <TextField
         type="password"
         placeholder="旧密码"
         autoComplete="current-password"
         value={oldPassword}
         onChange={(event) => setOldPassword(event.target.value)}
       />
-      <input
-        className="text-input"
+      <TextField
         type="password"
         placeholder="新密码（至少 6 位）"
         autoComplete="new-password"
         value={newPassword}
         onChange={(event) => setNewPassword(event.target.value)}
       />
-      <input
-        className="text-input"
+      <TextField
         type="password"
         placeholder="确认新密码"
         autoComplete="new-password"
@@ -479,8 +478,8 @@ function AccountSection({ user }: { user: User }) {
                   className="settings-game-stats-option"
                   data-selected={statsSection.gameType === selectedStatsGame}
                 >
-                  <input
-                    type="radio"
+                  <Radio
+                    size="sm"
                     name="account-stats-game"
                     value={statsSection.gameType}
                     checked={statsSection.gameType === selectedStatsGame}

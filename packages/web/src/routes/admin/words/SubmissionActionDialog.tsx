@@ -2,6 +2,7 @@
 import type { WordSubmissionAction } from '@game-judge/game-engine/product/wordSupply';
 import { useId, useState } from 'react';
 
+import { TextArea } from '@/components/TextArea';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 
 import { DetailDrawer } from '../components/Overlays';
@@ -127,7 +128,7 @@ export function SubmissionActionDialog({
         {isDangerousAction && (
           <label>
             操作原因{' '}
-            <textarea
+            <TextArea
               maxLength={1000}
               rows={3}
               value={reason}

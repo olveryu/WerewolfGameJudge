@@ -1,6 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 
+import { Checkbox } from '@/components/Checkbox';
+import { TextArea } from '@/components/TextArea';
+import { TextField } from '@/components/TextField';
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { fetchAdminMaintenance, saveAdminMaintenance } from '@/features/admin/services/adminApi';
 import {
@@ -107,8 +110,7 @@ function MaintenanceEditor({ initialConfiguration }: { initialConfiguration: Mai
             {Intl.DateTimeFormat().resolvedOptions().timeZone}）设置。
           </p>
           <label className="admin-maintenance-switch">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={configuration.enabled}
               disabled={saving}
               onChange={(event) =>
@@ -119,7 +121,7 @@ function MaintenanceEditor({ initialConfiguration }: { initialConfiguration: Mai
           </label>
           <label>
             自动恢复时间
-            <input
+            <TextField
               type="datetime-local"
               value={maintenanceEndInputValue(configuration.endsAt)}
               required={configuration.enabled}
@@ -135,7 +137,7 @@ function MaintenanceEditor({ initialConfiguration }: { initialConfiguration: Mai
           </label>
           <label>
             维护说明
-            <textarea
+            <TextArea
               value={configuration.message}
               maxLength={500}
               required

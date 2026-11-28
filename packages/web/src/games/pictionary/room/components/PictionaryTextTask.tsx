@@ -11,6 +11,7 @@ import { randomPick } from '@game-judge/game-engine/platform/random';
 import { useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { TextField } from '@/components/TextField';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import { TESTIDS } from '@/testids';
 import IconAlertCircleOutline from '~icons/ion/alert-circle-outline';
@@ -155,8 +156,7 @@ export function PictionaryTextTask({
             toggleReady();
           }}
         >
-          <input
-            className="pictionary-answer-input"
+          <TextField
             value={text}
             onChange={(event) => updateText(event.target.value)}
             readOnly={isReady || isSubmitting || isExpired}

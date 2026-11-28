@@ -13,6 +13,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { AppDialog } from '@/components/AppDialog';
 import { IconButton } from '@/components/IconButton';
 import { Spinner } from '@/components/Spinner';
+import { TextArea } from '@/components/TextArea';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { RoomIdentity } from '@/platform/realtime/types';
 import IconClose from '~icons/ion/close';
@@ -189,8 +190,8 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
               </div>
 
               <div className="ai-chat-input-row">
-                <textarea
-                  className="ai-chat-input"
+                <TextArea
+                  height="auto"
                   placeholder="输入消息"
                   aria-label="输入消息"
                   value={chat.inputText}

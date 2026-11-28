@@ -54,6 +54,8 @@ const GALLERY_BLOCKS = [
   'avatar',
   'progress',
   'num-pad',
+  'text-field',
+  'check-radio',
 ] as const;
 
 /**

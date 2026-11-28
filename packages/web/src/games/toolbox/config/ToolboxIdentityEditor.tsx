@@ -13,6 +13,8 @@ import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { GameSettingsStepper } from '@/components/GameSettings';
+import { TextArea } from '@/components/TextArea';
+import { TextField } from '@/components/TextField';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { confirmAction } from '@/features/room/confirm';
 import { TESTIDS } from '@/testids';
@@ -98,7 +100,7 @@ function IdentityRoleEditor({
     <fieldset className="toolbox-identity-role" disabled={isDisabled}>
       <legend>身份 {index + 1}</legend>
       <label htmlFor={`${prefix}-name`}>身份名称</label>
-      <input
+      <TextField
         id={`${prefix}-name`}
         value={role.name}
         maxLength={TOOLBOX_IDENTITY_LIMITS.nameMaxLength}
@@ -106,7 +108,7 @@ function IdentityRoleEditor({
         onChange={(event) => onChange({ ...role, name: event.currentTarget.value })}
       />
       <label htmlFor={`${prefix}-description`}>身份说明（可选）</label>
-      <textarea
+      <TextArea
         id={`${prefix}-description`}
         value={role.description}
         maxLength={TOOLBOX_IDENTITY_LIMITS.descriptionMaxLength}
@@ -116,7 +118,7 @@ function IdentityRoleEditor({
       <div className="toolbox-identity-role-row">
         <div>
           <label htmlFor={`${prefix}-count`}>数量</label>
-          <input
+          <TextField
             id={`${prefix}-count`}
             type="number"
             inputMode="numeric"
