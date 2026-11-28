@@ -69,7 +69,7 @@
   margin: 0;
   padding: 0;
   border: var(--border-width) solid var(--admin-border-strong);
-  border-radius: calc(var(--radius-small) / 2);
+  border-radius: var(--radius-tight);
   background: var(--admin-panel);
   cursor: pointer;
   transition:
@@ -244,9 +244,9 @@
   column-gap: var(--space-small);
   min-width: 0;
   border: 1px solid var(--admin-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-card-nested);
   background: var(--admin-panel);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   padding: var(--space-medium);
 }
 .admin-library-card-content {

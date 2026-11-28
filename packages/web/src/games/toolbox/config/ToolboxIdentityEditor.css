@@ -11,7 +11,7 @@
   margin: 0;
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
 }
 
 .toolbox-identity-role legend {
@@ -31,7 +31,7 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-text-muted);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
@@ -43,7 +43,7 @@
 
 .toolbox-identity-saved {
   padding: var(--space-medium);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-background);
 }
 
@@ -133,7 +133,7 @@
 .toolbox-identity-message {
   margin: 0;
   padding: var(--space-small);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary-a10);
 }
 

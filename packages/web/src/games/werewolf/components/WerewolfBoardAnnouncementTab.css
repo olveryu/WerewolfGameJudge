@@ -17,7 +17,7 @@
 
 .board-announcements-group[data-latest='true'] {
   padding: var(--space-small);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary-a3);
 }
 
@@ -43,7 +43,7 @@
 
 .board-announcements-new {
   padding: var(--space-micro) var(--space-tight);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary-light);
   color: var(--color-primary-dark);
   font-size: var(--font-caption-small);
@@ -69,7 +69,7 @@
 .board-announcements-chip {
   padding: var(--space-micro) var(--space-small);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-surface);
   color: var(--color-text);
   font-size: var(--font-caption);

@@ -8,7 +8,7 @@
   gap: var(--space-tight);
   padding: var(--space-tight) var(--space-small);
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--key-a15);
   color: var(--key-color);
   font-size: var(--font-caption);

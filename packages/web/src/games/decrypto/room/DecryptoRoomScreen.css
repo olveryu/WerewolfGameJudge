@@ -48,7 +48,7 @@
   gap: var(--space-tight);
   min-width: 0;
   padding: var(--space-small);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--score-tint);
   overflow-wrap: anywhere;
 }
@@ -94,7 +94,7 @@
   gap: var(--space-tight);
   padding: var(--space-small) var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   box-shadow: var(--surface-card-shadow);
   text-align: center;
@@ -105,7 +105,7 @@
   place-items: center;
   width: var(--size-avatar-xs);
   height: var(--size-avatar-xs);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-a8);
   color: var(--color-primary);
   font-size: var(--font-secondary);
@@ -156,7 +156,7 @@
   width: var(--size-button-md);
   min-height: var(--size-button-lg);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   box-shadow: var(--surface-card-shadow);
   font-size: var(--font-hero);
@@ -176,7 +176,7 @@
   gap: var(--space-small);
   padding: var(--space-small) var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
 }
 .decrypto-reveal-result h4 {
@@ -295,7 +295,7 @@
   gap: var(--space-small);
   min-height: var(--size-min-touch-target);
   padding: var(--space-tight) var(--space-small);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-surface);
   overflow-wrap: anywhere;
 }
@@ -307,7 +307,7 @@
   min-width: var(--size-min-touch-target);
   min-height: var(--size-min-touch-target);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-background);
   color: var(--color-primary);
   font: inherit;
@@ -324,7 +324,7 @@
   min-height: calc(var(--size-min-touch-target) * 2);
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   box-shadow: var(--surface-card-shadow);
   overflow-wrap: anywhere;
@@ -343,7 +343,7 @@
   place-items: center;
   width: var(--size-avatar-sm);
   height: var(--size-avatar-sm);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary-a8);
   color: var(--color-primary);
   font-size: var(--font-subtitle);
@@ -387,7 +387,7 @@
   flex: 0 0 var(--size-min-touch-target);
   min-height: var(--size-min-touch-target);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
@@ -402,7 +402,7 @@
 .decrypto-empty-history {
   padding: var(--space-medium);
   border: var(--border-width) dashed var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   color: var(--color-text-secondary);
   background: var(--color-surface);
 }
@@ -410,7 +410,7 @@
   min-width: 0;
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   box-shadow: var(--surface-card-shadow);
 }
@@ -456,7 +456,7 @@
   place-items: center;
   width: var(--size-avatar-xs);
   height: var(--size-avatar-xs);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-a8);
   color: var(--color-primary);
   font-size: var(--font-secondary);
@@ -527,7 +527,7 @@
   --team-tint: var(--color-primary-a8);
   min-width: 0;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--team-tint);
   padding: var(--space-small);
 }
@@ -569,7 +569,7 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-small) var(--space-tight);
   border: var(--border-width) solid var(--team-accent);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--team-accent);
   font: inherit;
@@ -590,7 +590,7 @@ button.decrypto-player-name:focus-visible {
   .decrypto-encryptor-select::picker(select) {
     max-inline-size: min(var(--size-max-content-width), calc(100vw - var(--space-large)));
     border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-small);
+    border-radius: var(--radius-control);
     background: var(--color-surface);
     color: var(--color-text);
     box-shadow: var(--shadow-lg);
@@ -608,12 +608,12 @@ button.decrypto-player-name:focus-visible {
   min-height: var(--size-min-touch-target);
   align-items: center;
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-surface);
 }
 .decrypto-player-row[data-selected] {
   border-color: var(--team-accent);
-  box-shadow: inset 0 0 0 1px var(--team-accent);
+  box-shadow: inset 0 0 0 var(--border-width) var(--team-accent);
 }
 .decrypto-player-choice {
   display: flex;
@@ -636,7 +636,7 @@ button.decrypto-player-name {
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -661,7 +661,7 @@ button.decrypto-player-name {
   place-items: center;
   width: var(--size-avatar-xs);
   height: var(--size-avatar-xs);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--team-tint);
   color: var(--team-accent);
   font-size: var(--font-secondary);
@@ -669,7 +669,7 @@ button.decrypto-player-name {
 }
 .decrypto-player-row .decrypto-team-move {
   border: 0;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: transparent;
   color: var(--team-accent);
   box-shadow: none;

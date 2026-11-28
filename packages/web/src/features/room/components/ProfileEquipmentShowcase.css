@@ -15,7 +15,7 @@
   min-width: 0;
   padding: var(--space-small) var(--space-micro);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-background);
 }
 
@@ -80,7 +80,7 @@
 .profile-equip-rarity::before {
   width: var(--space-tight);
   height: var(--space-tight);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--rarity-color);
   content: '';
 }

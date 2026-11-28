@@ -51,7 +51,7 @@
 .toolbox-room-status-label {
   margin: 0;
   padding: var(--space-tight) var(--space-medium);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   font-size: var(--font-subtitle);
   font-weight: var(--weight-semibold);
 }

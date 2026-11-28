@@ -3,9 +3,9 @@
   display: flex;
   padding: var(--space-micro);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface-hover);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .ticket-tabs-slider {
@@ -14,9 +14,9 @@
   left: var(--space-micro);
   width: 49%;
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--gacha-normal-tint-a12);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   transition:
     transform 300ms ease-out,
     background-color 300ms ease-out;
@@ -41,7 +41,7 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-small);
   border: none;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -68,7 +68,7 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--gacha-normal-tint-a20);
   color: var(--gacha-normal-tint);
   font-size: var(--font-caption);

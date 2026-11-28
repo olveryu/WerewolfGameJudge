@@ -61,11 +61,11 @@ button {
   min-height: var(--size-button-md);
   padding: 0 var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .text-input:focus {
@@ -78,11 +78,14 @@ button {
   overflow-wrap: anywhere;
 }
 
+/* The one visually-hidden class: kept in the accessibility tree, drawn nowhere. */
 .visually-hidden {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
+  width: var(--size-hairline);
+  height: var(--size-hairline);
+  margin: calc(-1 * var(--size-hairline));
+  padding: 0;
+  border: 0;
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
@@ -94,7 +97,7 @@ button {
   height: var(--size-icon-sm);
   border: var(--border-width-thick) solid var(--color-border);
   border-top-color: var(--color-primary);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   animation: spinner-turn 800ms linear infinite;
 }
 

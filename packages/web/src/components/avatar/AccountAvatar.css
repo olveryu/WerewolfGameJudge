@@ -27,7 +27,7 @@
   min-width: var(--size-badge-md);
   height: var(--size-badge-md);
   padding: 0 var(--space-micro);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-error);
   color: var(--color-text-inverse);
   font-size: var(--font-caption-small);

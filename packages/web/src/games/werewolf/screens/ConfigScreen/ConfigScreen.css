@@ -10,11 +10,11 @@
   gap: var(--space-tight);
   padding: var(--space-tight) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-background);
   background-image: var(--surface-button-texture);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
   font-weight: var(--weight-semibold);
@@ -50,7 +50,7 @@
   margin: var(--space-small) var(--space-screen-h) 0;
   overflow: hidden;
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
 }
 
@@ -64,7 +64,7 @@
   margin: var(--space-small) var(--space-screen-h) 0;
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-primary-a8);
   color: var(--color-primary);
   font-size: var(--font-secondary);
@@ -80,7 +80,7 @@
   justify-content: center;
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary);
   color: var(--color-text-inverse);
   font-size: var(--font-caption);
@@ -131,9 +131,9 @@
   margin: var(--space-medium) var(--space-screen-h) 0;
   padding-bottom: calc(var(--space-small) + var(--space-tight));
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .config-card-divider {
@@ -172,11 +172,11 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-small) var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-background);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
@@ -197,7 +197,7 @@
   background: var(--faction-a30);
   background-image: var(--surface-button-texture);
   color: var(--faction-color);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   transform: translateY(calc(-1 * var(--space-micro)));
   font-weight: var(--weight-semibold);
 }
@@ -214,7 +214,7 @@
   position: absolute;
   top: calc(var(--space-small) * -1);
   left: calc(var(--space-tight) * -1);
-  z-index: 1;
+  z-index: var(--layer-raised);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,7 +222,7 @@
   height: var(--size-icon-lg);
   padding: 0;
   border: var(--border-width) solid var(--faction-color);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-surface);
   color: var(--faction-color);
   font-size: var(--size-icon-sm);
@@ -250,9 +250,9 @@
   align-items: center;
   padding: var(--space-micro);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-background);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .config-stepper-pill[data-active='true'] {
@@ -267,11 +267,11 @@
   height: var(--size-min-touch-target);
   padding: 0;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--faction-color);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
   font-weight: var(--weight-semibold);
@@ -293,7 +293,7 @@
 .config-stepper-count {
   min-width: var(--space-large);
   padding: 0 var(--space-tight);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary-a8);
   color: var(--color-primary);
   font-size: var(--font-body);

@@ -13,8 +13,8 @@
   width: var(--size-avatar-xl);
   height: var(--size-avatar-xl);
   margin-bottom: var(--space-small);
-  border-radius: var(--radius-xlarge);
-  box-shadow: var(--shadow-tabletop-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--surface-card-shadow);
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -50,7 +50,7 @@
   display: inline-flex;
   align-items: center;
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--faction-a12);
   color: var(--faction-text);
   font-size: var(--font-caption);

@@ -76,7 +76,7 @@ function MiniCardBack({ width, height }: { readonly width: number; readonly heig
       style={{
         width,
         height,
-        borderRadius: 'var(--radius-small)',
+        borderRadius: 'var(--radius-inset)',
         overflow: 'hidden',
         background: TABLE_COLORS.cardBack,
         padding: 5,
@@ -88,7 +88,7 @@ function MiniCardBack({ width, height }: { readonly width: number; readonly heig
         style={{
           flex: 1,
           border: `1.5px solid ${TABLE_COLORS.accentLight}`,
-          borderRadius: 'var(--radius-small)',
+          borderRadius: 'var(--radius-inset)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -276,7 +276,7 @@ export default function CardPick({
           position: 'absolute',
           inset: 8,
           border: `4px solid ${TABLE_COLORS.woodDark}`,
-          borderRadius: 'var(--radius-medium)',
+          borderRadius: 'var(--radius-card-nested)',
           display: 'flex',
           pointerEvents: 'none',
         }}
@@ -286,7 +286,7 @@ export default function CardPick({
             flex: 1,
             margin: 3,
             border: `1.5px solid ${TABLE_COLORS.woodLight}`,
-            borderRadius: 'var(--radius-small)',
+            borderRadius: 'var(--radius-inset)',
           }}
         />
       </div>
@@ -397,7 +397,7 @@ export default function CardPick({
             height: revealCardHeight,
             marginLeft: -revealCardWidth / 2,
             marginTop: -revealCardHeight / 2,
-            borderRadius: 'var(--radius-medium)',
+            borderRadius: 'var(--radius-card-nested)',
             boxShadow: '0px 6px 16px rgba(0,0,0,0.15)',
             opacity: 0,
           }}
@@ -496,7 +496,7 @@ function MiniCard({
         padding: 0,
         border: 'none',
         background: 'none',
-        borderRadius: 'var(--radius-small)',
+        borderRadius: 'var(--radius-inset)',
         boxShadow: '0px 2px 6px rgba(0,0,0,0.12)',
         cursor: disabled ? 'default' : 'pointer',
         opacity: 0,

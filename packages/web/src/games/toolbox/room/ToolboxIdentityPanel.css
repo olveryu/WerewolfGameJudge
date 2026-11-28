@@ -20,7 +20,7 @@
   width: 9rem;
   height: 12rem;
   border: var(--border-width-highlight) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background:
     repeating-linear-gradient(
       45deg,
@@ -55,7 +55,7 @@
 .toolbox-draw-cards li {
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface-hover);
   overflow-wrap: anywhere;
 }

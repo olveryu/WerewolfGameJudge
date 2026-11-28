@@ -7,9 +7,9 @@
   margin: var(--space-xxlarge) auto;
   padding: var(--space-large);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .route-error h1,
@@ -29,11 +29,11 @@
   min-height: var(--size-min-touch-target);
   padding: 0 var(--space-medium);
   border: var(--border-width) solid transparent;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
   font: inherit;
   font-weight: var(--weight-semibold);
   text-decoration: none;

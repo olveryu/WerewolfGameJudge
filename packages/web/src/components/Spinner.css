@@ -5,7 +5,7 @@
   height: var(--size-icon-lg);
   border: var(--border-width-thick) solid var(--color-border-light);
   border-top-color: var(--color-primary);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   animation: spinner-rotate 800ms linear infinite;
 }
 

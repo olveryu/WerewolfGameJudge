@@ -9,9 +9,9 @@
   padding: var(--space-tight) var(--space-medium);
   overflow: hidden;
   border: var(--border-width) solid var(--color-error-a20);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-error-a13);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .connection-bar-text {
@@ -24,11 +24,11 @@
 .connection-bar-retry {
   padding: var(--space-tight) var(--space-small);
   border: none;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-error-a20);
   background-image: var(--surface-button-texture);
   color: var(--color-error);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-secondary);
   font-weight: var(--weight-semibold);
   cursor: pointer;
@@ -62,9 +62,9 @@
   margin: var(--space-small) var(--space-medium);
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-warning);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-warning-a13);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .controlled-seat-banner-text {

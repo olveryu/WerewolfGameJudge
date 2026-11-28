@@ -41,7 +41,7 @@ const SCRATCH_COLORS = {
   shavingColors: ['#D4D4D4', '#B8B8B8', '#A0A0A0', '#888888'],
 } as const;
 
-/** `--radius-medium`, the card's corner, which the Pixi coating clips to as the old view did. */
+/** Corner the Pixi coating clips to, in Pixi units (canvas art; not read from a CSS token). */
 const CARD_CORNER_RADIUS = 14;
 const SHEEN_WIDTH = 80;
 const DIAMOND_ROWS = 5;
@@ -375,7 +375,7 @@ export default function ScratchReveal({
           flexShrink: 0,
           width: cardWidth,
           height: cardHeight,
-          borderRadius: 'var(--radius-medium)',
+          borderRadius: 'var(--radius-card-nested)',
           overflow: 'hidden',
           boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
         }}
@@ -559,7 +559,7 @@ export default function ScratchReveal({
             marginTop: 'var(--space-large)',
             padding: 'var(--space-medium) var(--space-large)',
             border: 'none',
-            borderRadius: 'var(--radius-medium)',
+            borderRadius: 'var(--radius-card-nested)',
             backgroundColor: theme.primaryColor,
             color: 'var(--color-text-inverse)',
             fontSize: 'var(--font-body)',

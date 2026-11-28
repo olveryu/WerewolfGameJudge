@@ -36,10 +36,10 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-card);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   text-align: left;
   cursor: pointer;
   transition:
@@ -70,7 +70,7 @@
 }
 
 .step-card-picker-option:active:not([aria-disabled='true']) {
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   transform: translateY(var(--space-micro));
 }
 

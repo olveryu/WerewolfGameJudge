@@ -168,7 +168,7 @@ function MythicCollectionReveal({
           width: cardWidth,
           height: cardHeight,
           overflow: 'hidden',
-          borderRadius: 'var(--radius-medium)',
+          borderRadius: 'var(--radius-card-nested)',
           border: `2px solid ${palette.secondary}`,
           boxSizing: 'border-box',
         }}

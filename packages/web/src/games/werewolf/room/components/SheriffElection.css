@@ -64,7 +64,7 @@
   gap: var(--space-small);
   margin-top: var(--space-medium);
   padding: var(--space-medium);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-warning-a12);
 }
 
@@ -79,7 +79,7 @@
   justify-content: center;
   width: var(--size-avatar-md);
   height: var(--size-avatar-md);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-warning);
   color: var(--color-text-inverse);
   font-size: var(--size-icon-lg);
@@ -165,11 +165,11 @@
   min-height: var(--size-button-md);
   padding: 0 var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-background);
   background-image: var(--surface-button-texture);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-body);
   line-height: var(--line-body);
   font-weight: var(--weight-semibold);
@@ -183,7 +183,7 @@
   border: calc(var(--border-width) * 3) solid var(--color-primary);
   background: var(--color-primary-a12);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   transform: translateY(calc(-1 * var(--space-micro)));
 }
 
@@ -229,7 +229,7 @@
 .sheriff-tally-card {
   padding: var(--space-tight) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
 }
 
 .sheriff-tally-group {
@@ -271,13 +271,13 @@
   flex: 1;
   height: var(--size-badge-dot);
   overflow: hidden;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-background);
 }
 
 .sheriff-tally-fill {
   height: 100%;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-primary);
 }
 
@@ -307,7 +307,7 @@
   align-items: center;
   padding: var(--space-micro);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
 }
 

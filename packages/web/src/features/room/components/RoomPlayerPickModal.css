@@ -52,10 +52,10 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   text-align: left;
   cursor: pointer;
   transition:
@@ -65,7 +65,7 @@
 
 .room-player-pick-row[aria-checked='true'] {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   transform: translateY(calc(-1 * var(--space-micro)));
 }
 
@@ -100,7 +100,7 @@
   width: var(--size-icon-md);
   height: var(--size-icon-md);
   border: var(--border-width-thick) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   color: var(--color-text-inverse);
 }
 

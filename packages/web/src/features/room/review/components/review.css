@@ -75,7 +75,7 @@
 
 .review-page[data-mode='export'] {
   overflow: hidden;
-  border-radius: var(--radius-xlarge);
+  border-radius: var(--radius-card);
 }
 
 .review-chrome {
@@ -144,7 +144,7 @@
   align-items: center;
   justify-content: center;
   border: var(--border-width) solid var(--tone-swatch-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--tone-swatch-bg);
   color: var(--tone-swatch-text);
   font-weight: var(--weight-bold);
@@ -177,7 +177,7 @@
   flex-shrink: 0;
   padding: var(--space-micro) var(--space-small);
   border: var(--border-width) solid var(--tone-swatch-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--tone-swatch-bg);
   color: var(--tone-swatch-text);
   font-size: var(--font-caption);
@@ -233,7 +233,7 @@
   gap: var(--space-small);
   padding: var(--space-small);
   border: var(--border-width-thick) solid var(--tone-accent);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
 }
 
 .review-stamp-body {
@@ -271,7 +271,7 @@
   display: flex;
   padding: var(--space-small) 0;
   border: var(--border-width) solid var(--report-card-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
 }
 
 .review-stat {
@@ -378,7 +378,7 @@
   display: flex;
   overflow: hidden;
   border: var(--border-width) solid var(--report-card-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
 }
 
 .review-group-rail {
@@ -505,7 +505,7 @@
   height: calc(var(--space-small) + var(--space-tight));
   margin-top: var(--space-tight);
   border: var(--border-width) solid var(--tone-accent);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--tone-accent);
 }
 
@@ -548,7 +548,7 @@
   min-width: var(--space-large);
   padding: 0 var(--space-tight);
   border: var(--border-width) solid var(--tone-swatch-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--tone-swatch-bg);
   color: var(--tone-swatch-text);
   font-size: var(--font-caption);
@@ -573,7 +573,7 @@
   color: var(--report-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
-  font-weight: var(--weight-regular);
+  font-weight: var(--weight-normal);
 }
 
 /* Image */
@@ -582,7 +582,7 @@
   display: block;
   width: 100%;
   border: var(--border-width) solid var(--report-card-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--report-background);
   object-fit: contain;
 }
@@ -607,7 +607,7 @@
   height: var(--size-icon-lg);
   border: var(--border-width-thick) solid var(--report-divider);
   border-top-color: var(--report-text-muted);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   animation: review-spin 800ms linear infinite;
 }
 

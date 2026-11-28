@@ -146,7 +146,7 @@
   align-items: center;
   gap: var(--space-micro);
   padding: var(--space-micro) var(--space-tight);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary-a10);
   color: var(--color-primary);
   font-size: var(--font-caption);

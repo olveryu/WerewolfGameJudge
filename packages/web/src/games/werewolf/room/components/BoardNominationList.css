@@ -4,9 +4,9 @@
   width: 90%;
   max-width: var(--size-max-content-width);
   max-height: 80vh;
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .nomination-dialog-header {
@@ -44,9 +44,9 @@
   margin-bottom: var(--space-small);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-card);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .nomination-card-header {
@@ -104,7 +104,7 @@
 
 .nomination-player-badge {
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-a12);
   color: var(--color-primary);
   font-size: var(--font-caption);
@@ -143,14 +143,14 @@
   gap: var(--space-micro);
   padding: var(--space-micro) var(--space-small);
   border: none;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-text-secondary-a12);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-medium);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
   transition:
     box-shadow 100ms ease-out,

@@ -11,7 +11,7 @@ import type { ViewRect } from '../useAnchorRect';
 const { common, alignmentEffects, skia: SK } = CONFIG;
 
 const RUNNER_COUNT = 4;
-/** `--radius-xlarge`, the card's corner radius. */
+/** Corner radius of the runner path, in Pixi units (canvas art; not read from a CSS token). */
 const CARD_RADIUS = 28;
 
 interface BreathingBorderProps {

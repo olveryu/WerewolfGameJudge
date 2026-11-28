@@ -5,11 +5,11 @@
   min-height: var(--size-min-touch-target);
   padding: 0 var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   cursor: pointer;

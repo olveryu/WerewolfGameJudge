@@ -83,7 +83,7 @@ export function MythicRevealLayout({
           data-testid={confirmTestID}
           style={{
             padding: 'var(--space-medium) var(--space-xlarge)',
-            borderRadius: 'var(--radius-medium)',
+            borderRadius: 'var(--radius-card-nested)',
             border: 'none',
             background: 'var(--color-primary)',
             color: 'var(--color-text-inverse)',

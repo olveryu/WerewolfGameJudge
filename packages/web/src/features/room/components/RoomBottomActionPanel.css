@@ -69,14 +69,14 @@
 .room-progress-track {
   overflow: hidden;
   height: var(--border-width);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-border-light);
 }
 
 .room-progress-fill {
   display: block;
   height: 100%;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-primary);
   transition: width 200ms ease-out;
 }

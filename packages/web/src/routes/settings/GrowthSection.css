@@ -18,9 +18,9 @@
   height: var(--space-small);
   overflow: hidden;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-primary-a8);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
   appearance: none;
 }
 
@@ -29,12 +29,12 @@
 }
 
 .growth-progress::-webkit-progress-value {
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-primary-light);
 }
 
 .growth-progress::-moz-progress-bar {
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-primary-light);
 }
 
@@ -44,7 +44,7 @@
   width: 100%;
   height: var(--space-tight);
   background: var(--color-primary-a10);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .growth-progress-mini::-webkit-progress-bar {

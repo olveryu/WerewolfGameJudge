@@ -28,14 +28,14 @@
   height: 6px;
   margin: 0 var(--space-small);
   overflow: hidden;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-text-muted-a12);
 }
 
 .camp-distribution-fill {
   display: block;
   height: 100%;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--faction-color);
 }
 

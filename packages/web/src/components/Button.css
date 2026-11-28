@@ -6,7 +6,7 @@
   min-height: var(--size-button-md);
   padding: 0 var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   font-weight: var(--weight-semibold);
   cursor: pointer;
   transition:
@@ -43,11 +43,11 @@
   height: var(--size-min-touch-target);
   padding: 0;
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
   font-size: var(--size-icon-md);
   cursor: pointer;
   text-decoration: none;
@@ -108,7 +108,7 @@
 
 .button[data-variant='primary'],
 .button[data-variant='danger'] {
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
 }
 
 .button[data-variant='primary'] {
@@ -123,7 +123,7 @@
   background-image: var(--surface-button-texture);
   color: var(--color-text);
   border-color: var(--color-border);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
 }
 
 .button[data-variant='danger'] {
@@ -138,7 +138,7 @@
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
 }
 
 .button[data-variant='outline'] {
@@ -146,7 +146,7 @@
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
 }
 
 .button[data-variant='soft'] {
@@ -154,7 +154,7 @@
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-key-soft);
+  box-shadow: var(--surface-button-shadow-soft);
 }
 
 .button[data-variant='ghost']:active:not(:disabled, [aria-disabled='true']),

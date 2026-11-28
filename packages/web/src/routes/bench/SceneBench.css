@@ -28,7 +28,7 @@
   justify-content: center;
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 50%;
+  border-radius: var(--radius-ellipse);
   background: #2a2a3a;
   color: #fff;
   font-size: 20px;

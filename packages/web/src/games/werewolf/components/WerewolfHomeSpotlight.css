@@ -32,9 +32,9 @@
   flex-direction: column;
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
@@ -74,7 +74,7 @@
   width: var(--size-avatar-lg);
   height: var(--size-avatar-lg);
   /* stylelint-disable-next-line rule-selector-property-disallowed-list -- a role portrait, not a user Avatar */
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   object-fit: cover;
 }
 
@@ -101,7 +101,7 @@
 
 .werewolf-spotlight-badge {
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--faction-a15);
   color: var(--faction-color);
   font-size: var(--font-caption-small);

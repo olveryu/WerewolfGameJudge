@@ -39,7 +39,7 @@
   height: var(--space-large);
   margin: 0;
   border: var(--border-width-thick) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-surface);
   cursor: pointer;
 }
@@ -48,7 +48,7 @@
   content: '';
   width: var(--space-small);
   height: var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary);
   transform: scale(0);
   transition: transform 100ms ease-out;
@@ -73,11 +73,11 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
   transition:
     background-color 100ms ease-out,
@@ -102,7 +102,7 @@
 }
 
 .music-track-select {
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   transition:
     background-color 100ms ease-out,
     transform 100ms ease-out;
@@ -134,15 +134,15 @@
   gap: var(--space-small);
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-background);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .music-track[data-selected] {
   border-color: var(--color-primary);
   background: var(--color-primary-a10);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .music-bgm-body[data-disabled='true'] .music-random,
@@ -198,7 +198,7 @@
 .music-track-mood {
   flex: none;
   padding: var(--space-micro) var(--space-tight);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary-a10);
   color: var(--color-primary);
   font-size: var(--font-caption-small);
@@ -215,11 +215,11 @@
   min-height: var(--size-min-touch-target);
   padding: 0;
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--size-icon-lg);
   cursor: pointer;
   transition:
@@ -254,7 +254,7 @@
 .music-equalizer span {
   width: 3px;
   height: 100%;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-primary);
   transform-origin: bottom;
   animation: music-equalizer-bar 400ms ease-in-out infinite alternate;
@@ -289,7 +289,7 @@
   align-items: center;
   gap: var(--space-small);
   padding: var(--space-small) var(--space-medium);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-primary-a8);
 }
 
@@ -340,11 +340,11 @@
   min-height: var(--size-min-touch-target);
   padding: 0 var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-body);
   line-height: var(--line-body);
   text-align: left;

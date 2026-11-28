@@ -24,7 +24,7 @@
   min-width: calc(var(--space-medium) + var(--space-tight));
   height: calc(var(--space-medium) + var(--space-tight));
   padding: 0 var(--space-micro);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary);
   color: var(--color-text-inverse);
   font-size: var(--font-caption-small);
@@ -41,10 +41,10 @@
   margin: var(--space-small) var(--space-screen-h) 0;
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text-muted);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .board-picker-search-input {
@@ -72,11 +72,11 @@
   flex: 1;
   padding: var(--space-small) 0;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
@@ -87,7 +87,7 @@
   border-color: var(--color-primary);
   background: var(--color-primary-a15);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   transform: translateY(calc(-1 * var(--space-micro)));
   font-weight: var(--weight-semibold);
 }
@@ -125,7 +125,7 @@
   width: var(--space-tight);
   height: var(--font-secondary);
   margin-right: var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-god);
 }
 
@@ -152,7 +152,7 @@
   padding: var(--space-medium) var(--space-screen-h)
     max(var(--space-medium), env(safe-area-inset-bottom));
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-sheet);
+  box-shadow: var(--surface-sheet-shadow);
 }
 
 .board-picker-custom {
@@ -164,11 +164,11 @@
   min-height: var(--size-button-lg);
   padding: 0 var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-primary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-semibold);
@@ -243,11 +243,11 @@
   padding: calc(var(--space-micro) + var(--space-tight))
     calc(var(--space-small) + var(--space-tight));
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-background);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-medium);
@@ -258,7 +258,7 @@
   border-color: var(--faction-color);
   background: var(--faction-a12);
   color: var(--faction-color);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   font-weight: var(--weight-semibold);
 }
 

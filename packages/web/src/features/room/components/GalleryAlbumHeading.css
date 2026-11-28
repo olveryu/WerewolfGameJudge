@@ -40,7 +40,7 @@
   gap: var(--space-tight);
   min-width: calc(2 * var(--size-min-touch-target));
   height: var(--size-min-touch-target);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);

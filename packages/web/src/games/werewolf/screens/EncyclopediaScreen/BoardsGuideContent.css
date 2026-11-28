@@ -10,7 +10,7 @@
   align-items: center;
   gap: var(--space-tight);
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-a10);
   color: var(--color-primary);
   font-size: var(--font-caption);

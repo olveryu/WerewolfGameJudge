@@ -98,16 +98,16 @@
   margin: var(--space-small) var(--space-screen-h);
   padding: var(--space-micro);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .encyclopedia-segment {
   flex: 1;
   padding: var(--space-small) 0;
   border: none;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: none;
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
@@ -125,7 +125,7 @@
   background-image: var(--surface-button-texture);
   color: var(--color-primary);
   font-weight: var(--weight-semibold);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
 }
 
 .encyclopedia-segment:active {
@@ -167,10 +167,10 @@
   margin: 0 var(--space-screen-h) var(--space-small);
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text-muted);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .encyclopedia-search-input {
@@ -198,14 +198,14 @@
   flex: 1;
   padding: var(--space-small) 0;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
   cursor: pointer;
   transition:
     background-color 100ms ease-out,
@@ -244,7 +244,7 @@
   gap: var(--space-small);
   padding: var(--space-small);
   border: none;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   background: none;
   color: var(--color-text);
   font-size: var(--font-secondary);
@@ -312,7 +312,7 @@
   width: var(--space-tight);
   height: var(--font-secondary);
   margin-right: var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--key-color);
 }
 
@@ -330,9 +330,9 @@
   padding: 0 0 var(--space-small);
   overflow: hidden;
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   cursor: pointer;
   transition:
     box-shadow 100ms ease-out,
@@ -340,7 +340,7 @@
 }
 
 .encyclopedia-role-card:active {
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
   transform: translateY(var(--space-micro));
 }
 
@@ -397,7 +397,7 @@
 
 .encyclopedia-tag {
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--key-a12);
   color: var(--key-color);
   font-size: var(--font-caption-small);
@@ -454,9 +454,9 @@
   gap: var(--space-medium);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--key-a6);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .encyclopedia-detail-image {
@@ -493,7 +493,7 @@
 .encyclopedia-detail-faction {
   margin-top: var(--space-tight);
   padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--key-a15);
   color: var(--key-color);
   font-size: var(--font-caption-small);
@@ -509,7 +509,7 @@
 
 .encyclopedia-detail-tag {
   padding: var(--space-tight) var(--space-medium);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--key-a12);
   color: var(--key-color);
   font-size: var(--font-caption);

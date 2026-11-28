@@ -18,7 +18,7 @@
 }
 
 .player-profile-dialog .center-dialog-close {
-  z-index: 3;
+  z-index: var(--layer-dialog-close);
   top: var(--space-tight);
   right: var(--space-tight);
 }
@@ -93,12 +93,12 @@
 /* Above the scene layer, so the frame never covers the level. */
 .profile-level {
   position: absolute;
-  z-index: 2;
+  z-index: var(--layer-badge);
   bottom: 0;
   right: calc(-1 * var(--space-tight));
   padding: var(--space-micro) var(--space-small);
   border: var(--border-width-thick) solid var(--color-surface);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--tier-color);
   color: var(--color-text-inverse);
   font-size: var(--font-caption-small);
@@ -122,7 +122,7 @@
   margin-top: var(--space-tight);
   padding: var(--space-micro) var(--space-small);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   color: var(--tier-color);
   font-size: var(--font-caption);
   line-height: var(--line-caption);

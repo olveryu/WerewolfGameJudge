@@ -71,7 +71,7 @@
 .announcement-tab-dot {
   width: var(--size-badge-dot);
   height: var(--size-badge-dot);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-error);
 }
 

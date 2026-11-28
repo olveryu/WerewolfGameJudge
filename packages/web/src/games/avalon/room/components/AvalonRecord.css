@@ -22,7 +22,7 @@
   width: var(--size-avatar-sm);
   height: var(--size-avatar-sm);
   border: var(--border-width-thick) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-surface);
   color: var(--color-text-muted);
   font-size: var(--font-secondary);
@@ -77,7 +77,7 @@
   flex: 1;
   height: var(--border-width-thick);
   margin-top: var(--space-medium);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-border-light);
 }
 
@@ -98,7 +98,7 @@
   align-items: center;
   gap: var(--space-small);
   padding: var(--space-small);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-primary-a8);
 }
 
@@ -117,7 +117,7 @@
   justify-content: center;
   width: var(--size-button-md);
   height: var(--size-button-md);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-primary);
   color: var(--color-text-inverse);
   font-size: var(--size-icon-md);
@@ -165,9 +165,9 @@
   min-height: var(--size-button-md);
   padding: var(--space-tight);
   border: var(--border-width) solid var(--color-primary);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
-  box-shadow: var(--shadow-tabletop-panel);
+  box-shadow: var(--surface-panel-shadow);
 }
 
 .avalon-quest-card[data-kind='fail'] {
@@ -218,7 +218,7 @@
   gap: var(--space-tight);
   padding: var(--space-small);
   border: var(--border-width) solid var(--color-primary-a40);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-primary-a6);
 }
 
@@ -280,7 +280,7 @@
 .avalon-adopted-badge {
   flex-shrink: 0;
   padding: var(--space-tight) var(--space-small);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary);
   color: var(--color-text-inverse);
   font-size: var(--font-caption);
@@ -299,7 +299,7 @@
   display: flex;
   height: var(--space-small);
   overflow: hidden;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-error-a12);
 }
 
@@ -354,7 +354,7 @@
   gap: var(--space-tight);
   padding: var(--space-micro) var(--space-small) var(--space-micro) var(--space-micro);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-primary);
   font-size: var(--size-icon-xs);
@@ -366,7 +366,7 @@
 
 .avalon-rejected-proposal {
   border: var(--border-width) dashed var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-text-a3);
 }
 
@@ -426,7 +426,7 @@ button.avalon-rejected-header:active {
   flex-shrink: 0;
   padding: var(--space-micro) var(--space-small);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   font-weight: var(--weight-semibold);
@@ -449,7 +449,7 @@ button.avalon-rejected-header:active {
   flex-direction: column;
   gap: var(--space-tight);
   padding: var(--space-small);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-primary-a6);
 }
 

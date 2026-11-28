@@ -178,7 +178,7 @@
   justify-content: center;
   width: var(--size-badge-sm);
   height: var(--size-badge-sm);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-error);
   color: var(--color-text-inverse);
   font-size: var(--font-caption-small);
@@ -231,7 +231,7 @@
   overflow: hidden;
   height: var(--border-width-thick);
   margin: var(--space-tight) 0;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background: var(--color-border-light);
 }
 
@@ -289,7 +289,7 @@
   margin: 0;
   padding: 0;
   overflow: hidden;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-background);
   list-style: none;
 }
@@ -313,7 +313,7 @@
   justify-content: center;
   width: var(--size-button-sm);
   height: var(--size-button-sm);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   background: var(--color-primary-a12);
   color: var(--color-primary);
   font-size: var(--font-secondary);
@@ -340,7 +340,7 @@
 .room-stage-roster-tag {
   flex-shrink: 0;
   padding: 0 var(--space-tight);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: var(--color-text-muted-a12);
   color: var(--color-text-secondary);
   font-size: var(--font-caption-small);

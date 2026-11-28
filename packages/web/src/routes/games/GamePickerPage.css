@@ -18,9 +18,9 @@
   display: flex;
   margin-bottom: var(--space-medium);
   padding: var(--space-tight);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface-hover);
-  box-shadow: var(--shadow-tabletop-inset);
+  box-shadow: var(--surface-inset-shadow);
 }
 
 .picker-tab {
@@ -28,7 +28,7 @@
   min-height: var(--size-min-touch-target);
   border: none;
   border: var(--border-width) solid transparent;
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-inset);
   background: transparent;
   color: var(--color-text-secondary);
   font-size: var(--font-body);
@@ -42,7 +42,7 @@
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--surface-button-shadow-light);
 }
 
 .picker-tab:active {
@@ -99,11 +99,11 @@
   min-height: calc(var(--size-avatar-lg) + var(--space-medium));
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface);
   background-image: var(--surface-card-texture);
   color: var(--color-text);
-  box-shadow: var(--shadow-tabletop-card);
+  box-shadow: var(--surface-card-shadow);
   text-align: left;
   cursor: pointer;
   transition:
@@ -125,7 +125,7 @@
   width: calc(var(--size-avatar-lg) * 1.5);
   height: var(--size-avatar-lg);
   overflow: hidden;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-card-nested);
   background: var(--color-surface-hover);
 }
 
