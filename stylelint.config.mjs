@@ -95,8 +95,9 @@ const AVATAR_CONCENTRIC_BOXES = [
   'settings-teaser-lock',
   'unlocks-cell-frame',
 ];
+const AVATAR_SHEET = 'packages/web/src/components/avatar/Avatar.css';
 const AVATAR_CONCENTRIC_SHEET = 'packages/web/src/components/avatar/avatarConcentric.css';
-/** Only avatarConcentric.css reads the avatar corner ratio. */
+/** Only Avatar.css (the avatar's corners) and avatarConcentric.css (boxes around it) read the ratio. */
 const AVATAR_RATIO_READ = '/--avatar-corner-ratio/';
 /**
  * The raw radius scale (`--radius-8`, `--radius-12` …) is read only by tokens.css: a component
@@ -104,8 +105,13 @@ const AVATAR_RATIO_READ = '/--avatar-corner-ratio/';
  */
 const RAW_RADIUS_READ = '/--radius-\\d/';
 const VALUE_READ_MESSAGE =
-  'Only avatarConcentric.css reads --avatar-corner-ratio; only tokens.css reads the raw --radius-<n> scale (use a purpose token such as --radius-control).';
+  'Only Avatar.css and avatarConcentric.css read --avatar-corner-ratio; only tokens.css reads the raw --radius-<n> scale (use a purpose token such as --radius-control).';
 const SHAPING = ['/radius$/', 'corner-shape', 'clip-path', '/^mask/', 'all'];
+/**
+ * A keyframe block (`from`, `to`, `50%`): an animation outranks every normal declaration, inline
+ * styles included, so a keyframe that shapes would reshape whatever runs it. No animation shapes.
+ */
+const KEYFRAME_SELECTOR = '/^\\s*(from|to|[\\d.]+%)(\\s*,\\s*(from|to|[\\d.]+%))*\\s*$/';
 
 /**
  * Shared components own their look (plan §4 P4): each class below is styled only by the sheet
@@ -258,10 +264,11 @@ export default {
         [classSelector([AVATAR_NAMED])]: SHAPING,
         [classSelector(AVATAR_HOSTS_AND_STAGES)]: SHAPING,
         [classSelector(AVATAR_CONCENTRIC_BOXES)]: SHAPING,
+        [KEYFRAME_SELECTOR]: SHAPING,
       },
       {
         message:
-          'The avatar shape has one source: Avatar sets its corners, hosts cut nothing, boxes add the avatar-concentric class.',
+          'The avatar shape has one source: Avatar sets its corners, hosts cut nothing, boxes add the avatar-concentric class, and no keyframe animates corners, clip-path or masks (an animation outranks every declaration).',
       },
     ],
     'selector-disallowed-list': sharedComponentRule([]),
@@ -304,7 +311,8 @@ export default {
       rules: { 'selector-class-pattern': `^${prefix}(-[a-z0-9]+)*$` },
     })),
     {
-      files: [AVATAR_CONCENTRIC_SHEET],
+      // Avatar owns its shape: its corners and the fallback's mask are declared here alone.
+      files: [AVATAR_SHEET, AVATAR_CONCENTRIC_SHEET],
       rules: {
         'rule-selector-property-disallowed-list': null,
         'declaration-property-value-disallowed-list': [

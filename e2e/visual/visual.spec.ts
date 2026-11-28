@@ -16,6 +16,7 @@ import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
+import { expectAvatarShapes } from './avatarShapeProbe';
 import {
   avalonEndedFixture,
   avalonNominationFixture,
@@ -75,7 +76,12 @@ async function waitForSpotlightFlip(page: Page): Promise<void> {
   );
 }
 
-async function expectPage(page: Page, name: string): Promise<void> {
+/**
+ * Captures an app page, after the avatar render probe has measured every avatar on it
+ * (`avatars`: the page must show at least one, so the probe cannot pass by measuring nothing).
+ */
+async function expectPage(page: Page, name: string, { avatars = false } = {}): Promise<void> {
+  await expectAvatarShapes(page, avatars);
   await expect(page).toHaveScreenshot(`${name}.png`, {
     fullPage: true,
     mask: randomRegions(page),
@@ -92,6 +98,7 @@ test.describe('Visual — UI gallery', () => {
 
   for (const block of GALLERY_BLOCKS) {
     test(`gallery block ${block}`, async ({ page }) => {
+      if (block === 'avatar') await expectAvatarShapes(page, true);
       await expect(page.getByTestId(TESTIDS.uiGalleryBlock(block))).toHaveScreenshot(
         `gallery-${block}.png`,
       );
@@ -139,20 +146,20 @@ appTest.describe('Visual — signed-in pages', () => {
   appTest('home, join dialog and settings', async ({ app }) => {
     const { page } = app;
     await waitForSpotlightFlip(page);
-    await expectPage(page, 'home');
+    await expectPage(page, 'home', { avatars: true });
     await openJoinRoomDialog(page);
     await expectPage(page, 'join-room-dialog');
     await page.getByTestId(TESTIDS.joinRoomCancelButton).click();
     await expect(page.getByTestId(TESTIDS.joinRoomDialog)).toBeHidden();
     await new HomePage(page).clickSettings();
     await expect(page.getByTestId(TESTIDS.screenHeaderTitle)).toHaveText('设置');
-    await expectPage(page, 'settings');
+    await expectPage(page, 'settings', { avatars: true });
   });
 
   appTest('appearance', async ({ app }) => {
     await gotoWithRetry(app.page, '/appearance');
     await expect(app.page.getByTestId(TESTIDS.appearanceScreen)).toBeVisible();
-    await expectPage(app.page, 'appearance');
+    await expectPage(app.page, 'appearance', { avatars: true });
   });
 
   appTest('gacha', async ({ app }) => {
@@ -186,7 +193,7 @@ appTest.describe('Visual — signed-in pages', () => {
     await room.clickHostManagementActionAndConfirm(TESTIDS.roomFillBotsButton, '填充机器人？');
     await room.expectSeatCount(12);
     await room.expectSeatOccupied(11);
-    await expectPage(page, 'werewolf-room-lobby-12');
+    await expectPage(page, 'werewolf-room-lobby-12', { avatars: true });
   });
 });
 
@@ -255,12 +262,12 @@ appTest.describe('Visual — fixed-state rooms', () => {
     await resume.getByTestId(TESTIDS.alertButton(0)).click();
     await expect(resume).toBeHidden();
     await new RoomPage(page).expectSeatCount(12);
-    await expectPage(page, 'werewolf-night-12');
+    await expectPage(page, 'werewolf-night-12', { avatars: true });
   });
 
   appTest('avalon room', async ({ app }) => {
     await enterFixtureRoom(app.page, 'avalon', avalonNominationFixture());
-    await expectPage(app.page, 'avalon-room');
+    await expectPage(app.page, 'avalon-room', { avatars: true });
   });
 
   appTest('avalon review', async ({ app }) => {

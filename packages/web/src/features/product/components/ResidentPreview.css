@@ -47,7 +47,7 @@
 }
 
 /* The avatar waits hidden for the entrance's first frame. */
-.resident-tile-stage[data-entrance='true'] .resident-tile-avatar {
+.resident-tile-stage[data-entrance='true'] .resident-tile-avatar:not([data-entrance-pose]) {
   opacity: 0;
 }
 

@@ -101,6 +101,12 @@ const AVATAR_DRAWING_SELECTORS = [
     message: 'Avatars reach the page only through <Avatar>.',
   },
   {
+    // A renamed avatar URL would slip past the attribute check above.
+    selector: 'ObjectPattern > Property[key.name=/^avatarUrl$/i]:not([shorthand=true])',
+    message:
+      'Keep the name avatarUrl when destructuring; avatars reach the page only through <Avatar>.',
+  },
+  {
     selector:
       "JSXAttribute[name.name=/^data-(framed|tile-border)$/] > JSXExpressionContainer:not(:has(CallExpression[callee.name='wearsFrame']))",
     message: 'Whether a tile wears a frame is read through wearsFrame().',
