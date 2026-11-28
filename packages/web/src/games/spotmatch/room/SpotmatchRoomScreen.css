@@ -284,7 +284,8 @@ button.spotmatch-symbol:disabled {
   flex-direction: column;
   align-items: center;
   gap: var(--space-small);
-  padding: var(--space-xlarge) var(--space-medium);
+  /* With the panel's own padding: 32px above and below, 16px at the sides. */
+  padding-block: var(--space-medium);
   text-align: center;
 }
 .spotmatch-result-trophy {

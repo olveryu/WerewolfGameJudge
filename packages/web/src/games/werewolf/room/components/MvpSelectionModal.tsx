@@ -107,7 +107,6 @@ export function MvpSelectionModal({
                   暂不评选
                 </Button>
                 <Button
-                  className="mvp-confirm"
                   loading={isSubmitting}
                   disabled={selectedUserId === null}
                   onClick={() => {

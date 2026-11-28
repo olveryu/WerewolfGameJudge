@@ -628,10 +628,6 @@
 
 /* Dialog share controls and the progress modal */
 
-.review-share-full {
-  width: 100%;
-}
-
 .review-share-ready {
   display: flex;
   gap: var(--space-small);

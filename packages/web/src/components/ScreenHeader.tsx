@@ -18,6 +18,8 @@ interface ScreenHeaderProps {
   backTestId?: string;
   /** Trailing actions. */
   children?: ReactNode;
+  /** `admin`: the console's plain, untextured header that stays above its sticky toolbars. */
+  tone?: 'default' | 'admin';
 }
 
 /**
@@ -40,12 +42,13 @@ export function ScreenHeader({
   onBack,
   backTestId,
   children,
+  tone = 'default',
 }: ScreenHeaderProps) {
   const goBack = useScreenBack(parentPath);
   return (
-    <header className="screen-header page-header-surface">
+    <header className="screen-header page-header-surface" data-tone={tone}>
       <IconButton
-        className="screen-header-back"
+        size="lg"
         label="返回"
         icon={<IconChevronBack aria-hidden />}
         onClick={onBack ?? goBack}

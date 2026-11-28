@@ -66,7 +66,7 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
           icon={
             state.filterVisible ? <IconFunnel aria-hidden /> : <IconFunnelOutline aria-hidden />
           }
-          data-active={filterCount > 0}
+          active={filterCount > 0}
           onClick={state.toggleFilter}
         />
         {filterCount > 0 && (

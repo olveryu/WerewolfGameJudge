@@ -92,7 +92,11 @@ function ConnectionStatusBarComponent({
       data-testid={isLive ? TESTIDS.connectionPendingContainer : TESTIDS.connectionStatusContainer}
     >
       <span className="connection-bar-text">{text}</span>
-      {isAnimating && <IndeterminateProgressBar className="connection-bar-progress" />}
+      {isAnimating && (
+        <div className="connection-bar-progress">
+          <IndeterminateProgressBar tone="error" />
+        </div>
+      )}
     </div>
   );
 }
@@ -110,7 +114,7 @@ export function ControlledSeatBanner({ model }: { readonly model: RoomControlled
       <Button
         type="button"
         variant="soft"
-        className="controlled-seat-banner-release"
+        size="sm"
         onClick={model.onRelease}
         data-testid={TESTIDS.controlledSeatReleaseButton}
         aria-label="退出机器人接管"

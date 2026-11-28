@@ -106,13 +106,15 @@ export function PictionaryDrawingImage({
                       alt={`${label}全屏预览`}
                       data-testid={TESTIDS.pictionaryDrawingFullscreenPreview}
                     />
-                    <IconButton
-                      className="pictionary-fullscreen-close"
-                      label="关闭"
-                      icon={<IconClose aria-hidden />}
-                      onClick={() => setIsFullscreenOpen(false)}
-                      data-testid={TESTIDS.pictionaryDrawingFullscreenCloseButton}
-                    />
+                    <span className="pictionary-fullscreen-close">
+                      <IconButton
+                        variant="on-media"
+                        label="关闭"
+                        icon={<IconClose aria-hidden />}
+                        onClick={() => setIsFullscreenOpen(false)}
+                        data-testid={TESTIDS.pictionaryDrawingFullscreenCloseButton}
+                      />
+                    </span>
                   </AppDialog.Content>
                 </AppDialog.Positioner>
               </Portal>

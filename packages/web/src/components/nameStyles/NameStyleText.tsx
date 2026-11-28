@@ -50,18 +50,20 @@ function styleFor(config: NameStyleConfig): CSSProperties {
 interface NameStyleTextProps {
   /** Equipped name style id; `undefined`, `null` or an unknown id renders plain text. */
   readonly styleId: string | null | undefined;
-  readonly className?: string;
   readonly children: ReactNode;
 }
 
-export function NameStyleText({ styleId, className, children }: NameStyleTextProps) {
+/**
+ * Inline text in the equipped style; size, weight and truncation come from the element around it.
+ */
+export function NameStyleText({ styleId, children }: NameStyleTextProps) {
   const config = styleId ? NAME_STYLE_CONFIG_MAP.get(styleId) : undefined;
   if (!config) {
-    return <span className={className}>{children}</span>;
+    return <span>{children}</span>;
   }
   return (
     <span
-      className={className === undefined ? 'name-style' : `name-style ${className}`}
+      className="name-style"
       data-gradient={config.gradient !== undefined}
       data-animated={config.animations !== undefined && config.animations.length > 0}
       style={styleFor(config)}

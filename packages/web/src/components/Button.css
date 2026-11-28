@@ -1,5 +1,6 @@
 .button {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   gap: var(--space-small);
@@ -20,6 +21,18 @@
   .button:not(:disabled, [aria-disabled='true']):hover {
     transform: translateY(calc(-1 * var(--space-micro)));
   }
+}
+
+.button[data-full-width] {
+  width: 100%;
+}
+
+.button[data-size='xs'] {
+  gap: var(--space-micro);
+  min-height: var(--size-button-sm);
+  padding: 0 var(--space-tight);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
 }
 
 .button[data-size='sm'] {
@@ -205,4 +218,70 @@
   background: var(--color-background);
   color: var(--color-text-secondary);
   box-shadow: none;
+}
+
+/* Faction tone: a filled key in the faction's color (role cards, encyclopedia detail). */
+.button[data-tone='wolf'] {
+  --button-tone: var(--color-wolf);
+}
+
+.button[data-tone='god'] {
+  --button-tone: var(--color-god);
+}
+
+.button[data-tone='villager'] {
+  --button-tone: var(--color-villager);
+}
+
+.button[data-tone='third'] {
+  --button-tone: var(--color-third);
+}
+
+.button[data-tone='neutral'] {
+  --button-tone: var(--color-text-secondary);
+}
+
+.button[data-tone]:not(:disabled, [aria-disabled='true']) {
+  --tabletop-key-edge: var(--button-tone);
+
+  background: var(--button-tone);
+}
+
+.icon-button[data-size='sm'] {
+  font-size: var(--size-icon-sm);
+}
+
+.icon-button[data-size='lg'] {
+  font-size: var(--size-icon-lg);
+}
+
+.icon-button[data-active] {
+  background: var(--color-primary-a15);
+  color: var(--color-primary);
+}
+
+.icon-button[data-variant='plain'] {
+  border: 0;
+  border-radius: var(--radius-inset);
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+.icon-button[data-variant='on-media'] {
+  background: var(--color-overlay);
+  color: var(--color-text-inverse);
+}
+
+/* `aria-disabled` keeps the key pressable so it can explain why it is unavailable. */
+.icon-button[aria-disabled='true'] {
+  cursor: default;
+}
+
+.icon-button[data-variant='plain']:is(:disabled, [aria-disabled='true']) {
+  background: transparent;
+  color: var(--color-text-muted);
+  opacity: var(--opacity-disabled);
+  box-shadow: none;
+  transform: none;
 }

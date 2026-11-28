@@ -106,6 +106,63 @@ const RAW_RADIUS_READ = '/--radius-\\d/';
 const VALUE_READ_MESSAGE =
   'Only avatarConcentric.css reads --avatar-corner-ratio; only tokens.css reads the raw --radius-<n> scale (use a purpose token such as --radius-control).';
 const SHAPING = ['/radius$/', 'corner-shape', 'clip-path', '/^mask/', 'all'];
+
+/**
+ * Shared components own their look (plan §4 P4): each class below is styled only by the sheet
+ * that ships it. Another sheet places the component from its own wrapper element and may only
+ * exclude these classes inside `:not()`.
+ */
+const SHARED_COMPONENT_CLASSES = {
+  'packages/web/src/components/BottomSheet.css': ['bottom-sheet[\\w-]*'],
+  'packages/web/src/components/Button.css': ['button', 'icon-button'],
+  'packages/web/src/components/CenterDialog.css': ['center-dialog[\\w-]*'],
+  'packages/web/src/components/nameStyles/nameStyles.css': ['name-style'],
+  'packages/web/src/components/ChoiceCard.css': [
+    'choice-card',
+    'choice-check',
+    'choice-image',
+    'choice-label',
+    'choice-row',
+  ],
+  'packages/web/src/components/FactionChip.css': ['faction-chip[\\w-]*'],
+  'packages/web/src/components/GameGuide.css': ['game-guide[\\w-]*'],
+  'packages/web/src/components/GameSettings.css': ['game-settings[\\w-]*'],
+  'packages/web/src/components/GameStatsPanel.css': ['game-stats[\\w-]*'],
+  'packages/web/src/components/HeaderSurface.css': ['page-header-surface'],
+  'packages/web/src/components/IndeterminateProgressBar.css': ['indeterminate-progress[\\w-]*'],
+  'packages/web/src/components/LoadingScreen.css': ['loading-screen[\\w-]*'],
+  'packages/web/src/components/NumPad.css': ['numpad[\\w-]*'],
+  'packages/web/src/components/PaperboardPanel.css': ['paperboard-panel'],
+  'packages/web/src/components/ScreenHeader.css': ['screen-header[\\w-]*'],
+  'packages/web/src/components/SeatDot.css': ['seat-dot[\\w-]*'],
+  'packages/web/src/components/Spinner.css': ['spinner'],
+  'packages/web/src/components/Switch.css': ['switch'],
+  'packages/web/src/features/room/components/RoomStagePanel.css': ['room-stage-panel[\\w-]*'],
+  'packages/web/src/features/room/components/RoomTaskFrame.css': [
+    'room-task-frame[\\w-]*',
+    'room-task-viewport[\\w-]*',
+  ],
+};
+/** A class selector for any of `names`, outside `:not()`. */
+const componentSelector = (names) => `/(?<!:not\\([^)]*)\\.(${names.join('|')})(?![\\w-])/`;
+const SHARED_COMPONENT_MESSAGE =
+  'Shared components are styled only by their own sheet: pass a variant, size or tone, and place the component from a wrapper element.';
+/**
+ * The `button` element outside `:not()`: shared `<Button>`/`<IconButton>` render one, so an element selector
+ * restyles them as surely as `.button` does. A native button is styled by its own class (`button.home-card`).
+ */
+const BUTTON_ELEMENT_SELECTOR = '/(?<![\\w\'"=.#-]|:not\\([^)]*)button(?![\\w.-])/';
+const sharedComponentRule = (ownedNames, { buttonReset = false } = {}) => [
+  [
+    componentSelector(
+      Object.values(SHARED_COMPONENT_CLASSES)
+        .flat()
+        .filter((name) => !ownedNames.includes(name)),
+    ),
+    ...(ownedNames.includes('button') || buttonReset ? [] : [BUTTON_ELEMENT_SELECTOR]),
+  ],
+  { splitList: true, message: SHARED_COMPONENT_MESSAGE },
+];
 /**
  * A class selector for any of `names`, outside `:not()`. Excepted: pseudo-elements (a lining `::before` inherits
  * the corners) and `:not(.avatar-concentric)`, a card of the same class that holds no avatar.
@@ -158,6 +215,10 @@ export default {
         ],
       },
     ],
+    // A sheet's own custom property holds a design value too: `--r: 13px` is a raw length. The
+    // strict-value plugin skips custom properties, so their values may carry no unit at all —
+    // lengths, angles and times come from tokens (`--r: var(--radius-control)`).
+    'declaration-property-unit-allowed-list': [{ '/^--/': [] }],
     // Literal colors anywhere in a value (gradients, text-shadow, filters): colors come from tokens.
     'color-no-hex': true,
     'color-named': 'never',
@@ -189,6 +250,8 @@ export default {
       'container',
       'import',
       'starting-style',
+      // Registers a custom property's type (`--avatar-inset` is a length).
+      'property',
     ],
     'rule-selector-property-disallowed-list': [
       {
@@ -201,6 +264,7 @@ export default {
           'The avatar shape has one source: Avatar sets its corners, hosts cut nothing, boxes add the avatar-concentric class.',
       },
     ],
+    'selector-disallowed-list': sharedComponentRule([]),
     'property-disallowed-list': [
       ['--avatar-corner-ratio'],
       { message: 'config/avatarShape.ts publishes the avatar corner ratio.' },
@@ -215,6 +279,7 @@ export default {
       files: [TOKEN_SHEET],
       rules: {
         'scale-unlimited/declaration-strict-value': null,
+        'declaration-property-unit-allowed-list': null,
         'color-no-hex': null,
         'color-named': null,
         'function-disallowed-list': null,
@@ -225,6 +290,15 @@ export default {
         ],
       },
     },
+    {
+      // The document reset: every button starts from the same box.
+      files: ['packages/web/src/global.css'],
+      rules: { 'selector-disallowed-list': sharedComponentRule([], { buttonReset: true }) },
+    },
+    ...Object.entries(SHARED_COMPONENT_CLASSES).map(([file, names]) => ({
+      files: [file],
+      rules: { 'selector-disallowed-list': sharedComponentRule(names) },
+    })),
     ...Object.entries(ART_SHEETS).map(([file, prefix]) => ({
       files: [file],
       rules: { 'selector-class-pattern': `^${prefix}(-[a-z0-9]+)*$` },

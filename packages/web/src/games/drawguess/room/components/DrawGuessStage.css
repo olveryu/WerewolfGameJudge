@@ -61,11 +61,6 @@
 }
 
 /* ── Drawing task ── */
-.drawguess-task-frame .room-task-frame-footer {
-  padding-top: var(--space-small);
-  border-top: var(--border-width) solid var(--color-border);
-}
-
 .drawguess-task-footer {
   display: flex;
   flex-direction: column;
@@ -173,25 +168,6 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   clip-path: inset(50%);
-}
-
-.button.drawguess-ranking-button {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-tight);
-  min-height: var(--size-min-touch-target);
-  padding: 0 var(--space-small);
-  border-radius: var(--radius-pill);
-  font: inherit;
-  font-size: var(--font-caption);
-  font-weight: var(--weight-semibold);
-}
-
-.drawguess-ranking-button svg {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
 }
 
 .drawguess-ranking-header {

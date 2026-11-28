@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "bench:scene": "node scripts/scene-bench.mjs",
     "typecheck": "tsc --noEmit",
+    "lint:css": "pnpm --workspace-root run lint:css",
     "test": "vitest run"
   },
   "dependencies": {

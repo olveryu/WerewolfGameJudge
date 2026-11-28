@@ -18,14 +18,14 @@ describe('RoomTaskFrame', () => {
     expect(screen.getByRole('textbox', { name: '任务输入' })).toBeVisible();
   });
 
-  it('applies the test id, the game-declared max width and the geometry class', () => {
+  it('applies the test id, the game-declared max width and the inset', () => {
     render(
       <RoomTaskFrame
         header={<h2>任务标题</h2>}
         footer={null}
         maxWidth={800}
         testId="task-frame"
-        className="game-task"
+        inset="wide"
       >
         <p>任务内容</p>
       </RoomTaskFrame>,
@@ -34,7 +34,8 @@ describe('RoomTaskFrame', () => {
     expect(within(column).getByText('任务标题')).toBeVisible();
     expect(within(column).getByText('任务内容')).toBeVisible();
     expect(column).toHaveStyle({ maxWidth: '800px' });
-    expect(column).toHaveClass('room-task-frame', 'game-task');
+    expect(column).toHaveClass('room-task-frame');
+    expect(column).toHaveAttribute('data-inset', 'wide');
   });
 
   it('omits the footer wrapper when the footer is null', () => {

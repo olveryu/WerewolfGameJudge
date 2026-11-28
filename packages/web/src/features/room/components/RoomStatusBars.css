@@ -46,9 +46,6 @@
 }
 
 .connection-bar-progress {
-  --progress-track: transparent;
-  --progress-bar: var(--color-error-a50);
-
   position: absolute;
   right: 0;
   bottom: 0;
@@ -75,11 +72,6 @@
   font-weight: var(--weight-semibold);
 }
 
-.button.controlled-seat-banner-release {
-  padding: 0 var(--space-small);
-  font-size: var(--font-caption);
-  font-weight: var(--weight-semibold);
-}
 .seat-confirm-message {
   margin: 0;
   color: var(--color-text-secondary);

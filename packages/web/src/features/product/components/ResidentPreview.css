@@ -20,7 +20,7 @@
 
 /* A framed tile: the scene draws the frame over the avatar, which fills the border box. */
 .resident-tile[data-framed='true'] {
-  --avatar-inset: 0px;
+  --avatar-inset: initial;
 
   border-color: transparent;
   background: transparent;

@@ -59,7 +59,6 @@ export function UndercoverRevealModal({
   const actions = (
     <div className="undercover-reveal-actions">
       <Button
-        className="undercover-reveal-action"
         variant="secondary"
         size="lg"
         onClick={onClose}
@@ -69,7 +68,6 @@ export function UndercoverRevealModal({
         取消
       </Button>
       <Button
-        className="undercover-reveal-action"
         variant="danger"
         size="lg"
         onClick={onConfirm}

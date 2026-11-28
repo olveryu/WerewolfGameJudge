@@ -43,6 +43,10 @@ describe('Avatar shape', () => {
     expect(radius).toContain(`var(${AVATAR_CORNER_RATIO_PROPERTY})`);
     expect(radius).toContain('var(--avatar-inset');
     // Only the formula's own constants: no second copy of the ratio, no fixed corner.
-    expect(radius.match(/\d+(?:\.\d+)?(?:px|%)?/g)).toEqual(['100%', '1', '2', '0px']);
+    expect(radius.match(/\d+(?:\.\d+)?(?:px|%)?/g)).toEqual(['100%', '1', '2']);
+    // The inset is a registered length whose initial value is the avatar's own outline.
+    expect(sheet).toMatch(
+      /@property --avatar-inset\s*\{[^}]*syntax:\s*'<length>'[^}]*initial-value:\s*0px;/,
+    );
   });
 });

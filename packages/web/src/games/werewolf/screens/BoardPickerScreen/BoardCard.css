@@ -91,17 +91,17 @@
 }
 
 .board-card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: var(--space-small);
   margin-top: var(--space-medium);
 }
 
-.board-card-actions[data-centered='true'] {
-  justify-content: center;
+/* The guide at its own width, the primary action filling the rest. */
+.board-card-actions[data-layout='pair'] {
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
-.board-card-select {
-  flex: 1;
+/* The guide link alone stays at its own width in the middle. */
+.board-card-actions[data-layout='guide'] {
+  justify-content: center;
 }

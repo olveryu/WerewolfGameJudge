@@ -113,8 +113,8 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--color-text);
-  font-size: var(--font-caption-small);
-  line-height: var(--line-caption-small);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
   font-weight: var(--weight-semibold);
   text-align: center;
   text-overflow: ellipsis;
@@ -126,14 +126,6 @@
   align-items: center;
   gap: var(--space-micro);
   color: var(--color-success);
-  font-size: var(--font-caption-small);
-  line-height: var(--line-caption-small);
-}
-
-.shard-cell-exchange {
-  width: 100%;
-  min-height: var(--size-min-touch-target);
-  padding-inline: var(--space-tight);
   font-size: var(--font-caption-small);
   line-height: var(--line-caption-small);
 }

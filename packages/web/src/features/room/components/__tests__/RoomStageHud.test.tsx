@@ -1,7 +1,6 @@
 /** RoomStageHud: chips, countdown, controlled-seat chip, and the roster sheet with bot takeover. */
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
 
 import type { RoomCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomControlledSeatModel } from '@/features/room/model/RoomShellModel';
@@ -9,7 +8,7 @@ import type { RoomStageHudModel, RoomStageRosterModel } from '@/features/room/mo
 import { seatSource, seatViewModel } from '@/test-utils/roomSeat';
 import { TESTIDS } from '@/testids';
 
-import { RoomStageHud } from '../RoomStageHud';
+import { RoomStageHud, type RoomStageHudEntry } from '../RoomStageHud';
 
 const ROSTER: RoomStageRosterModel = {
   chipLabel: '已完成 1/3',
@@ -37,7 +36,7 @@ function renderHud({
   readonly hud?: Partial<RoomStageHudModel>;
   readonly canTakeOverBots?: RoomCapability<readonly [seat: number]>;
   readonly controlledSeat?: RoomControlledSeatModel | null;
-  readonly action?: ReactNode;
+  readonly action?: RoomStageHudEntry;
 } = {}) {
   return render(
     <RoomStageHud
@@ -92,14 +91,41 @@ describe('RoomStageHud', () => {
     );
   });
 
-  it('renders a game-owned action in the secondary row without adding game logic to the shared HUD', () => {
+  it('draws a game-owned entry with the same chip as the roster entry and leaves the dialog to the game', async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
     renderHud({
-      hud: { roster: null },
-      action: <button type="button">总排名</button>,
+      action: { label: '总排名', isOpen: false, onOpen },
     });
 
-    expect(screen.getByRole('button', { name: '总排名' })).toBeInTheDocument();
+    const entry = screen.getByRole('button', { name: '总排名' });
+    const roster = screen.getByTestId(TESTIDS.roomStageRosterChip);
+    expect(entry.className).toBe(roster.className);
+    expect(entry).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(entry).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-expanded');
+    await user.click(entry);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws an entry icon only when the entry asks for one, with the roster entry unchanged', () => {
+    const { unmount } = renderHud({
+      action: { label: '总排名', icon: 'trophy-outline', isOpen: false, onOpen: vi.fn() },
+    });
+    const entry = screen.getByRole('button', { name: '总排名' });
+    const roster = screen.getByTestId(TESTIDS.roomStageRosterChip);
+    const icon = entry.querySelector('.room-stage-entry-icon');
+    expect(icon).not.toBeNull();
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(entry.firstElementChild).toBe(icon);
+    expect(entry.className).toBe(roster.className);
+    expect(roster.querySelector('.room-stage-entry-icon')).toBeNull();
+
+    unmount();
+    renderHud({ action: { label: '总排名', isOpen: false, onOpen: vi.fn() } });
+    const plain = screen.getByRole('button', { name: '总排名' });
+    expect(plain.querySelector('.room-stage-entry-icon')).toBeNull();
+    expect(plain.querySelectorAll('svg')).toHaveLength(1);
   });
 
   it('formats the countdown, turns red at ten seconds and draws the remaining share', () => {

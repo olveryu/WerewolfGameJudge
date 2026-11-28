@@ -65,7 +65,7 @@ export function EncyclopediaRoleDetailSheet({
           />
         </div>
 
-        <Button className="encyclopedia-detail-confirm" onClick={onClose}>
+        <Button tone={entry.factionColorKey} onClick={onClose}>
           知道了
         </Button>
       </div>

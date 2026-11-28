@@ -130,7 +130,7 @@ export function StoryRelayTaskEditor({
     <RoomTaskFrame
       maxWidth={STORY_RELAY_CONTENT_MAX_WIDTH}
       testId={TESTIDS.storyRelayTask}
-      className="storyrelay-task-frame"
+      inset="wide"
       header={null}
       footer={
         <>

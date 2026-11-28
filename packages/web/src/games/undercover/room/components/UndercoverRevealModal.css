@@ -36,13 +36,10 @@
 }
 
 .undercover-reveal-actions {
-  display: flex;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   gap: var(--space-medium);
-}
-
-.undercover-reveal-action {
-  flex: 1;
-  min-width: 0;
 }
 
 .undercover-reveal-sheet-title {

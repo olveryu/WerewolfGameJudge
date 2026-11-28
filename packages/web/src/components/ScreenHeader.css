@@ -11,8 +11,9 @@
   padding: env(safe-area-inset-top) var(--space-small) 0;
 }
 
-.screen-header-back {
-  font-size: var(--size-icon-lg);
+.screen-header[data-tone='admin'] {
+  z-index: var(--layer-sticky-bar);
+  background: var(--color-surface);
 }
 
 .screen-header-title {
@@ -21,6 +22,10 @@
   line-height: var(--line-title);
   font-weight: var(--weight-semibold);
   text-align: center;
+}
+
+.screen-header[data-tone='admin'] .screen-header-title {
+  color: var(--color-text);
 }
 
 .screen-header-actions {

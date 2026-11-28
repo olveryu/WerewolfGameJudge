@@ -1,6 +1,7 @@
 import { useQueries } from '@tanstack/react-query';
 
 import { CenterDialog } from '@/components/CenterDialog';
+import { Spinner } from '@/components/Spinner';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RoomDirectory } from '@/features/room/model/RoomDirectory';
 import { type RecentRoomIdentity, removeRecentRoom } from '@/features/room/services/recentRooms';
@@ -95,7 +96,7 @@ function RecentRoomList({
               <span className="recent-room-icon" aria-hidden>
                 {state === 'online' && <IconGameController />}
                 {state === 'error' && <IconAlertCircle />}
-                {state === 'checking' && <span className="spinner" />}
+                {state === 'checking' && <Spinner size="sm" label="检查中" />}
               </span>
               <span className="recent-room-body">
                 <span className="recent-room-code">{formatRoomCode(identity.roomCode)}</span>

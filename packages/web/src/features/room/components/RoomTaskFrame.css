@@ -22,6 +22,10 @@
   padding: var(--space-small);
 }
 
+.room-task-frame[data-inset='wide'] {
+  padding-inline: var(--space-medium);
+}
+
 .room-task-frame-body {
   display: flex;
   flex: 1;
@@ -30,9 +34,12 @@
   min-height: 0;
 }
 
+/* A rule keeps the pinned footer apart from the body that shrinks above the keyboard. */
 .room-task-frame-footer {
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
   gap: var(--space-tight);
+  padding-top: var(--space-small);
+  border-top: var(--border-width) solid var(--color-border);
 }

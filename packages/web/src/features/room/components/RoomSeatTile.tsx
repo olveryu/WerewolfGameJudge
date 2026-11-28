@@ -199,9 +199,9 @@ function RoomSeatTileComponent({
             data-testid={TESTIDS.seatNameRow(seat)}
           >
             {isBot && <IconChatbubbleEllipsesOutline className="seat-bot-icon" aria-hidden />}
-            <NameStyleText styleId={player.nameStyle} className="seat-name">
-              {player.displayName}
-            </NameStyleText>
+            <span className="seat-name">
+              <NameStyleText styleId={player.nameStyle}>{player.displayName}</NameStyleText>
+            </span>
           </div>
           {indicators !== null && <SeatProgress seat={seat} indicators={indicators} />}
           {model.secondaryLabel !== null && (

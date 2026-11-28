@@ -433,10 +433,3 @@
   cursor: default;
   box-shadow: none;
 }
-
-.ai-chat-send .spinner {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  border-color: var(--color-primary-light);
-  border-top-color: var(--color-text-inverse);
-}

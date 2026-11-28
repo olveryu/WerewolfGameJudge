@@ -255,7 +255,7 @@ function ToolboxConfigPage({
       )}
       <Button
         size="lg"
-        className="game-config-submit"
+        fullWidth
         disabled={tools.length === 0 || isIdentityMissing || !isEditAvailable}
         loading={submission.isSubmitting}
         onClick={submission.submit}

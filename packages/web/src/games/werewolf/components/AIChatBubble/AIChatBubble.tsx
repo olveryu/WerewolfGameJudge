@@ -76,7 +76,7 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
   const isSendDisabled = !chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0;
 
   const renderSendContent = () => {
-    if (chat.isLoading) return <Spinner label="发送中" />;
+    if (chat.isLoading) return <Spinner size="sm" tone="inverse" label="发送中" />;
     if (chat.cooldownRemaining > 0) return chat.cooldownRemaining;
     return '↑';
   };

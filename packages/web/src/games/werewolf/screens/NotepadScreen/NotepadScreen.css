@@ -6,10 +6,6 @@
   overflow: hidden;
 }
 
-.icon-button.notepad-header-button {
-  color: var(--color-text);
-}
-
 .notepad-ai-button {
   display: inline-flex;
   flex-shrink: 0;

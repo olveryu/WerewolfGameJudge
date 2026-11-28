@@ -41,13 +41,33 @@
   position: relative;
 }
 
+.center-dialog[data-density='compact'] {
+  gap: var(--space-small);
+}
+
+/* A card drawing to the dialog's edges: it pads and scrolls its own content. */
+.center-dialog[data-density='flush'] {
+  gap: 0;
+  min-width: 0;
+  max-width: var(--size-profile-card-width);
+  overflow: hidden;
+  padding: 0;
+}
+
 .center-dialog-close {
   position: absolute;
   top: var(--space-medium);
   right: var(--space-medium);
+  display: flex;
 }
 
-.center-dialog[data-has-close-button='true'] .center-dialog-title {
+.center-dialog[data-density='flush'] .center-dialog-close {
+  z-index: var(--layer-dialog-close);
+  top: var(--space-tight);
+  right: var(--space-tight);
+}
+
+.center-dialog[data-has-close-button='true'] .center-dialog-title:not(.visually-hidden) {
   padding-inline: var(--size-min-touch-target);
 }
 

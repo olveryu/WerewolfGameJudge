@@ -52,11 +52,7 @@ function ShareControls({
     case 'blocked':
       return (
         <div>
-          <Button
-            disabled
-            data-testid={TESTIDS.roomReviewShareButton}
-            className="review-share-full"
-          >
+          <Button disabled data-testid={TESTIDS.roomReviewShareButton} fullWidth>
             {label}
           </Button>
           <DisabledReasonCaption reason={controls.reason} />
@@ -64,7 +60,7 @@ function ShareControls({
       );
     case 'busy':
       return (
-        <Button disabled data-testid={TESTIDS.roomReviewShareButton} className="review-share-full">
+        <Button disabled fullWidth data-testid={TESTIDS.roomReviewShareButton}>
           {controls.status}
         </Button>
       );

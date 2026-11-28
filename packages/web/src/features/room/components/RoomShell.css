@@ -180,11 +180,6 @@
     transform 100ms ease-out;
 }
 
-.room-header-host-button .spinner {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-}
-
 .room-header-host-button[aria-busy='true'] {
   cursor: progress;
 }

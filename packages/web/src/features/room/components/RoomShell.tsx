@@ -36,7 +36,7 @@ import { RoomBottomActionPanel } from './RoomBottomActionPanel';
 import { RoomHostTaskHeader } from './RoomHostTaskHeader';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomShareDialog } from './RoomShareDialog';
-import { RoomStageHud, type RoomStageHudRenderer } from './RoomStageHud';
+import { RoomStageHud, type RoomStageHudEntry, type RoomStageHudRenderer } from './RoomStageHud';
 import { ConnectionStatusBar, ControlledSeatBanner, RoomSeatConfirmModal } from './RoomStatusBars';
 
 const TITLE_LONG_PRESS_MS = 1000;
@@ -68,8 +68,8 @@ type RoomShellContent =
       readonly hud: RoomStageHudModel;
       /** A render slot may embed the shared HUD in the game's own stage panel. */
       readonly element: ReactElement | ((renderHud: RoomStageHudRenderer) => ReactElement);
-      /** Optional game-owned action beside secondary HUD information. */
-      readonly hudAction?: ReactElement;
+      /** Optional game-owned entry beside secondary HUD information, drawn by the HUD. */
+      readonly hudAction?: RoomStageHudEntry;
     };
 
 function RoomStageContent({
@@ -314,7 +314,7 @@ export function RoomShell({
               onClick={isStageMenuBusy ? undefined : navigation.openMenu}
               data-testid={TESTIDS.roomStageMenuButton}
             >
-              {isStageMenuBusy && <Spinner label="提交中" />}
+              {isStageMenuBusy && <Spinner size="sm" label="提交中" />}
               菜单
             </button>
           )}

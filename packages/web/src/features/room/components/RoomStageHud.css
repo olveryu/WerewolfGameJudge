@@ -1,15 +1,16 @@
 /* Keep the current task and timer primary; only add a second row when the game needs it. */
 .room-stage-hud {
   flex-shrink: 0;
+  margin: var(--space-small) var(--space-medium) var(--space-small);
+}
+.room-stage-hud-body {
   display: flex;
   flex-direction: column;
-  margin: var(--space-small) var(--space-medium) var(--space-small);
-  padding: 0 var(--space-small);
 }
 .room-stage-hud[data-embedded] {
   margin: 0;
 }
-.room-stage-hud[data-embedded][data-expanded] {
+.room-stage-hud[data-embedded][data-expanded] .room-stage-hud-body {
   padding-bottom: 0;
 }
 .room-stage-hud[data-inline-context] .room-stage-hud-row {
@@ -35,7 +36,7 @@
   font-weight: var(--weight-bold);
 }
 
-.room-stage-hud[data-roster-placement='primary'] {
+.room-stage-hud[data-roster-placement='primary'] .room-stage-hud-body {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
@@ -137,7 +138,7 @@
   height: var(--size-icon-sm);
 }
 
-.room-stage-hud[data-expanded] {
+.room-stage-hud[data-expanded] .room-stage-hud-body {
   padding-bottom: var(--space-small);
 }
 
@@ -155,7 +156,7 @@
   color: var(--color-error);
 }
 
-.room-stage-roster-chip {
+.room-stage-entry-chip {
   flex-shrink: 0;
   font-family: inherit;
   font-size: var(--font-caption);
@@ -164,11 +165,17 @@
   cursor: pointer;
 }
 
-.room-stage-roster-chip svg {
+.room-stage-entry-chip svg {
   color: var(--color-text-secondary);
 }
 
-.room-stage-roster-chip[data-urgent] {
+.room-stage-entry-chip .room-stage-entry-icon {
+  width: var(--font-caption);
+  height: var(--font-caption);
+  color: inherit;
+}
+
+.room-stage-entry-chip[data-urgent] {
   color: var(--color-error);
 }
 
@@ -187,7 +194,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .room-stage-roster-chip[data-urgent] .room-stage-roster-alert {
+  .room-stage-entry-chip[data-urgent] .room-stage-roster-alert {
     animation: room-stage-alert-pulse 600ms ease-in-out infinite alternate;
   }
 }
@@ -215,13 +222,13 @@
 }
 
 @media (hover: hover) {
-  .room-stage-roster-chip:hover:not([data-urgent]),
+  .room-stage-entry-chip:hover:not([data-urgent]),
   .room-stage-controlled-release:hover {
     color: var(--color-primary-dark);
     text-decoration: underline;
   }
 
-  .room-stage-roster-chip[data-urgent]:hover {
+  .room-stage-entry-chip[data-urgent]:hover {
     color: var(--color-error);
     text-decoration: underline;
   }

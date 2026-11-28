@@ -4,7 +4,7 @@
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ComponentProps } from 'react';
 
 import { ACCOUNT_ENTRY_CLASS } from '@/components/avatar/AccountAvatar';
 import {
@@ -22,6 +22,7 @@ import { viewerFor } from '@/test-utils/roomViewer';
 import { TESTIDS } from '@/testids';
 
 import { RoomShell } from '../RoomShell';
+import type { RoomStageHudEntry } from '../RoomStageHud';
 
 const deniedCapabilities: RoomCapabilities = {
   canTakeSeat: { isAllowed: false, reason: null },
@@ -117,7 +118,7 @@ function shellInput(overrides: Partial<RoomShellModelInput> = {}): RoomShellMode
   };
 }
 
-function renderStage(overrides: Partial<RoomShellModelInput> = {}, hudAction?: ReactElement) {
+function renderStage(overrides: Partial<RoomShellModelInput> = {}, hudAction?: RoomStageHudEntry) {
   return render(
     <TestRoomShell
       model={createRoomShellModel(shellInput(overrides))}
@@ -583,8 +584,8 @@ describe('RoomShell stage content', () => {
     expect(screen.queryByTestId(TESTIDS.bottomActionPanel)).not.toBeInTheDocument();
   });
 
-  it('passes a game-owned ranking action into the information bar', () => {
-    renderStage({}, <button type="button">总排名</button>);
+  it('passes a game-owned ranking entry into the information bar', () => {
+    renderStage({}, { label: '总排名', isOpen: false, onOpen: vi.fn() });
     expect(screen.getByTestId(TESTIDS.roomStageHud)).toContainElement(
       screen.getByRole('button', { name: '总排名' }),
     );
@@ -627,8 +628,9 @@ describe('RoomShell stage content', () => {
     const panel = screen.getByRole('region', { name: '信息与反馈' });
     expect(screen.getAllByTestId(TESTIDS.roomStageHud)).toHaveLength(1);
     expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-embedded');
-    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveClass('room-stage-panel');
-    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-tone', 'success');
+    const hudSurface = within(panel).getByTestId(TESTIDS.roomStageHud).firstElementChild;
+    expect(hudSurface).toHaveClass('room-stage-panel');
+    expect(hudSurface).toHaveAttribute('data-tone', 'success');
     expect(panel.querySelectorAll('.room-stage-panel')).toHaveLength(1);
     await user.click(within(panel).getByTestId(TESTIDS.roomStageRosterChip));
     expect(screen.getByTestId(TESTIDS.roomStageRosterSheet)).toBeInTheDocument();

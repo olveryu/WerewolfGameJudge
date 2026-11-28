@@ -131,12 +131,9 @@ export function TenResultOverlay({
         <AppDialog.Positioner className="gacha-result-positioner" style={GACHA_PALETTE_VARS}>
           <AppDialog.Content className="ten-result-card" data-testid="gacha-ten-result">
             <ResidentSceneLayer hostRef={sceneHostRef} />
-            <IconButton
-              label="关闭"
-              icon={<IconClose aria-hidden />}
-              className="ten-result-close"
-              onClick={onClose}
-            />
+            <span className="ten-result-close">
+              <IconButton label="关闭" icon={<IconClose aria-hidden />} onClick={onClose} />
+            </span>
             <AppDialog.Title className="ten-result-title" data-golden={isGolden}>
               {isGolden ? <IconStar aria-hidden /> : <IconSparkles aria-hidden />}
               {isGolden ? '黄金10连抽结果' : '10连抽结果'}
@@ -185,9 +182,11 @@ export function TenResultOverlay({
             </div>
             {totalShards > 0 && <p className="ten-result-shards">本次获得 ◆ {totalShards} 碎片</p>}
             {onGoEquip && (
-              <Button className="gacha-equip-button" onClick={onGoEquip}>
-                去装扮
-              </Button>
+              <div className="gacha-equip-action">
+                <Button fullWidth onClick={onGoEquip}>
+                  去装扮
+                </Button>
+              </div>
             )}
           </AppDialog.Content>
         </AppDialog.Positioner>

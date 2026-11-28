@@ -28,11 +28,6 @@
 }
 
 /* Keeps the task frame's wider horizontal padding for the editor column. */
-.storyrelay-task-frame {
-  padding-right: var(--space-medium);
-  padding-left: var(--space-medium);
-}
-
 .storyrelay-text {
   margin: 0;
   color: var(--color-text);

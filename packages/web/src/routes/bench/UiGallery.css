@@ -27,6 +27,13 @@
   gap: var(--space-small);
 }
 
+/* A dark media surface, like the fullscreen drawing viewer, for keys drawn over media. */
+.ui-gallery-media {
+  padding: var(--space-small);
+  border-radius: var(--radius-inset);
+  background: var(--color-text);
+}
+
 .ui-gallery-avatar-host {
   display: block;
   inline-size: var(--size-avatar-lg);
@@ -41,8 +48,4 @@
   block-size: var(--size-avatar-xl);
   padding: var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-}
-
-.ui-gallery-progress {
-  inline-size: 100%;
 }

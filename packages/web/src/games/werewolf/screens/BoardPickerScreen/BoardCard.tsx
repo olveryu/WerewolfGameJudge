@@ -101,7 +101,10 @@ export function BoardCard({
             onRolePress={onRolePress}
             showChevrons
           />
-          <div className="board-card-actions" data-centered={onSelect === undefined}>
+          <div
+            className="board-card-actions"
+            data-layout={onSelect === undefined ? 'guide' : hasStrategy ? 'pair' : 'select'}
+          >
             {hasStrategy && (
               <Button
                 variant={onSelect === undefined ? 'primary' : 'secondary'}
@@ -116,7 +119,6 @@ export function BoardCard({
               <Button
                 variant="primary"
                 size="sm"
-                className="board-card-select"
                 data-testid={TESTIDS.boardCardSelectButton(template.name)}
                 onClick={() => onSelect(template.name)}
               >

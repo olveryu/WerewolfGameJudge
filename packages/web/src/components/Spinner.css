@@ -9,6 +9,16 @@
   animation: spinner-rotate 800ms linear infinite;
 }
 
+.spinner[data-size='sm'] {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.spinner[data-tone='inverse'] {
+  border-color: var(--color-primary-light);
+  border-top-color: var(--color-text-inverse);
+}
+
 .spinner[data-size='lg'] {
   width: var(--size-icon-xl);
   height: var(--size-icon-xl);

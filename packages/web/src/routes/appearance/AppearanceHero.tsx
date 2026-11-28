@@ -42,9 +42,9 @@ export function HeroPreview({
         />
       </div>
       <div className="appearance-hero-text">
-        <NameStyleText styleId={state.effectiveNameStyle} className="appearance-hero-name">
-          {displayName}
-        </NameStyleText>
+        <div className="appearance-hero-name">
+          <NameStyleText styleId={state.effectiveNameStyle}>{displayName}</NameStyleText>
+        </div>
         <p className="appearance-hero-meta">当前框：{state.frameLabel}</p>
         {state.readOnly && <p className="appearance-hero-muted">注册或绑定邮箱后可上传</p>}
       </div>
@@ -172,7 +172,7 @@ export function AppearanceFooter({
   return (
     <Button
       size="lg"
-      className="appearance-confirm"
+      fullWidth
       loading={saving}
       aria-disabled={!hasSelection}
       onClick={hasSelection ? onConfirm : onConfirmUnavailable}

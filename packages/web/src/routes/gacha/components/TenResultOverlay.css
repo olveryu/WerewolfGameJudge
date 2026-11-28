@@ -17,6 +17,7 @@
   top: 0;
   right: 0;
   z-index: var(--layer-badge);
+  display: flex;
 }
 
 .ten-result-title {
@@ -159,10 +160,6 @@
   line-height: var(--line-secondary);
   font-weight: var(--weight-semibold);
   text-align: center;
-}
-
-.ten-result-card .gacha-equip-button.button {
-  margin-top: 0;
 }
 
 @keyframes ten-result-cell-in {

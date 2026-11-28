@@ -181,6 +181,14 @@ button.notepad-hand-tag:active {
     transform 100ms ease-out;
 }
 
+/* Clearing only empties the guess (pick again any time): a neutral key, not a danger one. */
+.notepad-role-option[data-clear] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+
 .notepad-role-option[aria-pressed='true'] {
   border-color: var(--color-primary-light);
   background: var(--faction-a15);
@@ -197,11 +205,4 @@ button.notepad-hand-tag:active {
   .notepad-role-option:hover {
     transform: translateY(calc(-1 * var(--space-micro)));
   }
-}
-
-.icon-button.notepad-role-clear {
-  border-radius: var(--radius-control);
-  background: var(--color-background);
-  color: var(--color-error);
-  font-size: var(--font-body);
 }

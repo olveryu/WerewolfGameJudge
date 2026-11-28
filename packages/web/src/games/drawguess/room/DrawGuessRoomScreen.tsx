@@ -61,7 +61,7 @@ import { DrawGuessDrawerZeroedNote } from './components/DrawGuessDrawerZeroedNot
 import { DrawGuessGuessComposer } from './components/DrawGuessGuessComposer';
 import { DrawGuessGuessLog } from './components/DrawGuessGuessLog';
 import { DrawGuessGuessPeek } from './components/DrawGuessGuessPeek';
-import { DrawGuessRanking } from './components/DrawGuessRanking';
+import { DrawGuessRankingSheet } from './components/DrawGuessRanking';
 import { DrawGuessReactionEffects } from './components/DrawGuessReactionEffects';
 import { DrawGuessReactionPicker } from './components/DrawGuessReactionPicker';
 import {
@@ -117,6 +117,9 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
   const [information, setInformation] = useState<RoomInformation>(null);
+  const [isRankingOpen, setIsRankingOpen] = useState(false);
+  // The ranking belongs to the in-play stage; leaving it closes the sheet (state adjusted in render).
+  if (isRankingOpen && screen.stageHud === null) setIsRankingOpen(false);
   const openGuide = () => setInformation('guide');
   const openConfiguration = () => setInformation('configuration');
   const settings = createDrawGuessRoomSummarySettings(config);
@@ -167,18 +170,12 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
             ? {
                 kind: 'stage',
                 hud: screen.stageHud,
-                hudAction: (
-                  <DrawGuessRanking
-                    rows={buildDrawGuessScoreboardRows(
-                      screen.viewModel,
-                      screen.effectiveSeat,
-                      (seat) => ({
-                        roundScore: null,
-                        totalScore: screen.viewModel.scores[seat] ?? 0,
-                      }),
-                    )}
-                  />
-                ),
+                hudAction: {
+                  label: '总排名',
+                  icon: 'trophy-outline',
+                  isOpen: isRankingOpen,
+                  onOpen: () => setIsRankingOpen(true),
+                },
                 element: stage,
               }
             : { kind: 'workspace', element: stage }
@@ -203,6 +200,19 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
             onClose={() => setInformation(null)}
           />
           {screen.reviewOverlay}
+          {isRankingOpen && (
+            <DrawGuessRankingSheet
+              rows={buildDrawGuessScoreboardRows(
+                screen.viewModel,
+                screen.effectiveSeat,
+                (seat) => ({
+                  roundScore: null,
+                  totalScore: screen.viewModel.scores[seat] ?? 0,
+                }),
+              )}
+              onClose={() => setIsRankingOpen(false)}
+            />
+          )}
         </>
       }
     />
@@ -396,7 +406,6 @@ function DrawGuessDrawingView({
 
   return (
     <RoomTaskFrame
-      className="drawguess-task-frame"
       maxWidth={isWideLayout ? DRAWGUESS_WIDE_STAGE_MAX_WIDTH : DRAWGUESS_STAGE_MAX_WIDTH}
       header={<DrawGuessSettleRescue screen={screen} />}
       footer={

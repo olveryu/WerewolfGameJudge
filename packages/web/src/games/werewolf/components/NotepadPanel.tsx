@@ -10,7 +10,6 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useState } from 'react';
 
 import { CenterDialog } from '@/components/CenterDialog';
-import { IconButton } from '@/components/IconButton';
 import { FACTION_COLOR_MAP } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import type {
   NotepadSheriffCandidateStatus,
@@ -130,12 +129,15 @@ function RolePickerDialog({
             {tag.shortName}
           </button>
         ))}
-        <IconButton
-          label="清除角色"
-          icon={<IconCloseCircleOutline aria-hidden />}
-          className="notepad-role-clear"
+        <button
+          type="button"
+          className="notepad-role-option"
+          data-clear
+          aria-label="清除角色"
           onClick={() => onSelect(seat, null)}
-        />
+        >
+          <IconCloseCircleOutline aria-hidden />
+        </button>
       </div>
     </CenterDialog>
   );

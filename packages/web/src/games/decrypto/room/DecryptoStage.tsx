@@ -22,34 +22,38 @@ const teamNames = { blue: '蓝队', purple: '紫队' } as const;
 
 function Preparing({ screen }: { readonly screen: DecryptoRoomScreenState }) {
   return (
-    <RoomStagePanel className="decrypto-preparing">
-      <h2>正在准备双方词卡</h2>
-      {screen.isHost && (
-        <Button
-          variant="ghost"
-          onClick={() =>
-            confirmAction({
-              label: '中止本局？',
-              body: '将保留座位和配置并返回准备，本局不计完成。',
-              tone: 'danger',
-              confirmText: '中止本局',
-              onConfirm: () =>
-                void screen.submit(
-                  '中止本局',
-                  {
-                    type: 'decrypto.game.restart',
-                    gameSequence: screen.state.gameSequence,
-                    wasEnded: false,
-                  },
-                  { actionKey: 'restart' },
-                ),
-            })
-          }
-        >
-          中止本局
-        </Button>
-      )}
-    </RoomStagePanel>
+    <div className="decrypto-preparing">
+      <RoomStagePanel>
+        <div className="decrypto-preparing-body">
+          <h2>正在准备双方词卡</h2>
+          {screen.isHost && (
+            <Button
+              variant="ghost"
+              onClick={() =>
+                confirmAction({
+                  label: '中止本局？',
+                  body: '将保留座位和配置并返回准备，本局不计完成。',
+                  tone: 'danger',
+                  confirmText: '中止本局',
+                  onConfirm: () =>
+                    void screen.submit(
+                      '中止本局',
+                      {
+                        type: 'decrypto.game.restart',
+                        gameSequence: screen.state.gameSequence,
+                        wasEnded: false,
+                      },
+                      { actionKey: 'restart' },
+                    ),
+                })
+              }
+            >
+              中止本局
+            </Button>
+          )}
+        </div>
+      </RoomStagePanel>
+    </div>
   );
 }
 
@@ -73,46 +77,48 @@ function StatusCard({
             ? '本轮完成'
             : '平分加赛';
   return (
-    <RoomStagePanel className="decrypto-status">
-      <div className="decrypto-status-title">
-        <strong data-testid={TESTIDS.decryptoRound}>第 {game.round} / 8 轮</strong>
-        <h2 data-testid={TESTIDS.decryptoHeading}>{label}</h2>
-      </div>
-      <div className="decrypto-scores">
-        {DECRYPTO_TEAMS.map((team) => {
-          const seat = game.encryptors?.[team];
-          const encryptor = screen.viewModel.seats.find((player) => player.seat === seat);
-          return (
-            <div key={team} className={`decrypto-score decrypto-score-${team}`}>
-              <strong>
-                {teamNames[team]}
-                {screen.viewModel.myTeam === team ? ' · 我方' : ''}
-              </strong>
-              <span
-                className="decrypto-score-encryptor"
-                data-testid={TESTIDS.decryptoEncryptor(team)}
-                title={
-                  encryptor === undefined
+    <RoomStagePanel>
+      <div className="decrypto-status">
+        <div className="decrypto-status-title">
+          <strong data-testid={TESTIDS.decryptoRound}>第 {game.round} / 8 轮</strong>
+          <h2 data-testid={TESTIDS.decryptoHeading}>{label}</h2>
+        </div>
+        <div className="decrypto-scores">
+          {DECRYPTO_TEAMS.map((team) => {
+            const seat = game.encryptors?.[team];
+            const encryptor = screen.viewModel.seats.find((player) => player.seat === seat);
+            return (
+              <div key={team} className={`decrypto-score decrypto-score-${team}`}>
+                <strong>
+                  {teamNames[team]}
+                  {screen.viewModel.myTeam === team ? ' · 我方' : ''}
+                </strong>
+                <span
+                  className="decrypto-score-encryptor"
+                  data-testid={TESTIDS.decryptoEncryptor(team)}
+                  title={
+                    encryptor === undefined
+                      ? '未指定'
+                      : `${encryptor.seat + 1}号 · ${encryptor.displayName}`
+                  }
+                >
+                  出题：
+                  {encryptor === undefined
                     ? '未指定'
-                    : `${encryptor.seat + 1}号 · ${encryptor.displayName}`
-                }
-              >
-                出题：
-                {encryptor === undefined
-                  ? '未指定'
-                  : `${encryptor.seat + 1}号 · ${encryptor.isBot ? '机器人' : encryptor.displayName}`}
-              </span>
-              <div className="decrypto-score-metrics">
-                <span>
-                  拦截 <b>{game.interceptions[team]}/2</b>
+                    : `${encryptor.seat + 1}号 · ${encryptor.isBot ? '机器人' : encryptor.displayName}`}
                 </span>
-                <span>
-                  误解 <b>{game.miscommunications[team]}/2</b>
-                </span>
+                <div className="decrypto-score-metrics">
+                  <span>
+                    拦截 <b>{game.interceptions[team]}/2</b>
+                  </span>
+                  <span>
+                    误解 <b>{game.miscommunications[team]}/2</b>
+                  </span>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </RoomStagePanel>
   );
@@ -143,13 +149,15 @@ function KeywordCards({
         ))}
       </div>
       {isEncryptor && !screen.isTakeoverLoading && (
-        <RoomStagePanel className="decrypto-private-code" data-team={team}>
-          <h3>本轮密码</h3>
-          <DecryptoCodeDisplay
-            code={game.codes[team]}
-            label="本轮密码"
-            testId={TESTIDS.decryptoPrivateCode}
-          />
+        <RoomStagePanel tone={team === 'purple' ? 'host' : 'primary'}>
+          <div className="decrypto-private-code">
+            <h3>本轮密码</h3>
+            <DecryptoCodeDisplay
+              code={game.codes[team]}
+              label="本轮密码"
+              testId={TESTIDS.decryptoPrivateCode}
+            />
+          </div>
         </RoomStagePanel>
       )}
     </section>
