@@ -1,7 +1,6 @@
 /**
  * Full-screen role reveal: dialog, backdrop, DOM title and the scene overlay.
  */
-import { Portal } from '@ark-ui/react/portal';
 import { Suspense, useLayoutEffect, useRef, useState } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
@@ -59,7 +58,7 @@ export function RoleRevealAnimator({
       closeOnInteractOutside={false}
       closeOnEscape={false}
     >
-      <Portal>
+      <AppDialog.Portal>
         <AppDialog.Content data-testid={`${testIDPrefix}-modal`} style={REVEAL_ROOT_STYLE}>
           <div style={REVEAL_TITLE_ROW_STYLE}>
             <AppDialog.Title style={REVEAL_TITLE_STYLE}>{revealTitle(effectType)}</AppDialog.Title>
@@ -105,7 +104,7 @@ export function RoleRevealAnimator({
             </div>
           )}
         </AppDialog.Content>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }

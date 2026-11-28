@@ -1,7 +1,5 @@
-import '@/components/CenterDialog.css';
 import './RoomDialog.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
@@ -48,10 +46,15 @@ export function RoomDialog({
       closeOnEscape={dismissOnEscape}
       closeOnInteractOutside={false}
     >
-      <Portal>
-        <AppDialog.Backdrop className="center-dialog-backdrop" />
-        <AppDialog.Positioner className="room-dialog-positioner">
-          <AppDialog.Content className="room-dialog" style={{ width }} data-testid={testId}>
+      <AppDialog.Portal>
+        <AppDialog.Backdrop tone="scrim" />
+        <AppDialog.Positioner placement="center-sized">
+          <AppDialog.Content
+            className="room-dialog"
+            motion="pop"
+            style={{ width }}
+            data-testid={testId}
+          >
             <header className="room-dialog-header">
               <div className="room-dialog-heading">
                 {subtitle !== undefined && (
@@ -76,7 +79,7 @@ export function RoomDialog({
             {footer !== null && <footer className="room-dialog-footer">{footer}</footer>}
           </AppDialog.Content>
         </AppDialog.Positioner>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }

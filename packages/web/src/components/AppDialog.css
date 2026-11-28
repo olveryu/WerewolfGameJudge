@@ -1,0 +1,78 @@
+/* What every dialog shares around its surface: backdrop, placement and entrance motion. */
+.app-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+}
+
+.app-dialog-backdrop[data-tone='light'] {
+  background: var(--color-overlay-light);
+}
+
+.app-dialog-backdrop[data-tone='media'] {
+  z-index: var(--layer-fullscreen-backdrop);
+  background: var(--color-text);
+}
+
+.app-dialog-backdrop[data-state='open'] {
+  animation: app-dialog-fade 150ms ease-out;
+}
+
+.app-dialog-backdrop[data-state='closed'] {
+  animation: app-dialog-fade 120ms ease-in reverse;
+}
+
+.app-dialog-positioner {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-dialog-positioner[data-placement='center'] {
+  padding: var(--space-screen-h);
+}
+
+.app-dialog-positioner[data-placement='bottom'] {
+  align-items: flex-end;
+}
+
+.app-dialog-positioner[data-placement='fill'] {
+  z-index: var(--layer-fullscreen);
+  align-items: stretch;
+}
+
+/* Spatial entrances run only for users who have not asked for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .app-dialog-content[data-motion='pop'][data-state='open'] {
+    animation: app-dialog-pop 150ms ease-out;
+  }
+
+  .app-dialog-content[data-motion='pop'][data-state='closed'] {
+    animation: app-dialog-pop 120ms ease-in reverse;
+  }
+
+  .app-dialog-content[data-motion='slide-up'][data-state='open'] {
+    animation: app-dialog-slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@keyframes app-dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes app-dialog-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes app-dialog-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+}

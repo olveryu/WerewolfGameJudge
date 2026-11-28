@@ -7,7 +7,6 @@
  */
 import './AIChatBubble.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
@@ -111,8 +110,8 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
         lazyMount
         unmountOnExit
       >
-        <Portal>
-          <AppDialog.Backdrop className="ai-chat-backdrop" />
+        <AppDialog.Portal>
+          <AppDialog.Backdrop tone="light" />
           <AppDialog.Positioner
             className="ai-chat-positioner"
             style={{ paddingBottom: `calc(${chat.keyboardHeight}px + var(--space-small))` }}
@@ -211,7 +210,7 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
               </div>
             </AppDialog.Content>
           </AppDialog.Positioner>
-        </Portal>
+        </AppDialog.Portal>
       </AppDialog.Root>
     </>
   );

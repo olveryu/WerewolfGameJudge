@@ -9,7 +9,6 @@
 import '@/components/CenterDialog.css';
 import './ShareReviewModal.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useState } from 'react';
 
@@ -68,11 +67,12 @@ export function ShareReviewModal({
         if (!details.open) onClose();
       }}
     >
-      <Portal>
-        <AppDialog.Backdrop className="center-dialog-backdrop" />
-        <AppDialog.Positioner className="center-dialog-positioner">
+      <AppDialog.Portal>
+        <AppDialog.Backdrop tone="scrim" />
+        <AppDialog.Positioner placement="center">
           <AppDialog.Content
             className="center-dialog share-review-dialog"
+            motion="pop"
             data-testid={TESTIDS.shareReviewModal}
           >
             <AppDialog.Title className="center-dialog-title">授权查看本局复盘</AppDialog.Title>
@@ -116,7 +116,7 @@ export function ShareReviewModal({
             </div>
           </AppDialog.Content>
         </AppDialog.Positioner>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }

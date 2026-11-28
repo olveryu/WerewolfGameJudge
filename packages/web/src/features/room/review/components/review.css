@@ -651,11 +651,6 @@
   line-height: var(--line-body);
 }
 
-.review-progress {
-  align-items: center;
-  max-width: calc(var(--size-modal-min-width) + var(--space-xxlarge));
-}
-
 .review-progress-status {
   margin: 0;
   color: var(--color-text);

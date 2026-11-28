@@ -1,6 +1,5 @@
 import './CenterDialog.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
@@ -25,10 +24,20 @@ interface CenterDialogProps {
    * dialog's edges itself (no padding or gaps, profile-card width).
    */
   density?: 'regular' | 'compact' | 'flush';
+  /** `md`: the standard card width. `sm`: a narrow card for a short status (a progress spinner). */
+  size?: 'sm' | 'md';
+  /**
+   * `alertdialog`: a decision or status the user must answer (`AlertDialog`); the backdrop never
+   * dismisses it, only Escape does when `onClose` is given.
+   */
+  role?: 'dialog' | 'alertdialog';
   subtitle?: string;
   testId?: string;
+  positionerTestId?: string;
   titleTestId?: string;
+  subtitleTestId?: string;
   closeButtonLabel?: string;
+  closeButtonTestId?: string;
   children: ReactNode;
   requireConfirmation?: boolean;
 }
@@ -40,11 +49,16 @@ export function CenterDialog({
   title,
   subtitle,
   testId,
+  positionerTestId,
   titleTestId,
+  subtitleTestId,
   closeButtonLabel,
+  closeButtonTestId,
   titleHidden = false,
   beforeTitle,
   density = 'regular',
+  size = 'md',
+  role = 'dialog',
   children,
   requireConfirmation = false,
 }: CenterDialogProps) {
@@ -52,20 +66,23 @@ export function CenterDialog({
   return (
     <AppDialog.Root
       open={open}
+      role={role}
       closeOnEscape={isDismissible}
-      closeOnInteractOutside={isDismissible}
+      closeOnInteractOutside={isDismissible && role === 'dialog'}
       onOpenChange={(details) => {
         if (!details.open && isDismissible) onClose();
       }}
       lazyMount
       unmountOnExit
     >
-      <Portal>
-        <AppDialog.Backdrop className="center-dialog-backdrop" />
-        <AppDialog.Positioner className="center-dialog-positioner">
+      <AppDialog.Portal>
+        <AppDialog.Backdrop tone="scrim" />
+        <AppDialog.Positioner placement="center" data-testid={positionerTestId}>
           <AppDialog.Content
             className="center-dialog"
+            motion="pop"
             data-density={density}
+            data-size={size}
             data-has-close-button={closeButtonLabel !== undefined && onClose !== null}
             data-testid={testId}
           >
@@ -75,6 +92,7 @@ export function CenterDialog({
                   label={closeButtonLabel}
                   icon={<IconClose aria-hidden />}
                   onClick={onClose}
+                  data-testid={closeButtonTestId}
                 />
               </span>
             )}
@@ -88,14 +106,17 @@ export function CenterDialog({
               {title}
             </AppDialog.Title>
             {subtitle && (
-              <AppDialog.Description className="center-dialog-subtitle">
+              <AppDialog.Description
+                className="center-dialog-subtitle"
+                data-testid={subtitleTestId}
+              >
                 {subtitle}
               </AppDialog.Description>
             )}
             {children}
           </AppDialog.Content>
         </AppDialog.Positioner>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }

@@ -4,13 +4,7 @@
  * Every way out continues the game (button, Escape), and the gate is not an alert-queue alert
  * because `useRoomAudioResume` blocks that queue while the gate is due.
  */
-import '@/components/CenterDialog.css';
-
-import { Portal } from '@ark-ui/react/portal';
-
-import { AppDialog } from '@/components/AppDialog';
-import { Button } from '@/components/Button';
-import { TESTIDS } from '@/testids';
+import { ALERT_TEST_IDS, AlertDialog } from '@/components/AlertDialog';
 
 export const ROOM_AUDIO_RESUME_TITLE = '游戏已恢复';
 export const ROOM_AUDIO_RESUME_MESSAGE = '点击下方按钮继续游戏并恢复音频';
@@ -24,40 +18,13 @@ export function RoomAudioResumeDialog({
   readonly onContinue: () => void;
 }) {
   return (
-    <AppDialog.Root
+    <AlertDialog
       open={visible}
-      role="alertdialog"
-      closeOnInteractOutside={false}
-      onOpenChange={(details) => {
-        if (!details.open) onContinue();
-      }}
-      lazyMount
-      unmountOnExit
-    >
-      <Portal>
-        <AppDialog.Backdrop className="center-dialog-backdrop" />
-        <AppDialog.Positioner
-          className="center-dialog-positioner"
-          data-testid={TESTIDS.alertModalOverlay}
-        >
-          <AppDialog.Content className="center-dialog" data-testid={TESTIDS.alertModal}>
-            <AppDialog.Title className="center-dialog-title" data-testid={TESTIDS.alertTitle}>
-              {ROOM_AUDIO_RESUME_TITLE}
-            </AppDialog.Title>
-            <AppDialog.Description
-              className="center-dialog-subtitle"
-              data-testid={TESTIDS.alertMessage}
-            >
-              {ROOM_AUDIO_RESUME_MESSAGE}
-            </AppDialog.Description>
-            <div className="center-dialog-actions">
-              <Button onClick={onContinue} data-testid={TESTIDS.alertButton(0)}>
-                {ROOM_AUDIO_RESUME_BUTTON}
-              </Button>
-            </div>
-          </AppDialog.Content>
-        </AppDialog.Positioner>
-      </Portal>
-    </AppDialog.Root>
+      title={ROOM_AUDIO_RESUME_TITLE}
+      message={ROOM_AUDIO_RESUME_MESSAGE}
+      buttons={[{ text: ROOM_AUDIO_RESUME_BUTTON, onPress: onContinue }]}
+      onDismiss={onContinue}
+      testIds={ALERT_TEST_IDS}
+    />
   );
 }

@@ -1,16 +1,13 @@
 /** Load and present one protected Pictionary drawing without exposing its R2 object key. */
 
-import { Portal } from '@ark-ui/react/portal';
 import { type ReactNode, useEffect, useState } from 'react';
 
-import { AppDialog } from '@/components/AppDialog';
 import { Button } from '@/components/Button';
-import { IconButton } from '@/components/IconButton';
+import { MediaViewer } from '@/components/MediaViewer';
 import { Spinner } from '@/components/Spinner';
 import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
 import { TESTIDS } from '@/testids';
 import { roomScreenLog } from '@/utils/logger';
-import IconClose from '~icons/ion/close';
 import IconExpandOutline from '~icons/ion/expand-outline';
 import IconImageOutline from '~icons/ion/image-outline';
 import IconRefreshOutline from '~icons/ion/refresh-outline';
@@ -88,37 +85,14 @@ export function PictionaryDrawingImage({
             <span className="pictionary-drawing-expand" aria-hidden>
               <IconExpandOutline />
             </span>
-            <AppDialog.Root
+            <MediaViewer
               open={isFullscreenOpen}
-              onOpenChange={(details) => setIsFullscreenOpen(details.open)}
-              lazyMount
-              unmountOnExit
-            >
-              <Portal>
-                <AppDialog.Backdrop className="pictionary-fullscreen-backdrop" />
-                <AppDialog.Positioner className="pictionary-fullscreen-positioner">
-                  <AppDialog.Content
-                    className="pictionary-fullscreen"
-                    aria-label={`${label}全屏预览`}
-                  >
-                    <img
-                      src={imageState.uri}
-                      alt={`${label}全屏预览`}
-                      data-testid={TESTIDS.pictionaryDrawingFullscreenPreview}
-                    />
-                    <span className="pictionary-fullscreen-close">
-                      <IconButton
-                        variant="on-media"
-                        label="关闭"
-                        icon={<IconClose aria-hidden />}
-                        onClick={() => setIsFullscreenOpen(false)}
-                        data-testid={TESTIDS.pictionaryDrawingFullscreenCloseButton}
-                      />
-                    </span>
-                  </AppDialog.Content>
-                </AppDialog.Positioner>
-              </Portal>
-            </AppDialog.Root>
+              onClose={() => setIsFullscreenOpen(false)}
+              src={imageState.uri}
+              alt={`${label}全屏预览`}
+              imageTestId={TESTIDS.pictionaryDrawingFullscreenPreview}
+              closeButtonTestId={TESTIDS.pictionaryDrawingFullscreenCloseButton}
+            />
           </>
         ) : imageState.kind === 'loading' ? (
           <div className="pictionary-drawing-status">

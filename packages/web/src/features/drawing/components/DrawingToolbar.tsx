@@ -9,11 +9,11 @@
 import './DrawingToolbar.css';
 
 import { ColorPicker, parseColor } from '@ark-ui/react/color-picker';
-import { Portal } from '@ark-ui/react/portal';
 import type { ComponentType, CSSProperties, SVGProps } from 'react';
 import { useRef, useState } from 'react';
 
 import { AppDialog } from '@/components/AppDialog';
+import { BottomSheet } from '@/components/BottomSheet';
 import { TESTIDS } from '@/testids';
 import IconAdd from '~icons/ion/add';
 import IconArrowBack from '~icons/ion/arrow-back';
@@ -215,6 +215,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
   }
   const selectedSwatch = props.palette.find((swatch) => sameColor(swatch.value, props.color));
 
+  const sheetTitle = activePanel === 'tool' ? '绘画工具' : '画笔粗细';
   const closePanel = () => {
     setActivePanel(null);
     setIsColorPickerVisible(false);
@@ -312,8 +313,8 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         lazyMount
         unmountOnExit
       >
-        <Portal>
-          <AppDialog.Backdrop className="drawing-toolbar-backdrop" />
+        <AppDialog.Portal>
+          <AppDialog.Backdrop tone="scrim" />
           <AppDialog.Positioner className="drawing-toolbar-positioner">
             <AppDialog.Content
               className="drawing-color-panel"
@@ -400,90 +401,78 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
               )}
             </AppDialog.Content>
           </AppDialog.Positioner>
-        </Portal>
+        </AppDialog.Portal>
       </AppDialog.Root>
 
-      <AppDialog.Root
-        open={isPanelOpen && activePanel !== 'color'}
-        onOpenChange={(details) => {
-          if (!details.open) closePanel();
-        }}
-        lazyMount
-        unmountOnExit
-      >
-        <Portal>
-          <AppDialog.Backdrop className="drawing-toolbar-backdrop" />
-          <AppDialog.Positioner className="drawing-toolbar-positioner drawing-toolbar-sheet-positioner">
-            <AppDialog.Content className="drawing-toolbar-sheet">
-              <div className="drawing-toolbar-panel-header">
-                <AppDialog.Title className="drawing-toolbar-panel-title">
-                  {activePanel === 'tool' ? '绘画工具' : '画笔粗细'}
-                </AppDialog.Title>
-                <PanelCloseButton onClick={closePanel} />
-              </div>
-              {activePanel === 'tool' && (
-                <div className="drawing-toolbar-option-grid">
-                  {TOOL_OPTIONS.map((option) => (
-                    <ToolButton
-                      key={option.tool}
-                      label={option.label}
-                      caption={option.label}
-                      icon={option.icon}
-                      isSelected={props.tool === option.tool}
-                      disabled={disabled}
-                      testId={TESTIDS.drawingToolbarToolOption(option.tool)}
-                      onClick={() => {
-                        props.onToolChange(option.tool);
-                        closePanel();
-                      }}
-                    />
-                  ))}
+      {isPanelOpen && activePanel !== 'color' && (
+        <BottomSheet title={sheetTitle} onClose={closePanel}>
+          <div className="drawing-toolbar-sheet">
+            <div className="drawing-toolbar-panel-header">
+              <h2 className="drawing-toolbar-panel-title">{sheetTitle}</h2>
+              <PanelCloseButton onClick={closePanel} />
+            </div>
+            {activePanel === 'tool' && (
+              <div className="drawing-toolbar-option-grid">
+                {TOOL_OPTIONS.map((option) => (
                   <ToolButton
-                    label="清空画布"
-                    caption="清空"
-                    icon={IconTrashOutline}
-                    disabled={disabled || !props.canUndo}
-                    testId={TESTIDS.drawingToolbarClearButton}
+                    key={option.tool}
+                    label={option.label}
+                    caption={option.label}
+                    icon={option.icon}
+                    isSelected={props.tool === option.tool}
+                    disabled={disabled}
+                    testId={TESTIDS.drawingToolbarToolOption(option.tool)}
                     onClick={() => {
+                      props.onToolChange(option.tool);
                       closePanel();
-                      props.onClear();
                     }}
                   />
-                </div>
-              )}
-              {activePanel === 'width' && (
-                <div className="drawing-toolbar-option-grid">
-                  {props.widths.map((width) => (
-                    <button
-                      key={width}
-                      type="button"
-                      className="drawing-width-option"
-                      aria-label={`笔宽 ${width}`}
-                      aria-pressed={props.strokeWidth === width}
-                      data-testid={TESTIDS.drawingToolbarWidthOption(width)}
-                      disabled={disabled}
-                      onClick={() => {
-                        props.onWidthChange(width);
-                        closePanel();
+                ))}
+                <ToolButton
+                  label="清空画布"
+                  caption="清空"
+                  icon={IconTrashOutline}
+                  disabled={disabled || !props.canUndo}
+                  testId={TESTIDS.drawingToolbarClearButton}
+                  onClick={() => {
+                    closePanel();
+                    props.onClear();
+                  }}
+                />
+              </div>
+            )}
+            {activePanel === 'width' && (
+              <div className="drawing-toolbar-option-grid">
+                {props.widths.map((width) => (
+                  <button
+                    key={width}
+                    type="button"
+                    className="drawing-width-option"
+                    aria-label={`笔宽 ${width}`}
+                    aria-pressed={props.strokeWidth === width}
+                    data-testid={TESTIDS.drawingToolbarWidthOption(width)}
+                    disabled={disabled}
+                    onClick={() => {
+                      props.onWidthChange(width);
+                      closePanel();
+                    }}
+                  >
+                    <span
+                      className="drawing-width-dot"
+                      style={{
+                        width,
+                        height: width,
+                        backgroundColor:
+                          props.tool === 'eraser' ? 'var(--color-text-muted)' : props.color,
                       }}
-                    >
-                      <span
-                        className="drawing-width-dot"
-                        style={{
-                          width,
-                          height: width,
-                          backgroundColor:
-                            props.tool === 'eraser' ? 'var(--color-text-muted)' : props.color,
-                        }}
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </AppDialog.Content>
-          </AppDialog.Positioner>
-        </Portal>
-      </AppDialog.Root>
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 }

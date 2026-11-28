@@ -113,6 +113,8 @@ const SHAPING = ['/radius$/', 'corner-shape', 'clip-path', '/^mask/', 'all'];
  * exclude these classes inside `:not()`.
  */
 const SHARED_COMPONENT_CLASSES = {
+  'packages/web/src/components/AlertDialog.css': ['alert-dialog[\\w-]*'],
+  'packages/web/src/components/AppDialog.css': ['app-dialog[\\w-]*'],
   'packages/web/src/components/BottomSheet.css': ['bottom-sheet[\\w-]*'],
   'packages/web/src/components/Button.css': ['button', 'icon-button'],
   'packages/web/src/components/CenterDialog.css': ['center-dialog[\\w-]*'],
@@ -131,6 +133,7 @@ const SHARED_COMPONENT_CLASSES = {
   'packages/web/src/components/HeaderSurface.css': ['page-header-surface'],
   'packages/web/src/components/IndeterminateProgressBar.css': ['indeterminate-progress[\\w-]*'],
   'packages/web/src/components/LoadingScreen.css': ['loading-screen[\\w-]*'],
+  'packages/web/src/components/MediaViewer.css': ['media-viewer[\\w-]*'],
   'packages/web/src/components/NumPad.css': ['numpad[\\w-]*'],
   'packages/web/src/components/PaperboardPanel.css': ['paperboard-panel'],
   'packages/web/src/components/ScreenHeader.css': ['screen-header[\\w-]*'],

@@ -1,0 +1,24 @@
+.media-viewer {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: max(var(--space-medium), env(safe-area-inset-top)) var(--space-medium)
+    max(var(--space-medium), env(safe-area-inset-bottom));
+  outline: none;
+}
+
+.media-viewer img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.media-viewer-close {
+  position: absolute;
+  top: max(var(--space-medium), env(safe-area-inset-top));
+  right: var(--space-medium);
+  display: flex;
+}

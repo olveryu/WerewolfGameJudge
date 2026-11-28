@@ -2,7 +2,6 @@
 import '@/components/CenterDialog.css';
 import './MvpSelectionModal.css';
 
-import { Portal } from '@ark-ui/react/portal';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useState } from 'react';
 
@@ -44,9 +43,9 @@ export function MvpSelectionModal({
         if (!details.open) onClose();
       }}
     >
-      <Portal>
-        <AppDialog.Backdrop className="center-dialog-backdrop" />
-        <AppDialog.Positioner className="center-dialog-positioner">
+      <AppDialog.Portal>
+        <AppDialog.Backdrop tone="scrim" />
+        <AppDialog.Positioner placement="center">
           <AppDialog.Content className="mvp-dialog" data-testid={TESTIDS.mvpSelectionModal}>
             <header className="mvp-header">
               <IconTrophyOutline className="mvp-header-icon" aria-hidden />
@@ -119,7 +118,7 @@ export function MvpSelectionModal({
             </footer>
           </AppDialog.Content>
         </AppDialog.Positioner>
-      </Portal>
+      </AppDialog.Portal>
     </AppDialog.Root>
   );
 }
